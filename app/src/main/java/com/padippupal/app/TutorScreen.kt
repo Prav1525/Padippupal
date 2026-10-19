@@ -25,6 +25,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -236,7 +238,7 @@ internal fun TutorScreen(
         )
     }
     var input by remember { mutableStateOf("") }
-    var subject by remember { mutableStateOf("Science") }
+    var subject by remember { mutableStateOf("General") }
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var speakReplies by remember { mutableStateOf(true) }
@@ -552,6 +554,21 @@ internal fun TutorScreen(
                 }
                 if (listening) CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                 else Icon(Icons.Default.Mic, contentDescription = "Voice input available", tint = Color.White, modifier = Modifier.size(26.dp))
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("Subject (auto-detects from your question)", color = TutorGrey, fontSize = 12.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                listOf("General", "Mathematics", "Science", "English", "Social Science", "Computer Science").forEach { option ->
+                    FilterChip(
+                        selected = subject == option,
+                        onClick = { subject = option },
+                        label = { Text(option, fontSize = 11.sp) }
+                    )
+                }
             }
         }
         Row(

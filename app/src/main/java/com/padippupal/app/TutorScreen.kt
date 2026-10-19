@@ -1,6 +1,9 @@
 package com.padippupal.app
 
 import android.speech.tts.TextToSpeech
+import android.media.MediaPlayer
+import android.util.Base64
+import java.io.File
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.background
@@ -76,6 +79,7 @@ internal fun TutorScreen(
     var selectedLanguage by remember { mutableStateOf(appLanguage) }
     var lastSources by remember { mutableStateOf<List<TutorSource>>(emptyList()) }
     val ttsState = remember { mutableStateOf<TextToSpeech?>(null) }
+    val audioPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
 
     DisposableEffect(context) {
         val engine = TextToSpeech(context) { result ->
@@ -86,10 +90,12 @@ internal fun TutorScreen(
             engine.stop()
             engine.shutdown()
             ttsState.value = null
+            audioPlayer.value?.release()
+            audioPlayer.value = null
         }
     }
 
-    fun speak(text: String) {
+    fun speakWithDeviceTts(text: String) {
         val engine = ttsState.value ?: return
         val locale = when (selectedLanguage) {
             "Tanglish" -> Locale("en", "IN")
@@ -99,9 +105,9 @@ internal fun TutorScreen(
         val availability = engine.isLanguageAvailable(locale)
         if (availability < TextToSpeech.LANG_AVAILABLE) {
             status = if (selectedLanguage == "தமிழ்") {
-                "Tamil voice isn't installed on this phone yet. Install a Tamil voice in Android text-to-speech settings."
+                "Natural voice unavailable and Tamil voice isn't installed on this phone."
             } else {
-                "An Indian English voice isn't available. Check Android text-to-speech settings."
+                "Natural voice unavailable and an Indian English voice isn't installed."
             }
             return
         }
@@ -109,6 +115,78 @@ internal fun TutorScreen(
         engine.setSpeechRate(0.88f)
         engine.setPitch(1.02f)
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
+    }
+
+    fun speak(text: String) {
+        val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+        if (!base.startsWith("https://")) {
+            speakWithDeviceTts(text)
+            return
+        }
+        tutorExecutor.execute {
+            val audioFile = File(context.cacheDir, "padippupal-voice-${System.nanoTime()}.wav")
+            val outcome = runCatching {
+                val requestBody = JSONObject()
+                    .put("text", text.take(4500))
+                    .put("app_language", selectedLanguage)
+                val connection = URL("$base/tutor/speech").openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 8000
+                connection.readTimeout = 50000
+                connection.setRequestProperty("Accept", "application/json")
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                connection.doOutput = true
+                val responseText: String
+                try {
+                    connection.outputStream.use {
+                        it.write(requestBody.toString().toByteArray(StandardCharsets.UTF_8))
+                    }
+                    val code = connection.responseCode
+                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                    responseText = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+                    if (code !in 200..299) throw IllegalStateException("Natural voice unavailable")
+                } finally {
+                    connection.disconnect()
+                }
+                val audio = JSONObject(responseText).getString("audio_base64")
+                audioFile.writeBytes(Base64.decode(audio, Base64.DEFAULT))
+                require(audioFile.length() > 44) { "Empty audio response" }
+            }
+            tutorMainHandler.post {
+                outcome.fold(
+                    onSuccess = {
+                        runCatching {
+                            audioPlayer.value?.release()
+                            val player = MediaPlayer()
+                            audioPlayer.value = player
+                            player.setDataSource(audioFile.absolutePath)
+                            player.setOnCompletionListener {
+                                it.release()
+                                if (audioPlayer.value === it) audioPlayer.value = null
+                                audioFile.delete()
+                            }
+                            player.setOnErrorListener { failedPlayer, _, _ ->
+                                failedPlayer.release()
+                                if (audioPlayer.value === failedPlayer) audioPlayer.value = null
+                                audioFile.delete()
+                                speakWithDeviceTts(text)
+                                true
+                            }
+                            player.prepare()
+                            player.start()
+                            status = "Speaking with Gemini natural voice."
+                        }.onFailure {
+                            audioFile.delete()
+                            speakWithDeviceTts(text)
+                        }
+                    },
+                    onFailure = {
+                        audioFile.delete()
+                        speakWithDeviceTts(text)
+                    }
+                )
+            }
+        }
     }
 
     fun sendMessage() {

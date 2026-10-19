@@ -1,0 +1,399 @@
+"""PadippuPal background curriculum catalog and retrieval API.
+
+This service stores approved curriculum text, indexes it into searchable chunks,
+and retrieves only material matching a learner's curriculum profile. It does not
+train an AI model or fetch arbitrary URLs. Run behind HTTPS in production.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import sqlite3
+import threading
+import time
+import uuid
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any
+
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, UploadFile
+from pydantic import BaseModel, Field
+
+DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
+ADMIN_TOKEN = os.getenv("PADIPPUPAL_ADMIN_TOKEN", "")
+CHUNK_WORDS = 220
+CHUNK_OVERLAP = 35
+POLL_SECONDS = 1.0
+
+app = FastAPI(
+    title="PadippuPal Curriculum Engine",
+    version="0.1.0",
+    description="Background ingestion and profile-filtered retrieval for approved curriculum sources.",
+)
+_worker: threading.Thread | None = None
+_stop = threading.Event()
+
+
+def connect() -> sqlite3.Connection:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
+    return conn
+
+
+@contextmanager
+def db() -> Any:
+    conn = connect()
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def init_db() -> None:
+    with db() as conn:
+        conn.executescript("""
+        CREATE TABLE IF NOT EXISTS sources (
+            id TEXT PRIMARY KEY,
+            board TEXT NOT NULL,
+            academic_year TEXT NOT NULL,
+            class_level INTEGER NOT NULL,
+            subject TEXT NOT NULL,
+            medium TEXT NOT NULL,
+            term TEXT NOT NULL DEFAULT '',
+            edition TEXT NOT NULL,
+            title TEXT NOT NULL,
+            source_url TEXT NOT NULL DEFAULT '',
+            license_note TEXT NOT NULL,
+            sha256 TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'processing',
+            page_count INTEGER,
+            created_at REAL NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS source_dedupe
+          ON sources(sha256, board, academic_year, class_level, subject, medium, edition);
+        CREATE TABLE IF NOT EXISTS chunks (
+            id TEXT PRIMARY KEY,
+            source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+            chunk_no INTEGER NOT NULL,
+            chapter TEXT NOT NULL DEFAULT '',
+            page_start INTEGER,
+            page_end INTEGER,
+            text TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS chunks_source ON chunks(source_id, chunk_no);
+        CREATE TABLE IF NOT EXISTS jobs (
+            id TEXT PRIMARY KEY,
+            source_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            error TEXT NOT NULL DEFAULT '',
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL
+        );
+        """)
+
+
+class SourceMetadata(BaseModel):
+    board: str = Field(min_length=2, max_length=80, examples=["CBSE", "Tamil Nadu State Board"])
+    academic_year: str = Field(min_length=4, max_length=20, examples=["2026-27"])
+    class_level: int = Field(ge=1, le=12)
+    subject: str = Field(min_length=1, max_length=100)
+    medium: str = Field(min_length=2, max_length=40, examples=["English", "Tamil"])
+    term: str = Field(default="", max_length=80)
+    edition: str = Field(min_length=1, max_length=100)
+    title: str = Field(min_length=1, max_length=240)
+    source_url: str = Field(default="", max_length=1000)
+    license_note: str = Field(min_length=3, max_length=1000, description="Record permission/provenance before ingestion.")
+
+
+class IngestTextRequest(SourceMetadata):
+    text: str = Field(min_length=30, max_length=2_000_000)
+
+
+class SearchRequest(BaseModel):
+    board: str = Field(min_length=2, max_length=80)
+    class_level: int = Field(ge=1, le=12)
+    subject: str = Field(min_length=1, max_length=100)
+    medium: str = Field(min_length=2, max_length=40)
+    query: str = Field(min_length=2, max_length=1000)
+    academic_year: str | None = None
+    edition: str | None = None
+    limit: int = Field(default=5, ge=1, le=10)
+
+
+def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
+    # Fail closed in production. For local development, set a token before exposing
+    # the server to any network.
+    if not ADMIN_TOKEN:
+        if os.getenv("PADIPPUPAL_ALLOW_UNAUTHENTICATED_ADMIN", "0") == "1":
+            return
+        raise HTTPException(status_code=503, detail="Admin ingestion is disabled until PADIPPUPAL_ADMIN_TOKEN is configured.")
+    if not x_admin_token or not __import__("hmac").compare_digest(x_admin_token, ADMIN_TOKEN):
+        raise HTTPException(status_code=401, detail="Invalid admin token")
+
+
+def normalize(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def split_chunks(text: str) -> list[str]:
+    words = normalize(text).split()
+    if not words:
+        return []
+    chunks = []
+    step = max(1, CHUNK_WORDS - CHUNK_OVERLAP)
+    for start in range(0, len(words), step):
+        part = words[start:start + CHUNK_WORDS]
+        if part:
+            chunks.append(" ".join(part))
+        if start + CHUNK_WORDS >= len(words):
+            break
+    return chunks
+
+
+def save_job(source_id: str) -> str:
+    job_id = str(uuid.uuid4())
+    now = time.time()
+    with db() as conn:
+        conn.execute(
+            "INSERT INTO jobs(id, source_id, status, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?)",
+            (job_id, source_id, now, now),
+        )
+    return job_id
+
+
+def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_count: int | None = None) -> dict[str, str]:
+    source_id = str(uuid.uuid4())
+    now = time.time()
+    with db() as conn:
+        existing = conn.execute(
+            """SELECT id, status FROM sources WHERE sha256=? AND board=? AND academic_year=?
+               AND class_level=? AND subject=? AND medium=? AND edition=?""",
+            (content_hash, metadata.board, metadata.academic_year, metadata.class_level,
+             metadata.subject, metadata.medium, metadata.edition),
+        ).fetchone()
+        if existing:
+            job = conn.execute("SELECT id FROM jobs WHERE source_id=? ORDER BY created_at DESC LIMIT 1",
+                               (existing["id"],)).fetchone()
+            return {"source_id": existing["id"], "job_id": job["id"] if job else "", "status": existing["status"], "deduplicated": "true"}
+        conn.execute(
+            """INSERT INTO sources(id, board, academic_year, class_level, subject, medium, term,
+               edition, title, source_url, license_note, sha256, status, page_count, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing', ?, ?)""",
+            (source_id, metadata.board, metadata.academic_year, metadata.class_level, metadata.subject,
+             metadata.medium, metadata.term, metadata.edition, metadata.title, metadata.source_url,
+             metadata.license_note, content_hash, page_count, now),
+        )
+        conn.execute(
+            "INSERT INTO jobs(id, source_id, status, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?)",
+            (str(uuid.uuid4()), source_id, now, now),
+        )
+        job = conn.execute("SELECT id FROM jobs WHERE source_id=? ORDER BY created_at DESC LIMIT 1",
+                           (source_id,)).fetchone()
+    # Text is intentionally staged in a sidecar in-memory registry only for this
+    # prototype; durable job/source state remains in SQLite. A process restart
+    # before processing marks the job retryable but requires re-submitting content.
+    _pending_text[source_id] = (text, page_count)
+    return {"source_id": source_id, "job_id": job["id"], "status": "queued", "deduplicated": "false"}
+
+
+_pending_text: dict[str, tuple[str, int | None]] = {}
+_pending_lock = threading.Lock()
+
+
+def process_one_job() -> bool:
+    with db() as conn:
+        job = conn.execute("SELECT * FROM jobs WHERE status='queued' ORDER BY created_at LIMIT 1").fetchone()
+        if not job:
+            return False
+        source_id = job["source_id"]
+        staged = _pending_text.get(source_id)
+        if staged is None:
+            conn.execute("UPDATE jobs SET status='retryable', error=?, updated_at=? WHERE id=?",
+                         ("Content must be re-submitted after a worker restart.", time.time(), job["id"]))
+            conn.execute("UPDATE sources SET status='needs_resubmit' WHERE id=?", (source_id,))
+            return True
+        text, _page_count = staged
+        conn.execute("UPDATE jobs SET status='running', attempts=attempts+1, updated_at=? WHERE id=?",
+                     (time.time(), job["id"]))
+    try:
+        chunks = split_chunks(text)
+        if not chunks:
+            raise ValueError("No extractable text found.")
+        with db() as conn:
+            source = conn.execute("SELECT * FROM sources WHERE id=?", (source_id,)).fetchone()
+            # Replace only this source's chunks; no active/previous source is
+            # deleted as part of an unrelated ingestion.
+            conn.execute("DELETE FROM chunks WHERE source_id=?", (source_id,))
+            for i, chunk in enumerate(chunks):
+                conn.execute(
+                    "INSERT INTO chunks(id, source_id, chunk_no, chapter, page_start, page_end, text) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (str(uuid.uuid4()), source_id, i, "", None, None, chunk),
+                )
+            conn.execute("UPDATE sources SET status='ready' WHERE id=?", (source_id,))
+            conn.execute("UPDATE jobs SET status='succeeded', error='', updated_at=? WHERE id=?",
+                         (time.time(), job["id"]))
+        _pending_text.pop(source_id, None)
+    except Exception as exc:
+        with db() as conn:
+            conn.execute("UPDATE sources SET status='failed' WHERE id=?", (source_id,))
+            conn.execute("UPDATE jobs SET status='failed', error=?, updated_at=? WHERE id=?",
+                         (str(exc)[:500], time.time(), job["id"]))
+    return True
+
+
+def worker_loop() -> None:
+    while not _stop.is_set():
+        try:
+            did_work = process_one_job()
+        except Exception:
+            did_work = False
+        if not did_work:
+            _stop.wait(POLL_SECONDS)
+
+
+@app.on_event("startup")
+def startup() -> None:
+    global _worker
+    init_db()
+    _stop.clear()
+    if _worker is None or not _worker.is_alive():
+        _worker = threading.Thread(target=worker_loop, name="curriculum-indexer", daemon=True)
+        _worker.start()
+
+
+@app.on_event("shutdown")
+def shutdown() -> None:
+    _stop.set()
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok", "service": "padippupal-curriculum-engine"}
+
+
+@app.post("/admin/ingest-text", dependencies=[Depends(require_admin)], status_code=202)
+def ingest_text(payload: IngestTextRequest) -> dict[str, str]:
+    text = payload.text
+    metadata = SourceMetadata(**payload.model_dump(exclude={"text"}))
+    content_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return enqueue_source(metadata, text, content_hash)
+
+
+@app.post("/admin/ingest-pdf", dependencies=[Depends(require_admin)], status_code=202)
+async def ingest_pdf(
+    metadata_json: str,
+    file: UploadFile = File(...),
+) -> dict[str, str]:
+    """Admin-only upload for an already approved PDF; no arbitrary URL fetching."""
+    from pypdf import PdfReader
+    from io import BytesIO
+
+    raw = await file.read()
+    if len(raw) > 40 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="PDF exceeds 40 MB limit.")
+    if not raw.startswith(b"%PDF"):
+        raise HTTPException(status_code=415, detail="Upload must be a PDF.")
+    try:
+        metadata = SourceMetadata(**json.loads(metadata_json))
+        reader = PdfReader(BytesIO(raw), strict=True)
+        pages = []
+        for index, page in enumerate(reader.pages, start=1):
+            page_text = normalize(page.extract_text() or "")
+            if page_text:
+                pages.append(f"[Page {index}] {page_text}")
+        text = "\n\n".join(pages)
+        if len(text) < 30:
+            raise HTTPException(status_code=422, detail="No usable text extracted. Scanned-PDF OCR is not enabled yet.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Could not process PDF or metadata: {exc}") from exc
+    return enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
+
+
+@app.get("/admin/jobs/{job_id}", dependencies=[Depends(require_admin)])
+def job_status(job_id: str) -> dict[str, Any]:
+    with db() as conn:
+        row = conn.execute(
+            """SELECT j.id, j.source_id, j.status, j.attempts, j.error, j.created_at, j.updated_at,
+                      s.title, s.status AS source_status
+               FROM jobs j JOIN sources s ON s.id=j.source_id WHERE j.id=?""",
+            (job_id,),
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Job not found.")
+    return dict(row)
+
+
+@app.get("/catalog")
+def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str, Any]:
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT id, board, academic_year, class_level, subject, medium, term, edition,
+                      title, source_url, status, page_count
+               FROM sources WHERE board=? COLLATE NOCASE AND class_level=?
+                 AND subject=? COLLATE NOCASE AND medium=? COLLATE NOCASE AND status='ready'
+               ORDER BY academic_year DESC, title""",
+            (board, class_level, subject, medium),
+        ).fetchall()
+    return {"items": [dict(row) for row in rows]}
+
+
+def terms(value: str) -> list[str]:
+    return [t for t in re.findall(r"[\w-]+", value.casefold()) if len(t) > 1]
+
+
+@app.post("/retrieve")
+def retrieve(payload: SearchRequest) -> dict[str, Any]:
+    query_terms = set(terms(payload.query))
+    if not query_terms:
+        return {"matches": [], "warning": "Enter a more specific question."}
+    sql = """SELECT c.id AS chunk_id, c.chunk_no, c.page_start, c.page_end, c.text,
+                    s.id AS source_id, s.board, s.academic_year, s.class_level, s.subject,
+                    s.medium, s.term, s.edition, s.title, s.source_url
+             FROM chunks c JOIN sources s ON s.id=c.source_id
+             WHERE s.status='ready' AND s.board=? COLLATE NOCASE AND s.class_level=?
+               AND s.subject=? COLLATE NOCASE AND s.medium=? COLLATE NOCASE"""
+    args: list[Any] = [payload.board, payload.class_level, payload.subject, payload.medium]
+    if payload.academic_year:
+        sql += " AND s.academic_year=?"
+        args.append(payload.academic_year)
+    if payload.edition:
+        sql += " AND s.edition=? COLLATE NOCASE"
+        args.append(payload.edition)
+    with db() as conn:
+        rows = conn.execute(sql, args).fetchall()
+    scored = []
+    for row in rows:
+        chunk_terms = terms(row["text"])
+        overlap = sum(1 for term in chunk_terms if term in query_terms)
+        if overlap:
+            score = overlap / max(1, len(set(chunk_terms)) ** 0.5)
+            scored.append((score, row))
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    matches = []
+    for score, row in scored[:payload.limit]:
+        matches.append({
+            "score": round(score, 4),
+            "text": row["text"],
+            "source": {
+                "source_id": row["source_id"], "title": row["title"],
+                "board": row["board"], "academic_year": row["academic_year"],
+                "class_level": row["class_level"], "subject": row["subject"],
+                "medium": row["medium"], "term": row["term"], "edition": row["edition"],
+                "url": row["source_url"], "page_start": row["page_start"],
+                "page_end": row["page_end"], "chunk": row["chunk_no"],
+            },
+        })
+    return {
+        "matches": matches,
+        "warning": None if matches else "No exact curriculum match found. Do not present a general answer as official textbook content.",
+        "retrieval": "keyword-baseline",
+    }

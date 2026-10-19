@@ -177,7 +177,8 @@ def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
     # the server to any network.
     if not ADMIN_TOKEN:
         if os.getenv("PADIPPUPAL_ALLOW_UNAUTHENTICATED_ADMIN", "0") == "1":
-            return        raise HTTPException(status_code=503, detail="Admin ingestion is disabled until PADIPPUPAL_ADMIN_TOKEN is configured.")
+            return
+        raise HTTPException(status_code=503, detail="Admin ingestion is disabled until PADIPPUPAL_ADMIN_TOKEN is configured.")
     if not x_admin_token or not __import__("hmac").compare_digest(x_admin_token, ADMIN_TOKEN):
         raise HTTPException(status_code=401, detail="Invalid admin token")
 
@@ -356,7 +357,8 @@ def load_source_registry() -> dict[str, Any]:
 @app.get("/sources/registry")
 def source_registry() -> dict[str, Any]:
     """Public transparency endpoint; reports source verification separately from reuse approval."""
-    registry = load_source_registry()    return {
+    registry = load_source_registry()
+    return {
         "registry_version": registry.get("registry_version"),
         "reviewed_on": registry.get("reviewed_on"),
         "policy": registry.get("policy"),
@@ -537,6 +539,7 @@ def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str
         ).fetchall()
     return {"items": [dict(row) for row in rows]}
 
+
 def terms(value: str) -> list[str]:
     return [t for t in re.findall(r"[\w-]+", value.casefold()) if len(t) > 1]
 
@@ -697,7 +700,7 @@ Your teaching behaviour:
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
     if gemini_key:
         gemini_model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
-        system_text = "\\n\\n".join(item["content"] for item in messages if item.get("role") == "system")
+        system_text = "\n\n".join(item["content"] for item in messages if item.get("role") == "system")
         gemini_contents = [
             {
                 "role": "user" if item["role"] == "user" else "model",
@@ -776,7 +779,8 @@ Your teaching behaviour:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:            result = json.loads(response.read().decode("utf-8"))
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.loads(response.read().decode("utf-8"))
         answer = result["choices"][0]["message"]["content"].strip()
         if not answer:
             raise ValueError("Empty model response")
@@ -934,3 +938,4 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
     except (urllib.error.URLError, TimeoutError, KeyError, IndexError, StopIteration,
             ValueError, TypeError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=502, detail="Natural voice generation failed. Please try again.") from exc
+

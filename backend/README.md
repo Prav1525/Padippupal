@@ -57,3 +57,13 @@ Example retrieval request:
 - Do not treat content as an official curriculum source just because it has been ingested; the source approval workflow is still an operational responsibility.
 
 This is a working starter engine, not a production deployment. The Android app accepts an HTTPS endpoint in its curriculum screen or through the `PADIPPUPAL_API_BASE_URL` Gradle property. No live endpoint is supplied by default, and the service must be deployed and populated with approved documents before live retrieval can work. It does not train the model; it retrieves relevant approved passages for later use by the tutoring model.
+
+
+## Gentle AI tutor
+
+- POST /tutor/chat — child-friendly, class-aware teaching through Groq; accepts board, class, subject, textbook medium, preferred explanation language (English, Tanglish, or Tamil), current question and up to 8 recent turns.
+- The endpoint retrieves up to four keyword-matched passages for the exact board/class/subject/medium before generating an answer. If no passage matches, it can explain general concepts but must not claim the answer came from the official textbook.
+- Configure GROQ_API_KEY only in the Render service environment; never put it in Android, GitHub, or the APK.
+- Optional PADIPPUPAL_GROQ_MODEL overrides the default openai/gpt-oss-20b model ID. Check the provider's current model catalogue and account limits before changing it.
+- The Android tutor uses the phone's installed Android text-to-speech engine for spoken replies. English, Tanglish (Indian English voice) and Tamil voice availability/quality depends on installed voices. No cloud TTS credentials are bundled into the app.
+- API calls are not stored as a student transcript by this endpoint. The last few turns are sent with each request to keep the conversation coherent.

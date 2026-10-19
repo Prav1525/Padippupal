@@ -1,5 +1,11 @@
 package com.padippupal.app
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.RecognitionListener
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.media.MediaPlayer
@@ -7,6 +13,8 @@ import android.util.Base64
 import java.io.File
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +25,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.VolumeOff
@@ -78,6 +88,78 @@ internal fun TutorScreen(
     var speakReplies by remember { mutableStateOf(true) }
     var speechActive by remember { mutableStateOf(false) }
     var voiceReady by remember { mutableStateOf(false) }
+    var listening by remember { mutableStateOf(false) }
+    val speechRecognizer = remember(context) {
+        if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null
+    }
+
+    fun startVoiceInput() {
+        val recognizer = speechRecognizer
+        if (recognizer == null) {
+            status = "Voice input isn't available on this phone. You can type your question instead."
+            return
+        }
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, when (selectedLanguage) {
+                "தமிழ்" -> "ta-IN"
+                "Tanglish" -> "en-IN"
+                else -> "en-IN"
+            })
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Ask your tutor a question")
+        }
+        runCatching {
+            listening = true
+            status = "Listening… speak your question."
+            recognizer.startListening(intent)
+        }.onFailure {
+            listening = false
+            status = "Couldn't start voice input. Please try again or type your question."
+        }
+    }
+
+    val voicePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startVoiceInput()
+        else status = "Microphone permission is needed for voice questions. You can still type."
+    }
+
+    DisposableEffect(speechRecognizer) {
+        speechRecognizer?.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: android.os.Bundle?) { listening = true }
+            override fun onBeginningOfSpeech() { listening = true }
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() { listening = false; status = "Got it — review your words, then tap send." }
+            override fun onError(error: Int) {
+                listening = false
+                status = if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                    "I didn't catch that. Tap the microphone and try again."
+                } else {
+                    "Voice input stopped. Please try again or type your question."
+                }
+            }
+            override fun onResults(results: android.os.Bundle?) {
+                listening = false
+                val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                if (spoken.isNotBlank()) {
+                    input = listOf(input.trim(), spoken).filter { it.isNotBlank() }.joinToString(" ")
+                    status = "Voice question added — review it and tap send."
+                } else status = "I didn't catch that. Tap the microphone and try again."
+            }
+            override fun onPartialResults(partialResults: android.os.Bundle?) {
+                val spoken = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                if (!spoken.isNullOrBlank()) status = "Hearing: $spoken"
+            }
+            override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
+        })
+        onDispose {
+            speechRecognizer?.cancel()
+            speechRecognizer?.destroy()
+        }
+    }
     var selectedLanguage by remember { mutableStateOf(appLanguage) }
     var lastSources by remember { mutableStateOf<List<TutorSource>>(emptyList()) }
     val ttsState = remember { mutableStateOf<TextToSpeech?>(null) }
@@ -290,10 +372,32 @@ internal fun TutorScreen(
         ) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
             Column(Modifier.weight(1f)) {
-                Text("Your gentle tutor", fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep)
+                Text("Your AI study buddy", fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep)
                 Text("Class $grade · $board", fontSize = 11.sp, color = TutorGrey)
             }
-            Icon(Icons.Default.GraphicEq, contentDescription = "Voice tutor", tint = TutorGreen, modifier = Modifier.size(28.dp))
+            Icon(Icons.Default.GraphicEq, contentDescription = "Voice tutor", tint = TutorGreen, modifier = Modifier.size(30.dp))
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = TutorGreen,
+            shape = RoundedCornerShape(22.dp),
+            shadowElevation = 4.dp
+        ) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(Modifier.size(52.dp).background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(17.dp)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Color.White, modifier = Modifier.size(31.dp))
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("Talk or type to learn", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("Ask in English, Tanglish or Tamil", fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f))
+                }
+                if (listening) CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                else Icon(Icons.Default.Mic, contentDescription = "Voice input available", tint = Color.White, modifier = Modifier.size(26.dp))
+            }
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -373,12 +477,32 @@ internal fun TutorScreen(
                 value = input,
                 onValueChange = { input = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask anything you're learning…") },
+                placeholder = { Text("Type a question or tap the mic…") },
                 shape = RoundedCornerShape(18.dp),
                 maxLines = 4,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { sendMessage() })
             )
+            FilledIconButton(
+                onClick = {
+                    if (listening) {
+                        speechRecognizer?.stopListening()
+                        listening = false
+                    } else if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                        startVoiceInput()
+                    } else {
+                        voicePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                enabled = !loading,
+                modifier = Modifier.size(52.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = if (listening) Color(0xFFB3261E) else TutorGreen,
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(if (listening) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = if (listening) "Stop voice input" else "Ask by voice")
+            }
             FilledIconButton(
                 onClick = { sendMessage() },
                 enabled = !loading && input.isNotBlank(),
@@ -388,7 +512,7 @@ internal fun TutorScreen(
             }
         }
         if (!voiceReady) {
-            Text("Voice availability depends on the speech engine installed on this phone.", color = TutorGrey, fontSize = 10.sp)
+            Text("Voice replies use Gemini when available; voice input uses your phone's speech service.", color = TutorGrey, fontSize = 10.sp)
         }
     }
 }

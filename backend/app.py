@@ -637,8 +637,6 @@ Your teaching behaviour:
         "temperature": 0.45,
         "max_completion_tokens": 420,
         "top_p": 0.9,
-        "reasoning_effort": "low",
-        "include_reasoning": False,
         "stream": False,
     }).encode("utf-8")
     request = urllib.request.Request(
@@ -690,7 +688,7 @@ def voice_health() -> dict[str, Any]:
     return {
         "provider": "gemini",
         "configured": bool(os.getenv("GEMINI_API_KEY", "").strip()),
-        "model": os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-3.8-flash-lite-tts").strip(),
+        "model": os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip(),
         "fallback": "android-tts",
     }
 
@@ -701,7 +699,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Natural voice is not configured yet.")
-    model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-3.8-flash-lite-tts").strip()
+    model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
     language = payload.app_language.strip()
     language_instruction = {
         "Tanglish": "Speak in natural conversational Tanglish (Tamil-English code-switching). Keep English words in natural Indian English and Tamil words fluent and warm.",

@@ -368,6 +368,74 @@ async def ingest_pdf(
     return enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
 
 
+@app.post("/admin/ingest-zip", dependencies=[Depends(require_admin)], status_code=202)
+async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[str, Any]:
+    """Admin-only bulk import of a ZIP containing chapter PDFs. PDFs are stored in Neon, not the repository."""
+    from io import BytesIO
+    from zipfile import BadZipFile, ZipFile
+    from pypdf import PdfReader
+
+    raw = await file.read()
+    if len(raw) > 100 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="ZIP exceeds 100 MB upload limit.")
+    try:
+        base = SourceMetadata(**json.loads(metadata_json))
+        archive = ZipFile(BytesIO(raw))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid ZIP or metadata: {exc}") from exc
+
+    pdfs = [item for item in archive.infolist()
+            if not item.is_dir() and item.filename.lower().endswith(".pdf")]
+    if not pdfs:
+        raise HTTPException(status_code=422, detail="ZIP contains no PDF files.")
+    if len(pdfs) > 30:
+        raise HTTPException(status_code=413, detail="ZIP contains too many PDFs (maximum 30).")
+    if sum(item.file_size for item in pdfs) > 140 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Uncompressed PDFs exceed 140 MB total.")
+    results: list[dict[str, Any]] = []
+    for item in pdfs:
+        filename = Path(item.filename).name
+        if item.file_size > 40 * 1024 * 1024:
+            results.append({"file": filename, "status": "skipped", "error": "PDF exceeds 40 MB."})
+            continue
+        try:
+            pdf_raw = archive.read(item)
+            if not pdf_raw.startswith(b"%PDF"):
+                raise ValueError("Entry is not a valid PDF.")
+            reader = PdfReader(BytesIO(pdf_raw), strict=True)
+            page_texts = []
+            for page_no, page in enumerate(reader.pages, start=1):
+                page_text = normalize(page.extract_text() or "")
+                if page_text:
+                    page_texts.append(f"[Page {page_no}] {page_text}")
+            extracted = "\n\n".join(page_texts)
+            if len(extracted) < 30:
+                raise ValueError("No usable text extracted; scanned-PDF OCR is not enabled.")
+            stem = Path(filename).stem.lower()
+            if stem.endswith("ps") or "prelim" in stem:
+                chapter_title = "Preliminary Pages"
+            else:
+                first_page = normalize(reader.pages[0].extract_text() or "") if reader.pages else ""
+                lines = [normalize(line) for line in first_page.splitlines() if normalize(line)]
+                chapter_title = ""
+                for line in lines[:18]:
+                    if len(line) > 3 and len(line) < 180 and not re.fullmatch(r"(chapter\s*)?\d+", line, re.I):
+                        if re.search(r"chapter|patterns|lines and angles|number play|data handling|prime time|perimeter|fractions|constructions|symmetry|zero|wonderful world|diversity|mindful eating|magnets|measurement|materials|temperature|water|separation|living creatures|nature.s treasures|beyond earth", line, re.I):
+                            chapter_title = line
+                            break
+                if not chapter_title:
+                    chapter_title = f"Chapter PDF ({filename})"
+            metadata = base.model_copy(update={"title": f"{base.title} — {chapter_title}"})
+            result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages))
+            results.append({"file": filename, "title": metadata.title, **result})
+        except Exception as exc:
+            results.append({"file": filename, "status": "failed", "error": str(exc)[:300]})
+    accepted = sum(1 for item in results if item.get("source_id"))
+    return {"files_found": len(pdfs), "accepted": accepted, "results": results}
+
+
 @app.get("/admin/jobs/{job_id}", dependencies=[Depends(require_admin)])
 def job_status(job_id: str) -> dict[str, Any]:
     with db() as conn:

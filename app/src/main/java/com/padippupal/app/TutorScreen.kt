@@ -68,6 +68,7 @@ internal fun TutorScreen(
         )
     }
     var input by remember { mutableStateOf("") }
+    var subject by remember { mutableStateOf("Science") }
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var speakReplies by remember { mutableStateOf(true) }
@@ -130,7 +131,7 @@ internal fun TutorScreen(
                 val body = JSONObject()
                     .put("board", board)
                     .put("class_level", grade)
-                    .put("subject", "General")
+                    .put("subject", subject)
                     .put("medium", medium)
                     .put("app_language", selectedLanguage)
                     .put("student_name", studentName)

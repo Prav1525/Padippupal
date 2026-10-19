@@ -851,15 +851,33 @@ class TutorChatRequest(BaseModel):
     history: list[TutorTurn] = Field(default_factory=list, max_length=8)
 
 
+def infer_tutor_subject(message: str, selected_subject: str = "General") -> str:
+    """Prefer a clear subject signal in the question; otherwise keep the learner's choice."""
+    q = normalize(message).casefold()
+    rules = [
+        ("Mathematics", r"\b(math|maths|mathematics|algebra|geometry|fraction|fractions|equation|equations|multiply|multiplication|divide|division|percentage|percent|perimeter|area|volume|calculate|solve|sum|subtract|addition|subtraction|decimal|triangle|angle|probability)\b|[0-9]\s*[+×÷=]\s*[0-9]"),
+        ("Science", r"\b(science|photosynthesis|atom|molecule|force|energy|electricity|gravity|planet|solar system|cell|organism|evaporation|condensation|water cycle|digestive|chemical|physics|biology|chemistry)\b"),
+        ("English", r"\b(english|grammar|verb|noun|adjective|adverb|pronoun|tense|essay|paragraph|punctuation|synonym|antonym|comprehension)\b"),
+        ("Social Science", r"\b(history|geography|civics|economics|constitution|democracy|empire|latitude|longitude|continent|freedom struggle|social science)\b"),
+        ("Computer Science", r"\b(computer|coding|programming|python|algorithm|internet|software|hardware)\b"),
+    ]
+    for subject, pattern in rules:
+        if re.search(pattern, q):
+            return subject
+    return selected_subject.strip() or "General"
+
+
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     """Fast, child-friendly tutoring through a server-side Groq API key."""
     request_started = time.monotonic()
+    # Clear question intent overrides the selected subject; vague follow-ups keep it.
+    effective_subject = infer_tutor_subject(payload.message, payload.subject)
     # Reuse the same board/class/subject/medium filtering as the public retrieval API.
     retrieved = retrieve(SearchRequest(
         board=payload.board,
         class_level=payload.class_level,
-        subject=payload.subject,
+        subject=effective_subject,
         medium=payload.medium,
         query=payload.message,
         limit=2,
@@ -894,7 +912,7 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
 
     language = payload.app_language.strip()
     system_prompt = f"""You are PadippuPal, a warm, patient school tutor who teaches a child through a real back-and-forth conversation, not a chatbot that reads a completed answer aloud.
-Learner profile: class {payload.class_level}; board {payload.board}; textbook medium {payload.medium}; subject {payload.subject}; preferred explanation language {language}.
+Learner profile: class {payload.class_level}; board {payload.board}; textbook medium {payload.medium}; subject focus: {effective_subject}; preferred explanation language {language}.
 
 YOUR TEACHING LOOP — follow this every time it fits:
 1. Understand the student's whole message and the recent conversation before answering. Identify what they are asking, what they likely understand already, and the exact next learning step. Think through the complete concept first; do not expose private reasoning or dump every fact you know.
@@ -919,6 +937,8 @@ CONTINUITY:
 - Do not restart, repeat the full answer, or reintroduce a concept the student has already understood. If they say "why?", explain the specific point they mean. If they change topic, follow their new topic.
 - If their answer is partly right, build on the correct part first, then repair the gap. If it is unclear, ask one brief clarifying question rather than guessing.
 - If there is no conversation history, begin naturally and establish the topic without a long introduction.
+- You are a MULTI-SUBJECT tutor, not a single-subject teacher. Teach any school subject the child asks about, including Mathematics, Science, English, Social Science and other school topics. NEVER say you are only a science/maths/English teacher, never tell the child to ask another teacher, and never refuse a school question just because the selected subject differs.
+- The current subject focus is only a hint for textbook retrieval. If the question clearly belongs to another subject, answer that subject directly and naturally. Follow the student's new topic without asking them to switch teachers.
 
 LANGUAGE:
 - For English, use simple, natural spoken English; don't randomly switch languages.
@@ -1072,7 +1092,7 @@ ACCURACY AND SAFETY:
         raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
 
     visual_lesson = find_visual_lesson(
-        payload.board, payload.class_level, payload.subject, payload.message + " " + answer
+        payload.board, payload.class_level, effective_subject, payload.message + " " + answer
     )
     return {
         "answer": answer,
@@ -1080,6 +1100,7 @@ ACCURACY AND SAFETY:
         "sources": sources,
         "grounded": bool(sources),
         "language": language,
+        "subject": effective_subject,
         "visual_lesson": visual_lesson,
     }
 

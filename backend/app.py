@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -1242,7 +1242,7 @@ def _task_dict(row: Any) -> dict[str, Any]:
 
 
 @app.get("/planner/tasks")
-def list_planner_tasks(profile_id: str = Field(min_length=8, max_length=100)) -> dict[str, Any]:
+def list_planner_tasks(profile_id: str = Query(min_length=8, max_length=100)) -> dict[str, Any]:
     with db() as conn:
         rows = conn.execute(
             "SELECT id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at "
@@ -1313,7 +1313,7 @@ def update_planner_task(task_id: str, payload: PlannerTaskUpdate) -> dict[str, A
 
 
 @app.delete("/planner/tasks/{task_id}")
-def delete_planner_task(task_id: str, profile_id: str = Field(min_length=8, max_length=100)) -> dict[str, bool]:
+def delete_planner_task(task_id: str, profile_id: str = Query(min_length=8, max_length=100)) -> dict[str, bool]:
     with db() as conn:
         result = conn.execute("DELETE FROM planner_tasks WHERE id=? AND profile_id=?", (task_id, profile_id))
     if getattr(result, "rowcount", 0) == 0:
@@ -1342,7 +1342,7 @@ Return an empty tasks array if no homework is legible. Keep tasks separate and c
     body = json.dumps({
         "contents": [{"role": "user", "parts": [
             {"text": prompt},
-            {"inline_data": {"mime_type": payload.mime_type, "data": payload.image_base64}},
+            {"inlineData": {"mimeType": payload.mime_type, "data": payload.image_base64}},
         ]}],
         "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
     }).encode("utf-8")

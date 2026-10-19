@@ -58,7 +58,7 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     assert response.json()["answer"].startswith("Namma")
     assert response.json()["grounded"] is False
     assert "systemInstruction" in captured["payload"]
-    assert "Never shame" in captured["payload"]["systemInstruction"]["parts"][0]["text"]
+    assert "warm, patient school tutor" in captured["payload"]["systemInstruction"]["parts"][0]["text"]
     assert "Tanglish" in captured["payload"]["systemInstruction"]["parts"][0]["text"]
     assert captured["timeout"] == 45
 

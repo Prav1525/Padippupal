@@ -54,6 +54,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 import java.util.concurrent.Executors
@@ -239,6 +240,10 @@ internal fun TutorScreen(
     }
     var input by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("General") }
+    var chapter by remember { mutableStateOf("") }
+    var topic by remember { mutableStateOf("") }
+    var chapterOptions by remember { mutableStateOf<List<Pair<String, List<String>>>>(emptyList()) }
+    var outlineLoading by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var speakReplies by remember { mutableStateOf(true) }
@@ -317,6 +322,77 @@ internal fun TutorScreen(
             speechRecognizer?.destroy()
         }
     }
+    fun loadCurriculumOutline(forSubject: String) {
+        if (forSubject == "General") {
+            chapterOptions = emptyList()
+            outlineLoading = false
+            return
+        }
+        outlineLoading = true
+        tutorExecutor.execute {
+            val result = runCatching {
+                val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+                val query = "board=" + URLEncoder.encode(board, "UTF-8") +
+                    "&class_level=$grade&subject=" + URLEncoder.encode(forSubject, "UTF-8") +
+                    "&medium=" + URLEncoder.encode(medium, "UTF-8")
+                val connection = URL("$base/curriculum/outline?$query").openConnection() as HttpURLConnection
+                connection.connectTimeout = 7000
+                connection.readTimeout = 10000
+                try {
+                    val code = connection.responseCode
+                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                    val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+                    if (code !in 200..299) throw IllegalStateException("Curriculum outline unavailable")
+                    val chaptersJson = JSONObject(body).optJSONArray("chapters") ?: JSONArray()
+                    (0 until chaptersJson.length()).mapNotNull { index ->
+                        val item = chaptersJson.optJSONObject(index) ?: return@mapNotNull null
+                        val title = item.optString("title").trim()
+                        if (title.isBlank()) return@mapNotNull null
+                        val topicsJson = item.optJSONArray("topics") ?: JSONArray()
+                        val topics = (0 until topicsJson.length()).map { topicsJson.optString(it) }
+                            .filter { it.isNotBlank() }.distinct().take(20)
+                        title to topics
+                    }
+                } finally {
+                    connection.disconnect()
+                }
+            }
+            tutorMainHandler.post {
+                chapterOptions = result.getOrDefault(emptyList())
+                outlineLoading = false
+            }
+        }
+    }
+
+    LaunchedEffect(subject) {
+        chapter = ""
+        topic = ""
+        loadCurriculumOutline(subject)
+    }
+
+    LaunchedEffect(chapter, topic, selectedLanguage) {
+        if (messages.size == 1 && messages.firstOrNull()?.role == "assistant") {
+            val greeting = when (selectedLanguage) {
+                "Tanglish" -> when {
+                    topic.isNotBlank() -> "Seri! Ippo $topic pathi padikkalaam. Indha topic-la enna therinjukkanum?"
+                    chapter.isNotBlank() -> "$chapter chapter open panniyachu. Endha topic-a first kathukkanum?"
+                    else -> "Hi" + (if (studentName.isBlank()) "" else ", $studentName") + "! Namma onna konjam konjama kathukkalaam. Enna concept purinjukkanum?"
+                }
+                "தமிழ்" -> when {
+                    topic.isNotBlank() -> "சரி! இப்போது $topic பற்றி கற்கலாம். இந்தத் தலைப்பில் எதை முதலில் தெரிந்துகொள்ள விரும்புகிறாய்?"
+                    chapter.isNotBlank() -> "$chapter அத்தியாயத்தைத் தேர்ந்தெடுத்துள்ளோம். எந்தத் தலைப்பை முதலில் கற்கலாம்?"
+                    else -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", $studentName") + "! நிதானமாக ஒவ்வொரு படியாகவும் கற்றுக்கொள்ளலாம். இன்று என்ன புரிந்துகொள்ள வேண்டும்?"
+                }
+                else -> when {
+                    topic.isNotBlank() -> "Let's learn $topic. What would you like me to explain first?"
+                    chapter.isNotBlank() -> "We've opened $chapter. Which topic would you like to learn first?"
+                    else -> "Hi" + (if (studentName.isBlank()) "" else ", $studentName") + "! I'm here to help. We'll take it one small step at a time. What would you like to understand today?"
+                }
+            }
+            messages[0] = TutorMessage("assistant", greeting)
+        }
+    }
+
     var lastSources by remember { mutableStateOf<List<TutorSource>>(emptyList()) }
     val ttsState = remember { mutableStateOf<TextToSpeech?>(null) }
     val audioPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
@@ -470,6 +546,8 @@ internal fun TutorScreen(
                     .put("app_language", selectedLanguage)
                     .put("student_name", studentName)
                     .put("message", question)
+                    .put("chapter", chapter)
+                    .put("topic", topic)
                     .put("history", history)
                 val connection = URL("$base/tutor/chat").openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
@@ -557,17 +635,66 @@ internal fun TutorScreen(
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("Subject (auto-detects from your question)", color = TutorGrey, fontSize = 12.sp)
+            Text("1 · Choose a subject", color = TutorGrey, fontSize = 12.sp)
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                listOf("General", "Mathematics", "Science", "English", "Social Science", "Computer Science").forEach { option ->
+                listOf("Mathematics", "Science", "English", "Tamil", "Social Science", "Computer Science", "General").forEach { option ->
                     FilterChip(
                         selected = subject == option,
-                        onClick = { subject = option },
+                        onClick = { if (subject != option) subject = option },
                         label = { Text(option, fontSize = 11.sp) }
                     )
+                }
+            }
+            OutlinedTextField(
+                value = chapter,
+                onValueChange = { chapter = it; topic = "" },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("2 · Chapter (choose or type)") },
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp)
+            )
+            if (outlineLoading) {
+                LinearProgressIndicator(Modifier.fillMaxWidth(), color = TutorGreen)
+            } else if (chapterOptions.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    chapterOptions.forEach { (chapterTitle, _) ->
+                        FilterChip(
+                            selected = chapter == chapterTitle,
+                            onClick = { chapter = chapterTitle; topic = "" },
+                            label = { Text(chapterTitle, fontSize = 10.sp, maxLines = 1) }
+                        )
+                    }
+                }
+            } else if (subject != "General") {
+                Text("No uploaded chapter list for this subject yet. You can type the chapter above.", color = TutorGrey, fontSize = 10.sp)
+            }
+            OutlinedTextField(
+                value = topic,
+                onValueChange = { topic = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("3 · Subtopic / concept") },
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp)
+            )
+            val topicOptions = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
+            if (topicOptions.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    topicOptions.forEach { topicTitle ->
+                        FilterChip(
+                            selected = topic == topicTitle,
+                            onClick = { topic = topicTitle },
+                            label = { Text(topicTitle, fontSize = 10.sp, maxLines = 1) }
+                        )
+                    }
                 }
             }
         }

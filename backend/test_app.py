@@ -69,3 +69,47 @@ def test_official_registry_separates_authority_from_ingestion_permission():
     assert by_id["cbse-academic-curriculum-2026-27"]["official_url"].startswith("https://cbseacademic.nic.in/")
     assert by_id["tn-textbook-corporation"]["ingestion_approved"] is False
     assert data["automatic_ingestion_enabled"] is False
+
+
+
+def test_visual_lesson_library_is_seeded_and_topic_matched():
+    client = TestClient(curriculum.app)
+    response = client.get("/visual-lessons/match", params={
+        "board": "CBSE", "class_level": 7, "subject": "Science",
+        "query": "How does photosynthesis use carbon dioxide?",
+    })
+    assert response.status_code == 200
+    lesson = response.json()["visual_lesson"]
+    assert lesson["id"] == "global-photosynthesis"
+    assert len(lesson["steps"]) >= 3
+    assert "glucose" in lesson["caption"]
+
+
+def test_visual_lesson_profiles_and_admin_upsert():
+    client = TestClient(curriculum.app)
+    payload = {
+        "id": "cbse-class-7-sample-topic",
+        "board": "CBSE",
+        "class_level": 7,
+        "subject": "Science",
+        "topic": "Sample topic",
+        "title": "Sample visual",
+        "visual_type": "process",
+        "keywords": ["sample topic", "sample keyword"],
+        "caption": "A short accurate caption.",
+        "steps": [
+            {"icon": "1", "label": "First step"},
+            {"icon": "2", "label": "Second step"},
+        ],
+    }
+    saved = client.post("/admin/visual-lessons", json=payload, headers={"X-Admin-Token": "test-token"})
+    assert saved.status_code == 201
+    assert saved.json()["saved"] is True
+    matching = client.get("/visual-lessons/match", params={
+        "board": "CBSE", "class_level": 7, "subject": "Science", "query": "sample keyword",
+    }).json()["visual_lesson"]
+    assert matching["id"] == payload["id"]
+    wrong_profile = client.get("/visual-lessons/match", params={
+        "board": "Tamil Nadu State Board", "class_level": 7, "subject": "Science", "query": "sample keyword",
+    }).json()["visual_lesson"]
+    assert wrong_profile is None

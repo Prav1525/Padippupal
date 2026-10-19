@@ -1,6 +1,7 @@
 package com.padippupal.app
 
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.media.MediaPlayer
 import android.util.Base64
 import java.io.File
@@ -75,6 +76,7 @@ internal fun TutorScreen(
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var speakReplies by remember { mutableStateOf(true) }
+    var speechActive by remember { mutableStateOf(false) }
     var voiceReady by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf(appLanguage) }
     var lastSources by remember { mutableStateOf<List<TutorSource>>(emptyList()) }
@@ -85,6 +87,16 @@ internal fun TutorScreen(
         val engine = TextToSpeech(context) { result ->
             tutorMainHandler.post { voiceReady = result == TextToSpeech.SUCCESS }
         }
+        engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(utteranceId: String?) {
+                tutorMainHandler.post { speechActive = false }
+            }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                tutorMainHandler.post { speechActive = false }
+            }
+        })
         ttsState.value = engine
         onDispose {
             engine.stop()
@@ -118,6 +130,10 @@ internal fun TutorScreen(
     }
 
     fun speak(text: String) {
+        // Auto-read and the manual speaker button must not launch overlapping
+        // Gemini requests/players, which can sound like a stuck repeating tutor.
+        if (speechActive || text.isBlank()) return
+        speechActive = true
         val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
         if (!base.startsWith("https://")) {
             speakWithDeviceTts(text)
@@ -164,6 +180,7 @@ internal fun TutorScreen(
                                 it.release()
                                 if (audioPlayer.value === it) audioPlayer.value = null
                                 audioFile.delete()
+                                speechActive = false
                             }
                             player.setOnErrorListener { failedPlayer, _, _ ->
                                 failedPlayer.release()

@@ -52,23 +52,72 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,SCAN,LESSON,QUESTIONS,PDF,
  var lesson by remember{mutableStateOf("Crop Production and Management")}
  var done by remember{mutableStateOf(setOf<String>())}
  val tamil=language=="தமிழ்"
- MaterialTheme(colorScheme=lightColorScheme(primary=Green,onPrimary=Color.White,background=Paper,surface=Color.White,onSurface=Deep)){
- Scaffold(containerColor=Paper,topBar={if(page !in listOf(Page.SCAN,Page.LESSON,Page.QUESTIONS,Page.PDF,Page.SETUP)) TopAppBar(title={
- Row(verticalAlignment=Alignment.CenterVertically){Logo(40);Column(Modifier.padding(start=10.dp)){Text("PadippuPal",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Deep);Text(if(tamil)"உன் படிப்பு நண்பன்" else "Your study buddy",fontSize=11.sp,color=Grey)}}
- },actions={IconButton(onClick={language=if(tamil)"English" else "தமிழ்"}){Icon(Icons.Default.Translate,"Language",tint=Green)}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Paper))}},
- bottomBar={if(page in listOf(Page.HOME,Page.SUBJECTS,Page.PLANNER,Page.PROFILE)) NavigationBar(containerColor=Color.White){listOf(Triple(Page.HOME,"Home",Icons.Default.Home),Triple(Page.SUBJECTS,"Subjects",Icons.Default.MenuBook),Triple(Page.PLANNER,"Planner",Icons.Default.CalendarMonth),Triple(Page.PROFILE,"Profile",Icons.Default.Person)).forEach{(p,l,i)->NavigationBarItem(selected=page==p,onClick={page=p},icon={Icon(i,null)},label={Text(if(tamil)when(l){"Home"->"முகப்பு";"Subjects"->"பாடங்கள்";"Planner"->"திட்டம்";else->"சுயவிவரம்"}else l,fontSize=10.sp)})}}},
- ){pad->when(page){
- Page.HOME->Home(tamil,name,done,{page=it},Modifier.padding(pad))
- Page.SUBJECTS->Subjects(tamil,{lesson=it;page=Page.LESSON},Modifier.padding(pad))
- Page.PLANNER->Planner(done,{done=if(it in done)done-it else done+it},Modifier.padding(pad))
- Page.PROFILE->Profile(name,grade,board,medium,language,{page=Page.SETUP},Modifier.padding(pad))
- Page.SCAN->Detail("Scan school diary","Take a clear photo of the homework diary. Review extracted tasks before adding them.",Icons.Default.CameraAlt,"Camera scanning is a next feature to connect.",{page=Page.HOME})
- Page.LESSON->Lesson(lesson,{page=Page.QUESTIONS},{page=Page.SUBJECTS})
- Page.QUESTIONS->Questions(lesson,{page=Page.LESSON},{page=Page.PDF})
- Page.PDF->Detail("Revision sheet preview","A printable A4 pack will include concept notes, diagrams, practice questions and answers.",Icons.Default.PictureAsPdf,"PDF export is planned; this preview does not create a file yet.",{page=Page.HOME})
- Page.SETUP->Setup(name,grade,board,medium,language,{name=it},{grade=it},{board=it},{medium=it},{language=it},{page=Page.PROFILE})
- }}
- }
+ MaterialTheme(colorScheme = lightColorScheme(primary = Green, onPrimary = Color.White, background = Paper, surface = Color.White, onSurface = Deep)) {
+  Scaffold(
+    containerColor = Paper,
+    topBar = {
+      if (page !in listOf(Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.SETUP)) {
+        TopAppBar(
+          title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Logo(40)
+              Column(Modifier.padding(start = 10.dp)) {
+                Text("PadippuPal", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Deep)
+                Text(if (tamil) "உன் படிப்பு நண்பன்" else "Your study buddy", fontSize = 11.sp, color = Grey)
+              }
+            }
+          },
+          actions = {
+            IconButton(onClick = { language = if (tamil) "English" else "தமிழ்" }) {
+              Icon(Icons.Default.Translate, contentDescription = "Language", tint = Green)
+            }
+          },
+          colors = TopAppBarDefaults.topAppBarColors(containerColor = Paper)
+        )
+      }
+    },
+    bottomBar = {
+      if (page in listOf(Page.HOME, Page.SUBJECTS, Page.PLANNER, Page.PROFILE)) {
+        NavigationBar(containerColor = Color.White) {
+          listOf(
+            Triple(Page.HOME, "Home", Icons.Default.Home),
+            Triple(Page.SUBJECTS, "Subjects", Icons.Default.MenuBook),
+            Triple(Page.PLANNER, "Planner", Icons.Default.CalendarMonth),
+            Triple(Page.PROFILE, "Profile", Icons.Default.Person)
+          ).forEach { (p, label, icon) ->
+            NavigationBarItem(
+              selected = page == p,
+              onClick = { page = p },
+              icon = { Icon(icon, contentDescription = null) },
+              label = {
+                Text(
+                  if (tamil) when (label) {
+                    "Home" -> "முகப்பு"
+                    "Subjects" -> "பாடங்கள்"
+                    "Planner" -> "திட்டம்"
+                    else -> "சுயவிவரம்"
+                  } else label,
+                  fontSize = 10.sp
+                )
+              }
+            )
+          }
+        }
+      }
+    }
+  ) { padding ->
+    when (page) {
+      Page.HOME -> Home(tamil, name, done, { page = it }, Modifier.padding(padding))
+      Page.SUBJECTS -> Subjects(tamil, { lesson = it; page = Page.LESSON }, Modifier.padding(padding))
+      Page.PLANNER -> Planner(done, { done = if (it in done) done - it else done + it }, Modifier.padding(padding))
+      Page.PROFILE -> Profile(name, grade, board, medium, language, { page = Page.SETUP }, Modifier.padding(padding))
+      Page.SCAN -> Detail("Scan school diary", "Take a clear photo of the homework diary. Review extracted tasks before adding them.", Icons.Default.CameraAlt, "Camera scanning is a next feature to connect.", { page = Page.HOME })
+      Page.LESSON -> Lesson(lesson, { page = Page.QUESTIONS }, { page = Page.SUBJECTS })
+      Page.QUESTIONS -> Questions(lesson, { page = Page.LESSON }, { page = Page.PDF })
+      Page.PDF -> Detail("Revision sheet preview", "A printable A4 pack will include concept notes, diagrams, practice questions and answers.", Icons.Default.PictureAsPdf, "PDF export is planned; this preview does not create a file yet.", { page = Page.HOME })
+      Page.SETUP -> Setup(name, grade, board, medium, language, { name = it }, { grade = it }, { board = it }, { medium = it }, { language = it }, { page = Page.PROFILE })
+    }
+  }
  }
 }
 

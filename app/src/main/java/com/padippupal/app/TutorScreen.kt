@@ -216,6 +216,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
     var positions by remember(key) { mutableStateOf(items.map { Offset(it.x, it.y) }) }
     var feedback by remember(key) { mutableStateOf("Touch an object, drag it, and notice what changes.") }
     var activeStep by remember(key) { mutableIntStateOf(0) }
+    var heatLevel by remember(key) { mutableFloatStateOf(.28f) }
     val steps = lesson.optJSONArray("steps")
     val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
     val motion = rememberInfiniteTransition(label = "interactive-db-motion")
@@ -247,6 +248,18 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                 val w=maxWidth; val h=maxHeight
                 Canvas(Modifier.fillMaxSize()) {
                     when (scene) {
+                        "particle_states", "phase_change", "evap_condense" -> {
+                            val spread = .12f + heatLevel * .34f
+                            val count = 18
+                            for (i in 0 until count) {
+                                val col = i % 6
+                                val row = i / 6
+                                val x = size.width * (.5f + (col - 2.5f) * spread)
+                                val y = size.height * (.47f + (row - 1f) * spread)
+                                val wiggle = if (heatLevel > .66f) (pulse - .5f) * 14.dp.toPx() else 0f
+                                drawCircle(Color(0xFF3987C9), 5.dp.toPx(), Offset((x+wiggle).coerceIn(8f,size.width-8f),(y-wiggle).coerceIn(8f,size.height-8f)))
+                            }
+                        }
                         "integer_line" -> {
                             drawLine(Color(0xFF91B9A0), Offset(size.width*.06f,size.height*.78f), Offset(size.width*.94f,size.height*.78f), 3.dp.toPx())
                             for (i in 0..10) drawLine(Color(0xFF91B9A0), Offset(size.width*(.08f+i*.084f),size.height*.73f), Offset(size.width*(.08f+i*.084f),size.height*.83f), 1.dp.toPx())
@@ -307,6 +320,11 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
             }
             if (scene=="angle_builder") Text("Current angle: $angle°", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
             if (scene=="magnet_test") Text(if(magnetic) "Magnetic attraction detected" else "Try bringing iron or steel close to the magnet", color=TutorGreen, fontSize=11.sp)
+            if (scene in listOf("particle_states", "phase_change", "evap_condense")) {
+                Text("Heat level: ${(heatLevel*100).toInt()}%", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
+                Slider(value=heatLevel, onValueChange={ heatLevel=it }, valueRange=0f..1f, colors=SliderDefaults.colors(thumbColor=TutorGreen, activeTrackColor=TutorGreen))
+                Text(when { heatLevel < .33f -> "Solid: particles stay close and mainly vibrate."; heatLevel < .67f -> "Liquid: particles stay close but can move past each other."; else -> "Gas: particles spread out and move freely." }, color=TutorDeep, fontSize=11.sp)
+            }
             Text(feedback, color=TutorDeep, fontSize=12.sp, lineHeight=16.sp)
             Text(caption, color=TutorGrey, fontSize=11.sp, lineHeight=15.sp)
             if (steps != null && steps.length()>0) {

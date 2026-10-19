@@ -53,6 +53,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
    prefs.getString("profile_id", null) ?: UUID.randomUUID().toString().also { prefs.edit().putString("profile_id", it).apply() }
  }
  var page by remember{mutableStateOf(Page.HOME)}
+ BackHandler(enabled = page != Page.HOME) { page = Page.HOME }
  var language by remember{mutableStateOf(prefs.getString("language", "English") ?: "English")}
  var name by remember{mutableStateOf(prefs.getString("student_name", "") ?: "")}
  var grade by remember{mutableStateOf(prefs.getString("grade", "6") ?: "6")}

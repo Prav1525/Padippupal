@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import java.util.UUID
 
 private val Green=Color(0xFF24734B)
 private val Deep=Color(0xFF173D2A)
@@ -43,12 +45,21 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun PadippuPalApp(){
+ val context = LocalContext.current
+ val prefs = remember { context.getSharedPreferences("padippupal_profile", android.content.Context.MODE_PRIVATE) }
+ val profileId = remember {
+   prefs.getString("profile_id", null) ?: UUID.randomUUID().toString().also { prefs.edit().putString("profile_id", it).apply() }
+ }
  var page by remember{mutableStateOf(Page.HOME)}
- var language by remember{mutableStateOf("English")}
- var name by remember{mutableStateOf("")}
- var grade by remember{mutableStateOf("6")}
- var board by remember{mutableStateOf("Tamil Nadu State Board")}
- var medium by remember{mutableStateOf("English")}
+ var language by remember{mutableStateOf(prefs.getString("language", "English") ?: "English")}
+ var name by remember{mutableStateOf(prefs.getString("student_name", "") ?: "")}
+ var grade by remember{mutableStateOf(prefs.getString("grade", "6") ?: "6")}
+ var board by remember{mutableStateOf(prefs.getString("board", "Tamil Nadu State Board") ?: "Tamil Nadu State Board")}
+ var medium by remember{mutableStateOf(prefs.getString("medium", "English") ?: "English")}
+ LaunchedEffect(name, grade, board, medium, language) {
+   prefs.edit().putString("student_name", name).putString("grade", grade)
+     .putString("board", board).putString("medium", medium).putString("language", language).apply()
+ }
  var lesson by remember{mutableStateOf("Crop Production and Management")}
  var done by remember{mutableStateOf(setOf<String>())}
  val tamil=language=="தமிழ்"
@@ -110,14 +121,14 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
     when (page) {
       Page.HOME -> Home(tamil, name, done, { page = it }, Modifier.padding(padding))
       Page.SUBJECTS -> Subjects(tamil, { lesson = it; page = Page.LESSON }, Modifier.padding(padding))
-      Page.PLANNER -> Planner(done, { done = if (it in done) done - it else done + it }, Modifier.padding(padding))
+      Page.PLANNER -> PlannerScreen(profileId = profileId, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.PROFILE -> Profile(name, grade, board, medium, language, { page = Page.SETUP }, Modifier.padding(padding))
       Page.CURRICULUM -> CurriculumConnectionScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.TUTOR -> TutorScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, appLanguage = language, studentName = name, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
-      Page.SCAN -> Detail("Scan school diary", "Take a clear photo of the homework diary. Review extracted tasks before adding them.", Icons.Default.CameraAlt, "Camera scanning is a next feature to connect.", { page = Page.HOME })
+      Page.SCAN -> DiaryScanScreen(profileId = profileId, grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, language = language, onBack = { page = Page.HOME }, onSaved = { page = Page.PLANNER })
       Page.LESSON -> Lesson(lesson, { page = Page.QUESTIONS }, { page = Page.SUBJECTS })
       Page.QUESTIONS -> Questions(lesson, { page = Page.LESSON }, { page = Page.PDF })
-      Page.PDF -> Detail("Revision sheet preview", "A printable A4 pack will include concept notes, diagrams, practice questions and answers.", Icons.Default.PictureAsPdf, "PDF export is planned; this preview does not create a file yet.", { page = Page.HOME })
+      Page.PDF -> RevisionPdfScreen(profileId = profileId, studentName = name, grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, lessonTitle = lesson, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.SETUP -> Setup(name, grade, board, medium, language, { name = it }, { grade = it }, { board = it }, { medium = it }, { language = it }, { page = Page.PROFILE })
     }
   }

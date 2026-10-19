@@ -574,10 +574,10 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail="AI tutoring is not configured yet. Add GROQ_API_KEY to the backend environment.",
+            detail="The tutor is not ready yet. Please try again later.",
         )
 
-    model = os.getenv("PADIPPUPAL_GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+    model = os.getenv("PADIPPUPAL_GROQ_MODEL", "openai/gpt-oss-20b").strip()
     # Reuse the same board/class/subject/medium filtering as the public retrieval API.
     retrieved = retrieve(SearchRequest(
         board=payload.board,

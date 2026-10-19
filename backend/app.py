@@ -652,6 +652,57 @@ def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str
     return {"items": [dict(row) for row in rows]}
 
 
+@app.get("/curriculum/outline")
+def curriculum_outline(board: str, class_level: int, subject: str, medium: str) -> dict[str, Any]:
+    """Return only chapter/source names and headings present in ingested curriculum content."""
+    with db() as conn:
+        sources = conn.execute(
+            """SELECT id, title, term, edition FROM sources
+               WHERE LOWER(board)=LOWER(?) AND class_level=?
+                 AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?) AND status='ready'
+               ORDER BY academic_year DESC, title""",
+            (board, class_level, subject, medium),
+        ).fetchall()
+        chapters = []
+        for source in sources:
+            chunks = conn.execute(
+                "SELECT text FROM chunks WHERE source_id=? ORDER BY chunk_no",
+                (source["id"],),
+            ).fetchall()
+            topics: list[str] = []
+            seen: set[str] = set()
+            for chunk in chunks:
+                for raw_line in str(chunk["text"] or "").splitlines():
+                    line = re.sub(r"^[#*\\-\\s]+|[#*\\-\\s]+$", "", raw_line).strip()
+                    if not 3 <= len(line) <= 90 or len(line.split()) > 12:
+                        continue
+                    marked_heading = bool(re.match(
+                        r"^(?:chapter|unit|lesson|section|activity|\\d+(?:\\.\\d+)*[.)]?)\\s*\\d*\\s*[:.)\\-–]?\\s*\\S",
+                        line, re.IGNORECASE,
+                    ))
+                    title_heading = (
+                        line[:1].isupper()
+                        and not line.endswith((".", "?", "!", ";", ","))
+                        and not re.search(r"\\b(the|and|but|because|therefore|this|that|these|those)\\b", line.casefold())
+                    )
+                    key = line.casefold()
+                    if (marked_heading or title_heading) and key not in seen and key != str(source["title"]).casefold():
+                        seen.add(key)
+                        topics.append(line)
+                        if len(topics) >= 30:
+                            break
+                if len(topics) >= 30:
+                    break
+            chapters.append({
+                "title": str(source["title"]),
+                "term": str(source["term"] or ""),
+                "edition": str(source["edition"] or ""),
+                "topics": topics,
+            })
+    return {"board": board, "class_level": class_level, "subject": subject, "medium": medium,
+            "chapter_count": len(chapters), "chapters": chapters}
+
+
 def terms(value: str) -> list[str]:
     return [t for t in re.findall(r"[\w-]+", value.casefold()) if len(t) > 1]
 
@@ -848,6 +899,8 @@ class TutorChatRequest(BaseModel):
     app_language: str = Field(default="English", max_length=30)
     student_name: str = Field(default="", max_length=80)
     message: str = Field(min_length=1, max_length=2000)
+    chapter: str = Field(default="", max_length=200)
+    topic: str = Field(default="", max_length=200)
     history: list[TutorTurn] = Field(default_factory=list, max_length=8)
 
 
@@ -879,7 +932,7 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
         class_level=payload.class_level,
         subject=effective_subject,
         medium=payload.medium,
-        query=payload.message,
+        query=" ".join(part for part in (payload.chapter, payload.topic, payload.message) if part),
         limit=2,
     ))
     matches = retrieved.get("matches", [])
@@ -913,6 +966,7 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     language = payload.app_language.strip()
     system_prompt = f"""You are PadippuPal, a warm, patient school tutor who teaches a child through a real back-and-forth conversation, not a chatbot that reads a completed answer aloud.
 Learner profile: class {payload.class_level}; board {payload.board}; textbook medium {payload.medium}; subject focus: {effective_subject}; preferred explanation language {language}.
+Selected lesson path: chapter={payload.chapter or "not selected"}; subtopic={payload.topic or "not selected"}. Keep the explanation tightly focused on the selected chapter and subtopic. If the learner has not selected a subtopic, ask what part they want to learn.
 
 YOUR TEACHING LOOP — follow this every time it fits:
 1. Understand the student's whole message and the recent conversation before answering. Identify what they are asking, what they likely understand already, and the exact next learning step. Think through the complete concept first; do not expose private reasoning or dump every fact you know.
@@ -1004,13 +1058,19 @@ ACCURACY AND SAFETY:
             if not answer:
                 raise ValueError("Gemini returned no text")
             logger.info("Tutor chat completed provider=gemini elapsed_ms=%d", int((time.monotonic() - request_started) * 1000))
+            visual_lesson = find_visual_lesson(
+                payload.board, payload.class_level, effective_subject,
+                " ".join(part for part in (payload.chapter, payload.topic, payload.message, answer) if part),
+            )
             return {
                 "answer": answer,
                 "model": gemini_model,
                 "sources": sources,
                 "grounded": bool(sources),
                 "language": language,
+                "subject": effective_subject,
                 "provider": "gemini",
+                "visual_lesson": visual_lesson,
             }
         except urllib.error.HTTPError as exc:
             raw_error = exc.read(1200).decode("utf-8", errors="replace")
@@ -1092,7 +1152,8 @@ ACCURACY AND SAFETY:
         raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
 
     visual_lesson = find_visual_lesson(
-        payload.board, payload.class_level, effective_subject, payload.message + " " + answer
+        payload.board, payload.class_level, effective_subject,
+        " ".join(part for part in (payload.chapter, payload.topic, payload.message, answer) if part)
     )
     return {
         "answer": answer,

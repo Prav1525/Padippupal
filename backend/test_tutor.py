@@ -137,3 +137,12 @@ def test_voice_health_reports_configuration_without_secret(monkeypatch):
     assert response.json()["provider"] == "gemini"
     assert "must-not-be-returned" not in response.text
 
+
+
+
+def test_subject_detection_switches_subject_automatically():
+    assert curriculum.infer_tutor_subject("Can you solve 2 + 2?", "Science") == "Mathematics"
+    assert curriculum.infer_tutor_subject("Explain photosynthesis", "Mathematics") == "Science"
+    assert curriculum.infer_tutor_subject("What is a noun?", "Science") == "English"
+    assert curriculum.infer_tutor_subject("Explain democracy", "Mathematics") == "Social Science"
+    assert curriculum.infer_tutor_subject("Why is this step correct?", "Mathematics") == "Mathematics"

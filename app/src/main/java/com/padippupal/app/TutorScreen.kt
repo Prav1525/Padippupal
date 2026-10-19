@@ -82,6 +82,49 @@ private fun chooseLessonVisual(text: String): LessonVisualKind {
 }
 
 @Composable
+private fun DatabaseLessonVisual(lesson: JSONObject) {
+    val array = lesson.optJSONArray("steps")
+    val steps = remember(lesson) {
+        if (array == null) emptyList() else (0 until array.length()).mapNotNull { array.optJSONObject(it) }
+    }
+    if (steps.isEmpty()) return
+    val transition = rememberInfiniteTransition(label = "database-lesson")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(2200), repeatMode = RepeatMode.Reverse),
+        label = "database-lesson-progress"
+    )
+    val visibleSteps = steps.take(5)
+    val activeIndex = (progress * visibleSteps.size).toInt().coerceIn(0, visibleSteps.lastIndex)
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        color = Color(0xFFEAF5EE),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Text("SEE IT HAPPEN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(lesson.optString("title", lesson.optString("topic", "Explore this idea")), color = TutorDeep, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+                visibleSteps.forEachIndexed { index, step ->
+                    if (index > 0) Text("→", color = TutorGreen, fontSize = 13.sp)
+                    Column(
+                        Modifier.weight(1f).background(if (index == activeIndex) Color.White else Color(0xFFDDEDE2), RoundedCornerShape(10.dp)).padding(horizontal = 3.dp, vertical = 7.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(step.optString("icon", "•"), fontSize = 20.sp, maxLines = 1)
+                        Text(step.optString("label", "Step " + (index + 1)), color = TutorDeep, fontSize = 9.sp, lineHeight = 11.sp, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
+            }
+            Text(lesson.optString("caption"), color = TutorGrey, fontSize = 12.sp, lineHeight = 17.sp)
+            Text("From PadippuPal's visual lesson library", color = TutorGrey, fontSize = 9.sp)
+        }
+    }
+}
+
+@Composable
 private fun LessonVisual(explanation: String, subject: String) {
     val kind = chooseLessonVisual(explanation)
     if (kind == LessonVisualKind.NONE) return

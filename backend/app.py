@@ -757,7 +757,7 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
     chapters = [
         {"chapter_number": index + 1, "title": name,
          "topics": [{"topic_number": topic_index + 1, "title": topic}
-                    for topic_index, topic in enumerate(grouped[name])[:30]]}
+                    for topic_index, topic in enumerate(grouped[name][:30])]}
         for index, name in enumerate(chapter_names)
     ]
     return {"board": board, "class_level": class_level, "subject": subject, "medium": medium,

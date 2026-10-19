@@ -188,6 +188,37 @@ def split_chunks(text: str) -> list[str]:
     return chunks
 
 
+def split_chunks_with_pages(text: str) -> list[tuple[str, int | None, int | None]]:
+    """Chunk extracted PDF text while preserving its explicit [Page N] markers."""
+    page_pattern = re.compile(r"(?:^|\\n)\\s*\\[Page\\s+(\\d+)\\]\\s*", re.IGNORECASE)
+    markers = list(page_pattern.finditer(text))
+    if not markers:
+        return [(chunk, None, None) for chunk in split_chunks(text)]
+
+    page_sections: list[tuple[int, str]] = []
+    for index, marker in enumerate(markers):
+        start = marker.end()
+        end = markers[index + 1].start() if index + 1 < len(markers) else len(text)
+        page_no = int(marker.group(1))
+        page_text = normalize(text[start:end])
+        if page_text:
+            page_sections.append((page_no, page_text))
+
+    # Keep each chunk tied to the page(s) it actually contains. For long pages,
+    # use the same bounded overlap as the normal indexer.
+    result: list[tuple[str, int | None, int | None]] = []
+    step = max(1, CHUNK_WORDS - CHUNK_OVERLAP)
+    for page_no, page_text in page_sections:
+        words = page_text.split()
+        for start in range(0, len(words), step):
+            part = words[start:start + CHUNK_WORDS]
+            if part:
+                result.append((" ".join(part), page_no, page_no))
+            if start + CHUNK_WORDS >= len(words):
+                break
+    return result
+
+
 def save_job(source_id: str) -> str:
     job_id = str(uuid.uuid4())
     now = time.time()
@@ -249,7 +280,7 @@ def process_one_job() -> bool:
         conn.execute("UPDATE jobs SET status='running', attempts=attempts+1, updated_at=? WHERE id=?",
                      (time.time(), job["id"]))
     try:
-        chunks = split_chunks(text)
+        chunks = split_chunks_with_pages(text)
         if not chunks:
             raise ValueError("No extractable text found.")
         with db() as conn:
@@ -257,10 +288,11 @@ def process_one_job() -> bool:
             # Replace only this source's chunks; no active/previous source is
             # deleted as part of an unrelated ingestion.
             conn.execute("DELETE FROM chunks WHERE source_id=?", (source_id,))
-            for i, chunk in enumerate(chunks):
+            for i, chunk_info in enumerate(chunks):
+                chunk, page_start, page_end = chunk_info
                 conn.execute(
                     "INSERT INTO chunks(id, source_id, chunk_no, chapter, page_start, page_end, text) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (str(uuid.uuid4()), source_id, i, "", None, None, chunk),
+                    (str(uuid.uuid4()), source_id, i, "", page_start, page_end, chunk),
                 )
             conn.execute("UPDATE sources SET status='ready' WHERE id=?", (source_id,))
             conn.execute("UPDATE jobs SET status='succeeded', error='', updated_at=? WHERE id=?",

@@ -671,7 +671,7 @@ Your teaching behaviour:
         "language": language,
     }
 
-// ---------------- Natural cloud speech (Gemini TTS) ----------------
+# ---------------- Natural cloud speech (Gemini TTS) ----------------
 import base64
 import io
 import wave

@@ -622,14 +622,6 @@ class TutorChatRequest(BaseModel):
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     """Fast, child-friendly tutoring through a server-side Groq API key."""
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if not api_key:
-        raise HTTPException(
-            status_code=503,
-            detail="The tutor is not ready yet. Please try again later.",
-        )
-
-    model = os.getenv("PADIPPUPAL_GROQ_MODEL", "openai/gpt-oss-20b").strip()
     # Reuse the same board/class/subject/medium filtering as the public retrieval API.
     retrieved = retrieve(SearchRequest(
         board=payload.board,

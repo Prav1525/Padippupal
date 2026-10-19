@@ -572,6 +572,8 @@ internal fun TutorScreen(
     var subject by remember { mutableStateOf("General") }
     var chapter by remember { mutableStateOf("") }
     var topic by remember { mutableStateOf("") }
+    var chapterMenuExpanded by remember { mutableStateOf(false) }
+    var topicMenuExpanded by remember { mutableStateOf(false) }
     var chapterOptions by remember { mutableStateOf<List<Pair<String, List<String>>>>(emptyList()) }
     var outlineLoading by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
@@ -983,56 +985,76 @@ internal fun TutorScreen(
                     )
                 }
             }
-            OutlinedTextField(
-                value = chapter,
-                onValueChange = { chapter = it; topic = "" },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("2 · Chapter (choose or type)") },
-                singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp)
-            )
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { chapterMenuExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !outlineLoading && chapterOptions.isNotEmpty(),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 15.dp)
+                ) {
+                    Text(
+                        if (chapter.isBlank()) "2 · Choose a chapter" else chapter,
+                        modifier = Modifier.weight(1f),
+                        color = if (chapter.isBlank()) TutorGrey else TutorDeep,
+                        maxLines = 2
+                    )
+                    Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+                DropdownMenu(
+                    expanded = chapterMenuExpanded,
+                    onDismissRequest = { chapterMenuExpanded = false },
+                    modifier = Modifier.fillMaxWidth(.9f).heightIn(max = 340.dp)
+                ) {
+                    chapterOptions.forEachIndexed { index, option ->
+                        DropdownMenuItem(
+                            text = { Text("${index + 1}. ${option.first}", maxLines = 2) },
+                            onClick = {
+                                chapter = option.first
+                                topic = ""
+                                chapterMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
             if (outlineLoading) {
                 LinearProgressIndicator(Modifier.fillMaxWidth(), color = TutorGreen)
-            } else if (chapterOptions.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    chapterOptions.forEach { (chapterTitle, _) ->
-                        FilterChip(
-                            selected = chapter == chapterTitle,
-                            onClick = { chapter = chapterTitle; topic = "" },
-                            label = { Text(chapterTitle, fontSize = 10.sp, maxLines = 1) }
-                        )
-                    }
-                }
-            } else if (subject != "General") {
-                Text("No uploaded chapter list for this subject yet. You can type the chapter above.", color = TutorGrey, fontSize = 10.sp)
+            } else if (chapterOptions.isEmpty() && subject != "General") {
+                Text("No chapter list is available yet for this subject and class.", color = TutorGrey, fontSize = 11.sp)
             }
-            OutlinedTextField(
-                value = topic,
-                onValueChange = { topic = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("3 · Subtopic / concept") },
-                singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp)
-            )
             val topicOptions = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
-            if (topicOptions.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { topicMenuExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = chapter.isNotBlank() && topicOptions.isNotEmpty(),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 15.dp)
                 ) {
-                    topicOptions.forEach { topicTitle ->
-                        FilterChip(
-                            selected = topic == topicTitle,
-                            onClick = { topic = topicTitle },
-                            label = { Text(topicTitle, fontSize = 10.sp, maxLines = 1) }
+                    Text(
+                        if (topic.isBlank()) "3 · Choose a concept" else topic,
+                        modifier = Modifier.weight(1f),
+                        color = if (topic.isBlank()) TutorGrey else TutorDeep,
+                        maxLines = 2
+                    )
+                }
+                DropdownMenu(
+                    expanded = topicMenuExpanded,
+                    onDismissRequest = { topicMenuExpanded = false },
+                    modifier = Modifier.fillMaxWidth(.9f).heightIn(max = 340.dp)
+                ) {
+                    topicOptions.forEachIndexed { index, topicTitle ->
+                        DropdownMenuItem(
+                            text = { Text("${index + 1}. $topicTitle", maxLines = 2) },
+                            onClick = {
+                                topic = topicTitle
+                                topicMenuExpanded = false
+                            }
                         )
                     }
                 }
             }
-        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -1085,10 +1107,7 @@ internal fun TutorScreen(
                                 lineHeight = 23.sp
                             )
                             if (message.role == "assistant") {
-                                if (message.interactiveLesson != null) DatabaseInteractiveLessonLab(message.interactiveLesson)
-                                else InteractiveLessonLab(chapter, topic, message.content)
                                 if (message.visualLesson != null) DatabaseLessonVisual(message.visualLesson)
-                                else LessonVisual(message.content, subject)
                             }
                         }
                     }

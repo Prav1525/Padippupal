@@ -64,7 +64,7 @@ private val tutorExecutor = Executors.newSingleThreadExecutor()
 private val tutorMainHandler = Handler(Looper.getMainLooper())
 
 
-private data class TutorMessage(val role: String, val content: String)
+private data class TutorMessage(val role: String, val content: String, val visualLesson: JSONObject? = null)
 private data class TutorSource(val title: String, val url: String)
 
 private enum class LessonVisualKind { FRACTIONS, ADDITION, PHOTOSYNTHESIS, WATER_CYCLE, SOLAR_SYSTEM, NONE }

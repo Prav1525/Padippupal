@@ -1390,7 +1390,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         if len(raw_audio) < 4:
             raise ValueError("Gemini returned an empty audio stream")
         # Gemini TTS returns raw 16-bit PCM. Wrap the complete stream in WAV for Android.
-        rate_match = re.search(r"rate=(\\d+)", mime_type)
+        rate_match = re.search(r"rate=(\d+)", mime_type)
         sample_rate = int(rate_match.group(1)) if rate_match else 24000
         wav_buffer = io.BytesIO()
         with wave.open(wav_buffer, "wb") as wav_file:
@@ -1407,11 +1407,13 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
             "model": model,
         }
     except urllib.error.HTTPError as exc:
+        logger.warning("Gemini TTS HTTP error status=%s model=%s", exc.code, model)
         if exc.code == 429:
             raise HTTPException(status_code=503, detail="Natural voice is temporarily at its usage limit.") from exc
         raise HTTPException(status_code=502, detail="Natural voice could not be generated right now.") from exc
     except (urllib.error.URLError, TimeoutError, KeyError, IndexError, StopIteration,
             ValueError, TypeError, json.JSONDecodeError) as exc:
+        logger.warning("Gemini TTS failed error_type=%s model=%s", type(exc).__name__, model)
         raise HTTPException(status_code=502, detail="Natural voice generation failed. Please try again.") from exc
 
 

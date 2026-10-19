@@ -260,6 +260,39 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                                 drawCircle(Color(0xFF3987C9), 5.dp.toPx(), Offset((x+wiggle).coerceIn(8f,size.width-8f),(y-wiggle).coerceIn(8f,size.height-8f)))
                             }
                         }
+                        "orbit_lab", "day_night", "moon_phase" -> {
+                            val center = Offset(size.width*.5f, size.height*.48f)
+                            val radius = minOf(size.width, size.height)*.34f
+                            drawCircle(Color(0xFFB9DCC5), radius, center, style=androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                            if (scene=="day_night") {
+                                drawCircle(Color(0xFF3C91D6), radius*.55f, center)
+                                drawArc(Color(0xFF23415F), 90f, 180f, true, Offset(center.x-radius*.55f,center.y-radius*.55f), androidx.compose.ui.geometry.Size(radius*1.1f,radius*1.1f))
+                                drawLine(Color.White,Offset(center.x,center.y-radius*.55f),Offset(center.x,center.y+radius*.55f),1.dp.toPx())
+                            } else {
+                                drawCircle(Color(0xFFFFC857), radius*.18f, center)
+                                if (scene=="moon_phase") drawCircle(Color(0xFF5F86C8), radius*.13f, Offset(center.x+radius*.75f,center.y))
+                            }
+                        }
+                        "factor_tree" -> if (positions.size >= 3) {
+                            val root=positions[0]
+                            positions.drop(1).forEach { p -> drawLine(Color(0xFF24734B),Offset(root.x*size.width,root.y*size.height),Offset(p.x*size.width,p.y*size.height),2.dp.toPx()) }
+                        }
+                        "pattern_builder" -> if (positions.size >= 2) {
+                            positions.zipWithNext().forEach { (a,b) -> drawLine(Color(0xFF83B695),Offset(a.x*size.width,a.y*size.height),Offset(b.x*size.width,b.y*size.height),2.dp.toPx()) }
+                        }
+                        "measure_length", "motion_track" -> {
+                            drawLine(Color(0xFF91B9A0),Offset(size.width*.06f,size.height*.74f),Offset(size.width*.94f,size.height*.74f),3.dp.toPx())
+                            for (i in 0..20) {
+                                val x=size.width*(.06f+i*.044f)
+                                val tick=if(i%5==0) 15.dp.toPx() else 7.dp.toPx()
+                                drawLine(Color(0xFF578368),Offset(x,size.height*.74f-tick/2),Offset(x,size.height*.74f+tick/2),1.dp.toPx())
+                            }
+                        }
+                        "thermometer_lab", "temperature_compare" -> {
+                            drawLine(Color(0xFF91B9A0),Offset(size.width*.5f,size.height*.15f),Offset(size.width*.5f,size.height*.82f),10.dp.toPx())
+                            drawCircle(Color(0xFFE56B6F),15.dp.toPx(),Offset(size.width*.5f,size.height*(.82f-heatLevel*.60f)))
+                            drawCircle(Color(0xFFE56B6F),11.dp.toPx(),Offset(size.width*.5f,size.height*.82f))
+                        }
                         "integer_line" -> {
                             drawLine(Color(0xFF91B9A0), Offset(size.width*.06f,size.height*.78f), Offset(size.width*.94f,size.height*.78f), 3.dp.toPx())
                             for (i in 0..10) drawLine(Color(0xFF91B9A0), Offset(size.width*(.08f+i*.084f),size.height*.73f), Offset(size.width*(.08f+i*.084f),size.height*.83f), 1.dp.toPx())
@@ -324,6 +357,11 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                 Text("Heat level: ${(heatLevel*100).toInt()}%", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
                 Slider(value=heatLevel, onValueChange={ heatLevel=it }, valueRange=0f..1f, colors=SliderDefaults.colors(thumbColor=TutorGreen, activeTrackColor=TutorGreen))
                 Text(when { heatLevel < .33f -> "Solid: particles stay close and mainly vibrate."; heatLevel < .67f -> "Liquid: particles stay close but can move past each other."; else -> "Gas: particles spread out and move freely." }, color=TutorDeep, fontSize=11.sp)
+            }
+            if (scene in listOf("thermometer_lab", "temperature_compare")) {
+                Text("Temperature scale: ${(heatLevel*100).toInt()}° (model units)", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
+                Slider(value=heatLevel, onValueChange={ heatLevel=it }, valueRange=0f..1f, colors=SliderDefaults.colors(thumbColor=TutorGreen, activeTrackColor=TutorGreen))
+                Text("Move the slider and watch the thermometer level change.", color=TutorDeep, fontSize=11.sp)
             }
             Text(feedback, color=TutorDeep, fontSize=12.sp, lineHeight=16.sp)
             Text(caption, color=TutorGrey, fontSize=11.sp, lineHeight=15.sp)

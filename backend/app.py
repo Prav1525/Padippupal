@@ -733,7 +733,7 @@ def _visual_row_to_dict(row: Any) -> dict[str, Any]:
 
 def find_visual_lesson(board: str, class_level: int, subject: str, query: str) -> dict[str, Any] | None:
     """Choose the best active visual recipe for a student's profile and current topic."""
-    haystack = re.sub(r"\\s+", " ", query).casefold()
+    haystack = re.sub(r"\s+", " ", query).casefold()
     if not haystack.strip():
         return None
     with db() as conn:

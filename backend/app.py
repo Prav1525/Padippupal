@@ -705,7 +705,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseModalities": ["AUDIO"],
-            "speechConfig": {"languageCode": {"Tanglish": "en-IN", "தமிழ்": "ta-IN", "English": "en-IN"}.get(language, "en-IN"), "voiceConfig": {"voice": "Kore"}},
+            "speechConfig": {"languageCode": {"Tanglish": "en-IN", "தமிழ்": "ta-IN", "English": "en-IN"}.get(language, "en-IN"), "voiceConfig": {"voice": "Aoede"}},
         },
     }).encode("utf-8")
     request = urllib.request.Request(

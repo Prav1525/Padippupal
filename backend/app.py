@@ -227,20 +227,20 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS visual_lessons_profile
           ON visual_lessons(board, class_level, subject, active);
         """)
-    # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
-    # by an administrator after the first deployment.
-    for lesson in DEFAULT_VISUAL_LESSONS:
-        conn.execute(
-            """INSERT INTO visual_lessons
-               (id, board, class_level, subject, topic, title, visual_type, keywords, recipe_json, active, updated_at)
-               VALUES (?, '*', 0, '*', ?, ?, ?, ?, ?, 1, ?)
-               ON CONFLICT(id) DO NOTHING""",
-            (lesson["id"], lesson["topic"], lesson["title"], lesson["visual_type"],
-             json.dumps(lesson["keywords"], ensure_ascii=False),
-             json.dumps({"caption": lesson["caption"], "steps": lesson["steps"]}, ensure_ascii=False),
-             time.time()),
-        )
-
+        # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
+        # by an administrator after the first deployment.
+        for lesson in DEFAULT_VISUAL_LESSONS:
+            conn.execute(
+                """INSERT INTO visual_lessons
+                   (id, board, class_level, subject, topic, title, visual_type, keywords, recipe_json, active, updated_at)
+                   VALUES (?, '*', 0, '*', ?, ?, ?, ?, ?, 1, ?)
+                   ON CONFLICT(id) DO NOTHING""",
+                (lesson["id"], lesson["topic"], lesson["title"], lesson["visual_type"],
+                 json.dumps(lesson["keywords"], ensure_ascii=False),
+                 json.dumps({"caption": lesson["caption"], "steps": lesson["steps"]}, ensure_ascii=False),
+                 time.time()),
+            )
+    
 
 class SourceMetadata(BaseModel):
     board: str = Field(min_length=2, max_length=80, examples=["CBSE", "Tamil Nadu State Board"])

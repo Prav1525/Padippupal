@@ -43,6 +43,9 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
         return FakeResponse()
 
     monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(curriculum, "find_visual_lesson", lambda board, grade, subject, query: {
+        "title": "Photosynthesis", "steps": [{"label": "Sunlight"}, {"label": "Plant makes food"}]
+    } if "photosynthesis" in query.casefold() else None)
     client = TestClient(curriculum.app)
     response = client.post("/tutor/chat", json={
         "board": "CBSE",
@@ -51,15 +54,21 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
         "medium": "English",
         "app_language": "Tanglish",
         "student_name": "Test learner",
-        "message": "Explain photosynthesis simply.",
+        "chapter": "Life Processes",
+        "topic": "Photosynthesis",
+        "message": "Explain this simply.",
         "history": [{"role": "user", "content": "I am confused."}],
     })
     assert response.status_code == 200
     assert response.json()["answer"].startswith("Namma")
     assert response.json()["grounded"] is False
+    assert response.json()["visual_lesson"]["title"] == "Photosynthesis"
     assert "systemInstruction" in captured["payload"]
-    assert "warm, patient school tutor" in captured["payload"]["systemInstruction"]["parts"][0]["text"]
-    assert "Tanglish" in captured["payload"]["systemInstruction"]["parts"][0]["text"]
+    prompt = captured["payload"]["systemInstruction"]["parts"][0]["text"]
+    assert "warm, patient school tutor" in prompt
+    assert "Tanglish" in prompt
+    assert "chapter=Life Processes" in prompt
+    assert "subtopic=Photosynthesis" in prompt
     assert captured["timeout"] == 45
 
 def test_tutor_speech_requires_server_side_gemini_key(monkeypatch):

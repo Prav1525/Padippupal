@@ -16,7 +16,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        val curriculumApiBaseUrl = providers.gradleProperty("PADIPPUPAL_API_BASE_URL").orElse("").get()
+        val curriculumApiBaseUrl = providers.gradleProperty("PADIPPUPAL_API_BASE_URL").orElse("https://padippupal-curriculum-api.onrender.com").get()
         buildConfigField("String", "CURRICULUM_API_BASE_URL", "\"${curriculumApiBaseUrl}\"")
     }
 

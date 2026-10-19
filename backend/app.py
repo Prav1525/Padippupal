@@ -686,51 +686,80 @@ def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str
 
 @app.get("/curriculum/outline")
 def curriculum_outline(board: str, class_level: int, subject: str, medium: str) -> dict[str, Any]:
-    """Return only chapter/source names and headings present in ingested curriculum content."""
+    """Return ordered textbook chapter and concept lists from the curated lesson catalogue."""
+    chapter_orders = {
+        "science": [
+            "The Wonderful World of Science", "Diversity in the Living World",
+            "Mindful Eating: A Path to a Healthy Body", "Exploring Magnets",
+            "Measurement of Length and Motion", "Materials Around Us",
+            "Temperature and its Measurement", "A Journey through States of Water",
+            "Methods of Separation in Everyday Life",
+            "Living Creatures: Exploring their Characteristics",
+            "Nature's Treasures", "Beyond Earth",
+        ],
+        "mathematics": [
+            "Patterns in Mathematics", "Lines and Angles", "Number Play",
+            "Data Handling and Presentation", "Prime Time", "Perimeter and Area",
+            "Fractions", "Playing with Constructions", "Symmetry", "The Other Side of Zero",
+        ],
+    }
+    subject_key = subject.strip().casefold()
+    ordered_titles = chapter_orders.get(subject_key, [])
     with db() as conn:
-        sources = conn.execute(
-            """SELECT id, title, term, edition FROM sources
-               WHERE LOWER(board)=LOWER(?) AND class_level=?
-                 AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?) AND status='ready'
-               ORDER BY academic_year DESC, title""",
-            (board, class_level, subject, medium),
+        rows = conn.execute(
+            """SELECT chapter, topic, title FROM interactive_lessons
+               WHERE active=1 AND LOWER(board)=LOWER(?) AND class_level=?
+                 AND LOWER(subject)=LOWER(?)
+               ORDER BY chapter, topic""",
+            (board, class_level, subject),
         ).fetchall()
-        chapters = []
-        for source in sources:
-            chunks = conn.execute(
-                "SELECT text FROM chunks WHERE source_id=? ORDER BY chunk_no",
-                (source["id"],),
+        grouped: dict[str, list[str]] = {}
+        for row in rows:
+            chapter_title = normalize(str(row["chapter"] or ""))
+            topic_title = normalize(str(row["topic"] or row["title"] or ""))
+            if not chapter_title:
+                continue
+            topics = grouped.setdefault(chapter_title, [])
+            if topic_title and topic_title not in topics:
+                topics.append(topic_title)
+        # Keep the textbook's explicit sequence; retain any additional curated chapters afterwards.
+        chapter_names = [name for name in ordered_titles if name in grouped]
+        chapter_names.extend(sorted(name for name in grouped if name not in chapter_names))
+        if not chapter_names:
+            # Fallback to ingested source headings only when no curated lessons exist.
+            sources = conn.execute(
+                """SELECT id, title, term, edition FROM sources
+                   WHERE LOWER(board)=LOWER(?) AND class_level=?
+                     AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?) AND status='ready'
+                   ORDER BY academic_year DESC, title""",
+                (board, class_level, subject, medium),
             ).fetchall()
-            topics: list[str] = []
-            seen: set[str] = set()
-            for chunk in chunks:
-                for raw_line in str(chunk["text"] or "").splitlines():
-                    line = re.sub(r"^[#*\-\s]+|[#*\-\s]+$", "", raw_line).strip()
-                    if not 3 <= len(line) <= 90 or len(line.split()) > 12:
-                        continue
-                    marked_heading = bool(re.match(
-                        r"^(?:chapter|unit|lesson|section|activity|\d+(?:\.\d+)*[.)]?)\s*\d*\s*[:.)\-–]?\s*\S",
-                        line, re.IGNORECASE,
-                    ))
-                    title_heading = (
-                        line[:1].isupper()
-                        and not line.endswith((".", "?", "!", ";", ","))
-                        and not re.search(r"\b(the|and|but|because|therefore|this|that|these|those)\b", line.casefold())
-                    )
-                    key = line.casefold()
-                    if (marked_heading or title_heading) and key not in seen and key != str(source["title"]).casefold():
-                        seen.add(key)
-                        topics.append(line)
+            for source in sources:
+                topics: list[str] = []
+                seen: set[str] = set()
+                chunks = conn.execute(
+                    "SELECT text FROM chunks WHERE source_id=? ORDER BY chunk_no", (source["id"],)
+                ).fetchall()
+                for chunk in chunks:
+                    for raw_line in str(chunk["text"] or "").splitlines():
+                        line = re.sub(r"^[#*\\-\\s]+|[#*\\-\\s]+$", "", raw_line).strip()
+                        if 3 <= len(line) <= 90 and len(line.split()) <= 12:
+                            key = line.casefold()
+                            if key not in seen and key != str(source["title"]).casefold():
+                                seen.add(key)
+                                topics.append(line)
                         if len(topics) >= 30:
                             break
-                if len(topics) >= 30:
-                    break
-            chapters.append({
-                "title": str(source["title"]),
-                "term": str(source["term"] or ""),
-                "edition": str(source["edition"] or ""),
-                "topics": topics,
-            })
+                    if len(topics) >= 30:
+                        break
+                chapter_names.append(str(source["title"]))
+                grouped[str(source["title"])] = topics
+    chapters = [
+        {"chapter_number": index + 1, "title": name,
+         "topics": [{"topic_number": topic_index + 1, "title": topic}
+                    for topic_index, topic in enumerate(grouped[name])[:30]]}
+        for index, name in enumerate(chapter_names)
+    ]
     return {"board": board, "class_level": class_level, "subject": subject, "medium": medium,
             "chapter_count": len(chapters), "chapters": chapters}
 

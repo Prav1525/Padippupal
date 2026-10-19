@@ -13,11 +13,12 @@ PadippuPal should take a student from a school diary entry or selected chapter t
 - Kotlin + Jetpack Compose Android app
 - Home dashboard with sample daily tasks
 - Subjects overview
+- Curriculum connection screen with HTTPS health checks and profile-filtered passage retrieval (requires a deployed API URL)
 - Study planner preview
 - English/Tamil UI toggle (prototype; Tanglish support is part of the product plan)
 - GitHub Actions workflow to build and upload a debug APK
 
-The current UI is a prototype. It does not yet implement the real student profile, diary OCR, curriculum library, AI lesson generation, concept mastery, persistent progress, or PDF export.
+The current UI is a prototype. The curriculum connection screen now calls the backend health and retrieval APIs when an HTTPS endpoint is configured. The backend is not deployed, no official curriculum files are loaded, and diary OCR, AI lesson generation, concept mastery, persistent progress, and PDF export are not yet implemented.
 
 ## Concept mastery: core learning flow
 
@@ -55,6 +56,9 @@ Requires JDK 17, Android SDK platform 35 and Gradle 8.9.
 
 ```bash
 gradle assembleDebug
+
+# Optional: embed a deployed HTTPS curriculum API base URL at build time
+gradle -PPADIPPUPAL_API_BASE_URL=https://your-deployed-api.example.com assembleDebug
 ```
 
 The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.

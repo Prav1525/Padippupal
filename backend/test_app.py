@@ -55,3 +55,17 @@ def test_admin_ingestion_requires_token():
         "title": "x", "license_note": "approved", "text": "long enough text for indexing in a basic test"
     })
     assert response.status_code == 401
+
+
+def test_official_registry_separates_authority_from_ingestion_permission():
+    client = TestClient(curriculum.app)
+    response = client.get("/sources/registry")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["reviewed_on"] == "2026-10-19"
+    by_id = {item["id"]: item for item in data["sources"]}
+    assert by_id["ncert-textbooks"]["authority_verified"] is True
+    assert by_id["ncert-textbooks"]["ingestion_approved"] is False
+    assert by_id["cbse-academic-curriculum-2026-27"]["official_url"].startswith("https://cbseacademic.nic.in/")
+    assert by_id["tn-textbook-corporation"]["ingestion_approved"] is False
+    assert data["automatic_ingestion_enabled"] is False

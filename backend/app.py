@@ -704,12 +704,12 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
     # The speech endpoint accepts only the tutor's final answer, never the chat
     # prompt or internal instructions. Collapse exact repeated sentences that can
     # otherwise sound like a stuck/replaying tutor.
-    speech_text = re.sub(r"\\s+", " ", payload.text).strip()
+    speech_text = re.sub(r"\s+", " ", payload.text).strip()
     speech_text = re.sub(
-        r"^(?:tutor reply|response|instructions to the voice|voice instructions)\\s*:\\s*",
+        r"^(?:tutor reply|response|instructions to the voice|voice instructions)\s*:\s*",
         "", speech_text, flags=re.IGNORECASE,
     ).strip()
-    sentences = re.split(r"(?<=[.!?。！？])\\s+", speech_text)
+    sentences = re.split(r"(?<=[.!?。！？])\s+", speech_text)
     deduped: list[str] = []
     for sentence in sentences:
         sentence = sentence.strip()
@@ -726,7 +726,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
     prompt = (
         "VOICE DIRECTION (do not say these directions aloud): A warm, gentle, "
         "patient female school-teacher voice. Moderate-slow pace, natural pauses, "
-        "clear articulation. " + language_instruction + "\\n"
+        "clear articulation. " + language_instruction + "\n"
         "Speak ONLY the exact words between the SAY tags below. Do not speak the "
         "tag names, directions, labels, or anything before or after the tagged text. "
         "Do not explain, summarize, repeat, or add words.\n"

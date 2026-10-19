@@ -39,7 +39,7 @@ class MainActivity:ComponentActivity(){
  setContent{PadippuPalApp()}
  }
 }
-private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,SCAN,LESSON,QUESTIONS,PDF,SETUP}
+private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESSON,QUESTIONS,PDF,SETUP}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun PadippuPalApp(){
@@ -56,7 +56,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,SCAN,LESSON,QUE
   Scaffold(
     containerColor = Paper,
     topBar = {
-      if (page !in listOf(Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.SETUP)) {
+      if (page !in listOf(Page.TUTOR, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.SETUP)) {
         TopAppBar(
           title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -113,6 +113,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,SCAN,LESSON,QUE
       Page.PLANNER -> Planner(done, { done = if (it in done) done - it else done + it }, Modifier.padding(padding))
       Page.PROFILE -> Profile(name, grade, board, medium, language, { page = Page.SETUP }, Modifier.padding(padding))
       Page.CURRICULUM -> CurriculumConnectionScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
+      Page.TUTOR -> TutorScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, appLanguage = language, studentName = name, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.SCAN -> Detail("Scan school diary", "Take a clear photo of the homework diary. Review extracted tasks before adding them.", Icons.Default.CameraAlt, "Camera scanning is a next feature to connect.", { page = Page.HOME })
       Page.LESSON -> Lesson(lesson, { page = Page.QUESTIONS }, { page = Page.SUBJECTS })
       Page.QUESTIONS -> Questions(lesson, { page = Page.LESSON }, { page = Page.PDF })
@@ -132,6 +133,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,SCAN,LESSON,QUE
  item{Heading("Quick actions","Pick what you need")}
  item{Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){Tile("Scan diary","Homework to a plan",Icons.Default.CameraAlt,Peach,Modifier.weight(1f)){go(Page.SCAN)};Tile("My subjects","Explore chapters",Icons.Default.MenuBook,Mint,Modifier.weight(1f)){go(Page.SUBJECTS)}}}
  item{Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){Tile("Study planner","Small, doable steps",Icons.Default.CalendarMonth,Lilac,Modifier.weight(1f)){go(Page.PLANNER)};Tile("Practice","Try concept questions",Icons.Default.Quiz,Color(0xFFE2F0FF),Modifier.weight(1f)){go(Page.QUESTIONS)}}}
+ item{Tile("Ask PadippuPal","Gentle English · Tanglish · Tamil tutor",Icons.Default.Chat,Lilac,Modifier.fillMaxWidth()){go(Page.TUTOR)}}
  item{Tile("Curriculum connection","Search approved study sources",Icons.Default.CloudDone,Color(0xFFE2F0FF),Modifier.fillMaxWidth()){go(Page.CURRICULUM)}}
  item{Heading("A gentle plan for today","Sample tasks · tap to manage")}
  items(listOf(Triple("Mathematics","Practice 10 problems","20 min"),Triple("Science","Explain one key concept","15 min"),Triple("English","Learn 5 new words","10 min"))){(s,d,t)->Card(Modifier.fillMaxWidth().clickable{go(Page.PLANNER)},colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(18.dp)){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.RadioButtonUnchecked,null,tint=Green);Column(Modifier.weight(1f).padding(start=12.dp)){Text(s,fontWeight=FontWeight.SemiBold);Text(d,fontSize=12.sp,color=Grey)};Text(t,color=Green,fontWeight=FontWeight.Bold,fontSize=12.sp)}}}

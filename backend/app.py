@@ -77,6 +77,10 @@ def init_db() -> None:
         );
         CREATE UNIQUE INDEX IF NOT EXISTS source_dedupe
           ON sources(sha256, board, academic_year, class_level, subject, medium, edition);
+        CREATE TABLE IF NOT EXISTS source_content (
+            source_id TEXT PRIMARY KEY REFERENCES sources(id) ON DELETE CASCADE,
+            content TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS chunks (
             id TEXT PRIMARY KEY,
             source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
@@ -170,9 +174,8 @@ def save_job(source_id: str) -> str:
 
 def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_count: int | None = None) -> dict[str, str]:
     source_id = str(uuid.uuid4())
-    # Stage content before making a queued job visible to the worker, preventing
-    # a race where the worker claims the job before its payload is available.
-    _pending_text[source_id] = (text, page_count)
+    # Persist the payload in SQLite before exposing the job to the worker.
+    # This survives process restarts and avoids an in-memory queue race.
     now = time.time()
     with db() as conn:
         existing = conn.execute(
@@ -182,7 +185,6 @@ def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_
              metadata.subject, metadata.medium, metadata.edition),
         ).fetchone()
         if existing:
-            _pending_text.pop(source_id, None)
             job = conn.execute("SELECT id FROM jobs WHERE source_id=? ORDER BY created_at DESC LIMIT 1",
                                (existing["id"],)).fetchone()
             return {"source_id": existing["id"], "job_id": job["id"] if job else "", "status": existing["status"], "deduplicated": "true"}
@@ -194,20 +196,14 @@ def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_
              metadata.medium, metadata.term, metadata.edition, metadata.title, metadata.source_url,
              metadata.license_note, content_hash, page_count, now),
         )
+        conn.execute("INSERT INTO source_content(source_id, content) VALUES (?, ?)", (source_id, text))
         conn.execute(
             "INSERT INTO jobs(id, source_id, status, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?)",
             (str(uuid.uuid4()), source_id, now, now),
         )
         job = conn.execute("SELECT id FROM jobs WHERE source_id=? ORDER BY created_at DESC LIMIT 1",
                            (source_id,)).fetchone()
-    # Text is intentionally staged in a sidecar in-memory registry only for this
-    # prototype; durable job/source state remains in SQLite. A process restart
-    # before processing marks the job retryable but requires re-submitting content.
     return {"source_id": source_id, "job_id": job["id"], "status": "queued", "deduplicated": "false"}
-
-
-_pending_text: dict[str, tuple[str, int | None]] = {}
-_pending_lock = threading.Lock()
 
 
 def process_one_job() -> bool:
@@ -216,13 +212,13 @@ def process_one_job() -> bool:
         if not job:
             return False
         source_id = job["source_id"]
-        staged = _pending_text.get(source_id)
-        if staged is None:
+        stored = conn.execute("SELECT content FROM source_content WHERE source_id=?", (source_id,)).fetchone()
+        if stored is None:
             conn.execute("UPDATE jobs SET status='retryable', error=?, updated_at=? WHERE id=?",
-                         ("Content must be re-submitted after a worker restart.", time.time(), job["id"]))
+                         ("Stored source content is missing; re-submit the document.", time.time(), job["id"]))
             conn.execute("UPDATE sources SET status='needs_resubmit' WHERE id=?", (source_id,))
             return True
-        text, _page_count = staged
+        text = stored["content"]
         conn.execute("UPDATE jobs SET status='running', attempts=attempts+1, updated_at=? WHERE id=?",
                      (time.time(), job["id"]))
     try:
@@ -242,7 +238,6 @@ def process_one_job() -> bool:
             conn.execute("UPDATE sources SET status='ready' WHERE id=?", (source_id,))
             conn.execute("UPDATE jobs SET status='succeeded', error='', updated_at=? WHERE id=?",
                          (time.time(), job["id"]))
-        _pending_text.pop(source_id, None)
     except Exception as exc:
         with db() as conn:
             conn.execute("UPDATE sources SET status='failed' WHERE id=?", (source_id,))

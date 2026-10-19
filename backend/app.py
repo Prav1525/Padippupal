@@ -622,6 +622,7 @@ class TutorChatRequest(BaseModel):
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     """Fast, child-friendly tutoring through a server-side Groq API key."""
+    request_started = time.monotonic()
     # Reuse the same board/class/subject/medium filtering as the public retrieval API.
     retrieved = retrieve(SearchRequest(
         board=payload.board,
@@ -725,7 +726,7 @@ ACCURACY AND SAFETY:
         gemini_body = json.dumps({
             "systemInstruction": {"parts": [{"text": system_text}]},
             "contents": gemini_contents,
-            "generationConfig": {"maxOutputTokens": 300, "temperature": 0.4},
+            "generationConfig": {"maxOutputTokens": 180, "temperature": 0.4},
         }).encode("utf-8")
         gemini_request = urllib.request.Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent",
@@ -747,6 +748,7 @@ ACCURACY AND SAFETY:
             ).strip()
             if not answer:
                 raise ValueError("Gemini returned no text")
+            logger.info("Tutor chat completed provider=gemini elapsed_ms=%d", int((time.monotonic() - request_started) * 1000))
             return {
                 "answer": answer,
                 "model": gemini_model,
@@ -867,6 +869,7 @@ def voice_health() -> dict[str, Any]:
 @app.post("/tutor/speech")
 def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
     """Synthesize a gentle spoken tutor reply with Gemini; API key stays server-side."""
+    request_started = time.monotonic()
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Natural voice is not configured yet.")
@@ -943,6 +946,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
             wav_file.setsampwidth(2)
             wav_file.setframerate(sample_rate)
             wav_file.writeframes(raw_audio)
+        logger.info("Tutor speech completed provider=gemini chars=%d elapsed_ms=%d", len(speech_text), int((time.monotonic() - request_started) * 1000))
         return {
             "audio_base64": base64.b64encode(wav_buffer.getvalue()).decode("ascii"),
             "mime_type": "audio/wav",

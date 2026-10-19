@@ -73,7 +73,7 @@ private val tutorExecutor = Executors.newSingleThreadExecutor()
 private val tutorMainHandler = Handler(Looper.getMainLooper())
 
 
-private data class TutorMessage(val role: String, val content: String, val visualLesson: JSONObject? = null)
+private data class TutorMessage(val role: String, val content: String, val visualLesson: JSONObject? = null, val interactiveLesson: JSONObject? = null)
 private data class TutorSource(val title: String, val url: String)
 
 private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
@@ -167,6 +167,157 @@ private fun InteractiveLessonLab(chapter: String, topic: String, explanation: St
             }
             Text(hint,color=TutorGrey,fontSize=12.sp,lineHeight=16.sp)
             Text("Touch and hold an object, then drag it. Use Reset to start again.",color=TutorGreen,fontSize=10.sp)
+        }
+    }
+}
+
+
+@Composable
+private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
+    val scene = lesson.optString("scene_type", "explore")
+    val caption = lesson.optString("caption", "Move the objects and observe what changes.")
+    val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
+    val key = lesson.optString("id", title)
+    val raw = lesson.optJSONArray("objects")
+    val items = remember(key) {
+        when (scene) {
+            "fraction_builder" -> listOf(
+                MoveItem("🟩", "1/4", .08f, .28f), MoveItem("🟩", "1/4", .29f, .28f),
+                MoveItem("🟩", "1/4", .50f, .28f), MoveItem("⬜", "1/4", .71f, .28f)
+            )
+            "magnet_test" -> listOf(
+                MoveItem("🧲", "Magnet", .08f, .32f), MoveItem("📎", "Iron clip", .70f, .18f),
+                MoveItem("📎", "Steel pin", .70f, .55f), MoveItem("🪵", "Wood", .42f, .58f)
+            )
+            "angle_builder" -> listOf(
+                MoveItem("📍", "Vertex", .42f, .43f), MoveItem("➡️", "Ray A", .76f, .43f),
+                MoveItem("↗️", "Ray B", .60f, .12f)
+            )
+            "integer_line" -> listOf(
+                MoveItem("🔵", "−3", .15f, .30f), MoveItem("🟢", "0", .48f, .30f),
+                MoveItem("🟠", "+3", .80f, .30f)
+            )
+            else -> {
+                val parsed = mutableListOf<MoveItem>()
+                if (raw != null) for (i in 0 until raw.length()) {
+                    val obj = raw.optJSONObject(i) ?: continue
+                    val pos = obj.optJSONArray("position")
+                    parsed += MoveItem(
+                        when (i % 5) { 0 -> "🔵"; 1 -> "🟢"; 2 -> "🟠"; 3 -> "🟣"; else -> "🟡" },
+                        obj.optString("label", "Explore"),
+                        (pos?.optDouble(0, .2) ?: .2).toFloat().coerceIn(0f, 1f),
+                        (pos?.optDouble(1, .3) ?: .3).toFloat().coerceIn(0f, 1f)
+                    )
+                }
+                parsed.ifEmpty { listOf(MoveItem("🔵", "Try it", .2f, .3f), MoveItem("🟢", "Observe", .6f, .4f)) }
+            }
+        }
+    }
+    var positions by remember(key) { mutableStateOf(items.map { Offset(it.x, it.y) }) }
+    var feedback by remember(key) { mutableStateOf("Touch an object, drag it, and notice what changes.") }
+    var activeStep by remember(key) { mutableIntStateOf(0) }
+    val steps = lesson.optJSONArray("steps")
+    val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
+    val motion = rememberInfiniteTransition(label = "interactive-db-motion")
+    val pulse by motion.animateFloat(0f, 1f, infiniteRepeatable(tween(1800), RepeatMode.Reverse), label = "pulse")
+    val vertex = positions.getOrNull(0) ?: Offset(.5f, .5f)
+    val angle = if (scene == "angle_builder" && positions.size >= 3) {
+        val a = positions[1]; val b = positions[2]
+        val degA = Math.toDegrees(kotlin.math.atan2((a.y-vertex.y).toDouble(), (a.x-vertex.x).toDouble()))
+        val degB = Math.toDegrees(kotlin.math.atan2((b.y-vertex.y).toDouble(), (b.x-vertex.x).toDouble()))
+        (kotlin.math.abs(degA-degB).let { if (it > 180) 360-it else it }).toInt()
+    } else 0
+    val magnetic = scene == "magnet_test" && positions.size >= 2 &&
+        positions.drop(1).anyIndexed { index, p ->
+            val label = items.getOrNull(index+1)?.name.orEmpty().lowercase()
+            (label.contains("iron") || label.contains("steel") || label.contains("metal")) &&
+                kotlin.math.sqrt((p.x-positions[0].x)*(p.x-positions[0].x)+(p.y-positions[0].y)*(p.y-positions[0].y)) < .20f
+        }
+    Surface(Modifier.fillMaxWidth().padding(top=8.dp), color=Color(0xFFEAF5EE), shape=RoundedCornerShape(18.dp), border=BorderStroke(1.dp, Color(0xFFD1E7D8))) {
+        Column(Modifier.padding(12.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
+            Row(verticalAlignment=Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("DATABASE INTERACTIVE LESSON", color=TutorGreen, fontSize=10.sp, fontWeight=FontWeight.Bold)
+                    Text(title, color=TutorDeep, fontSize=14.sp, fontWeight=FontWeight.SemiBold)
+                }
+                TextButton(onClick={ positions=items.map { Offset(it.x,it.y) }; feedback="Reset. Try another arrangement."; activeStep=0 }) { Text("Reset", color=TutorGreen) }
+            }
+            BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White, RoundedCornerShape(14.dp))) {
+                val w=maxWidth; val h=maxHeight
+                Canvas(Modifier.fillMaxSize()) {
+                    when (scene) {
+                        "integer_line" -> {
+                            drawLine(Color(0xFF91B9A0), Offset(size.width*.06f,size.height*.78f), Offset(size.width*.94f,size.height*.78f), 3.dp.toPx())
+                            for (i in 0..10) drawLine(Color(0xFF91B9A0), Offset(size.width*(.08f+i*.084f),size.height*.73f), Offset(size.width*(.08f+i*.084f),size.height*.83f), 1.dp.toPx())
+                        }
+                        "angle_builder" -> if (positions.size >= 3) {
+                            val v=positions[0]
+                            positions.drop(1).take(2).forEach { p -> drawLine(Color(0xFF24734B), Offset(v.x*size.width,v.y*size.height), Offset(p.x*size.width,p.y*size.height), 3.dp.toPx()) }
+                            drawCircle(Color(0xFF24734B), 5.dp.toPx(), Offset(v.x*size.width,v.y*size.height))
+                        }
+                        "symmetry_mirror" -> drawLine(Color(0xFF7F9BFF), Offset(size.width*.5f,0f), Offset(size.width*.5f,size.height), 2.dp.toPx())
+                        "area_grid" -> {
+                            for (i in 1..8) drawLine(Color(0xFFE1E9E3),Offset(size.width*i/9f,0f),Offset(size.width*i/9f,size.height),1.dp.toPx())
+                            for (i in 1..4) drawLine(Color(0xFFE1E9E3),Offset(0f,size.height*i/5f),Offset(size.width,size.height*i/5f),1.dp.toPx())
+                        }
+                        else -> {
+                            drawLine(Color(0xFFB8D7C3),Offset(size.width*.05f,size.height*.86f),Offset(size.width*.95f,size.height*.86f),2.dp.toPx())
+                            drawCircle(Color(0xFF58A66C),6.dp.toPx(),Offset(size.width*(.1f+.78f*pulse),size.height*.86f))
+                        }
+                    }
+                }
+                items.forEachIndexed { index, item ->
+                    val p=positions[index]
+                    Column(
+                        Modifier.offset { IntOffset((p.x*(w-68.dp).toPx()).roundToInt(),(p.y*(h-62.dp).toPx()).roundToInt()) }
+                            .width(68.dp)
+                            .pointerInput(key,index,w,h) {
+                                detectDragGestures { change, drag ->
+                                    change.consume()
+                                    val maxX=(w-68.dp).toPx().coerceAtLeast(1f)
+                                    val maxY=(h-62.dp).toPx().coerceAtLeast(1f)
+                                    positions=positions.toMutableList().also { list ->
+                                        val old=list[index]
+                                        var next=Offset((old.x+drag.x/maxX).coerceIn(0f,1f),(old.y+drag.y/maxY).coerceIn(0f,1f))
+                                        if (scene=="fraction_builder" && index>0 && kotlin.math.abs(next.y-list[0].y)<.10f && kotlin.math.abs(next.x-list[0].x)<.16f) {
+                                            next=Offset((list[0].x+index*.09f).coerceIn(0f,1f),list[0].y)
+                                        }
+                                        list[index]=next
+                                    }
+                                    feedback=when(scene) {
+                                        "magnet_test" -> if (magnetic) "Attraction! Iron and steel are pulled toward the magnet; wood is not." else "Bring an iron or steel object close to the magnet."
+                                        "fraction_builder" -> "Move equal pieces together. Each piece is one-quarter of the same whole."
+                                        "angle_builder" -> "The angle is about $angle°. Move Ray B to make it wider or narrower."
+                                        "integer_line" -> "Numbers to the left are smaller; numbers to the right are greater."
+                                        "area_grid" -> "Count the unit squares covered by the shape to estimate its area."
+                                        "symmetry_mirror" -> "Compare the two sides of the mirror line."
+                                        else -> caption
+                                    }
+                                }
+                            },
+                        horizontalAlignment=Alignment.CenterHorizontally
+                    ) {
+                        Surface(color=if(scene=="fraction_builder" && item.name=="1/4") Color(0xFFB9E2C5) else Color(0xFFF4FAF6),shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,Color(0xFFD1E7D8))) {
+                            Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=24.sp)
+                        }
+                        Text(item.name,color=TutorDeep,fontSize=10.sp,maxLines=1)
+                    }
+                }
+            }
+            if (scene=="angle_builder") Text("Current angle: $angle°", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
+            if (scene=="magnet_test") Text(if(magnetic) "Magnetic attraction detected" else "Try bringing iron or steel close to the magnet", color=TutorGreen, fontSize=11.sp)
+            Text(feedback, color=TutorDeep, fontSize=12.sp, lineHeight=16.sp)
+            Text(caption, color=TutorGrey, fontSize=11.sp, lineHeight=15.sp)
+            if (steps != null && steps.length()>0) {
+                val current=steps.optJSONObject(activeStep.coerceIn(0,steps.length()-1))
+                Text("Step ${activeStep+1}/$stepCount · ${current?.optString("title","Try")}: ${current?.optString("text","Explore the objects.")}", color=TutorGreen, fontSize=11.sp)
+                Row(horizontalArrangement=Arrangement.spacedBy(8.dp), verticalAlignment=Alignment.CenterVertically) {
+                    OutlinedButton(onClick={activeStep=(activeStep-1).coerceAtLeast(0)}, enabled=activeStep>0) { Text("Previous") }
+                    Button(onClick={activeStep=(activeStep+1).coerceAtMost(stepCount-1)}, enabled=activeStep<stepCount-1, colors=ButtonDefaults.buttonColors(containerColor=TutorGreen)) { Text("Next step") }
+                }
+            }
+            val challenge=lesson.optJSONObject("challenge")
+            if(challenge!=null && challenge.optString("question").isNotBlank()) Text("Try this: ${challenge.optString("question")}", color=TutorDeep, fontSize=12.sp, fontWeight=FontWeight.SemiBold)
         }
     }
 }
@@ -670,13 +821,14 @@ internal fun TutorScreen(
                     val answer = response.optString("answer").trim()
                     if (answer.isBlank()) throw IllegalStateException("The tutor returned an empty answer. Please try again.")
                     val visualLesson = response.optJSONObject("visual_lesson")
+                    val interactiveLesson = response.optJSONObject("interactive_lesson")
                     val sources = mutableListOf<TutorSource>()
                     val array = response.optJSONArray("sources")
                     if (array != null) for (i in 0 until array.length()) {
                         val item = array.optJSONObject(i) ?: continue
                         sources += TutorSource(item.optString("title", "Curriculum source"), item.optString("url", ""))
                     }
-                    Triple(answer, sources, visualLesson)
+                    listOf(answer, sources, visualLesson, interactiveLesson)
                 } finally {
                     connection.disconnect()
                 }
@@ -684,8 +836,12 @@ internal fun TutorScreen(
             tutorMainHandler.post {
                 loading = false
                 outcome.fold(
-                    onSuccess = { (answer, sources, visualLesson) ->
-                        messages.add(TutorMessage("assistant", answer, visualLesson))
+                    onSuccess = { result ->
+                        val answer = result[0] as String
+                        @Suppress("UNCHECKED_CAST") val sources = result[1] as List<TutorSource>
+                        val visualLesson = result[2] as JSONObject?
+                        val interactiveLesson = result[3] as JSONObject?
+                        messages.add(TutorMessage("assistant", answer, visualLesson, interactiveLesson))
                         lastSources = sources
                         status = if (sources.isEmpty()) "General explanation · no matching textbook passage was found yet." else "Answer checked against ${sources.size} curriculum source(s)."
                         if (speakReplies) speak(answer)
@@ -851,7 +1007,8 @@ internal fun TutorScreen(
                                 lineHeight = 23.sp
                             )
                             if (message.role == "assistant") {
-                                InteractiveLessonLab(chapter, topic, message.content)
+                                if (message.interactiveLesson != null) DatabaseInteractiveLessonLab(message.interactiveLesson)
+                                else InteractiveLessonLab(chapter, topic, message.content)
                                 if (message.visualLesson != null) DatabaseLessonVisual(message.visualLesson)
                                 else LessonVisual(message.content, subject)
                             }

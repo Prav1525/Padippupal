@@ -226,6 +226,15 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS visual_lessons_profile
           ON visual_lessons(board, class_level, subject, active);
+        CREATE TABLE IF NOT EXISTS interactive_lessons (
+            id TEXT PRIMARY KEY, board TEXT NOT NULL DEFAULT '*',
+            class_level INTEGER NOT NULL DEFAULT 0, subject TEXT NOT NULL DEFAULT '*',
+            chapter TEXT NOT NULL, topic TEXT NOT NULL, title TEXT NOT NULL,
+            scene_type TEXT NOT NULL, caption TEXT NOT NULL, lesson_json TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1, updated_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS interactive_lessons_profile
+          ON interactive_lessons(board, class_level, subject, chapter, active);
         CREATE TABLE IF NOT EXISTS planner_tasks (
             id TEXT PRIMARY KEY,
             profile_id TEXT NOT NULL,
@@ -254,7 +263,30 @@ def init_db() -> None:
                  json.dumps({"caption": lesson["caption"], "steps": lesson["steps"]}, ensure_ascii=False),
                  time.time()),
             )
-    
+        lesson_file = Path(__file__).with_name("interactive_lessons.json")
+        if lesson_file.exists():
+            try:
+                lesson_data = json.loads(lesson_file.read_text(encoding="utf-8"))
+                for lesson in lesson_data.get("lessons", []):
+                    lesson_payload = {key: lesson.get(key) for key in ("objects", "steps", "challenge")}
+                    conn.execute(
+                        """INSERT INTO interactive_lessons
+                           (id, board, class_level, subject, chapter, topic, title, scene_type,
+                            caption, lesson_json, active, updated_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                           ON CONFLICT(id) DO UPDATE SET board=excluded.board,
+                            class_level=excluded.class_level, subject=excluded.subject,
+                            chapter=excluded.chapter, topic=excluded.topic, title=excluded.title,
+                            scene_type=excluded.scene_type, caption=excluded.caption,
+                            lesson_json=excluded.lesson_json, active=1, updated_at=excluded.updated_at""",
+                        (lesson["id"], lesson.get("board", "*"), lesson.get("class_level", 0),
+                         lesson.get("subject", "*"), lesson["chapter"], lesson["topic"],
+                         lesson["title"], lesson["scene_type"], lesson["caption"],
+                         json.dumps(lesson_payload, ensure_ascii=False), time.time()),
+                    )
+            except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+                logger.exception("Interactive lesson seed failed: %s", exc)
+
 
 class SourceMetadata(BaseModel):
     board: str = Field(min_length=2, max_length=80, examples=["CBSE", "Tamil Nadu State Board"])
@@ -886,6 +918,65 @@ def upsert_visual_lesson(payload: VisualLessonUpsert) -> dict[str, Any]:
     return {"saved": True, "visual_lesson": _visual_row_to_dict(row)}
 
 
+def _interactive_lesson_row(row: Any) -> dict[str, Any]:
+    payload = json.loads(row["lesson_json"])
+    return {"id": row["id"], "board": row["board"], "class_level": row["class_level"],
+        "subject": row["subject"], "chapter": row["chapter"], "topic": row["topic"],
+        "title": row["title"], "scene_type": row["scene_type"], "caption": row["caption"],
+        "objects": payload.get("objects", []), "steps": payload.get("steps", []),
+        "challenge": payload.get("challenge", {})}
+
+
+def find_interactive_lesson(board: str, class_level: int, subject: str, chapter: str, topic: str, query: str = "") -> dict[str, Any] | None:
+    """Return the closest active lesson blueprint for the selected curriculum path."""
+    topic_norm, chapter_norm, query_norm = normalize(topic).casefold(), normalize(chapter).casefold(), normalize(query).casefold()
+    with db() as conn:
+        rows = conn.execute("SELECT * FROM interactive_lessons WHERE active=1").fetchall()
+    ranked: list[tuple[int, dict[str, Any]]] = []
+    for row in rows:
+        row_board, row_subject = str(row["board"]).casefold(), str(row["subject"]).casefold()
+        if row_board not in ("*", board.casefold()) or row_subject not in ("*", subject.casefold()):
+            continue
+        if int(row["class_level"]) not in (0, class_level):
+            continue
+        row_chapter, row_topic = normalize(str(row["chapter"])).casefold(), normalize(str(row["topic"])).casefold()
+        score = 0
+        if topic_norm and row_topic == topic_norm: score += 100
+        elif topic_norm and (topic_norm in row_topic or row_topic in topic_norm): score += 60
+        elif query_norm and row_topic in query_norm: score += 45
+        else:
+            words = [word for word in re.findall(r"[a-z0-9]+", row_topic) if len(word) > 3]
+            score += min(40, sum(5 for word in words if word in query_norm))
+        if chapter_norm and row_chapter == chapter_norm: score += 40
+        elif chapter_norm and row_chapter in chapter_norm: score += 20
+        if row_board == board.casefold(): score += 8
+        if row_subject == subject.casefold(): score += 8
+        if score >= 45: ranked.append((score, _interactive_lesson_row(row)))
+    if not ranked: return None
+    ranked.sort(key=lambda item: item[0], reverse=True)
+    return ranked[0][1]
+
+
+@app.get("/interactive-lessons")
+def list_interactive_lessons(board: str = "CBSE", class_level: int = 6, subject: str = "Science", chapter: str = "", limit: int = 100) -> dict[str, Any]:
+    if class_level < 1 or class_level > 12 or limit < 1 or limit > 200:
+        raise HTTPException(status_code=422, detail="class_level must be 1–12 and limit 1–200.")
+    with db() as conn:
+        rows = conn.execute("SELECT * FROM interactive_lessons WHERE active=1 ORDER BY chapter, topic").fetchall()
+    lessons = []
+    for row in rows:
+        if str(row["board"]).casefold() not in ("*", board.casefold()) or str(row["subject"]).casefold() not in ("*", subject.casefold()): continue
+        if int(row["class_level"]) not in (0, class_level): continue
+        if chapter and normalize(str(row["chapter"])).casefold() != normalize(chapter).casefold(): continue
+        lessons.append(_interactive_lesson_row(row))
+    return {"count": len(lessons[:limit]), "lessons": lessons[:limit]}
+
+
+@app.get("/interactive-lessons/match")
+def match_interactive_lesson(board: str, class_level: int, subject: str, chapter: str = "", topic: str = "", query: str = "") -> dict[str, Any]:
+    return {"interactive_lesson": find_interactive_lesson(board, class_level, subject, chapter, topic, query)}
+
+
 class TutorTurn(BaseModel):
     role: str = Field(pattern="^(user|assistant)$")
     content: str = Field(min_length=1, max_length=4000)
@@ -1058,10 +1149,9 @@ ACCURACY AND SAFETY:
             if not answer:
                 raise ValueError("Gemini returned no text")
             logger.info("Tutor chat completed provider=gemini elapsed_ms=%d", int((time.monotonic() - request_started) * 1000))
-            visual_lesson = find_visual_lesson(
-                payload.board, payload.class_level, effective_subject,
-                " ".join(part for part in (payload.chapter, payload.topic, payload.message, answer) if part),
-            )
+            lesson_query = " ".join(part for part in (payload.chapter, payload.topic, payload.message, answer) if part)
+            visual_lesson = find_visual_lesson(payload.board, payload.class_level, effective_subject, lesson_query)
+            interactive_lesson = find_interactive_lesson(payload.board, payload.class_level, effective_subject, payload.chapter, payload.topic, lesson_query)
             return {
                 "answer": answer,
                 "model": gemini_model,
@@ -1071,6 +1161,7 @@ ACCURACY AND SAFETY:
                 "subject": effective_subject,
                 "provider": "gemini",
                 "visual_lesson": visual_lesson,
+                "interactive_lesson": interactive_lesson,
             }
         except urllib.error.HTTPError as exc:
             raw_error = exc.read(1200).decode("utf-8", errors="replace")
@@ -1151,10 +1242,9 @@ ACCURACY AND SAFETY:
         logger.warning("Groq chat response parsing failure: error_type=%s model=%s", type(exc).__name__, model)
         raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
 
-    visual_lesson = find_visual_lesson(
-        payload.board, payload.class_level, effective_subject,
-        " ".join(part for part in (payload.chapter, payload.topic, payload.message, answer) if part)
-    )
+    lesson_query = " ".join(part for part in (payload.chapter, payload.topic, payload.message, answer) if part)
+    visual_lesson = find_visual_lesson(payload.board, payload.class_level, effective_subject, lesson_query)
+    interactive_lesson = find_interactive_lesson(payload.board, payload.class_level, effective_subject, payload.chapter, payload.topic, lesson_query)
     return {
         "answer": answer,
         "model": model,
@@ -1163,6 +1253,7 @@ ACCURACY AND SAFETY:
         "language": language,
         "subject": effective_subject,
         "visual_lesson": visual_lesson,
+        "interactive_lesson": interactive_lesson,
     }
 
 # ---------------- Natural cloud speech (Gemini TTS) ----------------

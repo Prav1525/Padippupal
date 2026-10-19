@@ -46,7 +46,6 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun PadippuPalApp(){
- BackHandler(enabled = page != Page.HOME) { page = Page.HOME }
  val context = LocalContext.current
  val prefs = remember { context.getSharedPreferences("padippupal_profile", android.content.Context.MODE_PRIVATE) }
  val profileId = remember {

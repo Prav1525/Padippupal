@@ -701,22 +701,45 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail="Natural voice is not configured yet.")
     model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
     language = payload.app_language.strip()
+    # The speech endpoint accepts only the tutor's final answer, never the chat
+    # prompt or internal instructions. Collapse exact repeated sentences that can
+    # otherwise sound like a stuck/replaying tutor.
+    speech_text = re.sub(r"\\s+", " ", payload.text).strip()
+    speech_text = re.sub(
+        r"^(?:tutor reply|response|instructions to the voice|voice instructions)\\s*:\\s*",
+        "", speech_text, flags=re.IGNORECASE,
+    ).strip()
+    sentences = re.split(r"(?<=[.!?。！？])\\s+", speech_text)
+    deduped: list[str] = []
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if sentence and (not deduped or sentence.casefold() != deduped[-1].casefold()):
+            deduped.append(sentence)
+    speech_text = " ".join(deduped)
     language_instruction = {
-        "Tanglish": "Speak in natural conversational Tanglish (Tamil-English code-switching). Keep English words in natural Indian English and Tamil words fluent and warm.",
-        "தமிழ்": "Speak fluent, natural Tamil in Tamil script with a warm, gentle teacher voice.",
-        "English": "Speak natural Indian English with clear pronunciation and a warm, gentle teacher voice.",
-    }.get(language, "Speak naturally in the requested language with a warm, gentle teacher voice.")
+        "Tanglish": "Use natural conversational Tanglish (Tamil-English code-switching), with fluent Tamil words and natural Indian English.",
+        "தமிழ்": "Use fluent, natural Tamil in Tamil script.",
+        "English": "Use natural Indian English with clear pronunciation.",
+    }.get(language, "Use the requested language naturally.")
+    # Put instructions in the prompt as directions, and tightly delimit the only
+    # content to vocalize. Never ask the model to read the directions themselves.
     prompt = (
-        "Read the following tutor reply aloud as a caring, patient school teacher. "
-        "Use a soft, warm, reassuring tone, moderate-slow pace, natural pauses, and clear articulation. "
-        "Do not add words, summaries, or commentary. " + language_instruction + "\n\n"
-        "Tutor reply:\n" + payload.text.strip()
+        "VOICE DIRECTION (do not say these directions aloud): A warm, gentle, "
+        "patient female school-teacher voice. Moderate-slow pace, natural pauses, "
+        "clear articulation. " + language_instruction + "\\n"
+        "Speak ONLY the exact words between the SAY tags below. Do not speak the "
+        "tag names, directions, labels, or anything before or after the tagged text. "
+        "Do not explain, summarize, repeat, or add words.\n"
+        "<SAY>\\n" + speech_text + "\\n</SAY>"
     )
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseModalities": ["AUDIO"],
-            "speechConfig": {"languageCode": {"Tanglish": "en-IN", "தமிழ்": "ta-IN", "English": "en-IN"}.get(language, "en-IN"), "voiceConfig": {"voice": "Aoede"}},
+            "speechConfig": {
+                "languageCode": {"Tanglish": "en-IN", "தமிழ்": "ta-IN", "English": "en-IN"}.get(language, "en-IN"),
+                "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": "Aoede"}},
+            },
         },
     }).encode("utf-8")
     request = urllib.request.Request(

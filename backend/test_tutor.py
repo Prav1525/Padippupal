@@ -161,6 +161,7 @@ def test_subject_detection_switches_subject_automatically():
 def test_interactive_lesson_catalog_covers_all_class_six_chapters(monkeypatch, tmp_path):
     monkeypatch.setattr(curriculum, "DATABASE_URL", "")
     monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "interactive-lessons.sqlite3")
+    curriculum.init_db()
     client = TestClient(curriculum.app)
     science = client.get("/interactive-lessons", params={"board": "CBSE", "class_level": 6, "subject": "Science", "limit": 100})
     maths = client.get("/interactive-lessons", params={"board": "CBSE", "class_level": 6, "subject": "Mathematics", "limit": 100})
@@ -176,6 +177,7 @@ def test_interactive_lesson_catalog_covers_all_class_six_chapters(monkeypatch, t
 def test_interactive_lesson_match_returns_simulation_blueprint(monkeypatch, tmp_path):
     monkeypatch.setattr(curriculum, "DATABASE_URL", "")
     monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "interactive-match.sqlite3")
+    curriculum.init_db()
     client = TestClient(curriculum.app)
     response = client.get("/interactive-lessons/match", params={
         "board": "CBSE", "class_level": 6, "subject": "Science",

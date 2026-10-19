@@ -44,8 +44,8 @@ Example retrieval request:
 
 - Source text and job state are now persisted in SQLite, so queued work can survive a process restart. The worker itself is in-process; for production deployments with multiple instances, use a dedicated durable queue and durable object storage for original PDFs.
 - PDF text extraction supports text-based PDFs. Scanned-PDF OCR, page-level chunk mapping, heading/chapter extraction, vector embeddings/semantic search, edition approval workflow and automated official-source synchronization are not implemented yet.
-- Retrieval is a transparent keyword baseline, not an LLM answer generator. The Android app is not connected to this API yet.
+- Retrieval is a transparent keyword baseline, not an LLM answer generator. The Android app includes a curriculum connection screen that can call `/health` and `/retrieve` when configured with a deployed HTTPS API base URL. The service is not deployed automatically by this repository.
 - No official textbook files are bundled. Only ingest documents whose provenance and usage rights have been reviewed.
 - Do not treat content as an official curriculum source just because it has been ingested; the source approval workflow is still an operational responsibility.
 
-This is a working starter engine, not a production deployment. It does not train the model; it retrieves relevant approved passages for later use by the tutoring model.
+This is a working starter engine, not a production deployment. The Android app accepts an HTTPS endpoint in its curriculum screen or through the `PADIPPUPAL_API_BASE_URL` Gradle property. No live endpoint is supplied by default, and the service must be deployed and populated with approved documents before live retrieval can work. It does not train the model; it retrieves relevant approved passages for later use by the tutoring model.

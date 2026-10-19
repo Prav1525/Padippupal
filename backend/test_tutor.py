@@ -89,7 +89,7 @@ def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
             return False
 
         def read(self):
-            pcm = b"\\x00\\x00" * 24
+            pcm = b"\x00\x00" * 24
             return json.dumps({
                 "candidates": [{
                     "content": {
@@ -123,10 +123,10 @@ def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
         assert audio.getnchannels() == 1
         assert audio.getsampwidth() == 2
         assert audio.getframerate() == 24000
-        assert audio.readframes(24) == b"\\x00\\x00" * 24
+        assert audio.readframes(24) == b"\x00\x00" * 24
     assert body["provider"] == "gemini"
     assert captured["headers"]["X-goog-api-key"] == "test-gemini-key"
-    assert captured["payload"]["generationConfig"]["speechConfig"]["voiceConfig"]["prebuiltVoiceConfig"]["voice"] == "Aoede"
+    assert captured["payload"]["generationConfig"]["speechConfig"]["voiceConfig"]["voice"] == "Aoede"
     assert "Tanglish" in captured["payload"]["contents"][0]["parts"][0]["text"]
 
 def test_voice_health_reports_configuration_without_secret(monkeypatch):

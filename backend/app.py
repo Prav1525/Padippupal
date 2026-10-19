@@ -190,7 +190,7 @@ def split_chunks(text: str) -> list[str]:
 
 def split_chunks_with_pages(text: str) -> list[tuple[str, int | None, int | None]]:
     """Chunk extracted PDF text while preserving its explicit [Page N] markers."""
-    page_pattern = re.compile(r"(?:^|\\n)\\s*\\[Page\\s+(\\d+)\\]\\s*", re.IGNORECASE)
+    page_pattern = re.compile(r"(?:^|\n)\s*\[Page\s+(\d+)\]\s*", re.IGNORECASE)
     markers = list(page_pattern.finditer(text))
     if not markers:
         return [(chunk, None, None) for chunk in split_chunks(text)]

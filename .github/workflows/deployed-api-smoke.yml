@@ -1,0 +1,57 @@
+name: Deployed PadippuPal API Smoke Test
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/deployed-api-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retrieve-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for API to wake up
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            if curl --connect-timeout 10 --max-time 30 -fsS https://padippupal-curriculum-api.onrender.com/health >/tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            echo "API not ready yet (attempt $attempt/12); retrying in 10 seconds."
+            sleep 10
+          done
+          echo "API health endpoint did not respond after retries."
+          exit 1
+      - name: Verify retrieval returns the indexed test source
+        shell: bash
+        run: |
+          set -euo pipefail
+          response=$(curl --connect-timeout 10 --max-time 30 --retry 3 --retry-all-errors --retry-delay 5 -fsS \
+            -X POST https://padippupal-curriculum-api.onrender.com/retrieve \
+            -H 'Content-Type: application/json' \
+            --data '{"board":"CBSE","class_level":7,"subject":"Science","medium":"English","query":"How does preparation of soil help crops grow?","academic_year":"2026-27","edition":"PadippuPal-Test-1","limit":5}')
+          echo "$response"
+          RESPONSE_JSON="$response" python - <<'PY'
+          import json, os, sys
+          payload = json.loads(os.environ["RESPONSE_JSON"])
+          matches = payload.get("matches")
+          if not isinstance(matches, list):
+              sys.exit("FAIL: response has no matches array")
+          expected = [
+              item for item in matches
+              if item.get("source", {}).get("edition") == "PadippuPal-Test-1"
+              and item.get("source", {}).get("board", "").lower() == "cbse"
+              and item.get("source", {}).get("class_level") == 7
+              and item.get("source", {}).get("subject", "").lower() == "science"
+              and item.get("source", {}).get("medium", "").lower() == "english"
+          ]
+          if not expected:
+              sys.exit("FAIL: indexed test source was not retrieved for the requested profile")
+          print("PASS: API returned the indexed test source for CBSE / Class 7 / Science / English.")
+          PY

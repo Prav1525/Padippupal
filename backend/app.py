@@ -723,80 +723,27 @@ Your teaching behaviour:
         if not answer:
             raise ValueError("Empty model response")
     except urllib.error.HTTPError as exc:
-        # Log provider status and a bounded, sanitized error message; never log keys or prompts.
+        # Log a bounded provider error body for diagnosis; never log credentials or prompts.
+        raw_error = exc.read(2048).decode("utf-8", errors="replace")
         provider_message = ""
+        provider_code = ""
         try:
-            error_payload = json.loads(exc.read(2048).decode("utf-8", errors="replace"))
+            error_payload = json.loads(raw_error)
             error_obj = error_payload.get("error", {}) if isinstance(error_payload, dict) else {}
             if isinstance(error_obj, dict):
                 provider_message = str(error_obj.get("message", ""))[:240]
-                provider_code = str(error_obj.get("code", ""))[:80]
-            else:
-                provider_code = ""
-        except Exception:
-            provider_code = ""
+                provider_code = str(error_obj.get("code", error_obj.get("type", "")))[:80]
+        except (json.JSONDecodeError, TypeError, ValueError):
+            pass
+        diagnostic = (provider_message or raw_error).replace("\\n", " ").replace("\\r", " ")[:240]
         logger.warning(
-            "Groq chat request rejected: status=%s code=%s message=%s model=%s",
-            exc.code, provider_code, provider_message.replace("\\n", " "), model,
+            "Groq chat request rejected: status=%s code=%s content_type=%s detail=%s model=%s",
+            exc.code, provider_code, exc.headers.get("Content-Type", "") if exc.headers else "",
+            diagnostic, model,
         )
         if exc.code == 429:
             raise HTTPException(status_code=503, detail="The tutor is taking a short break. Please try again in a moment.") from exc
         if exc.code in (401, 403):
-            # If Groq credentials or model access are unavailable, use the Gemini
-            # key already configured for natural speech as a text-tutor fallback.
-            gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
-            if gemini_key:
-                try:
-                    gemini_model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
-                    system_text = "\\n\\n".join(
-                        item["content"] for item in messages if item.get("role") == "system"
-                    )
-                    gemini_contents = [
-                        {
-                            "role": "user" if item["role"] == "user" else "model",
-                            "parts": [{"text": item["content"]}],
-                        }
-                        for item in messages if item.get("role") in ("user", "assistant")
-                    ]
-                    gemini_body = json.dumps({
-                        "systemInstruction": {"parts": [{"text": system_text}]},
-                        "contents": gemini_contents,
-                        "generationConfig": {"maxOutputTokens": 420},
-                    }).encode("utf-8")
-                    gemini_request = urllib.request.Request(
-                        f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent",
-                        data=gemini_body,
-                        headers={
-                            "x-goog-api-key": gemini_key,
-                            "Content-Type": "application/json",
-                            "Accept": "application/json",
-                        },
-                        method="POST",
-                    )
-                    with urllib.request.urlopen(gemini_request, timeout=30) as gemini_response:
-                        gemini_result = json.loads(gemini_response.read().decode("utf-8"))
-                    gemini_parts = gemini_result["candidates"][0]["content"]["parts"]
-                    answer = " ".join(
-                        part["text"].strip() for part in gemini_parts
-                        if isinstance(part, dict) and part.get("text", "").strip()
-                    ).strip()
-                    if answer:
-                        return {
-                            "answer": answer,
-                            "model": gemini_model,
-                            "sources": sources,
-                            "grounded": bool(sources),
-                            "language": language,
-                            "provider": "gemini-fallback",
-                        }
-                    logger.warning("Gemini tutor fallback returned no text: model=%s", gemini_model)
-                except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError,
-                        KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as fallback_exc:
-                    logger.warning(
-                        "Gemini tutor fallback failed: error_type=%s model=%s",
-                        type(fallback_exc).__name__,
-                        os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip(),
-                    )
             raise HTTPException(status_code=503, detail="The tutor service configuration needs attention. Please try again later.") from exc
         raise HTTPException(status_code=502, detail="The tutor could not answer right now. Please try again.") from exc
     except (urllib.error.URLError, TimeoutError) as exc:

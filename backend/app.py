@@ -170,6 +170,9 @@ def save_job(source_id: str) -> str:
 
 def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_count: int | None = None) -> dict[str, str]:
     source_id = str(uuid.uuid4())
+    # Stage content before making a queued job visible to the worker, preventing
+    # a race where the worker claims the job before its payload is available.
+    _pending_text[source_id] = (text, page_count)
     now = time.time()
     with db() as conn:
         existing = conn.execute(
@@ -179,6 +182,7 @@ def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_
              metadata.subject, metadata.medium, metadata.edition),
         ).fetchone()
         if existing:
+            _pending_text.pop(source_id, None)
             job = conn.execute("SELECT id FROM jobs WHERE source_id=? ORDER BY created_at DESC LIMIT 1",
                                (existing["id"],)).fetchone()
             return {"source_id": existing["id"], "job_id": job["id"] if job else "", "status": existing["status"], "deduplicated": "true"}
@@ -199,7 +203,6 @@ def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_
     # Text is intentionally staged in a sidecar in-memory registry only for this
     # prototype; durable job/source state remains in SQLite. A process restart
     # before processing marks the job retryable but requires re-submitting content.
-    _pending_text[source_id] = (text, page_count)
     return {"source_id": source_id, "job_id": job["id"], "status": "queued", "deduplicated": "false"}
 
 

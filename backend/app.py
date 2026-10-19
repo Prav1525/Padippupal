@@ -730,7 +730,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         "Speak ONLY the exact words between the SAY tags below. Do not speak the "
         "tag names, directions, labels, or anything before or after the tagged text. "
         "Do not explain, summarize, repeat, or add words.\n"
-        "<SAY>\\n" + speech_text + "\\n</SAY>"
+        "<SAY>\n" + speech_text + "\n</SAY>"
     )
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],

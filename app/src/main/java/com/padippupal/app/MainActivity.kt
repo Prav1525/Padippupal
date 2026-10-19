@@ -4,307 +4,103 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Book
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val Leaf = Color(0xFF2F7D54)
-private val PaleGreen = Color(0xFFEAF5ED)
-private val Ink = Color(0xFF1D3025)
-private val Muted = Color(0xFF68786E)
-private val Warm = Color(0xFFFFF4DD)
+private val Green=Color(0xFF24734B)
+private val Deep=Color(0xFF173D2A)
+private val Mint=Color(0xFFE5F5E9)
+private val Paper=Color(0xFFF7F9F5)
+private val Grey=Color(0xFF718075)
+private val Yellow=Color(0xFFFFD86B)
+private val Peach=Color(0xFFFFE9D9)
+private val Lilac=Color(0xFFEDE8FF)
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { PadippuPalApp() }
-    }
+class MainActivity:ComponentActivity(){
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState)
+ window.statusBarColor=android.graphics.Color.rgb(247,249,245)
+ window.navigationBarColor=android.graphics.Color.rgb(247,249,245)
+ window.decorView.systemUiVisibility=android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+ setContent{PadippuPalApp()}
+ }
 }
+private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,SCAN,LESSON,QUESTIONS,PDF,SETUP}
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PadippuPalApp() {
-    var tamil by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val title = if (tamil) "படிப்புபால்" else "PadippuPal"
-
-    MaterialTheme(
-        colorScheme = MaterialTheme.colorScheme.copy(
-            primary = Leaf,
-            onPrimary = Color.White,
-            background = Color(0xFFF7FAF7),
-            surface = Color.White,
-            onSurface = Ink
-        )
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(PaleGreen, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.MenuBook, contentDescription = null, tint = Leaf)
-                            }
-                            Column(Modifier.padding(start = 10.dp)) {
-                                Text(title, fontWeight = FontWeight.Bold, fontSize = 21.sp)
-                                Text(
-                                    if (tamil) "உங்கள் படிப்பு நண்பன்" else "Your personal study buddy",
-                                    fontSize = 11.sp,
-                                    color = Muted
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        androidx.compose.material3.IconButton(onClick = { tamil = !tamil }) {
-                            Icon(Icons.Default.Language, contentDescription = "Change language")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF7FAF7))
-                )
-            },
-            bottomBar = {
-                NavigationBar(containerColor = Color.White) {
-                    val items = listOf(
-                        Triple(if (tamil) "முகப்பு" else "Home", Icons.Default.Home, 0),
-                        Triple(if (tamil) "பாடங்கள்" else "Subjects", Icons.Default.Book, 1),
-                        Triple(if (tamil) "திட்டம்" else "Planner", Icons.Default.CalendarMonth, 2),
-                        Triple(if (tamil) "நான்" else "Profile", Icons.Default.Person, 3)
-                    )
-                    items.forEach { (label, icon, index) ->
-                        NavigationBarItem(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label, fontSize = 10.sp) }
-                        )
-                    }
-                }
-            },
-            containerColor = Color(0xFFF7FAF7)
-        ) { padding ->
-            when (selectedTab) {
-                0 -> HomeScreen(tamil, Modifier.padding(padding))
-                1 -> SubjectsScreen(tamil, Modifier.padding(padding))
-                2 -> PlannerScreen(tamil, Modifier.padding(padding))
-                else -> ProfileScreen(tamil, onLanguage = { tamil = !tamil }, modifier = Modifier.padding(padding))
-            }
-        }
-    }
+@Composable private fun PadippuPalApp(){
+ var page by remember{mutableStateOf(Page.HOME)}
+ var language by remember{mutableStateOf("English")}
+ var name by remember{mutableStateOf("")}
+ var grade by remember{mutableStateOf("6")}
+ var board by remember{mutableStateOf("Tamil Nadu State Board")}
+ var medium by remember{mutableStateOf("English")}
+ var lesson by remember{mutableStateOf("Crop Production and Management")}
+ var done by remember{mutableStateOf(setOf<String>())}
+ val tamil=language=="தமிழ்"
+ MaterialTheme(colorScheme=lightColorScheme(primary=Green,onPrimary=Color.White,background=Paper,surface=Color.White,onSurface=Deep)){
+ Scaffold(containerColor=Paper,topBar={if(page !in listOf(Page.SCAN,Page.LESSON,Page.QUESTIONS,Page.PDF,Page.SETUP)) TopAppBar(title={
+ Row(verticalAlignment=Alignment.CenterVertically){Logo(40);Column(Modifier.padding(start=10.dp)){Text("PadippuPal",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Deep);Text(if(tamil)"உன் படிப்பு நண்பன்" else "Your study buddy",fontSize=11.sp,color=Grey)}}
+ },actions={IconButton(onClick={language=if(tamil)"English" else "தமிழ்"}){Icon(Icons.Default.Translate,"Language",tint=Green)}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Paper))}},
+ bottomBar={if(page in listOf(Page.HOME,Page.SUBJECTS,Page.PLANNER,Page.PROFILE)) NavigationBar(containerColor=Color.White){listOf(Triple(Page.HOME,"Home",Icons.Default.Home),Triple(Page.SUBJECTS,"Subjects",Icons.Default.MenuBook),Triple(Page.PLANNER,"Planner",Icons.Default.CalendarMonth),Triple(Page.PROFILE,"Profile",Icons.Default.Person)).forEach{(p,l,i)->NavigationBarItem(selected=page==p,onClick={page=p},icon={Icon(i,null)},label={Text(if(tamil)when(l){"Home"->"முகப்பு";"Subjects"->"பாடங்கள்";"Planner"->"திட்டம்";else->"சுயவிவரம்"}else l,fontSize=10.sp)})}}},
+ ){pad->when(page){
+ Page.HOME->Home(tamil,name,done,{page=it},Modifier.padding(pad))
+ Page.SUBJECTS->Subjects(tamil,{lesson=it;page=Page.LESSON},Modifier.padding(pad))
+ Page.PLANNER->Planner(done,{done=if(it in done)done-it else done+it},Modifier.padding(pad))
+ Page.PROFILE->Profile(name,grade,board,medium,language,{page=Page.SETUP},Modifier.padding(pad))
+ Page.SCAN->Detail("Scan school diary","Take a clear photo of the homework diary. Review extracted tasks before adding them.",Icons.Default.CameraAlt,"Camera scanning is a next feature to connect.",{page=Page.HOME})
+ Page.LESSON->Lesson(lesson,{page=Page.QUESTIONS},{page=Page.SUBJECTS})
+ Page.QUESTIONS->Questions(lesson,{page=Page.LESSON},{page=Page.PDF})
+ Page.PDF->Detail("Revision sheet preview","A printable A4 pack will include concept notes, diagrams, practice questions and answers.",Icons.Default.PictureAsPdf,"PDF export is planned; this preview does not create a file yet.",{page=Page.HOME})
+ Page.SETUP->Setup(name,grade,board,medium,language,{name=it},{grade=it},{board=it},{medium=it},{language=it},{page=Page.PROFILE})
+ }}
+ }
+ }
 }
 
-@Composable
-private fun HomeScreen(tamil: Boolean, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            if (tamil) "வணக்கம், மாணவரே! 👋" else "Hey, learner! 👋",
-            fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Ink
-        )
-        Text(
-            if (tamil) "சிறிய படிகள், பெரிய முன்னேற்றம்." else "Small steps today, big progress tomorrow.",
-            color = Muted
-        )
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Leaf),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = Color(0xFFFFD978))
-                    Text(
-                        if (tamil) "  இன்றைய இலக்கு" else "  YOUR DAILY GOAL",
-                        color = Color.White.copy(alpha = .9f), fontSize = 12.sp, fontWeight = FontWeight.Bold
-                    )
-                }
-                Text(
-                    if (tamil) "இன்றைய படிப்பை தொடங்குவோம்!" else "Ready for a little learning?",
-                    color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold
-                )
-                Text(
-                    if (tamil) "ஒரு பாடத்தைத் தேர்ந்தெடுத்து தொடங்குங்கள்." else "Pick a subject and build your study streak.",
-                    color = Color.White.copy(alpha = .9f)
-                )
-                Button(onClick = { }) {
-                    Text(if (tamil) "படிக்கத் தொடங்கு" else "Start studying")
-                }
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatCard(if (tamil) "பாடங்கள்" else "Subjects", "6", Icons.Default.School, Modifier.weight(1f))
-            StatCard(if (tamil) "இன்றைய பணிகள்" else "Tasks today", "3", Icons.Default.CheckCircle, Modifier.weight(1f))
-        }
-        SectionTitle(if (tamil) "இன்றைய திட்டம்" else "Today's study plan")
-        TaskRow("Mathematics", if (tamil) "பயிற்சி: 10 கணக்குகள்" else "Practice: 10 problems", "20 min", PaleGreen)
-        TaskRow("Science", if (tamil) "ஒரு பாடத்தை மீள்பார்க்கவும்" else "Revise one chapter", "15 min", Warm)
-        TaskRow("English", if (tamil) "5 புதிய சொற்கள்" else "Learn 5 new words", "10 min", Color(0xFFEBEEFF))
-        SectionTitle(if (tamil) "உங்கள் படிப்பு நண்பர்" else "Your study buddy")
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.MenuBook, contentDescription = null, tint = Leaf, modifier = Modifier.size(34.dp))
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text(if (tamil) "உதவி வேண்டுமா?" else "Need help with a topic?", fontWeight = FontWeight.Bold)
-                    Text(
-                        if (tamil) "உங்கள் கேள்விகளை விரைவில் இங்கே கேட்கலாம்." else "AI explanations and practice questions are coming next.",
-                        color = Muted, fontSize = 13.sp
-                    )
-                }
-            }
-        }
-        Text(
-            if (tamil) "குறிப்பு: இது தொடக்க மாதிரி; உங்கள் முன்னேற்றம் இன்னும் சேமிக்கப்படவில்லை." else "Preview data only — your progress isn't saved yet.",
-            color = Muted, fontSize = 11.sp
-        )
-        Spacer(Modifier.height(8.dp))
-    }
+@Composable private fun Logo(size:Int){Box(Modifier.size(size.dp).background(Green,RoundedCornerShape((size/3).dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.MenuBook,null,tint=Color.White,modifier=Modifier.size((size*.62f).dp));Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size((size*.26f).dp).background(Yellow,CircleShape),contentAlignment=Alignment.Center){Icon(Icons.Default.PlayArrow,null,tint=Deep,modifier=Modifier.size((size*.22f).dp))}}}
+@Composable private fun Home(tamil:Boolean,name:String,done:Set<String>,go:(Page)->Unit,modifier:Modifier=Modifier){
+ LazyColumn(modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(15.dp),contentPadding=PaddingValues(top=12.dp,bottom=24.dp)){
+ item{Text(if(name.isNotBlank())"Hey, $name! 👋" else if(tamil)"வணக்கம், நண்பா! 👋" else "Hey, learner! 👋",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Deep);Text(if(tamil)"சின்ன படிகள். பெரிய முன்னேற்றம்." else "Little steps. Big learning.",color=Grey,modifier=Modifier.padding(top=3.dp))}
+ item{Card(shape=RoundedCornerShape(26.dp),colors=CardDefaults.cardColors(containerColor=Green)){Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(30.dp).background(Yellow,CircleShape),contentAlignment=Alignment.Center){Icon(Icons.Default.WbSunny,null,tint=Deep)};Text("  YOUR LITTLE WIN TODAY",color=Color.White,fontSize=11.sp,fontWeight=FontWeight.Bold)};Text("Ready to make sense of a chapter?",fontSize=23.sp,fontWeight=FontWeight.Bold,color=Color.White,lineHeight=28.sp);Text("Learn the idea, see an example, then try it yourself.",color=Color.White.copy(alpha=.9f));Button(onClick={go(Page.SUBJECTS)},colors=ButtonDefaults.buttonColors(containerColor=Yellow,contentColor=Deep),shape=RoundedCornerShape(14.dp)){Text("Let's learn",fontWeight=FontWeight.Bold);Icon(Icons.Default.ArrowForward,null,Modifier.padding(start=6.dp))}}}}
+ item{Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){Stat("Today's tasks",done.size.toString()+"/3",Icons.Default.CheckCircle,Mint,Modifier.weight(1f));Stat("Study streak",if(done.isEmpty())"Start!" else "On a roll",Icons.Default.LocalFireDepartment,Peach,Modifier.weight(1f))}}
+ item{Heading("Quick actions","Pick what you need")}
+ item{Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){Tile("Scan diary","Homework to a plan",Icons.Default.CameraAlt,Peach,Modifier.weight(1f)){go(Page.SCAN)};Tile("My subjects","Explore chapters",Icons.Default.MenuBook,Mint,Modifier.weight(1f)){go(Page.SUBJECTS)}}}
+ item{Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){Tile("Study planner","Small, doable steps",Icons.Default.CalendarMonth,Lilac,Modifier.weight(1f)){go(Page.PLANNER)};Tile("Practice","Try concept questions",Icons.Default.Quiz,Color(0xFFE2F0FF),Modifier.weight(1f)){go(Page.QUESTIONS)}}}
+ item{Heading("A gentle plan for today","Sample tasks · tap to manage")}
+ items(listOf(Triple("Mathematics","Practice 10 problems","20 min"),Triple("Science","Explain one key concept","15 min"),Triple("English","Learn 5 new words","10 min"))){(s,d,t)->Card(Modifier.fillMaxWidth().clickable{go(Page.PLANNER)},colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(18.dp)){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.RadioButtonUnchecked,null,tint=Green);Column(Modifier.weight(1f).padding(start=12.dp)){Text(s,fontWeight=FontWeight.SemiBold);Text(d,fontSize=12.sp,color=Grey)};Text(t,color=Green,fontWeight=FontWeight.Bold,fontSize=12.sp)}}}
+ item{Card(Modifier.clickable{go(Page.LESSON)},colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(20.dp)){Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Lightbulb,null,tint=Green,modifier=Modifier.size(35.dp));Column(Modifier.weight(1f).padding(start=12.dp)){Text("Your study buddy",fontWeight=FontWeight.Bold);Text("Concepts first. Confidence next.",fontSize=12.sp,color=Grey)};Icon(Icons.Default.ChevronRight,null,tint=Grey)}}}
+ item{Text("Sample content for preview. Curriculum matching and saving are not connected yet.",fontSize=11.sp,color=Grey)}
+ }
 }
+@Composable private fun Stat(label:String,value:String,icon:ImageVector,tint:Color,modifier:Modifier){Card(modifier,colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(20.dp)){Row(Modifier.padding(13.dp),verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(tint,CircleShape),contentAlignment=Alignment.Center){Icon(icon,null,tint=Green)};Column(Modifier.padding(start=9.dp)){Text(value,fontSize=18.sp,fontWeight=FontWeight.ExtraBold);Text(label,fontSize=11.sp,color=Grey)}}}}
+@Composable private fun Heading(title:String,sub:String){Column{Text(title,fontSize=19.sp,fontWeight=FontWeight.Bold,color=Deep);Text(sub,fontSize=12.sp,color=Grey)}}
+@Composable private fun Tile(title:String,sub:String,icon:ImageVector,tint:Color,modifier:Modifier,click:()->Unit){Card(modifier.clickable(onClick=click),colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(20.dp)){Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Box(Modifier.size(42.dp).background(tint,RoundedCornerShape(14.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Green,modifier=Modifier.size(23.dp))};Text(title,fontWeight=FontWeight.Bold);Text(sub,fontSize=11.sp,color=Grey)}}}
 
-@Composable
-private fun SubjectsScreen(tamil: Boolean, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(if (tamil) "என் பாடங்கள்" else "My subjects", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text(if (tamil) "உங்கள் பாடங்களைக் கண்காணிக்கவும்." else "Your learning journey, one subject at a time.", color = Muted)
-        listOf(
-            Triple("Mathematics", if (tamil) "கணிதம் · 4 அத்தியாயங்கள்" else "4 chapters · Practice regularly", PaleGreen),
-            Triple("Science", if (tamil) "அறிவியல் · 6 அத்தியாயங்கள்" else "6 chapters · Revise concepts", Warm),
-            Triple("English", if (tamil) "ஆங்கிலம் · 5 அத்தியாயங்கள்" else "5 chapters · Reading and writing", Color(0xFFEBEEFF)),
-            Triple("Tamil", "தமிழ் · 5 அத்தியாயங்கள்", Color(0xFFFBE7F0)),
-            Triple("Social Science", if (tamil) "சமூக அறிவியல்" else "History, geography and civics", PaleGreen),
-            Triple("Computer Science", if (tamil) "கணினி அறிவியல்" else "Concepts and practical skills", Warm)
-        ).forEach { (name, detail, color) ->
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
-                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(44.dp).background(color, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Book, contentDescription = null, tint = Leaf)
-                    }
-                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(name, fontWeight = FontWeight.Bold)
-                        Text(detail, color = Muted, fontSize = 12.sp)
-                    }
-                }
-            }
-        }
-        Text(if (tamil) "மாதிரி பாடங்கள்; உங்கள் வகுப்பு மற்றும் பாடத்திட்டத்தைத் தேர்ந்தெடுத்த பின் மாற்றப்படும்." else "Sample subjects. Curriculum mapping will be personalized after setup.", color = Muted, fontSize = 11.sp)
-    }
-}
+@Composable private fun Subjects(tamil:Boolean,open:(String)->Unit,modifier:Modifier=Modifier){val subjects=listOf(Triple("Mathematics","4 chapters · Practice regularly",Mint),Triple("Science","6 chapters · Understand concepts",Peach),Triple("English","5 chapters · Reading and writing",Lilac),Triple("Tamil","மொழிப்பயிற்சி",Color(0xFFFBE7F0)),Triple("Social Science","History, geography and civics",Color(0xFFE2F0FF)),Triple("Computer Science","Concepts and practical skills",Mint));LazyColumn(modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(top=15.dp,bottom=24.dp)){item{Text(if(tamil)"என் பாடங்கள்" else "My subjects",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Deep);Text("Choose a subject to explore a sample lesson.",color=Grey)};items(subjects){(s,d,c)->Card(Modifier.fillMaxWidth().clickable{open(if(s=="Science")"Crop Production and Management" else "$s · Sample concept")},colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(20.dp)){Row(Modifier.padding(15.dp),verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(48.dp).background(c,RoundedCornerShape(15.dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.MenuBook,null,tint=Green)};Column(Modifier.weight(1f).padding(start=13.dp)){Text(s,fontWeight=FontWeight.Bold);Text(d,color=Grey,fontSize=12.sp)};Icon(Icons.Default.ChevronRight,null,tint=Grey)}}};item{Text("Sample subjects until your class and board are configured.",color=Grey,fontSize=11.sp)}}}
+@Composable private fun Planner(done:Set<String>,toggle:(String)->Unit,modifier:Modifier=Modifier){val tasks=listOf(Triple("Mathematics","Practice problems","20 min"),Triple("Science","Review a key concept","15 min"),Triple("English","Vocabulary practice","10 min"));LazyColumn(modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(14.dp),contentPadding=PaddingValues(top=15.dp,bottom=24.dp)){item{Text("Study planner",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Deep);Text("A manageable plan beats a stressful one.",color=Grey)};item{Card(colors=CardDefaults.cardColors(containerColor=Green),shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){Icon(Icons.Default.AutoAwesome,null,tint=Yellow);Text("Your plan, one step at a time",color=Color.White,fontWeight=FontWeight.Bold,fontSize=21.sp);Text(done.size.toString()+" of 3 sample tasks checked off",color=Color.White);LinearProgressIndicator(progress={done.size/3f},color=Yellow,trackColor=Color.White.copy(alpha=.25f),modifier=Modifier.fillMaxWidth())}}};item{Heading("Today's tasks","Tap a task to mark it complete")};items(tasks){(s,d,t)->Card(Modifier.fillMaxWidth().clickable{toggle(s)},colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(18.dp)){Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically){Icon(if(s in done)Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,null,tint=Green);Column(Modifier.weight(1f).padding(start=12.dp)){Text(s,fontWeight=FontWeight.Bold);Text(d,color=Grey,fontSize=12.sp)};Text(t,color=Green,fontSize=12.sp,fontWeight=FontWeight.Bold)}}};item{Text("Demo progress lasts only while the app is open.",color=Grey,fontSize=11.sp)}}}
+@Composable private fun Profile(name:String,grade:String,board:String,medium:String,language:String,edit:()->Unit,modifier:Modifier=Modifier){Column(modifier.fillMaxSize().padding(18.dp),verticalArrangement=Arrangement.spacedBy(15.dp)){Text("Your profile",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Deep);Text("A few details help us teach at the right level.",color=Grey);Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(22.dp)){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){Row(verticalAlignment=Alignment.CenterVertically){Logo(52);Column(Modifier.padding(start=12.dp)){Text(name.ifBlank{"Your learner profile"},fontWeight=FontWeight.Bold,fontSize=18.sp);Text("PadippuPal study buddy",color=Grey,fontSize=12.sp)}};ProfileLine("Class","Grade $grade");ProfileLine("Board",board);ProfileLine("Textbook medium",medium);ProfileLine("App language",language);Button(onClick=edit,modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.Edit,null);Text("  Edit student details")}}};Text("App language is separate from textbook language.",color=Grey,fontSize=12.sp)}}
+@Composable private fun ProfileLine(a:String,b:String){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text(a,color=Grey,fontSize=13.sp);Text(b,fontWeight=FontWeight.SemiBold,fontSize=13.sp)}}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable private fun Setup(name:String,grade:String,board:String,medium:String,language:String,setName:(String)->Unit,setGrade:(String)->Unit,setBoard:(String)->Unit,setMedium:(String)->Unit,setLanguage:(String)->Unit,finish:()->Unit){Column(Modifier.fillMaxSize().background(Paper).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Row(verticalAlignment=Alignment.CenterVertically){IconButton(onClick=finish){Icon(Icons.Default.ArrowBack,null)};Logo(42);Text(" Set up your buddy",fontSize=21.sp,fontWeight=FontWeight.ExtraBold,color=Deep)};OutlinedTextField(value=name,onValueChange=setName,label={Text("Student name (optional)")},singleLine=true,modifier=Modifier.fillMaxWidth());Picker("Class / standard",grade,(1..12).map{it.toString()},setGrade);Picker("Education board",board,listOf("Tamil Nadu State Board","CBSE"),setBoard);Picker("Textbook medium",medium,listOf("English","Tamil"),setMedium);Picker("App explanation language",language,listOf("English","Tanglish","தமிழ்"),setLanguage);Spacer(Modifier.weight(1f));Button(onClick=finish,modifier=Modifier.fillMaxWidth().height(52.dp)){Text("Save my details");Icon(Icons.Default.ArrowForward,null,Modifier.padding(start=8.dp))}}}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable private fun Picker(label:String,value:String,options:List<String>,pick:(String)->Unit){var expanded by remember{mutableStateOf(false)};ExposedDropdownMenuBox(expanded=expanded,onExpandedChange={expanded=!expanded}){OutlinedTextField(value=value,onValueChange={},readOnly=true,label={Text(label)},trailingIcon={ExposedDropdownMenuDefaults.TrailingIcon(expanded)},modifier=Modifier.fillMaxWidth().menuAnchor(),singleLine=true);ExposedDropdownMenu(expanded=expanded,onDismissRequest={expanded=false}){options.forEach{DropdownMenuItem(text={Text(it)},onClick={pick(it);expanded=false})}}}}
 
-@Composable
-private fun PlannerScreen(tamil: Boolean, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(if (tamil) "படிப்பு திட்டம்" else "Study planner", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text(if (tamil) "உங்கள் நாளை எளிதாகத் திட்டமிடுங்கள்." else "A manageable plan beats a stressful one.", color = Muted)
-        Card(colors = CardDefaults.cardColors(containerColor = PaleGreen)) {
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(if (tamil) "இன்றைய பரிந்துரை" else "Today's suggested plan", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(if (tamil) "45 நிமிடங்கள் · 3 சிறிய பணிகள்" else "45 minutes · 3 small tasks")
-                Text(if (tamil) "இது ஒரு மாதிரி திட்டம். தனிப்பயன் திட்டம் அடுத்த கட்டத்தில் உருவாக்கப்படும்." else "This is a sample plan. Personalized scheduling is a next milestone.", color = Muted, fontSize = 12.sp)
-            }
-        }
-        TaskRow("1. Mathematics", if (tamil) "பயிற்சி கேள்விகள்" else "Practice questions", "20 min", Color.White)
-        TaskRow("2. Science", if (tamil) "முக்கிய கருத்துகளை மீள்பார்க்கவும்" else "Review key concepts", "15 min", Color.White)
-        TaskRow("3. English", if (tamil) "சொற்களஞ்சியம்" else "Vocabulary practice", "10 min", Color.White)
-    }
-}
-
-@Composable
-private fun ProfileScreen(tamil: Boolean, onLanguage: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(if (tamil) "என் சுயவிவரம்" else "Your profile", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
-            Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Person, contentDescription = null, tint = Leaf, modifier = Modifier.size(42.dp))
-                Text(if (tamil) "மாணவர் சுயவிவரம்" else "Student profile", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(if (tamil) "வகுப்பு, கல்வி வாரியம் மற்றும் இலக்குகள் விரைவில் அமைக்கலாம்." else "Class, board, language and study goals will be configurable in onboarding.", color = Muted)
-                Button(onClick = onLanguage) {
-                    Icon(Icons.Default.Language, contentDescription = null)
-                    Text(if (tamil) "  Switch to English" else "  தமிழுக்கு மாற்று")
-                }
-            }
-        }
-        Text("PadippuPal · 0.1.0", color = Muted)
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(text, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink)
-}
-
-@Composable
-private fun StatCard(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier) {
-    Card(modifier, colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(icon, contentDescription = null, tint = Leaf)
-            Text(value, fontSize = 27.sp, fontWeight = FontWeight.Bold)
-            Text(title, color = Muted, fontSize = 12.sp)
-        }
-    }
-}
-
-@Composable
-private fun TaskRow(subject: String, detail: String, duration: String, color: Color) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).background(color.takeUnless { it == Color.White } ?: Leaf, CircleShape))
-            Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(subject, fontWeight = FontWeight.SemiBold)
-                Text(detail, color = Muted, fontSize = 12.sp)
-            }
-            Text(duration, color = Leaf, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-        }
-    }
-}
+@Composable private fun Lesson(title:String,next:()->Unit,back:()->Unit){LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(14.dp),contentPadding=PaddingValues(top=10.dp,bottom=24.dp)){item{Row(verticalAlignment=Alignment.CenterVertically){IconButton(onClick=back){Icon(Icons.Default.ArrowBack,null)};Text("Concept lesson",fontWeight=FontWeight.Bold,color=Grey)}};item{Text(title,fontSize=26.sp,fontWeight=FontWeight.ExtraBold,color=Deep)};item{Text("SCIENCE · SAMPLE LESSON",fontSize=11.sp,fontWeight=FontWeight.Bold,color=Green)};item{Card(colors=CardDefaults.cardColors(containerColor=Mint),shape=RoundedCornerShape(22.dp)){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Icon(Icons.Default.Spa,null,tint=Green,modifier=Modifier.size(35.dp));Text("Big idea",fontWeight=FontWeight.ExtraBold,fontSize=20.sp,color=Deep);Text("Plants need suitable conditions and care to grow well. Farmers prepare soil, select seeds, sow them, add nutrients, irrigate, protect crops and harvest at the right time.",fontSize=15.sp,lineHeight=23.sp)}}};item{Heading("Learn it in steps","Understand why, not just what")};item{Concept("01","Preparation of soil","Loosening soil helps roots grow and allows air and water to reach them.",Peach)};item{Concept("02","Sowing seeds","Healthy seeds at suitable depth and spacing have a better chance to grow.",Lilac)};item{Concept("03","Irrigation and care","Plants need appropriate water and protection from weeds and pests.",Color(0xFFE2F0FF))};item{Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(20.dp)){Column(Modifier.padding(17.dp)){Text("Think about it 💭",fontWeight=FontWeight.Bold,fontSize=17.sp);Text("What might happen if seeds are sown too close together? Explain why.",color=Grey)}}};item{Button(onClick=next,modifier=Modifier.fillMaxWidth().height(52.dp)){Text("Try concept questions");Icon(Icons.Default.ArrowForward,null,Modifier.padding(start=8.dp))}};item{Text("Illustrative sample only; match to the actual board, class and textbook before study use.",color=Grey,fontSize=11.sp)}}}
+@Composable private fun Concept(n:String,t:String,d:String,c:Color){Row(verticalAlignment=Alignment.Top){Box(Modifier.size(38.dp).background(c,CircleShape),contentAlignment=Alignment.Center){Text(n,fontWeight=FontWeight.ExtraBold,color=Deep)};Column(Modifier.padding(start=12.dp)){Text(t,fontWeight=FontWeight.Bold,fontSize=16.sp);Text(d,color=Grey,fontSize=13.sp,lineHeight=19.sp)}}}
+@Composable private fun Questions(title:String,back:()->Unit,pdf:()->Unit){var answer by remember{mutableStateOf("")};var show by remember{mutableStateOf(false)};LazyColumn(Modifier.fillMaxSize().padding(horizontal=18.dp),verticalArrangement=Arrangement.spacedBy(15.dp),contentPadding=PaddingValues(top=10.dp,bottom=24.dp)){item{Row(verticalAlignment=Alignment.CenterVertically){IconButton(onClick=back){Icon(Icons.Default.ArrowBack,null)};Text("Practice & apply",fontWeight=FontWeight.Bold,color=Grey)}};item{Text("Can you explain the idea?",fontSize=26.sp,fontWeight=FontWeight.ExtraBold,color=Deep)};item{Text(title,color=Green,fontWeight=FontWeight.SemiBold)};item{Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(22.dp)){Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("1 · Predict",color=Green,fontWeight=FontWeight.Bold);Text("A farmer sows seeds very close together. Predict two problems the seedlings might face and explain why.",fontSize=17.sp,fontWeight=FontWeight.SemiBold,lineHeight=24.sp);OutlinedTextField(value=answer,onValueChange={answer=it},label={Text("Write your answer")},modifier=Modifier.fillMaxWidth(),minLines=3);Button(onClick={show=!show},modifier=Modifier.fillMaxWidth()){Text(if(show)"Hide example answer" else "Show example answer")};if(show){Text("Example answer",fontWeight=FontWeight.Bold,color=Green);Text("Seedlings may compete for sunlight, water, nutrients and space, limiting growth. The result depends on crop and conditions.",fontSize=14.sp,lineHeight=21.sp)}}}};item{Card(colors=CardDefaults.cardColors(containerColor=Peach),shape=RoundedCornerShape(20.dp)){Column(Modifier.padding(17.dp)){Text("2 · Apply it",fontWeight=FontWeight.Bold,fontSize=17.sp);Text("How could a farmer decide whether to water a field today? Name something to observe and explain why.",fontSize=14.sp,lineHeight=21.sp)}}};item{Button(onClick=pdf,modifier=Modifier.fillMaxWidth().height(50.dp)){Icon(Icons.Default.PictureAsPdf,null);Text("  Revision sheet preview")}};item{Text("Example questions, not predictions of a specific exam paper.",color=Grey,fontSize=11.sp)}}}
+@Composable private fun Detail(title:String,desc:String,icon:ImageVector,note:String,back:()->Unit){Column(Modifier.fillMaxSize().padding(22.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){Row(verticalAlignment=Alignment.CenterVertically){IconButton(onClick=back){Icon(Icons.Default.ArrowBack,null)};Text("PadippuPal",fontWeight=FontWeight.Bold,color=Grey)};Spacer(Modifier.height(12.dp));Box(Modifier.size(74.dp).background(Mint,RoundedCornerShape(24.dp)),contentAlignment=Alignment.Center){Icon(icon,null,tint=Green,modifier=Modifier.size(38.dp))};Text(title,fontSize=28.sp,fontWeight=FontWeight.ExtraBold,color=Deep);Text(desc,fontSize=15.sp,lineHeight=23.sp);Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(18.dp)){Text(note,Modifier.padding(16.dp),color=Grey,fontSize=13.sp,lineHeight=20.sp)};Spacer(Modifier.weight(1f));Button(onClick=back,modifier=Modifier.fillMaxWidth().height(52.dp)){Text("Back to home");Icon(Icons.Default.ArrowForward,null,Modifier.padding(start=8.dp))}}}

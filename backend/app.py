@@ -226,6 +226,20 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS visual_lessons_profile
           ON visual_lessons(board, class_level, subject, active);
+        CREATE TABLE IF NOT EXISTS planner_tasks (
+            id TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            subject TEXT NOT NULL DEFAULT 'General',
+            details TEXT NOT NULL DEFAULT '',
+            due_date TEXT NOT NULL DEFAULT '',
+            minutes INTEGER NOT NULL DEFAULT 15,
+            completed INTEGER NOT NULL DEFAULT 0,
+            source TEXT NOT NULL DEFAULT 'manual',
+            created_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS planner_profile_created
+          ON planner_tasks(profile_id, created_at);
         """)
         # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
         # by an administrator after the first deployment.
@@ -1187,3 +1201,181 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
             ValueError, TypeError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=502, detail="Natural voice generation failed. Please try again.") from exc
 
+
+
+# Learner planner and diary scanning APIs. Curriculum ingestion remains an invisible
+# administrator/background workflow; students only see their own profile tasks.
+class PlannerTaskInput(BaseModel):
+    profile_id: str = Field(min_length=8, max_length=100)
+    title: str = Field(min_length=1, max_length=240)
+    subject: str = Field(default="General", max_length=100)
+    details: str = Field(default="", max_length=1000)
+    due_date: str = Field(default="", max_length=40)
+    minutes: int = Field(default=15, ge=1, le=600)
+    source: str = Field(default="manual", max_length=40)
+
+
+class PlannerTaskImport(BaseModel):
+    profile_id: str = Field(min_length=8, max_length=100)
+    tasks: list[PlannerTaskInput] = Field(min_length=1, max_length=40)
+
+
+class PlannerTaskUpdate(BaseModel):
+    profile_id: str = Field(min_length=8, max_length=100)
+    completed: bool
+
+
+class DiaryParseRequest(BaseModel):
+    image_base64: str = Field(min_length=100, max_length=9_000_000)
+    mime_type: str = Field(default="image/jpeg", pattern=r"^image/(jpeg|png|webp)$")
+    board: str = Field(default="Tamil Nadu State Board", max_length=80)
+    class_level: int = Field(default=6, ge=1, le=12)
+    medium: str = Field(default="English", max_length=40)
+    app_language: str = Field(default="English", max_length=30)
+
+
+def _task_dict(row: Any) -> dict[str, Any]:
+    item = dict(row)
+    item["completed"] = bool(item.get("completed", 0))
+    item["minutes"] = int(item.get("minutes", 15))
+    return item
+
+
+@app.get("/planner/tasks")
+def list_planner_tasks(profile_id: str = Field(min_length=8, max_length=100)) -> dict[str, Any]:
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at "
+            "FROM planner_tasks WHERE profile_id=? ORDER BY completed ASC, created_at DESC",
+            (profile_id,),
+        ).fetchall()
+    return {"tasks": [_task_dict(row) for row in rows]}
+
+
+@app.post("/planner/tasks", status_code=201)
+def create_planner_task(payload: PlannerTaskInput) -> dict[str, Any]:
+    task_id = str(uuid.uuid4())
+    created_at = time.time()
+    with db() as conn:
+        conn.execute(
+            "INSERT INTO planner_tasks(id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+            (task_id, payload.profile_id, normalize(payload.title), normalize(payload.subject) or "General",
+             normalize(payload.details), normalize(payload.due_date), payload.minutes, payload.source, created_at),
+        )
+        row = conn.execute(
+            "SELECT id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at "
+            "FROM planner_tasks WHERE id=?",
+            (task_id,),
+        ).fetchone()
+    return {"task": _task_dict(row)}
+
+
+@app.post("/planner/tasks/import", status_code=201)
+def import_planner_tasks(payload: PlannerTaskImport) -> dict[str, Any]:
+    created_at = time.time()
+    inserted = []
+    with db() as conn:
+        for task in payload.tasks:
+            if task.profile_id != payload.profile_id:
+                raise HTTPException(status_code=400, detail="All tasks must belong to the requested learner profile.")
+            task_id = str(uuid.uuid4())
+            conn.execute(
+                "INSERT INTO planner_tasks(id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
+                (task_id, payload.profile_id, normalize(task.title), normalize(task.subject) or "General",
+                 normalize(task.details), normalize(task.due_date), task.minutes, "diary", created_at),
+            )
+            inserted.append(task_id)
+        rows = conn.execute(
+            "SELECT id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at "
+            "FROM planner_tasks WHERE profile_id=? AND created_at=? ORDER BY created_at DESC",
+            (payload.profile_id, created_at),
+        ).fetchall()
+    return {"saved": len(inserted), "tasks": [_task_dict(row) for row in rows if row["id"] in inserted]}
+
+
+@app.put("/planner/tasks/{task_id}")
+def update_planner_task(task_id: str, payload: PlannerTaskUpdate) -> dict[str, Any]:
+    with db() as conn:
+        result = conn.execute(
+            "UPDATE planner_tasks SET completed=? WHERE id=? AND profile_id=?",
+            (1 if payload.completed else 0, task_id, payload.profile_id),
+        )
+        if getattr(result, "rowcount", 0) == 0:
+            raise HTTPException(status_code=404, detail="Task not found for this learner.")
+        row = conn.execute(
+            "SELECT id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at "
+            "FROM planner_tasks WHERE id=? AND profile_id=?",
+            (task_id, payload.profile_id),
+        ).fetchone()
+    return {"task": _task_dict(row)}
+
+
+@app.delete("/planner/tasks/{task_id}")
+def delete_planner_task(task_id: str, profile_id: str = Field(min_length=8, max_length=100)) -> dict[str, bool]:
+    with db() as conn:
+        result = conn.execute("DELETE FROM planner_tasks WHERE id=? AND profile_id=?", (task_id, profile_id))
+    if getattr(result, "rowcount", 0) == 0:
+        raise HTTPException(status_code=404, detail="Task not found for this learner.")
+    return {"deleted": True}
+
+
+@app.post("/diary/parse")
+def parse_school_diary(payload: DiaryParseRequest) -> dict[str, Any]:
+    """Use Gemini vision to transcribe homework; return a reviewable draft, never auto-save."""
+    import base64
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Diary scanning is not configured on the backend.")
+    try:
+        image_bytes = base64.b64decode(payload.image_base64, validate=True)
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=422, detail="The selected image could not be read.") from exc
+    if len(image_bytes) > 6_000_000:
+        raise HTTPException(status_code=413, detail="Please choose a smaller or more compressed diary photo.")
+    model = os.getenv("PADIPPUPAL_GEMINI_VISION_MODEL", "gemini-2.5-flash").strip()
+    prompt = f"""Read this school diary photo for a learner in class {payload.class_level}, board {payload.board}, textbook medium {payload.medium}. Preferred language for any notes is {payload.app_language}.
+Extract only homework, assignments, tests, project work, and due dates that are actually visible. Do not guess illegible words or invent dates. If uncertain, mark the title with [check photo]. Return ONLY valid JSON in this schema:
+{{"tasks":[{{"title":"short task text","subject":"subject if visible, else General","details":"brief context or uncertain words","due_date":"visible date as YYYY-MM-DD if unambiguous, else empty string","minutes":15}}]}}
+Return an empty tasks array if no homework is legible. Keep tasks separate and concise."""
+    body = json.dumps({
+        "contents": [{"role": "user", "parts": [
+            {"text": prompt},
+            {"inline_data": {"mime_type": payload.mime_type, "data": payload.image_base64}},
+        ]}],
+        "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+        data=body,
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=35) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        text_output = "".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"])
+        parsed = json.loads(text_output.strip())
+        tasks = []
+        for item in parsed.get("tasks", [])[:40]:
+            if not isinstance(item, dict) or not str(item.get("title", "")).strip():
+                continue
+            tasks.append({
+                "title": normalize(str(item["title"]))[:240],
+                "subject": normalize(str(item.get("subject", "General")))[:100] or "General",
+                "details": normalize(str(item.get("details", "")))[:1000],
+                "due_date": normalize(str(item.get("due_date", "")))[:40],
+                "minutes": max(1, min(600, int(item.get("minutes", 15) or 15))),
+                "source": "diary",
+            })
+        return {"tasks": tasks, "count": len(tasks), "needs_review": True, "model": model}
+    except urllib.error.HTTPError as exc:
+        logger.warning("Diary OCR provider HTTP error status=%s", exc.code)
+        if exc.code == 429:
+            raise HTTPException(status_code=503, detail="Diary scanning is temporarily at the AI usage limit.") from exc
+        raise HTTPException(status_code=502, detail="The diary photo could not be read right now. Please try again.") from exc
+    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, StopIteration,
+            ValueError, TypeError, json.JSONDecodeError) as exc:
+        logger.warning("Diary OCR failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Diary scanning failed. Try a clearer photo with good lighting.") from exc

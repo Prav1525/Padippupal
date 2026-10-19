@@ -8,12 +8,16 @@ android {
     namespace = "com.padippupal.app"
     compileSdk = 35
 
+    buildFeatures { buildConfig = true }
+
     defaultConfig {
         applicationId = "com.padippupal.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        val curriculumApiBaseUrl = providers.gradleProperty("PADIPPUPAL_API_BASE_URL").orElse("").get()
+        buildConfigField("String", "CURRICULUM_API_BASE_URL", "\"${curriculumApiBaseUrl}\"")
     }
 
     buildTypes {

@@ -88,6 +88,7 @@ internal fun TutorScreen(
     var speakReplies by remember { mutableStateOf(true) }
     var speechActive by remember { mutableStateOf(false) }
     var voiceReady by remember { mutableStateOf(false) }
+    var selectedLanguage by remember { mutableStateOf(appLanguage) }
     var listening by remember { mutableStateOf(false) }
     val speechRecognizer = remember(context) {
         if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null
@@ -160,7 +161,6 @@ internal fun TutorScreen(
             speechRecognizer?.destroy()
         }
     }
-    var selectedLanguage by remember { mutableStateOf(appLanguage) }
     var lastSources by remember { mutableStateOf<List<TutorSource>>(emptyList()) }
     val ttsState = remember { mutableStateOf<TextToSpeech?>(null) }
     val audioPlayer = remember { mutableStateOf<MediaPlayer?>(null) }

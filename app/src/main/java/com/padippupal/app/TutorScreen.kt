@@ -488,13 +488,14 @@ internal fun TutorScreen(
                     }
                     val answer = response.optString("answer").trim()
                     if (answer.isBlank()) throw IllegalStateException("The tutor returned an empty answer. Please try again.")
+                    val visualLesson = response.optJSONObject("visual_lesson")
                     val sources = mutableListOf<TutorSource>()
                     val array = response.optJSONArray("sources")
                     if (array != null) for (i in 0 until array.length()) {
                         val item = array.optJSONObject(i) ?: continue
                         sources += TutorSource(item.optString("title", "Curriculum source"), item.optString("url", ""))
                     }
-                    answer to sources
+                    Triple(answer, sources, visualLesson)
                 } finally {
                     connection.disconnect()
                 }
@@ -502,8 +503,8 @@ internal fun TutorScreen(
             tutorMainHandler.post {
                 loading = false
                 outcome.fold(
-                    onSuccess = { (answer, sources) ->
-                        messages.add(TutorMessage("assistant", answer))
+                    onSuccess = { (answer, sources, visualLesson) ->
+                        messages.add(TutorMessage("assistant", answer, visualLesson))
                         lastSources = sources
                         status = if (sources.isEmpty()) "General explanation · no matching textbook passage was found yet." else "Answer checked against ${sources.size} curriculum source(s)."
                         if (speakReplies) speak(answer)
@@ -604,7 +605,10 @@ internal fun TutorScreen(
                                 fontSize = 15.sp,
                                 lineHeight = 23.sp
                             )
-                            if (message.role == "assistant") LessonVisual(message.content, subject)
+                            if (message.role == "assistant") {
+                                if (message.visualLesson != null) DatabaseLessonVisual(message.visualLesson)
+                                else LessonVisual(message.content, subject)
+                            }
                         }
                     }
                 }

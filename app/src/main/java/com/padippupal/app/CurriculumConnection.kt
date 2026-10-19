@@ -117,7 +117,7 @@ internal fun CurriculumConnectionScreen(
                                 medium = source.optString("medium", medium),
                                 edition = source.optString("edition", ""),
                                 academicYear = source.optString("academic_year", ""),
-                                sourceUrl = source.optString("source_url", "")
+                                sourceUrl = source.optString("url", source.optString("source_url", ""))
                             )
                         }
                         matches = found

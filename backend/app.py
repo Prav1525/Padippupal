@@ -271,6 +271,31 @@ def shutdown() -> None:
     _stop.set()
 
 
+def load_source_registry() -> dict[str, Any]:
+    """Return the curated registry; never fetch or ingest registry URLs automatically."""
+    registry_path = Path(__file__).with_name("source_registry.json")
+    try:
+        data = json.loads(registry_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=503, detail="Official source registry is unavailable or invalid.") from exc
+    return data
+
+
+@app.get("/sources/registry")
+def source_registry() -> dict[str, Any]:
+    """Public transparency endpoint; reports source verification separately from reuse approval."""
+    registry = load_source_registry()
+    return {
+        "registry_version": registry.get("registry_version"),
+        "reviewed_on": registry.get("reviewed_on"),
+        "policy": registry.get("policy"),
+        "sources": registry.get("sources", []),
+        "automatic_ingestion_enabled": any(
+            item.get("ingestion_approved") is True for item in registry.get("sources", [])
+        ),
+    }
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "padippupal-curriculum-engine"}

@@ -371,7 +371,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
             if (scene=="motion_track") Text("Watch the toy move along the measured track. Drag the toy to compare positions.", color=TutorGreen, fontSize=11.sp)
             if (scene=="bar_chart") {
                 Text("Adjust Group C and compare the bar heights.", color=TutorGreen, fontSize=11.sp)
-                Slider(value=chartValue, onValueChange={chartValue=it}, valueRange=.1f.. .9f, colors=SliderDefaults.colors(thumbColor=TutorGreen, activeTrackColor=TutorGreen))
+                Slider(value=chartValue, onValueChange={chartValue=it}, valueRange = 0.1f..0.9f, colors=SliderDefaults.colors(thumbColor=TutorGreen, activeTrackColor=TutorGreen))
             }
             if (scene=="magnet_test") Text(if(magnetic) "Magnetic attraction detected" else "Try bringing iron or steel close to the magnet", color=TutorGreen, fontSize=11.sp)
             if (scene in listOf("particle_states", "phase_change", "evap_condense")) {

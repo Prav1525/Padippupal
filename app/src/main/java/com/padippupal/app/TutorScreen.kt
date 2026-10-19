@@ -108,7 +108,7 @@ internal fun TutorScreen(
     }
 
     fun speakWithDeviceTts(text: String) {
-        val engine = ttsState.value ?: return
+        val engine = ttsState.value ?: run { speechActive = false; return }
         val locale = when (selectedLanguage) {
             "Tanglish" -> Locale("en", "IN")
             "தமிழ்" -> Locale("ta", "IN")
@@ -121,6 +121,7 @@ internal fun TutorScreen(
             } else {
                 "Natural voice unavailable and an Indian English voice isn't installed."
             }
+            speechActive = false
             return
         }
         engine.language = locale

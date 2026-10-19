@@ -553,9 +553,15 @@ def retrieve(payload: SearchRequest) -> dict[str, Any]:
     scored = []
     for row in rows:
         chunk_terms = terms(row["text"])
-        overlap = sum(1 for term in chunk_terms if term in query_terms)
+        # Score unique query-term coverage so repeated words do not dominate.
+        chunk_term_set = set(chunk_terms)
+        overlap = len(query_terms & chunk_term_set)
         if overlap:
-            score = overlap / max(1, len(set(chunk_terms)) ** 0.5)
+            coverage = overlap / max(1, len(query_terms))
+            density = overlap / max(1, len(chunk_term_set) ** 0.5)
+            title_terms = set(terms(row["title"]))
+            title_boost = 0.35 if query_terms & title_terms else 0.0
+            score = coverage + density * 0.15 + title_boost
             scored.append((score, row))
     scored.sort(key=lambda pair: pair[0], reverse=True)
     matches = []
@@ -624,13 +630,24 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     sources = []
     for item in matches:
         source = item.get("source", {})
+        page_start = source.get("page_start")
+        page_end = source.get("page_end")
+        page_label = (
+            f", page {page_start}" if page_start and page_start == page_end
+            else f", pages {page_start}-{page_end}" if page_start and page_end
+            else ""
+        )
         context_blocks.append(
-            f"Source: {source.get('title', 'Approved curriculum source')} "
+            f"Source: {source.get('title', 'Approved curriculum source')}{page_label} "
             f"(board={source.get('board')}, class={source.get('class_level')}, "
             f"subject={source.get('subject')}, medium={source.get('medium')})\n"
             f"Passage: {item.get('text', '')[:3500]}"
         )
         source_item = {"title": source.get("title", "Approved curriculum source")}
+        if page_start:
+            source_item["page_start"] = page_start
+        if page_end:
+            source_item["page_end"] = page_end
         if str(source.get("url", "")).startswith("https://"):
             source_item["url"] = source["url"]
         if source_item not in sources:

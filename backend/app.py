@@ -1190,15 +1190,26 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         with urllib.request.urlopen(request, timeout=45) as response:
             result = json.loads(response.read().decode("utf-8"))
         parts = result["candidates"][0]["content"]["parts"]
-        audio_part = next(
-            part for part in parts
-            if isinstance(part, dict) and isinstance(part.get("inlineData"), dict)
+        # Gemini can return speech as multiple audio parts. Join every PCM chunk
+        # in response order; using only the first inlineData part can truncate speech.
+        audio_parts = [
+            part["inlineData"]
+            for part in parts
+            if isinstance(part, dict)
+            and isinstance(part.get("inlineData"), dict)
             and part["inlineData"].get("data")
+        ]
+        if not audio_parts:
+            raise ValueError("Gemini returned no audio data")
+        mime_type = audio_parts[0].get("mimeType", "audio/L16;rate=24000")
+        raw_audio = b"".join(
+            base64.b64decode(part["data"], validate=True)
+            for part in audio_parts
         )
-        raw_audio = base64.b64decode(audio_part["inlineData"]["data"], validate=True)
-        mime_type = audio_part["inlineData"].get("mimeType", "audio/L16;rate=24000")
-        # Gemini TTS returns raw 16-bit PCM. Wrap it in a WAV container for Android playback.
-        rate_match = re.search(r"rate=(\d+)", mime_type)
+        if len(raw_audio) < 4:
+            raise ValueError("Gemini returned an empty audio stream")
+        # Gemini TTS returns raw 16-bit PCM. Wrap the complete stream in WAV for Android.
+        rate_match = re.search(r"rate=(\\d+)", mime_type)
         sample_rate = int(rate_match.group(1)) if rate_match else 24000
         wav_buffer = io.BytesIO()
         with wave.open(wav_buffer, "wb") as wav_file:

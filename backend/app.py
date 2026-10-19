@@ -21,6 +21,7 @@ from typing import Any
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
 ADMIN_TOKEN = os.getenv("PADIPPUPAL_ADMIN_TOKEN", "")
 CHUNK_WORDS = 220
@@ -36,7 +37,33 @@ _worker: threading.Thread | None = None
 _stop = threading.Event()
 
 
-def connect() -> sqlite3.Connection:
+class PostgresCompatConnection:
+    """Small adapter for the existing SQL layer when DATABASE_URL points to Neon/Postgres."""
+    def __init__(self, conn: Any):
+        self.raw = conn
+
+    def execute(self, sql: str, params: Any = ()) -> Any:
+        sql = sql.replace(" COLLATE NOCASE", "").replace("?", "%s")
+        return self.raw.execute(sql, params)
+
+    def executescript(self, script: str) -> None:
+        for statement in script.split(";"):
+            if statement.strip():
+                self.raw.execute(statement)
+
+    def commit(self) -> None:
+        self.raw.commit()
+
+    def close(self) -> None:
+        self.raw.close()
+
+
+def connect() -> Any:
+    if DATABASE_URL:
+        import psycopg
+        from psycopg.rows import dict_row
+        conn = psycopg.connect(DATABASE_URL, connect_timeout=10, row_factory=dict_row)
+        return PostgresCompatConnection(conn)
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=20)
     conn.row_factory = sqlite3.Row
@@ -361,8 +388,8 @@ def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str
         rows = conn.execute(
             """SELECT id, board, academic_year, class_level, subject, medium, term, edition,
                       title, source_url, status, page_count
-               FROM sources WHERE board=? COLLATE NOCASE AND class_level=?
-                 AND subject=? COLLATE NOCASE AND medium=? COLLATE NOCASE AND status='ready'
+               FROM sources WHERE LOWER(board)=LOWER(?) AND class_level=?
+                 AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?) AND status='ready'
                ORDER BY academic_year DESC, title""",
             (board, class_level, subject, medium),
         ).fetchall()
@@ -382,14 +409,14 @@ def retrieve(payload: SearchRequest) -> dict[str, Any]:
                     s.id AS source_id, s.board, s.academic_year, s.class_level, s.subject,
                     s.medium, s.term, s.edition, s.title, s.source_url
              FROM chunks c JOIN sources s ON s.id=c.source_id
-             WHERE s.status='ready' AND s.board=? COLLATE NOCASE AND s.class_level=?
-               AND s.subject=? COLLATE NOCASE AND s.medium=? COLLATE NOCASE"""
+             WHERE s.status='ready' AND LOWER(s.board)=LOWER(?) AND s.class_level=?
+               AND LOWER(s.subject)=LOWER(?) AND LOWER(s.medium)=LOWER(?)"""
     args: list[Any] = [payload.board, payload.class_level, payload.subject, payload.medium]
     if payload.academic_year:
         sql += " AND s.academic_year=?"
         args.append(payload.academic_year)
     if payload.edition:
-        sql += " AND s.edition=? COLLATE NOCASE"
+        sql += " AND LOWER(s.edition)=LOWER(?)"
         args.append(payload.edition)
     with db() as conn:
         rows = conn.execute(sql, args).fetchall()

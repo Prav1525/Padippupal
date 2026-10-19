@@ -96,6 +96,76 @@ def db() -> Any:
         conn.close()
 
 
+DEFAULT_VISUAL_LESSONS: list[dict[str, Any]] = [
+    {
+        "id": "global-photosynthesis", "topic": "Photosynthesis", "title": "How a plant makes food",
+        "visual_type": "process", "keywords": ["photosynthesis", "chlorophyll", "carbon dioxide", "plant makes food", "sunlight and plants"],
+        "caption": "Leaves use light energy to make glucose from water and carbon dioxide; oxygen is released.",
+        "steps": [{"icon": "☀️", "label": "Sunlight"}, {"icon": "💧", "label": "Water"}, {"icon": "🍃", "label": "Leaf makes food"}, {"icon": "💨", "label": "Oxygen released"}],
+    },
+    {
+        "id": "global-water-cycle", "topic": "Water cycle", "title": "Water keeps moving around Earth",
+        "visual_type": "cycle", "keywords": ["water cycle", "evaporation", "condensation", "precipitation", "water vapour", "rain forms"],
+        "caption": "The Sun warms water, vapour rises, clouds form, and precipitation returns water to Earth.",
+        "steps": [{"icon": "🌊", "label": "Water"}, {"icon": "⬆️", "label": "Evaporation"}, {"icon": "☁️", "label": "Condensation"}, {"icon": "🌧️", "label": "Rain"}],
+    },
+    {
+        "id": "global-fractions", "topic": "Fractions", "title": "A whole split into equal parts",
+        "visual_type": "parts", "keywords": ["fraction", "fractions", "one-half", "one half", "quarter", "numerator", "denominator", "பின்னம்"],
+        "caption": "A fraction names equal parts of a whole. One of four equal parts is one-quarter (1/4).",
+        "steps": [{"icon": "🍕", "label": "One whole"}, {"icon": "✂️", "label": "4 equal parts"}, {"icon": "🟩", "label": "Choose 1 part"}, {"icon": "¼", "label": "One-quarter"}],
+    },
+    {
+        "id": "global-addition", "topic": "Addition", "title": "Watch groups join together",
+        "visual_type": "count", "keywords": ["addition", "plus", "sum", "altogether", "add numbers", "கூட்டல்"],
+        "caption": "Addition combines groups. Three objects plus two objects make five objects.",
+        "steps": [{"icon": "🔵", "label": "3 objects"}, {"icon": "🟠", "label": "Add 2"}, {"icon": "➡️", "label": "Join groups"}, {"icon": "5️⃣", "label": "Total: 5"}],
+    },
+    {
+        "id": "global-solar-system", "topic": "Solar system", "title": "Planets orbit the Sun",
+        "visual_type": "orbit", "keywords": ["solar system", "planet", "planets", "orbit", "earth revolves", "சூரிய குடும்பம்"],
+        "caption": "Planets travel along orbits around the Sun; planets differ in size and distance.",
+        "steps": [{"icon": "☀️", "label": "Sun"}, {"icon": "🪐", "label": "Orbit"}, {"icon": "🌍", "label": "Planets move"}, {"icon": "🔄", "label": "Repeat path"}],
+    },
+    {
+        "id": "global-states-of-matter", "topic": "States of matter", "title": "Three common states of matter",
+        "visual_type": "states", "keywords": ["states of matter", "solid", "liquid", "gas", "melting", "freezing", "evaporation of water"],
+        "caption": "Heating or cooling can change how particles move and how matter behaves.",
+        "steps": [{"icon": "🧊", "label": "Solid"}, {"icon": "💧", "label": "Liquid"}, {"icon": "♨️", "label": "Gas"}, {"icon": "↔️", "label": "Heat / cool"}],
+    },
+    {
+        "id": "global-food-chain", "topic": "Food chain", "title": "Energy moves through a food chain",
+        "visual_type": "chain", "keywords": ["food chain", "producer", "consumer", "predator", "herbivore", "energy in an ecosystem"],
+        "caption": "A food chain shows how energy passes from one organism to another.",
+        "steps": [{"icon": "☀️", "label": "Sun"}, {"icon": "🌿", "label": "Plant"}, {"icon": "🐛", "label": "Herbivore"}, {"icon": "🐦", "label": "Predator"}],
+    },
+    {
+        "id": "global-electric-circuit", "topic": "Electric circuit", "title": "A complete circuit lets current flow",
+        "visual_type": "circuit", "keywords": ["electric circuit", "electricity", "battery", "switch", "bulb", "current flows"],
+        "caption": "A closed conducting path lets electric current flow; an open switch breaks the path.",
+        "steps": [{"icon": "🔋", "label": "Battery"}, {"icon": "➰", "label": "Wire path"}, {"icon": "🔘", "label": "Closed switch"}, {"icon": "💡", "label": "Bulb lights"}],
+    },
+    {
+        "id": "global-plant-parts", "topic": "Parts of a plant", "title": "What each plant part does",
+        "visual_type": "plant", "keywords": ["parts of a plant", "root", "stem", "leaf", "flower", "plant parts"],
+        "caption": "Roots absorb water, stems support and transport, leaves make food, and flowers help reproduction.",
+        "steps": [{"icon": "🌱", "label": "Roots"}, {"icon": "🪴", "label": "Stem"}, {"icon": "🍃", "label": "Leaves"}, {"icon": "🌼", "label": "Flower"}],
+    },
+    {
+        "id": "global-digestive-system", "topic": "Digestive system", "title": "Food travels through the digestive system",
+        "visual_type": "sequence", "keywords": ["digestive system", "digestion", "stomach", "small intestine", "large intestine"],
+        "caption": "Food is broken down and nutrients are absorbed as it travels through the digestive tract.",
+        "steps": [{"icon": "👄", "label": "Mouth"}, {"icon": "↘️", "label": "Food pipe"}, {"icon": "🥣", "label": "Stomach"}, {"icon": "〰️", "label": "Intestines"}],
+    },
+    {
+        "id": "global-life-cycle", "topic": "Life cycle", "title": "Living things grow and change",
+        "visual_type": "cycle", "keywords": ["life cycle", "life cycle of a butterfly", "metamorphosis", "germination", "seed grows"],
+        "caption": "A life cycle shows the stages an organism passes through as it grows and reproduces.",
+        "steps": [{"icon": "🥚", "label": "Egg / seed"}, {"icon": "🐣", "label": "Young stage"}, {"icon": "🦋", "label": "Adult"}, {"icon": "🔄", "label": "Next generation"}],
+    },
+]
+
+
 def init_db() -> None:
     with db() as conn:
         conn.executescript("""
@@ -141,7 +211,35 @@ def init_db() -> None:
             created_at REAL NOT NULL,
             updated_at REAL NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS visual_lessons (
+            id TEXT PRIMARY KEY,
+            board TEXT NOT NULL DEFAULT '*',
+            class_level INTEGER NOT NULL DEFAULT 0,
+            subject TEXT NOT NULL DEFAULT '*',
+            topic TEXT NOT NULL,
+            title TEXT NOT NULL,
+            visual_type TEXT NOT NULL,
+            keywords TEXT NOT NULL,
+            recipe_json TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            updated_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS visual_lessons_profile
+          ON visual_lessons(board, class_level, subject, active);
         """)
+    # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
+    # by an administrator after the first deployment.
+    for lesson in DEFAULT_VISUAL_LESSONS:
+        conn.execute(
+            """INSERT INTO visual_lessons
+               (id, board, class_level, subject, topic, title, visual_type, keywords, recipe_json, active, updated_at)
+               VALUES (?, '*', 0, '*', ?, ?, ?, ?, ?, 1, ?)
+               ON CONFLICT(id) DO NOTHING""",
+            (lesson["id"], lesson["topic"], lesson["title"], lesson["visual_type"],
+             json.dumps(lesson["keywords"], ensure_ascii=False),
+             json.dumps({"caption": lesson["caption"], "steps": lesson["steps"]}, ensure_ascii=False),
+             time.time()),
+        )
 
 
 class SourceMetadata(BaseModel):
@@ -603,6 +701,126 @@ import urllib.error
 import urllib.request
 
 
+class VisualLessonUpsert(BaseModel):
+    id: str = Field(min_length=3, max_length=120, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
+    board: str = Field(default="*", min_length=1, max_length=80)
+    class_level: int = Field(default=0, ge=0, le=12)
+    subject: str = Field(default="*", min_length=1, max_length=100)
+    topic: str = Field(min_length=2, max_length=160)
+    title: str = Field(min_length=2, max_length=200)
+    visual_type: str = Field(default="process", min_length=2, max_length=40)
+    keywords: list[str] = Field(min_length=1, max_length=40)
+    caption: str = Field(min_length=2, max_length=500)
+    steps: list[dict[str, str]] = Field(min_length=2, max_length=8)
+    active: bool = True
+
+
+def _visual_row_to_dict(row: Any) -> dict[str, Any]:
+    recipe = json.loads(row["recipe_json"])
+    return {
+        "id": row["id"],
+        "board": row["board"],
+        "class_level": row["class_level"],
+        "subject": row["subject"],
+        "topic": row["topic"],
+        "title": row["title"],
+        "visual_type": row["visual_type"],
+        "keywords": json.loads(row["keywords"]),
+        "caption": recipe.get("caption", ""),
+        "steps": recipe.get("steps", []),
+    }
+
+
+def find_visual_lesson(board: str, class_level: int, subject: str, query: str) -> dict[str, Any] | None:
+    """Choose the best active visual recipe for a student's profile and current topic."""
+    haystack = re.sub(r"\\s+", " ", query).casefold()
+    if not haystack.strip():
+        return None
+    with db() as conn:
+        rows = conn.execute("SELECT * FROM visual_lessons WHERE active=1").fetchall()
+    candidates: list[tuple[int, dict[str, Any]]] = []
+    for row in rows:
+        row_board = str(row["board"]).casefold()
+        row_subject = str(row["subject"]).casefold()
+        if row_board not in ("*", board.casefold()):
+            continue
+        if row_subject not in ("*", subject.casefold()):
+            continue
+        if int(row["class_level"]) not in (0, class_level):
+            continue
+        lesson = _visual_row_to_dict(row)
+        matched = [str(k).casefold() for k in lesson["keywords"] if str(k).strip() and str(k).casefold() in haystack]
+        if not matched:
+            continue
+        score = max(len(k) for k in matched)
+        score += 40 if row_board == board.casefold() else 0
+        score += 25 if row_subject == subject.casefold() else 0
+        score += 15 if int(row["class_level"]) == class_level else 0
+        candidates.append((score, lesson))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates[0][1]
+
+
+@app.get("/visual-lessons")
+def list_visual_lessons(
+    board: str = "*",
+    class_level: int = 0,
+    subject: str = "*",
+    limit: int = 100,
+) -> dict[str, Any]:
+    """List visual recipes available to a curriculum profile (metadata stays lightweight)."""
+    if class_level < 0 or class_level > 12 or limit < 1 or limit > 200:
+        raise HTTPException(status_code=422, detail="class_level must be 0–12 and limit 1–200.")
+    with db() as conn:
+        rows = conn.execute("SELECT * FROM visual_lessons WHERE active=1 ORDER BY topic").fetchall()
+    lessons = []
+    for row in rows:
+        if str(row["board"]).casefold() not in ("*", board.casefold()):
+            continue
+        if str(row["subject"]).casefold() not in ("*", subject.casefold()):
+            continue
+        if int(row["class_level"]) not in (0, class_level):
+            continue
+        lesson = _visual_row_to_dict(row)
+        lessons.append({key: lesson[key] for key in ("id", "board", "class_level", "subject", "topic", "title", "visual_type")})
+    return {"count": len(lessons[:limit]), "lessons": lessons[:limit]}
+
+
+@app.get("/visual-lessons/match")
+def get_matching_visual_lesson(
+    board: str,
+    class_level: int,
+    subject: str,
+    query: str,
+) -> dict[str, Any]:
+    return {"visual_lesson": find_visual_lesson(board, class_level, subject, query)}
+
+
+@app.post("/admin/visual-lessons", status_code=201, dependencies=[Depends(require_admin)])
+def upsert_visual_lesson(payload: VisualLessonUpsert) -> dict[str, Any]:
+    """Create or update a chapter visual recipe; protect editing with the admin token."""
+    recipe = json.dumps({"caption": payload.caption, "steps": payload.steps}, ensure_ascii=False)
+    now = time.time()
+    with db() as conn:
+        conn.execute(
+            """INSERT INTO visual_lessons
+               (id, board, class_level, subject, topic, title, visual_type, keywords, recipe_json, active, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET
+                 board=excluded.board, class_level=excluded.class_level, subject=excluded.subject,
+                 topic=excluded.topic, title=excluded.title, visual_type=excluded.visual_type,
+                 keywords=excluded.keywords, recipe_json=excluded.recipe_json,
+                 active=excluded.active, updated_at=excluded.updated_at""",
+            (payload.id, payload.board, payload.class_level, payload.subject, payload.topic,
+             payload.title, payload.visual_type, json.dumps(payload.keywords, ensure_ascii=False),
+             recipe, 1 if payload.active else 0, now),
+        )
+        row = conn.execute("SELECT * FROM visual_lessons WHERE id=?", (payload.id,)).fetchone()
+    return {"saved": True, "visual_lesson": _visual_row_to_dict(row)}
+
+
 class TutorTurn(BaseModel):
     role: str = Field(pattern="^(user|assistant)$")
     content: str = Field(min_length=1, max_length=4000)
@@ -839,12 +1057,16 @@ ACCURACY AND SAFETY:
         logger.warning("Groq chat response parsing failure: error_type=%s model=%s", type(exc).__name__, model)
         raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
 
+    visual_lesson = find_visual_lesson(
+        payload.board, payload.class_level, payload.subject, payload.message + " " + answer
+    )
     return {
         "answer": answer,
         "model": model,
         "sources": sources,
         "grounded": bool(sources),
         "language": language,
+        "visual_lesson": visual_lesson,
     }
 
 # ---------------- Natural cloud speech (Gemini TTS) ----------------

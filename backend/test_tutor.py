@@ -5,8 +5,8 @@ from fastapi.testclient import TestClient
 import app as curriculum
 
 
-def test_tutor_requires_server_side_groq_key(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "")
+def test_tutor_requires_server_side_gemini_key(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "")
     client = TestClient(curriculum.app)
     response = client.post("/tutor/chat", json={
         "board": "CBSE",
@@ -17,11 +17,11 @@ def test_tutor_requires_server_side_groq_key(monkeypatch):
         "message": "Explain photosynthesis simply.",
     })
     assert response.status_code == 503
-    assert "not ready" in response.json()["detail"].lower()
+    assert "not configured" in response.json()["detail"].lower()
 
 
 def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     captured = {}
 
     class FakeResponse:
@@ -33,7 +33,7 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
 
         def read(self):
             return json.dumps({
-                "choices": [{"message": {"content": "Namma simple-a paakalam. Plants use sunlight to make food."}}]
+                "candidates": [{"content": {"parts": [{"text": "Namma simple-a paakalam. Plants use sunlight to make food."}]}}]
             }).encode("utf-8")
 
     def fake_urlopen(request, timeout):
@@ -57,10 +57,10 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     assert response.status_code == 200
     assert response.json()["answer"].startswith("Namma")
     assert response.json()["grounded"] is False
-    assert captured["payload"]["model"] == "openai/gpt-oss-20b"
-    assert "Never shame" in captured["payload"]["messages"][0]["content"]
-    assert "Tanglish" in captured["payload"]["messages"][0]["content"]
-    assert captured["timeout"] == 30
+    assert "systemInstruction" in captured["payload"]
+    assert "Never shame" in captured["payload"]["systemInstruction"]["parts"][0]["text"]
+    assert "Tanglish" in captured["payload"]["systemInstruction"]["parts"][0]["text"]
+    assert captured["timeout"] == 45
 
 def test_tutor_speech_requires_server_side_gemini_key(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "")
@@ -126,7 +126,7 @@ def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
         assert audio.readframes(24) == b"\x00\x00" * 24
     assert body["provider"] == "gemini"
     assert captured["headers"]["X-goog-api-key"] == "test-gemini-key"
-    assert captured["payload"]["generationConfig"]["speechConfig"]["voiceConfig"]["voice"] == "Aoede"
+    assert captured["payload"]["generationConfig"]["speechConfig"]["voiceConfig"]["prebuiltVoiceConfig"]["voiceName"] == "Aoede"
     assert "Tanglish" in captured["payload"]["contents"][0]["parts"][0]["text"]
 
 def test_voice_health_reports_configuration_without_secret(monkeypatch):

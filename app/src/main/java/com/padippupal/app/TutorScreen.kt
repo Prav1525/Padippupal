@@ -228,8 +228,9 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
         (kotlin.math.abs(degA-degB).let { if (it > 180) 360-it else it }).toInt()
     } else 0
     val magnetic = scene == "magnet_test" && positions.size >= 2 &&
-        positions.drop(1).anyIndexed { index, p ->
-            val label = items.getOrNull(index+1)?.name.orEmpty().lowercase()
+        positions.drop(1).withIndex().any { indexed ->
+            val p = indexed.value
+            val label = items.getOrNull(indexed.index+1)?.name.orEmpty().lowercase()
             (label.contains("iron") || label.contains("steel") || label.contains("metal")) &&
                 kotlin.math.sqrt((p.x-positions[0].x)*(p.x-positions[0].x)+(p.y-positions[0].y)*(p.y-positions[0].y)) < .20f
         }

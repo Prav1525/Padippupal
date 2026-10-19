@@ -197,6 +197,9 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                 MoveItem("🔵", "−3", .15f, .30f), MoveItem("🟢", "0", .48f, .30f),
                 MoveItem("🟠", "+3", .80f, .30f)
             )
+            "measure_length" -> listOf(MoveItem("📍", "Start", .12f, .30f), MoveItem("📍", "End", .72f, .30f))
+            "motion_track" -> listOf(MoveItem("🏁", "Start", .08f, .30f), MoveItem("🚗", "Toy", .45f, .30f), MoveItem("🏁", "Finish", .84f, .30f))
+            "bar_chart" -> listOf(MoveItem("A", "Group A", .18f, .12f), MoveItem("B", "Group B", .46f, .12f), MoveItem("C", "Group C", .74f, .12f))
             else -> {
                 val parsed = mutableListOf<MoveItem>()
                 if (raw != null) for (i in 0 until raw.length()) {
@@ -217,6 +220,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
     var feedback by remember(key) { mutableStateOf("Touch an object, drag it, and notice what changes.") }
     var activeStep by remember(key) { mutableIntStateOf(0) }
     var heatLevel by remember(key) { mutableFloatStateOf(.28f) }
+    var chartValue by remember(key) { mutableFloatStateOf(.62f) }
     val steps = lesson.optJSONArray("steps")
     val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
     val motion = rememberInfiniteTransition(label = "interactive-db-motion")
@@ -273,6 +277,16 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                                 if (scene=="moon_phase") drawCircle(Color(0xFF5F86C8), radius*.13f, Offset(center.x+radius*.75f,center.y))
                             }
                         }
+                        "bar_chart" -> {
+                            val baseY=size.height*.82f
+                            val barWidth=size.width*.16f
+                            val heights=listOf(.36f,.58f,chartValue)
+                            for(i in 0..2) {
+                                val left=size.width*(.18f+i*.28f)
+                                drawRect(Color(0xFF7CB58E),Offset(left,baseY-size.height*heights[i]),androidx.compose.ui.geometry.Size(barWidth,size.height*heights[i]))
+                            }
+                            drawLine(Color(0xFF578368),Offset(size.width*.08f,baseY),Offset(size.width*.94f,baseY),2.dp.toPx())
+                        }
                         "factor_tree" -> if (positions.size >= 3) {
                             val root=positions[0]
                             positions.drop(1).forEach { p -> drawLine(Color(0xFF24734B),Offset(root.x*size.width,root.y*size.height),Offset(p.x*size.width,p.y*size.height),2.dp.toPx()) }
@@ -282,6 +296,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                         }
                         "measure_length", "motion_track" -> {
                             drawLine(Color(0xFF91B9A0),Offset(size.width*.06f,size.height*.74f),Offset(size.width*.94f,size.height*.74f),3.dp.toPx())
+                            if(scene=="motion_track") drawCircle(Color(0xFFE56B6F),8.dp.toPx(),Offset(size.width*(.1f+.78f*pulse),size.height*.74f))
                             for (i in 0..20) {
                                 val x=size.width*(.06f+i*.044f)
                                 val tick=if(i%5==0) 15.dp.toPx() else 7.dp.toPx()
@@ -352,6 +367,12 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                 }
             }
             if (scene=="angle_builder") Text("Current angle: $angle°", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
+            if (scene=="measure_length" && positions.size>=2) Text("Measured length: ${(kotlin.math.abs(positions[1].x-positions[0].x)*100).toInt()} model units", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
+            if (scene=="motion_track") Text("Watch the toy move along the measured track. Drag the toy to compare positions.", color=TutorGreen, fontSize=11.sp)
+            if (scene=="bar_chart") {
+                Text("Adjust Group C and compare the bar heights.", color=TutorGreen, fontSize=11.sp)
+                Slider(value=chartValue, onValueChange={chartValue=it}, valueRange=.1f.. .9f, colors=SliderDefaults.colors(thumbColor=TutorGreen, activeTrackColor=TutorGreen))
+            }
             if (scene=="magnet_test") Text(if(magnetic) "Magnetic attraction detected" else "Try bringing iron or steel close to the magnet", color=TutorGreen, fontSize=11.sp)
             if (scene in listOf("particle_states", "phase_change", "evap_condense")) {
                 Text("Heat level: ${(heatLevel*100).toInt()}%", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)

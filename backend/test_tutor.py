@@ -168,7 +168,7 @@ def test_interactive_lesson_catalog_covers_all_class_six_chapters(monkeypatch, t
     assert science.status_code == 200
     assert maths.status_code == 200
     assert science.json()["count"] == 36
-    assert maths.json()["count"] == 30
+    assert maths.json()["count"] == 91
     assert all(item["objects"] and item["steps"] and item["challenge"]["question"] for item in science.json()["lessons"] + maths.json()["lessons"])
     assert len({item["chapter"] for item in science.json()["lessons"]}) == 12
     assert len({item["chapter"] for item in maths.json()["lessons"]}) == 10

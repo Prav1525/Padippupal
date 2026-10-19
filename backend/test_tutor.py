@@ -155,3 +155,34 @@ def test_subject_detection_switches_subject_automatically():
     assert curriculum.infer_tutor_subject("What is a noun?", "Science") == "English"
     assert curriculum.infer_tutor_subject("Explain democracy", "Mathematics") == "Social Science"
     assert curriculum.infer_tutor_subject("Why is this step correct?", "Mathematics") == "Mathematics"
+
+
+
+def test_interactive_lesson_catalog_covers_all_class_six_chapters(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "interactive-lessons.sqlite3")
+    client = TestClient(curriculum.app)
+    science = client.get("/interactive-lessons", params={"board": "CBSE", "class_level": 6, "subject": "Science", "limit": 100})
+    maths = client.get("/interactive-lessons", params={"board": "CBSE", "class_level": 6, "subject": "Mathematics", "limit": 100})
+    assert science.status_code == 200
+    assert maths.status_code == 200
+    assert science.json()["count"] == 36
+    assert maths.json()["count"] == 30
+    assert all(item["objects"] and item["steps"] and item["challenge"]["question"] for item in science.json()["lessons"] + maths.json()["lessons"])
+    assert len({item["chapter"] for item in science.json()["lessons"]}) == 12
+    assert len({item["chapter"] for item in maths.json()["lessons"]}) == 10
+
+
+def test_interactive_lesson_match_returns_simulation_blueprint(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "interactive-match.sqlite3")
+    client = TestClient(curriculum.app)
+    response = client.get("/interactive-lessons/match", params={
+        "board": "CBSE", "class_level": 6, "subject": "Science",
+        "chapter": "Exploring Magnets", "topic": "Magnetic and non-magnetic materials"
+    })
+    assert response.status_code == 200
+    lesson = response.json()["interactive_lesson"]
+    assert lesson["scene_type"] == "magnet_test"
+    assert lesson["challenge"]["question"]
+    assert len(lesson["objects"]) >= 3

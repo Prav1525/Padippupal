@@ -446,13 +446,16 @@ private fun DatabaseLessonVisual(lesson: JSONObject) {
                         Modifier.weight(1f).background(if (index == activeIndex) Color.White else Color(0xFFDDEDE2), RoundedCornerShape(10.dp)).padding(horizontal = 3.dp, vertical = 7.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(step.optString("icon", "•"), fontSize = 20.sp, maxLines = 1)
-                        Text(step.optString("label", "Step " + (index + 1)), color = TutorDeep, fontSize = 9.sp, lineHeight = 11.sp, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(step.optString("icon", "✦"), fontSize = 20.sp, maxLines = 1)
+                        Text(step.optString("label", step.optString("title", "Step " + (index + 1))), color = TutorDeep, fontSize = 9.sp, lineHeight = 11.sp, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                 }
             }
-            Text(lesson.optString("caption"), color = TutorGrey, fontSize = 12.sp, lineHeight = 17.sp)
-            Text("From PadippuPal's visual lesson library", color = TutorGrey, fontSize = 9.sp)
+            Text(lesson.optString("caption", lesson.optString("description", "")), color = TutorGrey, fontSize = 12.sp, lineHeight = 17.sp)
+            val activeStep = visibleSteps[activeIndex]
+            val stepExplanation = activeStep.optString("text", activeStep.optString("description", ""))
+            if (stepExplanation.isNotBlank()) Text(stepExplanation, color = TutorDeep, fontSize = 12.sp, lineHeight = 17.sp)
+            Text("Live concept animation · matched from the lesson database", color = TutorGrey, fontSize = 9.sp)
         }
     }
 }
@@ -1107,7 +1110,8 @@ internal fun TutorScreen(
                                 lineHeight = 23.sp
                             )
                             if (message.role == "assistant") {
-                                if (message.visualLesson != null) DatabaseLessonVisual(message.visualLesson)
+                                val lessonAnimation = message.visualLesson ?: message.interactiveLesson
+                                if (lessonAnimation != null) DatabaseLessonVisual(lessonAnimation)
                             }
                         }
                     }

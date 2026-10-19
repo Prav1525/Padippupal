@@ -100,7 +100,7 @@ private fun DatabaseLessonVisual(lesson: JSONObject) {
     val visibleSteps = steps.take(5)
     val activeIndex = (progress * visibleSteps.size).toInt().coerceIn(0, visibleSteps.lastIndex)
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         color = Color(0xFFEAF5EE),
         shape = RoundedCornerShape(18.dp),
         border = BorderStroke(1.dp, Color(0xFFD1E7D8))
@@ -520,8 +520,8 @@ internal fun TutorScreen(
     }
 
     Column(
-        modifier = modifier.fillMaxSize().background(TutorPaper).padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = modifier.fillMaxSize().background(TutorPaper).padding(horizontal = 16.dp).imePadding(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -529,7 +529,7 @@ internal fun TutorScreen(
         ) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
             Column(Modifier.weight(1f)) {
-                Text("Your AI study buddy", fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep)
+                Text("Your AI study buddy", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep, maxLines = 1)
                 Text("Class $grade · $board", fontSize = 11.sp, color = TutorGrey)
             }
             Icon(Icons.Default.GraphicEq, contentDescription = "Voice tutor", tint = TutorGreen, modifier = Modifier.size(30.dp))
@@ -541,16 +541,16 @@ internal fun TutorScreen(
             shadowElevation = 4.dp
         ) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(Modifier.size(52.dp).background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(17.dp)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Color.White, modifier = Modifier.size(31.dp))
+                Box(Modifier.size(42.dp).background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("Talk or type to learn", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    Text("Ask in English, Tanglish or Tamil", fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f))
+                    Text("Talk or type to learn", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("English, Tanglish or Tamil", fontSize = 11.sp, color = Color.White.copy(alpha = 0.9f))
                 }
                 if (listening) CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                 else Icon(Icons.Default.Mic, contentDescription = "Voice input available", tint = Color.White, modifier = Modifier.size(26.dp))

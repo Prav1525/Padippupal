@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
@@ -32,6 +33,16 @@ app = FastAPI(
     title="PadippuPal Curriculum Engine",
     version="0.1.0",
     description="Background ingestion and profile-filtered retrieval for approved curriculum sources.",
+)
+
+# Allow browser-based API clients (including Swagger) to call the HTTPS API.
+# Admin endpoints remain protected by the x-admin-token dependency.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "x-admin-token"],
 )
 _worker: threading.Thread | None = None
 _stop = threading.Event()

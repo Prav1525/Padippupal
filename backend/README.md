@@ -42,7 +42,7 @@ Example retrieval request:
 
 ## Current limitations (must not be hidden)
 
-- The worker runs in-process and its queue state is stored in SQLite, but uploaded text is temporarily staged in memory. A restart during processing can require re-submission. For production, replace this with a durable queue and durable source-file storage.
+- Source text and job state are now persisted in SQLite, so queued work can survive a process restart. The worker itself is in-process; for production deployments with multiple instances, use a dedicated durable queue and durable object storage for original PDFs.
 - PDF text extraction supports text-based PDFs. Scanned-PDF OCR, page-level chunk mapping, heading/chapter extraction, vector embeddings/semantic search, edition approval workflow and automated official-source synchronization are not implemented yet.
 - Retrieval is a transparent keyword baseline, not an LLM answer generator. The Android app is not connected to this API yet.
 - No official textbook files are bundled. Only ingest documents whose provenance and usage rights have been reviewed.

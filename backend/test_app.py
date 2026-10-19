@@ -12,7 +12,6 @@ def setup_module():
     curriculum.DB_PATH = __import__("pathlib").Path(tempfile.mkstemp(suffix=".sqlite3")[1])
     curriculum.ADMIN_TOKEN = "test-token"
     curriculum.init_db()
-    curriculum._pending_text.clear()
 
 
 def test_ingest_then_retrieve_is_profile_filtered():
@@ -27,6 +26,10 @@ def test_ingest_then_retrieve_is_profile_filtered():
     payload = {**metadata, "text": ("Crop production includes preparation of soil, sowing seeds, adding manure and fertilizers. " * 20)}
     response = client.post("/admin/ingest-text", json=payload, headers={"X-Admin-Token": "test-token"})
     assert response.status_code == 202
+    # The payload is persisted before the job becomes visible to the worker.
+    with curriculum.db() as conn:
+        stored = conn.execute("SELECT content FROM source_content WHERE source_id=?", (response.json()["source_id"],)).fetchone()
+    assert stored is not None and "Crop production" in stored["content"]
     # Process queue deterministically for the test.
     assert curriculum.process_one_job() is True
     result = client.post("/retrieve", json={

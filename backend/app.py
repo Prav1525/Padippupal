@@ -671,3 +671,85 @@ Your teaching behaviour:
         "language": language,
     }
 
+// ---------------- Natural cloud speech (Gemini TTS) ----------------
+import base64
+import io
+import wave
+
+
+class TutorSpeechRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+    app_language: str = Field(default="English", max_length=30)
+
+
+@app.post("/tutor/speech")
+def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
+    """Synthesize a gentle spoken tutor reply with Gemini; API key stays server-side."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Natural voice is not configured yet.")
+    model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
+    language = payload.app_language.strip()
+    language_instruction = {
+        "Tanglish": "Speak in natural conversational Tanglish (Tamil-English code-switching). Keep English words in natural Indian English and Tamil words fluent and warm.",
+        "தமிழ்": "Speak fluent, natural Tamil in Tamil script with a warm, gentle teacher voice.",
+        "English": "Speak natural Indian English with clear pronunciation and a warm, gentle teacher voice.",
+    }.get(language, "Speak naturally in the requested language with a warm, gentle teacher voice.")
+    prompt = (
+        "Read the following tutor reply aloud as a caring, patient school teacher. "
+        "Use a soft, warm, reassuring tone, moderate-slow pace, natural pauses, and clear articulation. "
+        "Do not add words, summaries, or commentary. " + language_instruction + "\n\n"
+        "Tutor reply:\n" + payload.text.strip()
+    )
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": "Aoede"}}},
+        },
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+        data=body,
+        headers={
+            "x-goog-api-key": api_key,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=45) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        parts = result["candidates"][0]["content"]["parts"]
+        audio_part = next(
+            part for part in parts
+            if isinstance(part, dict) and isinstance(part.get("inlineData"), dict)
+            and part["inlineData"].get("data")
+        )
+        raw_audio = base64.b64decode(audio_part["inlineData"]["data"], validate=True)
+        mime_type = audio_part["inlineData"].get("mimeType", "audio/L16;rate=24000")
+        # Gemini TTS returns raw 16-bit PCM. Wrap it in a WAV container for Android playback.
+        rate_match = re.search(r"rate=(\\d+)", mime_type)
+        sample_rate = int(rate_match.group(1)) if rate_match else 24000
+        wav_buffer = io.BytesIO()
+        with wave.open(wav_buffer, "wb") as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(raw_audio)
+        return {
+            "audio_base64": base64.b64encode(wav_buffer.getvalue()).decode("ascii"),
+            "mime_type": "audio/wav",
+            "voice": "Aoede",
+            "provider": "gemini",
+            "model": model,
+        }
+    except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            raise HTTPException(status_code=503, detail="Natural voice is temporarily at its usage limit.") from exc
+        raise HTTPException(status_code=502, detail="Natural voice could not be generated right now.") from exc
+    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, StopIteration,
+            ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=502, detail="Natural voice generation failed. Please try again.") from exc
+

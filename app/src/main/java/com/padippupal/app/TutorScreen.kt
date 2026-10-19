@@ -16,6 +16,7 @@ import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -43,6 +44,10 @@ import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -69,6 +74,101 @@ private val tutorMainHandler = Handler(Looper.getMainLooper())
 
 private data class TutorMessage(val role: String, val content: String, val visualLesson: JSONObject? = null)
 private data class TutorSource(val title: String, val url: String)
+
+private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
+
+@Composable
+private fun InteractiveLessonLab(chapter: String, topic: String, explanation: String) {
+    val key = "$chapter $topic $explanation".lowercase()
+    val title: String
+    val hint: String
+    val items: List<MoveItem>
+    when {
+        listOf("fraction", "numerator", "denominator", "half", "quarter").any { it in key } -> {
+            title = "Build a fraction"; hint = "Drag equal pieces together to make one whole."
+            items = listOf(MoveItem("🟩","1/4",.08f,.25f),MoveItem("🟩","1/4",.30f,.25f),MoveItem("🟩","1/4",.52f,.25f),MoveItem("⬜","1/4",.74f,.25f))
+        }
+        listOf("magnet","magnetic","attract","repel").any { it in key } -> {
+            title = "Explore magnets"; hint = "Move the magnet near the metal objects and compare."
+            items = listOf(MoveItem("🧲","Magnet",.08f,.28f),MoveItem("📎","Metal",.70f,.18f),MoveItem("📎","Metal",.70f,.56f),MoveItem("🪵","Wood",.38f,.58f))
+        }
+        listOf("water cycle","evaporation","condensation","precipitation","states of water").any { it in key } -> {
+            title = "Move water through the cycle"; hint = "Drag water, vapour, clouds and rain through the stages."
+            items = listOf(MoveItem("🌊","Water",.04f,.56f),MoveItem("💧","Vapour",.28f,.18f),MoveItem("☁️","Cloud",.52f,.18f),MoveItem("🌧️","Rain",.76f,.56f))
+        }
+        listOf("number line","negative","integer","zero","other side of zero").any { it in key } -> {
+            title = "Explore the number line"; hint = "Drag the point left or right of zero."
+            items = listOf(MoveItem("🔵","−3",.08f,.32f),MoveItem("🟢","0",.44f,.32f),MoveItem("🟠","+3",.76f,.32f))
+        }
+        listOf("solar system","planet","orbit","beyond earth").any { it in key } -> {
+            title = "Explore planetary motion"; hint = "Drag a planet around the Sun to explore its position."
+            items = listOf(MoveItem("☀️","Sun",.40f,.30f),MoveItem("🌍","Earth",.70f,.12f),MoveItem("🪐","Planet",.12f,.56f))
+        }
+        listOf("photosynthesis","plant","living creature","diversity in the living").any { it in key } -> {
+            title = "Explore a plant"; hint = "Move sunlight, water and the leaf to explore the process."
+            items = listOf(MoveItem("☀️","Sunlight",.06f,.12f),MoveItem("💧","Water",.30f,.55f),MoveItem("🌱","Plant",.50f,.30f),MoveItem("🍃","Leaf",.76f,.12f))
+        }
+        listOf("angle","lines and angles","ray").any { it in key } -> {
+            title = "Explore angles"; hint = "Drag the ray markers to change their positions."
+            items = listOf(MoveItem("📍","Vertex",.42f,.42f),MoveItem("➡️","Ray 1",.72f,.42f),MoveItem("↗️","Ray 2",.60f,.10f))
+        }
+        listOf("perimeter","area","symmetry","shape","square","rectangle").any { it in key } -> {
+            title = "Explore shapes"; hint = "Drag the corners and compare the shape you make."
+            items = listOf(MoveItem("🔹","Corner",.12f,.16f),MoveItem("🔹","Corner",.72f,.16f),MoveItem("🔹","Corner",.72f,.56f),MoveItem("🔹","Corner",.12f,.56f))
+        }
+        else -> {
+            title = "Interactive concept lab"; hint = "Drag the objects around while the tutor explains this idea."
+            items = listOf(MoveItem("🔵","Explore",.10f,.20f),MoveItem("🟢","Observe",.40f,.46f),MoveItem("🟠","Try it",.72f,.18f))
+        }
+    }
+    var positions by remember(key) { mutableStateOf(items.map { Offset(it.x,it.y) }) }
+    val motion = rememberInfiniteTransition(label = "lab-motion")
+    val moving by motion.animateFloat(0f,1f,infiniteRepeatable(tween(2200),RepeatMode.Reverse),label="moving-particle")
+    Surface(Modifier.fillMaxWidth().padding(top=8.dp), color=Color(0xFFEAF5EE), shape=RoundedCornerShape(18.dp), border=BorderStroke(1.dp,Color(0xFFD1E7D8))) {
+        Column(Modifier.padding(12.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
+            Row(verticalAlignment=Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("TOUCH & EXPLORE",color=TutorGreen,fontSize=10.sp,fontWeight=FontWeight.Bold)
+                    Text(title,color=TutorDeep,fontSize=14.sp,fontWeight=FontWeight.SemiBold)
+                }
+                TextButton(onClick={positions=items.map{Offset(it.x,it.y)}}){Text("Reset",color=TutorGreen)}
+            }
+            BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White,RoundedCornerShape(14.dp))) {
+                val w=maxWidth; val h=maxHeight
+                Canvas(Modifier.fillMaxSize()) {
+                    drawLine(Color(0xFFB8D7C3),Offset(size.width*.05f,size.height*.84f),Offset(size.width*.95f,size.height*.84f),2.dp.toPx())
+                    drawCircle(Color(0xFF58A66C),7.dp.toPx(),Offset(size.width*(.10f+.78f*moving),size.height*.84f))
+                }
+                items.forEachIndexed { index, item ->
+                    val p=positions[index]
+                    Column(
+                        Modifier.offset { IntOffset((p.x*(w-68.dp).toPx()).roundToInt(),(p.y*(h-64.dp).toPx()).roundToInt()) }
+                            .width(68.dp)
+                            .pointerInput(key,index,w,h) {
+                                detectDragGestures { change, drag ->
+                                    change.consume()
+                                    val maxX=(w-68.dp).toPx().coerceAtLeast(1f)
+                                    val maxY=(h-64.dp).toPx().coerceAtLeast(1f)
+                                    positions=positions.toMutableList().also { list ->
+                                        val old=list[index]
+                                        list[index]=Offset((old.x+drag.x/maxX).coerceIn(0f,1f),(old.y+drag.y/maxY).coerceIn(0f,1f))
+                                    }
+                                }
+                            },
+                        horizontalAlignment=Alignment.CenterHorizontally
+                    ) {
+                        Surface(color=Color(0xFFF4FAF6),shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,Color(0xFFD1E7D8))) {
+                            Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=25.sp)
+                        }
+                        Text(item.name,color=TutorDeep,fontSize=10.sp,maxLines=1)
+                    }
+                }
+            }
+            Text(hint,color=TutorGrey,fontSize=12.sp,lineHeight=16.sp)
+            Text("Touch and hold an object, then drag it. Use Reset to start again.",color=TutorGreen,fontSize=10.sp)
+        }
+    }
+}
 
 private enum class LessonVisualKind { FRACTIONS, ADDITION, PHOTOSYNTHESIS, WATER_CYCLE, SOLAR_SYSTEM, NONE }
 
@@ -750,6 +850,7 @@ internal fun TutorScreen(
                                 lineHeight = 23.sp
                             )
                             if (message.role == "assistant") {
+                                InteractiveLessonLab(chapter, topic, message.content)
                                 if (message.visualLesson != null) DatabaseLessonVisual(message.visualLesson)
                                 else LessonVisual(message.content, subject)
                             }

@@ -673,17 +673,17 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
             seen: set[str] = set()
             for chunk in chunks:
                 for raw_line in str(chunk["text"] or "").splitlines():
-                    line = re.sub(r"^[#*\\-\\s]+|[#*\\-\\s]+$", "", raw_line).strip()
+                    line = re.sub(r"^[#*\-\s]+|[#*\-\s]+$", "", raw_line).strip()
                     if not 3 <= len(line) <= 90 or len(line.split()) > 12:
                         continue
                     marked_heading = bool(re.match(
-                        r"^(?:chapter|unit|lesson|section|activity|\\d+(?:\\.\\d+)*[.)]?)\\s*\\d*\\s*[:.)\\-–]?\\s*\\S",
+                        r"^(?:chapter|unit|lesson|section|activity|\d+(?:\.\d+)*[.)]?)\s*\d*\s*[:.)\-–]?\s*\S",
                         line, re.IGNORECASE,
                     ))
                     title_heading = (
                         line[:1].isupper()
                         and not line.endswith((".", "?", "!", ";", ","))
-                        and not re.search(r"\\b(the|and|but|because|therefore|this|that|these|those)\\b", line.casefold())
+                        and not re.search(r"\b(the|and|but|because|therefore|this|that|these|those)\b", line.casefold())
                     )
                     key = line.casefold()
                     if (marked_heading or title_heading) and key not in seen and key != str(source["title"]).casefold():

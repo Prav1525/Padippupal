@@ -129,3 +129,11 @@ def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
     assert captured["payload"]["generationConfig"]["speechConfig"]["voiceConfig"]["prebuiltVoiceConfig"]["voice"] == "Aoede"
     assert "Tanglish" in captured["payload"]["contents"][0]["parts"][0]["text"]
 
+def test_voice_health_reports_configuration_without_secret(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "must-not-be-returned")
+    response = TestClient(curriculum.app).get("/health/voice")
+    assert response.status_code == 200
+    assert response.json()["configured"] is True
+    assert response.json()["provider"] == "gemini"
+    assert "must-not-be-returned" not in response.text
+

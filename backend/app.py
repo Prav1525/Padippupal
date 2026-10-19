@@ -177,8 +177,7 @@ def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
     # the server to any network.
     if not ADMIN_TOKEN:
         if os.getenv("PADIPPUPAL_ALLOW_UNAUTHENTICATED_ADMIN", "0") == "1":
-            return
-        raise HTTPException(status_code=503, detail="Admin ingestion is disabled until PADIPPUPAL_ADMIN_TOKEN is configured.")
+            return        raise HTTPException(status_code=503, detail="Admin ingestion is disabled until PADIPPUPAL_ADMIN_TOKEN is configured.")
     if not x_admin_token or not __import__("hmac").compare_digest(x_admin_token, ADMIN_TOKEN):
         raise HTTPException(status_code=401, detail="Invalid admin token")
 
@@ -357,8 +356,7 @@ def load_source_registry() -> dict[str, Any]:
 @app.get("/sources/registry")
 def source_registry() -> dict[str, Any]:
     """Public transparency endpoint; reports source verification separately from reuse approval."""
-    registry = load_source_registry()
-    return {
+    registry = load_source_registry()    return {
         "registry_version": registry.get("registry_version"),
         "reviewed_on": registry.get("reviewed_on"),
         "policy": registry.get("policy"),
@@ -539,7 +537,6 @@ def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str
         ).fetchall()
     return {"items": [dict(row) for row in rows]}
 
-
 def terms(value: str) -> list[str]:
     return [t for t in re.findall(r"[\w-]+", value.casefold()) if len(t) > 1]
 
@@ -694,6 +691,68 @@ Your teaching behaviour:
         messages.append({"role": turn.role, "content": turn.content[:2500]})
     messages.append({"role": "user", "content": payload.message})
 
+    # Prefer Gemini for tutor text when its key is configured. Groq may be blocked
+    # by the hosting network's Cloudflare route (HTTP 403), so don't make it a
+    # prerequisite for the tutor to answer.
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if gemini_key:
+        gemini_model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+        system_text = "\\n\\n".join(item["content"] for item in messages if item.get("role") == "system")
+        gemini_contents = [
+            {
+                "role": "user" if item["role"] == "user" else "model",
+                "parts": [{"text": item["content"]}],
+            }
+            for item in messages if item.get("role") in ("user", "assistant")
+        ]
+        gemini_body = json.dumps({
+            "systemInstruction": {"parts": [{"text": system_text}]},
+            "contents": gemini_contents,
+            "generationConfig": {"maxOutputTokens": 420, "temperature": 0.45},
+        }).encode("utf-8")
+        gemini_request = urllib.request.Request(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent",
+            data=gemini_body,
+            headers={
+                "x-goog-api-key": gemini_key,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(gemini_request, timeout=30) as gemini_response:
+                gemini_result = json.loads(gemini_response.read().decode("utf-8"))
+            gemini_parts = gemini_result["candidates"][0]["content"]["parts"]
+            answer = " ".join(
+                part["text"].strip() for part in gemini_parts
+                if isinstance(part, dict) and part.get("text", "").strip()
+            ).strip()
+            if not answer:
+                raise ValueError("Gemini returned no text")
+            return {
+                "answer": answer,
+                "model": gemini_model,
+                "sources": sources,
+                "grounded": bool(sources),
+                "language": language,
+                "provider": "gemini",
+            }
+        except urllib.error.HTTPError as exc:
+            raw_error = exc.read(1200).decode("utf-8", errors="replace")
+            logger.warning("Gemini tutor request rejected: status=%s model=%s detail=%s", exc.code, gemini_model, raw_error[:240])
+            if exc.code == 429:
+                raise HTTPException(status_code=503, detail="The tutor is taking a short break. Please try again in a moment.") from exc
+            if exc.code in (400, 401, 403, 404):
+                raise HTTPException(status_code=503, detail="Gemini tutor setup needs attention. Please check the Gemini API key and model access.") from exc
+            raise HTTPException(status_code=502, detail="The tutor could not answer right now. Please try again.") from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            logger.warning("Gemini tutor connection failure: error_type=%s model=%s", type(exc).__name__, gemini_model)
+            raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
+        except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            logger.warning("Gemini tutor response parsing failure: error_type=%s model=%s", type(exc).__name__, gemini_model)
+            raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
+
     request_payload: dict[str, Any] = {
         "model": model,
         "messages": messages,
@@ -717,8 +776,7 @@ Your teaching behaviour:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            result = json.loads(response.read().decode("utf-8"))
+        with urllib.request.urlopen(request, timeout=30) as response:            result = json.loads(response.read().decode("utf-8"))
         answer = result["choices"][0]["message"]["content"].strip()
         if not answer:
             raise ValueError("Empty model response")
@@ -876,4 +934,3 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
     except (urllib.error.URLError, TimeoutError, KeyError, IndexError, StopIteration,
             ValueError, TypeError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=502, detail="Natural voice generation failed. Please try again.") from exc
-

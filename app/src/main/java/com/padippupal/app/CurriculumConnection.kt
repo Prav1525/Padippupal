@@ -61,7 +61,7 @@ internal fun CurriculumConnectionScreen(
     fun requestHealth() {
         val cleanBase = baseUrl.trim().trimEnd('/')
         if (!cleanBase.startsWith("https://")) {
-            status = "Enter your deployed HTTPS API address. The backend has not been deployed yet."
+            status = "Enter a valid deployed HTTPS API address."
             return
         }
         loading = true
@@ -81,7 +81,7 @@ internal fun CurriculumConnectionScreen(
     fun searchApprovedContent() {
         val cleanBase = baseUrl.trim().trimEnd('/')
         if (!cleanBase.startsWith("https://")) {
-            status = "Enter a deployed HTTPS API address before searching."
+            status = "Enter a valid deployed HTTPS API address before searching."
             return
         }
         loading = true
@@ -162,7 +162,7 @@ internal fun CurriculumConnectionScreen(
                 placeholder = { Text("https://your-api.example.com") },
                 singleLine = true
             )
-            Text("The backend is not hosted yet. Leave blank until a secure deployment URL is available.", color = ApiGrey, fontSize = 11.sp)
+            Text("Using the hosted PadippuPal curriculum service. Change this only if the API URL changes.", color = ApiGrey, fontSize = 11.sp)
         }
         item {
             Button(onClick = { requestHealth() }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {

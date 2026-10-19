@@ -730,7 +730,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         raw_audio = base64.b64decode(audio_part["inlineData"]["data"], validate=True)
         mime_type = audio_part["inlineData"].get("mimeType", "audio/L16;rate=24000")
         # Gemini TTS returns raw 16-bit PCM. Wrap it in a WAV container for Android playback.
-        rate_match = re.search(r"rate=(\\d+)", mime_type)
+        rate_match = re.search(r"rate=(\d+)", mime_type)
         sample_rate = int(rate_match.group(1)) if rate_match else 24000
         wav_buffer = io.BytesIO()
         with wave.open(wav_buffer, "wb") as wav_file:
@@ -741,7 +741,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         return {
             "audio_base64": base64.b64encode(wav_buffer.getvalue()).decode("ascii"),
             "mime_type": "audio/wav",
-            "voice": "Aoede",
+            "voice": "Kore",
             "provider": "gemini",
             "model": model,
         }

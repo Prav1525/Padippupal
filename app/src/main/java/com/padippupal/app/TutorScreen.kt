@@ -757,6 +757,7 @@ internal fun TutorScreen(
     }
 
     fun speakWithDeviceTts(text: String) {
+        status = "Gemini voice unavailable; using device voice."
         val engine = ttsState.value ?: run { speechActive = false; return }
         val locale = when (selectedLanguage) {
             "Tanglish" -> Locale("en", "IN")
@@ -849,6 +850,7 @@ internal fun TutorScreen(
                     },
                     onFailure = {
                         audioFile.delete()
+                        status = "Gemini voice request failed; using device voice. Check network and voice service configuration."
                         speakWithDeviceTts(text)
                     }
                 )

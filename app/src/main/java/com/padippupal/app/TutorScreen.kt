@@ -16,6 +16,14 @@ import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -55,8 +63,111 @@ private val TutorPaper = Color(0xFFF7F9F5)
 private val tutorExecutor = Executors.newSingleThreadExecutor()
 private val tutorMainHandler = Handler(Looper.getMainLooper())
 
+
 private data class TutorMessage(val role: String, val content: String)
 private data class TutorSource(val title: String, val url: String)
+
+private enum class LessonVisualKind { FRACTIONS, ADDITION, PHOTOSYNTHESIS, WATER_CYCLE, SOLAR_SYSTEM, NONE }
+
+private fun chooseLessonVisual(text: String): LessonVisualKind {
+    val value = text.lowercase()
+    return when {
+        listOf("photosynthesis", "chlorophyll", "carbon dioxide", "sunlight", "சேர்க்கை ஒளி").any { it in value } -> LessonVisualKind.PHOTOSYNTHESIS
+        listOf("water cycle", "evaporation", "condensation", "precipitation", "ஆவியாதல்").any { it in value } -> LessonVisualKind.WATER_CYCLE
+        listOf("solar system", "planet", "orbit", "பூமி", "சூரிய குடும்பம்").any { it in value } -> LessonVisualKind.SOLAR_SYSTEM
+        listOf("fraction", "one-half", "one half", "quarter", "numerator", "denominator", "பின்னம்").any { it in value } -> LessonVisualKind.FRACTIONS
+        Regex("""\b(addition|plus|sum|altogether|equals|\d+\s*\+\s*\d+|கூட்டல்)\b""").containsMatchIn(value) -> LessonVisualKind.ADDITION
+        else -> LessonVisualKind.NONE
+    }
+}
+
+@Composable
+private fun LessonVisual(explanation: String, subject: String) {
+    val kind = chooseLessonVisual(explanation)
+    if (kind == LessonVisualKind.NONE) return
+    val transition = rememberInfiniteTransition(label = "lesson-visual")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(1800), repeatMode = RepeatMode.Reverse),
+        label = "lesson-progress"
+    )
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        color = Color(0xFFEAF5EE),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("SEE IT HAPPEN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            when (kind) {
+                LessonVisualKind.FRACTIONS -> {
+                    Text("One whole, split into equal parts", color = TutorDeep, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        repeat(4) { index ->
+                            Box(
+                                Modifier.weight(1f).height(48.dp)
+                                    .background(if (index == (progress * 3.99f).toInt()) TutorGreen else Color.White, RoundedCornerShape(9.dp))
+                                    .padding(4.dp),
+                                contentAlignment = Alignment.Center
+                            ) { Text(if (index == (progress * 3.99f).toInt()) "¼" else "¼", color = if (index == (progress * 3.99f).toInt()) Color.White else TutorDeep, fontWeight = FontWeight.Bold) }
+                        }
+                    }
+                    Text("Each piece is one-quarter. Equal pieces make the whole.", color = TutorGrey, fontSize = 12.sp)
+                }
+                LessonVisualKind.ADDITION -> {
+                    Text("Watch the groups join together", color = TutorDeep, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
+                        repeat(3) { Box(Modifier.size(25.dp).background(TutorGreen, CircleShape), contentAlignment = Alignment.Center) { Text("•", color = Color.White, fontSize = 20.sp) } }
+                        Text("+", color = TutorDeep, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        repeat(2) { Box(Modifier.size(25.dp).background(Color(0xFFE8A23A), CircleShape), contentAlignment = Alignment.Center) { Text("•", color = Color.White, fontSize = 20.sp) } }
+                        Text("=", color = TutorDeep, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Box(Modifier.size(30.dp).background(TutorGreen.copy(alpha = 0.65f + progress * 0.35f), CircleShape), contentAlignment = Alignment.Center) { Text("5", color = Color.White, fontWeight = FontWeight.Bold) }
+                    }
+                    Text("Count all the objects after the groups join.", color = TutorGrey, fontSize = 12.sp)
+                }
+                LessonVisualKind.PHOTOSYNTHESIS -> {
+                    Text("How a plant makes its food", color = TutorDeep, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("☀️", fontSize = 25.sp); Text("Sunlight", color = TutorDeep, fontSize = 10.sp) }
+                        Text("→", color = TutorGreen, fontSize = 20.sp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("🌱", fontSize = 34.sp); Text("Plant", color = TutorDeep, fontSize = 10.sp) }
+                        Text("→", color = TutorGreen, fontSize = 20.sp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("🍃", fontSize = 27.sp); Text("Food + oxygen", color = TutorDeep, fontSize = 10.sp) }
+                    }
+                    Text("Leaves use sunlight, water and carbon dioxide to make food.", color = TutorGrey, fontSize = 12.sp)
+                }
+                LessonVisualKind.WATER_CYCLE -> {
+                    Text("Water keeps moving around Earth", color = TutorDeep, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        listOf("🌊", "⬆️", "☁️", "🌧️").forEachIndexed { index, symbol ->
+                            if (index > 0) Text("→", color = TutorGreen, fontSize = 15.sp)
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(symbol, fontSize = 24.sp, modifier = Modifier.alpha(if (index == (progress * 3.99f).toInt()) 1f else 0.65f))
+                                Text(listOf("Water", "Vapour", "Clouds", "Rain")[index], color = TutorDeep, fontSize = 10.sp)
+                            }
+                        }
+                    }
+                    Text("The Sun warms water, vapour forms clouds, and rain returns water to Earth.", color = TutorGrey, fontSize = 12.sp)
+                }
+                LessonVisualKind.SOLAR_SYSTEM -> {
+                    Text("Planets travel around the Sun", color = TutorDeep, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Row(horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text("☀️", fontSize = 28.sp)
+                        repeat(4) { index ->
+                            Box(Modifier.size((12 + index * 4).dp).background(
+                                listOf(Color(0xFFB7A18A), Color(0xFF5B9BD5), Color(0xFF65A86E), Color(0xFFD59B63))[index].copy(alpha = 0.65f + progress * 0.35f),
+                                CircleShape
+                            ))
+                        }
+                    }
+                    Text("Each planet follows its own path, called an orbit, around the Sun.", color = TutorGrey, fontSize = 12.sp)
+                }
+                LessonVisualKind.NONE -> Unit
+            }
+        }
+    }
+}
 
 @Composable
 internal fun TutorScreen(
@@ -443,13 +554,15 @@ internal fun TutorScreen(
                         shadowElevation = 1.dp,
                         modifier = Modifier.widthIn(max = 320.dp)
                     ) {
-                        Text(
-                            message.content,
-                            modifier = Modifier.padding(14.dp),
-                            color = if (message.role == "user") Color.White else TutorDeep,
-                            fontSize = 15.sp,
-                            lineHeight = 23.sp
-                        )
+                        Column(Modifier.padding(14.dp)) {
+                            Text(
+                                message.content,
+                                color = if (message.role == "user") Color.White else TutorDeep,
+                                fontSize = 15.sp,
+                                lineHeight = 23.sp
+                            )
+                            if (message.role == "assistant") LessonVisual(message.content, subject)
+                        }
                     }
                 }
             }

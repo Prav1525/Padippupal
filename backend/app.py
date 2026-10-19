@@ -328,6 +328,36 @@ def health() -> dict[str, str]:
     return {"status": "ok", "service": "padippupal-curriculum-engine"}
 
 
+@app.get("/health/db")
+def database_health() -> dict[str, Any]:
+    """Safe diagnostic: verify the configured database without exposing credentials."""
+    if not DATABASE_URL:
+        return {
+            "status": "degraded",
+            "database_backend": "sqlite",
+            "neon_configured": False,
+            "detail": "DATABASE_URL is not configured; service is using local SQLite.",
+        }
+    try:
+        with db() as conn:
+            row = conn.execute("SELECT current_database() AS database_name").fetchone()
+        return {
+            "status": "ok",
+            "database_backend": "postgresql",
+            "neon_configured": True,
+            "database_name": row["database_name"],
+        }
+    except Exception as exc:
+        # Return only the exception class; never expose connection strings or server details.
+        return {
+            "status": "error",
+            "database_backend": "postgresql",
+            "neon_configured": True,
+            "detail": "Database connection or query failed.",
+            "error_type": type(exc).__name__,
+        }
+
+
 @app.post("/admin/ingest-text", dependencies=[Depends(require_admin)], status_code=202)
 def ingest_text(payload: IngestTextRequest) -> dict[str, str]:
     text = payload.text

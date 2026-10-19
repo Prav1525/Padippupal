@@ -79,4 +79,4 @@ A successful GitHub Actions run uploads an artifact named **PadippuPal-debug-apk
 
 ## Gentle AI tutor implementation
 
-The tutor screen supports English, Tanglish and Tamil response preferences, a student-friendly teaching prompt, short conversation context, and spoken replies through Android's installed text-to-speech engine. The backend endpoint is POST /tutor/chat and uses the server-side GROQ_API_KEY; the default model is openai/gpt-oss-20b. Add the key only in Render's service environment. The current device TTS is a first pass: actual voice naturalness and Tamil availability depend on the phone's installed speech engine.
+The tutor screen supports English, Tanglish and Tamil response preferences, a student-friendly teaching prompt, and short conversation context. Groq remains the tutor's chat/reasoning provider (`POST /tutor/chat`, server-side `GROQ_API_KEY`). Natural spoken replies use Gemini 3.8 Flash-Lite TTS through `POST /tutor/speech` (`GEMINI_API_KEY` stored only in the backend/Render environment), with Android text-to-speech as a fallback. Gemini quota and billing depend on the Google AI account; do not assume unlimited free usage.

@@ -18,7 +18,7 @@ PadippuPal should take a student from a school diary entry or selected chapter t
 - English/Tamil UI toggle (prototype; Tanglish support is part of the product plan)
 - GitHub Actions workflow to build and upload a debug APK
 
-The current UI is a prototype. The curriculum connection screen now calls the backend health and retrieval APIs when an HTTPS endpoint is configured. The backend is not deployed, no official curriculum files are loaded, and diary OCR, AI lesson generation, concept mastery, persistent progress, and PDF export are not yet implemented.
+The current UI is a prototype. The curriculum connection screen calls the backend health and retrieval APIs when an HTTPS endpoint is configured. A gentle AI tutor chat screen and server-side Groq integration are now implemented on the feature branch; live AI answers require GROQ_API_KEY in the backend environment. No official curriculum files are loaded yet, and diary OCR, full chapter lesson generation, concept mastery, persistent progress, and PDF export are not yet implemented.
 
 ## Concept mastery: core learning flow
 
@@ -75,3 +75,8 @@ A successful GitHub Actions run uploads an artifact named **PadippuPal-debug-apk
 6. Diary camera/OCR, homework/test extraction, and automatic chapter matching
 7. Persistent learning history, weak-concept detection and personalized planning
 8. Parent progress view, curriculum verification and robust testing
+
+
+## Gentle AI tutor implementation
+
+The tutor screen supports English, Tanglish and Tamil response preferences, a student-friendly teaching prompt, short conversation context, and spoken replies through Android's installed text-to-speech engine. The backend endpoint is POST /tutor/chat and uses the server-side GROQ_API_KEY; the default model is openai/gpt-oss-20b. Add the key only in Render's service environment. The current device TTS is a first pass: actual voice naturalness and Tamil availability depend on the phone's installed speech engine.

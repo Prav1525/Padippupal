@@ -126,6 +126,6 @@ def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
         assert audio.readframes(24) == b"\\x00\\x00" * 24
     assert body["provider"] == "gemini"
     assert captured["headers"]["X-goog-api-key"] == "test-gemini-key"
-    assert captured["payload"]["generationConfig"]["speechConfig"]["voiceConfig"]["prebuiltVoiceConfig"]["voice"] == "Kore"
+    assert captured["payload"]["generationConfig"]["speechConfig"]["voiceConfig"]["prebuiltVoiceConfig"]["voice"] == "Aoede"
     assert "Tanglish" in captured["payload"]["contents"][0]["parts"][0]["text"]
 

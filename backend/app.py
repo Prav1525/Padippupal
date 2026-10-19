@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import sqlite3
@@ -28,6 +29,8 @@ ADMIN_TOKEN = os.getenv("PADIPPUPAL_ADMIN_TOKEN", "")
 CHUNK_WORDS = 220
 CHUNK_OVERLAP = 35
 POLL_SECONDS = 1.0
+
+logger = logging.getLogger("padippupal.providers")
 
 app = FastAPI(
     title="PadippuPal Curriculum Engine",
@@ -691,14 +694,18 @@ Your teaching behaviour:
         messages.append({"role": turn.role, "content": turn.content[:2500]})
     messages.append({"role": "user", "content": payload.message})
 
-    request_body = json.dumps({
+    request_payload: dict[str, Any] = {
         "model": model,
         "messages": messages,
-        "temperature": 0.45,
         "max_completion_tokens": 420,
-        "top_p": 0.9,
         "stream": False,
-    }).encode("utf-8")
+    }
+    # GPT-OSS has stricter sampling-parameter compatibility than many chat models.
+    # Leave temperature/top_p at provider defaults for this model family.
+    if not model.startswith("openai/gpt-oss"):
+        request_payload["temperature"] = 0.45
+        request_payload["top_p"] = 0.9
+    request_body = json.dumps(request_payload).encode("utf-8")
     request = urllib.request.Request(
         "https://api.groq.com/openai/v1/chat/completions",
         data=request_body,
@@ -716,11 +723,32 @@ Your teaching behaviour:
         if not answer:
             raise ValueError("Empty model response")
     except urllib.error.HTTPError as exc:
-        # Never return provider response bodies or credentials to the student.
+        # Log provider status and a bounded, sanitized error message; never log keys or prompts.
+        provider_message = ""
+        try:
+            error_payload = json.loads(exc.read(2048).decode("utf-8", errors="replace"))
+            error_obj = error_payload.get("error", {}) if isinstance(error_payload, dict) else {}
+            if isinstance(error_obj, dict):
+                provider_message = str(error_obj.get("message", ""))[:240]
+                provider_code = str(error_obj.get("code", ""))[:80]
+            else:
+                provider_code = ""
+        except Exception:
+            provider_code = ""
+        logger.warning(
+            "Groq chat request rejected: status=%s code=%s message=%s model=%s",
+            exc.code, provider_code, provider_message.replace("\\n", " "), model,
+        )
         if exc.code == 429:
             raise HTTPException(status_code=503, detail="The tutor is taking a short break. Please try again in a moment.") from exc
+        if exc.code in (401, 403):
+            raise HTTPException(status_code=503, detail="The tutor service configuration needs attention. Please try again later.") from exc
         raise HTTPException(status_code=502, detail="The tutor could not answer right now. Please try again.") from exc
-    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, ValueError, json.JSONDecodeError) as exc:
+    except (urllib.error.URLError, TimeoutError) as exc:
+        logger.warning("Groq chat connection failure: error_type=%s model=%s", type(exc).__name__, model)
+        raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
+    except (KeyError, IndexError, ValueError, json.JSONDecodeError) as exc:
+        logger.warning("Groq chat response parsing failure: error_type=%s model=%s", type(exc).__name__, model)
         raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
 
     return {

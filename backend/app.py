@@ -756,6 +756,11 @@ Your teaching behaviour:
             logger.warning("Gemini tutor response parsing failure: error_type=%s model=%s", type(exc).__name__, gemini_model)
             raise HTTPException(status_code=502, detail="The tutor connection failed. Please try again.") from exc
 
+    raise HTTPException(
+        status_code=503,
+        detail="Gemini tutor is not configured on the backend. Add GEMINI_API_KEY in Render environment variables.",
+    )
+
     request_payload: dict[str, Any] = {
         "model": model,
         "messages": messages,

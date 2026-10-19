@@ -635,8 +635,10 @@ Your teaching behaviour:
         "model": model,
         "messages": messages,
         "temperature": 0.45,
-        "max_tokens": 420,
+        "max_completion_tokens": 420,
         "top_p": 0.9,
+        "reasoning_effort": "low",
+        "include_reasoning": False,
         "stream": False,
     }).encode("utf-8")
     request = urllib.request.Request(

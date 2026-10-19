@@ -3,7 +3,7 @@
   "board": "CBSE",
   "class_level": 6,
   "academic_year": "2026-27",
-  "note": "Teacher-curated first-pass lesson blueprints. Verify wording and alignment against the official textbook before marking complete.",
+  "note": "Teacher-curated first-pass lesson blueprints. Mathematics chapter subtopics are aligned to the supplied NCERT Ganita Prakash Grade 6 2026–27 chapter PDFs; Science coverage is an initial concept map and should be checked against the official Curiosity textbook before being marked complete.",
   "lessons": [
     {
       "id": "science-the-wonderful-world-of-science-observation-and-fair-tests",
@@ -3831,6 +3831,3544 @@
       "challenge": {
         "question": "Where do you land after the move?",
         "success_feedback": "Good observation! Explain the evidence you used."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-what-is-mathematics",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "What is Mathematics?",
+      "title": "What is Mathematics?",
+      "scene_type": "pattern_builder",
+      "caption": "Arrange the what is mathematics? example, change one tile and infer the rule that explains the pattern.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Start pattern",
+          "kind": "pattern_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Next tile",
+          "kind": "pattern_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Rule",
+          "kind": "pattern_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for what is mathematics?."
+        },
+        {
+          "title": "Try",
+          "text": "Arrange the what is mathematics? example, change one tile and infer the rule that explains the pattern."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in what is mathematics??",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-patterns-in-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Patterns in Numbers",
+      "title": "Patterns in Numbers",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind patterns in numbers.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for patterns in numbers."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind patterns in numbers."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What rule connects the numbers in this sequence?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-visualising-number-sequences",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Visualising Number Sequences",
+      "title": "Visualising Number Sequences",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind visualising number sequences.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for visualising number sequences."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind visualising number sequences."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What changes as you move to the next term?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-relations-among-number-sequences",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Relations among Number Sequences",
+      "title": "Relations among Number Sequences",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind relations among number sequences.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for relations among number sequences."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind relations among number sequences."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How are these two sequences related?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-patterns-in-shapes",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Patterns in Shapes",
+      "title": "Patterns in Shapes",
+      "scene_type": "pattern_builder",
+      "caption": "Arrange the patterns in shapes example, change one tile and infer the rule that explains the pattern.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Start pattern",
+          "kind": "pattern_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Next tile",
+          "kind": "pattern_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Rule",
+          "kind": "pattern_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for patterns in shapes."
+        },
+        {
+          "title": "Try",
+          "text": "Arrange the patterns in shapes example, change one tile and infer the rule that explains the pattern."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which part repeats in the shape pattern?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-relation-to-number-sequences",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Relation to Number Sequences",
+      "title": "Relation to Number Sequences",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind relation to number sequences.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for relation to number sequences."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind relation to number sequences."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in relation to number sequences?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-point",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Point",
+      "title": "Point",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore point. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for point."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore point. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What location does this point mark?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-line-segment",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Line Segment",
+      "title": "Line Segment",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore line segment. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for line segment."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore line segment. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How many endpoints does a line segment have?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-line",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Line",
+      "title": "Line",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore line. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for line."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore line. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How is a line different from a line segment?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-ray",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Ray",
+      "title": "Ray",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore ray. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for ray."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore ray. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which point is the ray's starting point?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-angle",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Angle",
+      "title": "Angle",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore angle. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for angle."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore angle. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which two rays form this angle?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-comparing-angles",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Comparing Angles",
+      "title": "Comparing Angles",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore comparing angles. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for comparing angles."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore comparing angles. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which angle opens wider?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-making-rotating-arms",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Making Rotating Arms",
+      "title": "Making Rotating Arms",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore making rotating arms. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for making rotating arms."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore making rotating arms. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How does rotating one arm change the angle?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-special-types-of-angles",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Special Types of Angles",
+      "title": "Special Types of Angles",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore special types of angles. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for special types of angles."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore special types of angles. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Is this angle acute, right, obtuse or straight?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-measuring-angles",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Measuring Angles",
+      "title": "Measuring Angles",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore measuring angles. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for measuring angles."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore measuring angles. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What is the angle measure in degrees?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-drawing-angles",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Drawing Angles",
+      "title": "Drawing Angles",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore drawing angles. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for drawing angles."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore drawing angles. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Where should the second ray be placed to make the target angle?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-lines-and-angles-types-of-angles-and-their-measures",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topic": "Types of Angles and their Measures",
+      "title": "Types of Angles and their Measures",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore types of angles and their measures. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for types of angles and their measures."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore types of angles and their measures. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in types of angles and their measures?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-numbers-can-tell-us-things",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Numbers can Tell us Things",
+      "title": "Numbers can Tell us Things",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind numbers can tell us things.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for numbers can tell us things."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind numbers can tell us things."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in numbers can tell us things?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-supercells",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Supercells",
+      "title": "Supercells",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind supercells.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for supercells."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind supercells."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which number is larger than its neighbouring numbers?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-patterns-of-numbers-on-the-number-line",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Patterns of Numbers on the Number Line",
+      "title": "Patterns of Numbers on the Number Line",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind patterns of numbers on the number line.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for patterns of numbers on the number line."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind patterns of numbers on the number line."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What changes as you move right on the number line?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-playing-with-digits",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Playing with Digits",
+      "title": "Playing with Digits",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind playing with digits.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for playing with digits."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind playing with digits."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How does changing a digit's place change its value?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-pretty-palindromic-patterns",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Pretty Palindromic Patterns",
+      "title": "Pretty Palindromic Patterns",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind pretty palindromic patterns.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for pretty palindromic patterns."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind pretty palindromic patterns."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What makes this number read the same both ways?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-the-magic-number-of-kaprekar",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "The Magic Number of Kaprekar",
+      "title": "The Magic Number of Kaprekar",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind the magic number of kaprekar.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for the magic number of kaprekar."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind the magic number of kaprekar."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What do you notice after repeating the digit steps?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-clock-and-calendar-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Clock and Calendar Numbers",
+      "title": "Clock and Calendar Numbers",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind clock and calendar numbers.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for clock and calendar numbers."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind clock and calendar numbers."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What number pattern repeats in this clock or calendar?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-mental-math",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Mental Math",
+      "title": "Mental Math",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind mental math.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for mental math."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind mental math."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in mental math?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-playing-with-number-patterns",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Playing with Number Patterns",
+      "title": "Playing with Number Patterns",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind playing with number patterns.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for playing with number patterns."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind playing with number patterns."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in playing with number patterns?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-the-collatz-conjecture",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "The Collatz Conjecture",
+      "title": "The Collatz Conjecture",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind the collatz conjecture.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for the collatz conjecture."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind the collatz conjecture."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in the collatz conjecture?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-simple-estimation",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Simple Estimation",
+      "title": "Simple Estimation",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind simple estimation.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for simple estimation."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind simple estimation."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which nearby number makes a sensible estimate?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-number-play-games-and-winning-strategies",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topic": "Games and Winning Strategies",
+      "title": "Games and Winning Strategies",
+      "scene_type": "number_machine",
+      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind games and winning strategies.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Input",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Rule",
+          "kind": "number_machine",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Output",
+          "kind": "number_machine",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for games and winning strategies."
+        },
+        {
+          "title": "Try",
+          "text": "Change the input or digit arrangement, observe the output and explain the rule behind games and winning strategies."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in games and winning strategies?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-data-handling-and-presentation-collecting-and-organising-data",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Data Handling and Presentation",
+      "topic": "Collecting and Organising Data",
+      "title": "Collecting and Organising Data",
+      "scene_type": "bar_chart",
+      "caption": "Change the category counts and read the chart to investigate collecting and organising data.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Category A",
+          "kind": "bar_chart",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Category B",
+          "kind": "bar_chart",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Category C",
+          "kind": "bar_chart",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for collecting and organising data."
+        },
+        {
+          "title": "Try",
+          "text": "Change the category counts and read the chart to investigate collecting and organising data."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How can you organise these observations into categories?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-data-handling-and-presentation-pictographs",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Data Handling and Presentation",
+      "topic": "Pictographs",
+      "title": "Pictographs",
+      "scene_type": "bar_chart",
+      "caption": "Change the category counts and read the chart to investigate pictographs.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Category A",
+          "kind": "bar_chart",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Category B",
+          "kind": "bar_chart",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Category C",
+          "kind": "bar_chart",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for pictographs."
+        },
+        {
+          "title": "Try",
+          "text": "Change the category counts and read the chart to investigate pictographs."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What does one picture represent in this pictograph?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-data-handling-and-presentation-drawing-a-bar-graph",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Data Handling and Presentation",
+      "topic": "Drawing a Bar Graph",
+      "title": "Drawing a Bar Graph",
+      "scene_type": "bar_chart",
+      "caption": "Change the category counts and read the chart to investigate drawing a bar graph.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Category A",
+          "kind": "bar_chart",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Category B",
+          "kind": "bar_chart",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Category C",
+          "kind": "bar_chart",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for drawing a bar graph."
+        },
+        {
+          "title": "Try",
+          "text": "Change the category counts and read the chart to investigate drawing a bar graph."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What labels and scale does the graph need?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-data-handling-and-presentation-artistic-and-aesthetic-considerations",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Data Handling and Presentation",
+      "topic": "Artistic and Aesthetic Considerations",
+      "title": "Artistic and Aesthetic Considerations",
+      "scene_type": "bar_chart",
+      "caption": "Change the category counts and read the chart to investigate artistic and aesthetic considerations.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Category A",
+          "kind": "bar_chart",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Category B",
+          "kind": "bar_chart",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Category C",
+          "kind": "bar_chart",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for artistic and aesthetic considerations."
+        },
+        {
+          "title": "Try",
+          "text": "Change the category counts and read the chart to investigate artistic and aesthetic considerations."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in artistic and aesthetic considerations?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-prime-time-common-multiples-and-common-factors",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Prime Time",
+      "topic": "Common Multiples and Common Factors",
+      "title": "Common Multiples and Common Factors",
+      "scene_type": "factor_tree",
+      "caption": "Split the number into factors, test divisibility and inspect the prime factors for common multiples and common factors.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Number",
+          "kind": "factor_tree",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Factor",
+          "kind": "factor_tree",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Prime factor",
+          "kind": "factor_tree",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for common multiples and common factors."
+        },
+        {
+          "title": "Try",
+          "text": "Split the number into factors, test divisibility and inspect the prime factors for common multiples and common factors."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which number is a common multiple of both numbers?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-prime-time-prime-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Prime Time",
+      "topic": "Prime Numbers",
+      "title": "Prime Numbers",
+      "scene_type": "factor_tree",
+      "caption": "Split the number into factors, test divisibility and inspect the prime factors for prime numbers.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Number",
+          "kind": "factor_tree",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Factor",
+          "kind": "factor_tree",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Prime factor",
+          "kind": "factor_tree",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for prime numbers."
+        },
+        {
+          "title": "Try",
+          "text": "Split the number into factors, test divisibility and inspect the prime factors for prime numbers."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How many factors does this prime number have?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-prime-time-co-prime-numbers-for-safekeeping-treasures",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Prime Time",
+      "topic": "Co-prime numbers for safekeeping treasures",
+      "title": "Co-prime numbers for safekeeping treasures",
+      "scene_type": "factor_tree",
+      "caption": "Split the number into factors, test divisibility and inspect the prime factors for co-prime numbers for safekeeping treasures.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Number",
+          "kind": "factor_tree",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Factor",
+          "kind": "factor_tree",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Prime factor",
+          "kind": "factor_tree",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for co-prime numbers for safekeeping treasures."
+        },
+        {
+          "title": "Try",
+          "text": "Split the number into factors, test divisibility and inspect the prime factors for co-prime numbers for safekeeping treasures."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Do these two numbers share a factor other than one?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-prime-time-divisibility-tests",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Prime Time",
+      "topic": "Divisibility Tests",
+      "title": "Divisibility Tests",
+      "scene_type": "factor_tree",
+      "caption": "Split the number into factors, test divisibility and inspect the prime factors for divisibility tests.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Number",
+          "kind": "factor_tree",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Factor",
+          "kind": "factor_tree",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Prime factor",
+          "kind": "factor_tree",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for divisibility tests."
+        },
+        {
+          "title": "Try",
+          "text": "Split the number into factors, test divisibility and inspect the prime factors for divisibility tests."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which divisibility rule works for this number?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-prime-time-fun-with-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Prime Time",
+      "topic": "Fun with numbers",
+      "title": "Fun with numbers",
+      "scene_type": "factor_tree",
+      "caption": "Split the number into factors, test divisibility and inspect the prime factors for fun with numbers.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Number",
+          "kind": "factor_tree",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Factor",
+          "kind": "factor_tree",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Prime factor",
+          "kind": "factor_tree",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for fun with numbers."
+        },
+        {
+          "title": "Try",
+          "text": "Split the number into factors, test divisibility and inspect the prime factors for fun with numbers."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in fun with numbers?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-perimeter-and-area-perimeter",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Perimeter and Area",
+      "topic": "Perimeter",
+      "title": "Perimeter",
+      "scene_type": "area_grid",
+      "caption": "Move the shape on the grid and count unit squares or boundary lengths to explore perimeter.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Shape",
+          "kind": "area_grid",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Unit square",
+          "kind": "area_grid",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Boundary",
+          "kind": "area_grid",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for perimeter."
+        },
+        {
+          "title": "Try",
+          "text": "Move the shape on the grid and count unit squares or boundary lengths to explore perimeter."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which edges must be added to find the perimeter?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-perimeter-and-area-area",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Perimeter and Area",
+      "topic": "Area",
+      "title": "Area",
+      "scene_type": "area_grid",
+      "caption": "Move the shape on the grid and count unit squares or boundary lengths to explore area.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Shape",
+          "kind": "area_grid",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Unit square",
+          "kind": "area_grid",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Boundary",
+          "kind": "area_grid",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for area."
+        },
+        {
+          "title": "Try",
+          "text": "Move the shape on the grid and count unit squares or boundary lengths to explore area."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How many unit squares cover this shape?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-perimeter-and-area-area-of-a-triangle",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Perimeter and Area",
+      "topic": "Area of a Triangle",
+      "title": "Area of a Triangle",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore area of a triangle. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for area of a triangle."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore area of a triangle. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How does the triangle's area compare with its matching rectangle?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-fractions-fractional-units-and-equal-shares",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topic": "Fractional Units and Equal Shares",
+      "title": "Fractional Units and Equal Shares",
+      "scene_type": "fraction_builder",
+      "caption": "Manipulate equal parts or fraction strips to model fractional units and equal shares while keeping the whole the same.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Whole",
+          "kind": "fraction_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Equal parts",
+          "kind": "fraction_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Selected part",
+          "kind": "fraction_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for fractional units and equal shares."
+        },
+        {
+          "title": "Try",
+          "text": "Manipulate equal parts or fraction strips to model fractional units and equal shares while keeping the whole the same."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How much does each person receive when the whole is shared equally?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-fractions-fractional-units-as-parts-of-a-whole",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topic": "Fractional Units as Parts of a Whole",
+      "title": "Fractional Units as Parts of a Whole",
+      "scene_type": "fraction_builder",
+      "caption": "Manipulate equal parts or fraction strips to model fractional units as parts of a whole while keeping the whole the same.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Whole",
+          "kind": "fraction_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Equal parts",
+          "kind": "fraction_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Selected part",
+          "kind": "fraction_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for fractional units as parts of a whole."
+        },
+        {
+          "title": "Try",
+          "text": "Manipulate equal parts or fraction strips to model fractional units as parts of a whole while keeping the whole the same."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What does the denominator tell you?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-fractions-measuring-using-fractional-units",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topic": "Measuring Using Fractional Units",
+      "title": "Measuring Using Fractional Units",
+      "scene_type": "fraction_builder",
+      "caption": "Manipulate equal parts or fraction strips to model measuring using fractional units while keeping the whole the same.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Whole",
+          "kind": "fraction_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Equal parts",
+          "kind": "fraction_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Selected part",
+          "kind": "fraction_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for measuring using fractional units."
+        },
+        {
+          "title": "Try",
+          "text": "Manipulate equal parts or fraction strips to model measuring using fractional units while keeping the whole the same."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How many fractional units fit along this length?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-fractions-marking-fraction-lengths-on-the-number-line",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topic": "Marking Fraction Lengths on the Number Line",
+      "title": "Marking Fraction Lengths on the Number Line",
+      "scene_type": "fraction_builder",
+      "caption": "Manipulate equal parts or fraction strips to model marking fraction lengths on the number line while keeping the whole the same.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Whole",
+          "kind": "fraction_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Equal parts",
+          "kind": "fraction_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Selected part",
+          "kind": "fraction_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for marking fraction lengths on the number line."
+        },
+        {
+          "title": "Try",
+          "text": "Manipulate equal parts or fraction strips to model marking fraction lengths on the number line while keeping the whole the same."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Where should this fraction be placed between zero and one?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-fractions-mixed-fractions",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topic": "Mixed Fractions",
+      "title": "Mixed Fractions",
+      "scene_type": "fraction_builder",
+      "caption": "Manipulate equal parts or fraction strips to model mixed fractions while keeping the whole the same.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Whole",
+          "kind": "fraction_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Equal parts",
+          "kind": "fraction_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Selected part",
+          "kind": "fraction_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for mixed fractions."
+        },
+        {
+          "title": "Try",
+          "text": "Manipulate equal parts or fraction strips to model mixed fractions while keeping the whole the same."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How many wholes and how much extra make this mixed fraction?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-fractions-comparing-fractions",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topic": "Comparing Fractions",
+      "title": "Comparing Fractions",
+      "scene_type": "fraction_builder",
+      "caption": "Manipulate equal parts or fraction strips to model comparing fractions while keeping the whole the same.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Whole",
+          "kind": "fraction_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Equal parts",
+          "kind": "fraction_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Selected part",
+          "kind": "fraction_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for comparing fractions."
+        },
+        {
+          "title": "Try",
+          "text": "Manipulate equal parts or fraction strips to model comparing fractions while keeping the whole the same."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which fraction is larger when the wholes are equal?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-fractions-addition-and-subtraction-of-fractions",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topic": "Addition and Subtraction of Fractions",
+      "title": "Addition and Subtraction of Fractions",
+      "scene_type": "fraction_builder",
+      "caption": "Manipulate equal parts or fraction strips to model addition and subtraction of fractions while keeping the whole the same.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Whole",
+          "kind": "fraction_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Equal parts",
+          "kind": "fraction_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Selected part",
+          "kind": "fraction_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for addition and subtraction of fractions."
+        },
+        {
+          "title": "Try",
+          "text": "Manipulate equal parts or fraction strips to model addition and subtraction of fractions while keeping the whole the same."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What is the result when these fractional parts are combined?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-fractions-a-pinch-of-history",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topic": "A Pinch of History",
+      "title": "A Pinch of History",
+      "scene_type": "fraction_builder",
+      "caption": "Manipulate equal parts or fraction strips to model a pinch of history while keeping the whole the same.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Whole",
+          "kind": "fraction_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Equal parts",
+          "kind": "fraction_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Selected part",
+          "kind": "fraction_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for a pinch of history."
+        },
+        {
+          "title": "Try",
+          "text": "Manipulate equal parts or fraction strips to model a pinch of history while keeping the whole the same."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in a pinch of history?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-playing-with-constructions-artwork",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Playing with Constructions",
+      "topic": "Artwork",
+      "title": "Artwork",
+      "scene_type": "area_grid",
+      "caption": "Move the shape on the grid and count unit squares or boundary lengths to explore artwork.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Shape",
+          "kind": "area_grid",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Unit square",
+          "kind": "area_grid",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Boundary",
+          "kind": "area_grid",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for artwork."
+        },
+        {
+          "title": "Try",
+          "text": "Move the shape on the grid and count unit squares or boundary lengths to explore artwork."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in artwork?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-playing-with-constructions-squares-and-rectangles",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Playing with Constructions",
+      "topic": "Squares and Rectangles",
+      "title": "Squares and Rectangles",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore squares and rectangles. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for squares and rectangles."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore squares and rectangles. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which properties make this shape a rectangle?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-playing-with-constructions-constructing-squares-and-rectangles",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Playing with Constructions",
+      "topic": "Constructing Squares and Rectangles",
+      "title": "Constructing Squares and Rectangles",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore constructing squares and rectangles. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for constructing squares and rectangles."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore constructing squares and rectangles. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Which measurements must stay equal during construction?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-playing-with-constructions-an-exploration-in-rectangles",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Playing with Constructions",
+      "topic": "An Exploration in Rectangles",
+      "title": "An Exploration in Rectangles",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore an exploration in rectangles. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for an exploration in rectangles."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore an exploration in rectangles. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What changes and what stays the same as the rectangle changes?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-playing-with-constructions-exploring-diagonals-of-rectangles-and-squares",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Playing with Constructions",
+      "topic": "Exploring Diagonals of Rectangles and Squares",
+      "title": "Exploring Diagonals of Rectangles and Squares",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore exploring diagonals of rectangles and squares. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for exploring diagonals of rectangles and squares."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore exploring diagonals of rectangles and squares. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What do you notice when you compare the diagonals?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-playing-with-constructions-points-equidistant-from-two-given-points",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Playing with Constructions",
+      "topic": "Points Equidistant from Two Given Points",
+      "title": "Points Equidistant from Two Given Points",
+      "scene_type": "angle_builder",
+      "caption": "Move the point or rotate a ray to explore points equidistant from two given points. Compare the new position with the target.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Vertex",
+          "kind": "angle_builder",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Ray A",
+          "kind": "angle_builder",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Ray B",
+          "kind": "angle_builder",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for points equidistant from two given points."
+        },
+        {
+          "title": "Try",
+          "text": "Move the point or rotate a ray to explore points equidistant from two given points. Compare the new position with the target."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Where can a point be if it is equally far from both endpoints?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-symmetry-line-of-symmetry",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Symmetry",
+      "topic": "Line of Symmetry",
+      "title": "Line of Symmetry",
+      "scene_type": "symmetry_mirror",
+      "caption": "Move the mirror line or shape to test line of symmetry by comparing both sides.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Shape",
+          "kind": "symmetry_mirror",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Mirror line",
+          "kind": "symmetry_mirror",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Matching half",
+          "kind": "symmetry_mirror",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for line of symmetry."
+        },
+        {
+          "title": "Try",
+          "text": "Move the mirror line or shape to test line of symmetry by comparing both sides."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Do both sides match when folded along this line?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-the-other-side-of-zero-bela-s-building-of-fun",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "The Other Side of Zero",
+      "topic": "Bela’s Building of Fun",
+      "title": "Bela’s Building of Fun",
+      "scene_type": "integer_line",
+      "caption": "Move a token across the number line to explore bela’s building of fun and compare positions relative to zero.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Negative",
+          "kind": "integer_line",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Zero",
+          "kind": "integer_line",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Positive",
+          "kind": "integer_line",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for bela’s building of fun."
+        },
+        {
+          "title": "Try",
+          "text": "Move a token across the number line to explore bela’s building of fun and compare positions relative to zero."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in bela’s building of fun?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-the-other-side-of-zero-the-token-model",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "The Other Side of Zero",
+      "topic": "The Token Model",
+      "title": "The Token Model",
+      "scene_type": "integer_line",
+      "caption": "Move a token across the number line to explore the token model and compare positions relative to zero.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Negative",
+          "kind": "integer_line",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Zero",
+          "kind": "integer_line",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Positive",
+          "kind": "integer_line",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for the token model."
+        },
+        {
+          "title": "Try",
+          "text": "Move a token across the number line to explore the token model and compare positions relative to zero."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "How does moving tokens across zero change the value?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-the-other-side-of-zero-integers-in-other-places",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "The Other Side of Zero",
+      "topic": "Integers in Other Places",
+      "title": "Integers in Other Places",
+      "scene_type": "integer_line",
+      "caption": "Move a token across the number line to explore integers in other places and compare positions relative to zero.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Negative",
+          "kind": "integer_line",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Zero",
+          "kind": "integer_line",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Positive",
+          "kind": "integer_line",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for integers in other places."
+        },
+        {
+          "title": "Try",
+          "text": "Move a token across the number line to explore integers in other places and compare positions relative to zero."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in integers in other places?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-the-other-side-of-zero-explorations-with-integers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "The Other Side of Zero",
+      "topic": "Explorations with Integers",
+      "title": "Explorations with Integers",
+      "scene_type": "integer_line",
+      "caption": "Move a token across the number line to explore explorations with integers and compare positions relative to zero.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Negative",
+          "kind": "integer_line",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Zero",
+          "kind": "integer_line",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Positive",
+          "kind": "integer_line",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for explorations with integers."
+        },
+        {
+          "title": "Try",
+          "text": "Move a token across the number line to explore explorations with integers and compare positions relative to zero."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "Where do you land after moving left or right on the number line?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-the-other-side-of-zero-a-pinch-of-history",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "The Other Side of Zero",
+      "topic": "A Pinch of History",
+      "title": "A Pinch of History",
+      "scene_type": "integer_line",
+      "caption": "Move a token across the number line to explore a pinch of history and compare positions relative to zero.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Negative",
+          "kind": "integer_line",
+          "position": [
+            0.15,
+            0.25
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Zero",
+          "kind": "integer_line",
+          "position": [
+            0.47,
+            0.25
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Positive",
+          "kind": "integer_line",
+          "position": [
+            0.79,
+            0.25
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Observe the example for a pinch of history."
+        },
+        {
+          "title": "Try",
+          "text": "Move a token across the number line to explore a pinch of history and compare positions relative to zero."
+        },
+        {
+          "title": "Explain",
+          "text": "Describe the rule and use it to predict what happens next."
+        }
+      ],
+      "challenge": {
+        "question": "What pattern or relationship do you notice in a pinch of history?",
+        "success_feedback": "Well done! Explain the clue that helped you decide."
       }
     }
   ]

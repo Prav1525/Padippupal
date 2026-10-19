@@ -682,6 +682,17 @@ class TutorSpeechRequest(BaseModel):
     app_language: str = Field(default="English", max_length=30)
 
 
+@app.get("/health/voice")
+def voice_health() -> dict[str, Any]:
+    """Report voice configuration status without exposing any credentials."""
+    return {
+        "provider": "gemini",
+        "configured": bool(os.getenv("GEMINI_API_KEY", "").strip()),
+        "model": os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-3.8-flash-lite-tts").strip(),
+        "fallback": "android-tts",
+    }
+
+
 @app.post("/tutor/speech")
 def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
     """Synthesize a gentle spoken tutor reply with Gemini; API key stays server-side."""

@@ -1354,6 +1354,70 @@ def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medi
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     """Create short source-grounded lesson segments for synchronized playback."""
     subject = infer_tutor_subject(payload.message, payload.subject)
+
+    # Prefer the reviewed chapter sequence; this avoids regenerating a different
+    # lesson on every visit. Only an exact curriculum profile/chapter is eligible.
+    if payload.chapter.strip():
+        try:
+            with db() as conn:
+                rows = conn.execute(
+                    """SELECT id, chapter, topic, lesson_json, source_refs_json
+                       FROM chapter_lessons
+                       WHERE status='approved' AND LOWER(board)=LOWER(?)
+                         AND class_level=? AND LOWER(subject)=LOWER(?)
+                         AND LOWER(medium)=LOWER(?) ORDER BY updated_at DESC""",
+                    (payload.board, payload.class_level, subject, payload.medium),
+                ).fetchall()
+            approved = next((dict(row) for row in rows
+                if normalize(str(row["chapter"])).casefold() == normalize(payload.chapter).casefold()
+                and (not payload.topic.strip() or not str(row["topic"] or "").strip()
+                     or normalize(str(row["topic"])).casefold() == normalize(payload.topic).casefold())), None)
+        except Exception:
+            logger.exception("Approved chapter lesson lookup failed; using textbook retrieval fallback")
+            approved = None
+        if approved:
+            lesson = json.loads(approved["lesson_json"])
+            refs = json.loads(approved["source_refs_json"])
+            allowed_ids = {str(ref.get("chunk_id", "")) for ref in refs if ref.get("chunk_id")}
+            visual_map = {"number_pattern": "highlight", "number_line": "move",
+                          "geometry": "draw-line", "compare": "compare", "process": "reveal",
+                          "table": "label", "diagram": "label", "none": "none"}
+            segments = []
+            for index, step in enumerate(lesson.get("teaching_sequence", [])):
+                if len(segments) >= payload.max_segments:
+                    break
+                if not isinstance(step, dict):
+                    continue
+                source_ids = [str(x) for x in step.get("source_chunk_ids", [])]
+                if not source_ids or not set(source_ids).issubset(allowed_ids):
+                    continue
+                spoken = str(step.get("teacher_says") or step.get("caption") or "").strip()
+                caption = str(step.get("caption") or spoken).strip()
+                if not spoken or not caption:
+                    continue
+                visual = step.get("visual") if isinstance(step.get("visual"), dict) else {}
+                objects = visual.get("objects", [])
+                segments.append({
+                    "id": str(step.get("id") or ("approved-" + str(index + 1)))[:40],
+                    "spoken_text": spoken[:500], "caption_text": caption[:500],
+                    "source_chunk_ids": source_ids[:5],
+                    "visual_action": {
+                        "type": visual_map.get(str(visual.get("type", "none")), "none"),
+                        "target": str(objects[0])[:100] if isinstance(objects, list) and objects else "",
+                        "value": str(visual.get("actions") or visual.get("narration_sync") or "")[:160],
+                    },
+                    "checkpoint": str(step.get("checkpoint"))[:240] if step.get("checkpoint") else None,
+                })
+            if segments:
+                return {"lesson_id": str(approved["id"]), "segments": segments,
+                        "grounded": True, "sources": refs, "language": payload.app_language,
+                        "subject": subject, "provider": "approved_chapter_lesson",
+                        "model": "reviewed-curriculum", "timing_mode": "segment",
+                        "word_timestamps_available": False,
+                        "chapter_overview": lesson.get("overview", ""),
+                        "learning_objectives": lesson.get("learning_objectives", []),
+                        "chapter_title": lesson.get("chapter_title", approved["chapter"])}
+
     retrieved = retrieve(SearchRequest(board=payload.board, class_level=payload.class_level, subject=subject,
         medium=payload.medium, query=" ".join(part for part in (payload.chapter, payload.topic, payload.message) if part),
         chapter=payload.chapter or None, limit=5))

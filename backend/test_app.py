@@ -150,3 +150,46 @@ def test_lines_and_angles_blueprints_are_specific_and_interactive():
     assert classifier["scene_type"] == "angle_classifier"
     assert "90 degrees" in classifier["steps"][1]["text"]
 
+
+
+
+def test_patterns_in_mathematics_has_concept_first_chapter_one_lessons():
+    client = TestClient(curriculum.app)
+    response = client.get("/interactive-lessons", params={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "chapter": "Patterns in Mathematics",
+    })
+    assert response.status_code == 200
+    lessons = response.json()["lessons"]
+    assert len(lessons) >= 12
+    topics = {lesson["topic"] for lesson in lessons}
+    assert {
+        "What is Mathematics?", "Patterns in Numbers",
+        "Visualising Number Sequences", "Relations among Number Sequences",
+        "Patterns in Shapes", "Relation to Number Sequences",
+    }.issubset(topics)
+    ids = [lesson["id"] for lesson in lessons]
+    assert len(ids) == len(set(ids))
+    for lesson in lessons:
+        assert lesson["steps"] and len(lesson["steps"]) >= 3
+        assert lesson["challenge"]["question"].strip()
+        assert lesson["challenge"]["answer"] in lesson["challenge"]["options"]
+        assert lesson["challenge"]["hint"].strip()
+        assert lesson["scene_type"] in {
+            "pattern_builder", "number_pattern", "shape_pattern", "number_machine",
+        }
+
+
+def test_patterns_in_mathematics_contains_key_number_sequences():
+    client = TestClient(curriculum.app)
+    response = client.get("/interactive-lessons", params={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "chapter": "Patterns in Mathematics",
+    })
+    lessons = response.json()["lessons"]
+    combined = " ".join(
+        [lesson["topic"] + " " + lesson["title"] + " " + lesson["caption"]]
+        + [step["text"] for lesson in lessons for step in lesson["steps"]]
+    ).lower()
+    for concept in ("triangular", "square", "cube", "virahanka", "powers of 2", "powers of 3", "koch snowflake"):
+        assert concept in combined, f"Chapter 1 missing concept: {concept}"

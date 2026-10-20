@@ -50,7 +50,7 @@ BANK: dict[str, list[dict[str, Any]]] = {
 ("A lunch contains rice, dal, vegetables and curd. Explain why eating different food groups is useful.",2,"chapter_context_variant","Different foods supply different nutrients; together they help make the meal more balanced."),
 ],
 "Exploring Magnets": [
-("Name two materials that are attracted by a magnet and two that are not usually attracted.",2,"syllabus_practice_variant","Attracted: iron/steel, nickel or cobalt. Not usually attracted: wood, plastic, paper, copper or aluminium."),
+("Name two materials that are attracted by a magnet and two that are not usually attracted.",2,"syllabus_practice_variant","Attracted: iron, nickel or cobalt. Not usually attracted: wood, plastic, paper, copper or aluminium."),
 ("What are the two poles of a bar magnet? Describe what happens when like poles are brought together.",2,"syllabus_practice_variant","North and south poles; like poles repel."),
 ("How can you use a freely suspended bar magnet to find directions?",2,"syllabus_practice_variant","When it settles, it aligns approximately north–south; identify the north-seeking end."),
 ("Why should a magnet be stored carefully and kept away from some electronic devices?",2,"syllabus_practice_variant","Rough handling/heating can weaken some magnets; magnets can interfere with magnetic storage or sensitive devices."),
@@ -68,7 +68,7 @@ BANK: dict[str, list[dict[str, Any]]] = {
 ("Name two properties that can be used to group materials.",2,"syllabus_practice_variant","Hardness, appearance/lustre, solubility, transparency, magnetism, flexibility or ability to float/sink."),
 ("What is the difference between transparent and opaque materials?",2,"syllabus_practice_variant","Transparent materials let most light pass so objects can be seen clearly; opaque materials do not let light pass through."),
 ("Why is glass used for windows while wood is often used for doors?",2,"syllabus_practice_variant","Glass is transparent and lets light in; wood is opaque and gives privacy/strength."),
-("A material floats on water. Does this alone prove it is soluble in water? Explain.",2,"chapter_context_variant","No. Floating describes whether it stays at the surface; solubility describes whether it dissolves. They are different properties."),
+("A shopkeeper uses transparent jars to display pulses and grains. Why are transparent containers useful for this purpose?",2,"chapter_context_variant","Transparent materials let customers see the contents clearly without opening the container. Materials through which objects can be seen clearly are called transparent."),
 ],
 "Temperature and its Measurement": [
 ("What does a thermometer measure? Write the common unit used in school science.",2,"syllabus_practice_variant","Temperature; degree Celsius (°C)."),
@@ -106,7 +106,7 @@ BANK: dict[str, list[dict[str, Any]]] = {
 ("A school turns off taps and plants native trees. Explain how these actions help protect nature.",2,"chapter_context_variant","They conserve water and support local biodiversity/provide habitat and protect soil."),
 ],
 "Beyond Earth": [
-("What is a constellation? Name one familiar constellation.",2,"syllabus_practice_variant","A recognised pattern of stars; e.g. Ursa Major/Saptarishi or Orion."),
+("What is a constellation? Name one familiar constellation.",2,"syllabus_practice_variant","A constellation is a defined region of the sky that often includes a recognisable pattern of stars; Orion is one example."),
 ("How is a star different from a planet in the way it produces light?",2,"syllabus_practice_variant","A star emits its own light; a planet is seen mainly by reflecting light from a star."),
 ("Why does the Moon appear bright at night?",2,"syllabus_practice_variant","It reflects sunlight; it does not produce its own visible light like a star."),
 ("What is the solar system? Name its central star.",2,"syllabus_practice_variant","The Sun and the objects bound to it, including planets and other smaller bodies; the Sun is the central star."),

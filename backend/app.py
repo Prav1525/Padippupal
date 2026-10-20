@@ -844,7 +844,7 @@ CHAPTERS_BY_FILE: dict[str, tuple[int, str]] = {
 
 def chapter_matches_chunk(chapter: str, source_title: str, chunk_chapter: str | None) -> bool:
     """Require the stored chunk's explicit chapter field to agree with the catalogue."""
-    file_match = re.search(r"\\b(fegp\\d{3}|fecu\\d{3})\\.pdf\\b", source_title, re.IGNORECASE)
+    file_match = re.search(r"\b(fegp\d{3}|fecu\d{3})\.pdf\b", source_title, re.IGNORECASE)
     if not file_match or not chunk_chapter:
         return False
     mapped = CHAPTERS_BY_FILE.get(file_match.group(1).casefold())
@@ -863,7 +863,7 @@ def chapter_matches_source(chapter: str, source_title: str, source_opening: str 
     Unknown sources and preliminary pages fail closed when a chapter is selected;
     we never guess a chapter from partial word overlap in the source opening.
     """
-    file_match = re.search(r"\\b(fegp\\d{3}|fecu\\d{3})\\.pdf\\b", source_title, re.IGNORECASE)
+    file_match = re.search(r"\b(fegp\d{3}|fecu\d{3})\.pdf\b", source_title, re.IGNORECASE)
     if not file_match:
         return False
     key = file_match.group(1).casefold()
@@ -872,15 +872,15 @@ def chapter_matches_source(chapter: str, source_title: str, source_opening: str 
         return False
     chapter_number, chapter_title = mapped
     requested = re.sub(r"[^a-z0-9]+", " ", chapter.casefold()).strip()
-    number_match = re.search(r"\\bchapter\\s*(\\d{1,2})\\b", requested)
+    number_match = re.search(r"\bchapter\s*(\d{1,2})\b", requested)
     if number_match and int(number_match.group(1)) == chapter_number:
         return True
     # Also accept a plain leading chapter number, e.g. "7 Fractions".
-    number_match = re.match(r"^(\\d{1,2})\\s+", requested)
+    number_match = re.match(r"^(\d{1,2})\s+", requested)
     if number_match and int(number_match.group(1)) == chapter_number:
         return True
     def normalized(value: str) -> str:
-        value = re.sub(r"^\\s*chapter\\s*\\d*\\s*[:.\\-]?\\s*", "", value.casefold())
+        value = re.sub(r"^\s*chapter\s*\d*\s*[:.\-]?\s*", "", value.casefold())
         return re.sub(r"[^a-z0-9]+", " ", value).strip()
     return normalized(chapter) == normalized(chapter_title)
 
@@ -1259,6 +1259,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     """Fast, child-friendly tutoring through a server-side Groq API key."""
     request_started = time.monotonic()
+    if not os.getenv("GEMINI_API_KEY", "").strip():
+        raise HTTPException(status_code=503, detail="Gemini tutor is not configured on the backend. Add GEMINI_API_KEY in Render environment variables.")
     # Clear question intent overrides the selected subject; vague follow-ups keep it.
     effective_subject = infer_tutor_subject(payload.message, payload.subject)
     # Reuse the same board/class/subject/medium filtering as the public retrieval API.

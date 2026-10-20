@@ -1313,17 +1313,63 @@ def _clean_tutor_speech_text(text: str) -> str:
     return " ".join(deduped)
 
 
+def _sarvam_prepare_tanglish_for_speech(text: str, api_key: str) -> str:
+    """Convert Romanized Tanglish to Tamil script for better Tamil pronunciation."""
+    # Sarvam documents that Romanized Indic text degrades TTS quality. Transliteration
+    # preserves pronunciation rather than translating the lesson's meaning. If this
+    # helper fails, speech still proceeds with the original text.
+    parts: list[str] = []
+    remaining = text.strip()
+    try:
+        while remaining:
+            chunk = remaining[:950]
+            if len(remaining) > 950:
+                split_at = max(chunk.rfind(". "), chunk.rfind("? "), chunk.rfind("! "), chunk.rfind(" "))
+                if split_at > 350:
+                    chunk = chunk[:split_at + (1 if chunk[split_at:split_at + 1] in ".?!" else 0)]
+            request_body = json.dumps({
+                "input": chunk,
+                "source_language_code": "en-IN",
+                "target_language_code": "ta-IN",
+            }).encode("utf-8")
+            request = urllib.request.Request(
+                "https://api.sarvam.ai/transliterate",
+                data=request_body,
+                headers={
+                    "api-subscription-key": api_key,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=15) as response:
+                result = json.loads(response.read().decode("utf-8"))
+            converted = result.get("transliterated_text")
+            if not isinstance(converted, str) or not converted.strip():
+                raise ValueError("Sarvam returned no transliterated text")
+            parts.append(converted.strip())
+            remaining = remaining[len(chunk):].strip()
+        converted_text = " ".join(parts).strip()
+        if converted_text:
+            logger.info("Prepared Tanglish speech with Tamil-script transliteration chars=%d", len(converted_text))
+            return converted_text
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError,
+            KeyError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        logger.warning("Tanglish transliteration skipped error_type=%s", type(exc).__name__)
+    return text
+
+
 def _sarvam_tutor_speech(speech_text: str, language: str) -> dict[str, Any] | None:
     """Return Sarvam WAV audio when configured; otherwise let the caller use device TTS."""
     api_key = os.getenv("SARVAM_API_KEY", "").strip()
     if not api_key:
         return None
 
-    # Tamil script uses ta-IN. Tanglish is best-effort: the text is kept intact,
-    # with ta-IN selected so the Tamil words are not treated as generic English.
     language_code = "ta-IN" if language in {"Tanglish", "தமிழ்"} else "en-IN"
-    speaker = "ishita" if language_code == "en-IN" else "ishita"
+    speaker = "ishita" if language_code == "ta-IN" else "ishita"
     model = os.getenv("PADIPPUPAL_SARVAM_TTS_MODEL", "bulbul:v3").strip()
+    if language == "Tanglish":
+        speech_text = _sarvam_prepare_tanglish_for_speech(speech_text, api_key)
     # Split longer answers on sentence/word boundaries to respect Sarvam's
     # 2,500-character REST limit without dropping the end of the explanation.
     chunks: list[str] = []
@@ -1351,7 +1397,7 @@ def _sarvam_tutor_speech(speech_text: str, language: str) -> dict[str, Any] | No
                 "language_code": language_code,
                 "speaker": speaker,
                 "pace": 0.9,
-                "temperature": 0.65,
+                "temperature": 0.75,
                 "output_audio_codec": "wav",
             }).encode("utf-8")
             request = urllib.request.Request(

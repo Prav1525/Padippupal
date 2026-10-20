@@ -1261,7 +1261,7 @@ internal fun TutorScreen(
         if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        currentCheckpoint = segment.optString("checkpoint").trim()
+        currentCheckpoint = segment.optString("checkpoint").trim().ifBlank { if (index > 0 && index % 2 == 0) "Does that make sense so far?" else "" }
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")

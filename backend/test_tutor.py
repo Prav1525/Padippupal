@@ -295,3 +295,54 @@ def test_chapter_matching_uses_the_stored_book_opening_not_other_chapters():
         "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp102.pdf)",
         "Fractions",
     )
+
+
+def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "chunk-123"
+    class FakeResponse:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self):
+            payload = {"segments": [{"id": "s1", "spoken_text": "A magnet has two poles.",
+                "caption_text": "A magnet has two poles", "source_chunk_ids": [chunk_id],
+                "visual_action": {"type": "highlight", "target": "magnet-poles", "value": ""}, "checkpoint": None}]}
+            return json.dumps({"candidates": [{"content": {"parts": [{"text": json.dumps(payload)}]}}]}).encode()
+    def fake_urlopen(request, timeout):
+        body = json.loads(request.data.decode())
+        assert body["generationConfig"]["responseMimeType"] == "application/json"
+        return FakeResponse()
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": "A magnet has two poles.", "source": {"chunk_id": chunk_id, "source_id": "source-1",
+        "title": "Class 6 Science", "board": "CBSE", "class_level": 6, "subject": "Science",
+        "medium": "English", "page_start": 10, "page_end": 10}}]})
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+        "chapter": "Exploring Magnets", "topic": "Magnet poles", "message": "Teach me magnet poles",
+        "app_language": "English"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["grounded"] is True
+    assert body["timing_mode"] == "segment"
+    assert body["word_timestamps_available"] is False
+    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
+
+def test_lesson_plan_rejects_unretrieved_chunk_ids():
+    import pytest
+    with pytest.raises(curriculum.HTTPException):
+        curriculum._validate_lesson_plan(json.dumps({"segments": [{
+            "id": "s1", "spoken_text": "Invented fact.", "caption_text": "Invented fact.",
+            "source_chunk_ids": ["unknown"], "visual_action": {"type": "none", "target": "", "value": ""},
+            "checkpoint": None}]}), {"known"}, 5)
+
+def test_lesson_plan_does_not_generate_when_retrieval_is_empty(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": []})
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+        "chapter": "Exploring Magnets", "message": "Teach me magnets"})
+    assert response.status_code == 200
+    assert response.json()["grounded"] is False
+    assert response.json()["segments"] == []
+    assert "No matching textbook passage" in response.json()["warning"]

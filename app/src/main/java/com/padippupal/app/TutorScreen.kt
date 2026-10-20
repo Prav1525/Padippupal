@@ -95,6 +95,35 @@ private fun cleanTutorDisplayText(raw: String): String {
 private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
 
 @Composable
+private fun WordByWordCaption(text: String, active: Boolean) {
+    val words = remember(text) { text.trim().split(Regex("\\s+")).filter { it.isNotBlank() } }
+    var visibleWordCount by remember(text) { mutableIntStateOf(if (active) 1 else words.size) }
+    LaunchedEffect(text, active) {
+        if (!active) visibleWordCount = words.size else {
+            visibleWordCount = 1
+            // The speech API returns segment audio, not word timestamps: this is an estimated karaoke highlight.
+            for (count in 2..words.size) {
+                kotlinx.coroutines.delay(260L)
+                visibleWordCount = count
+            }
+        }
+    }
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        words.forEachIndexed { index, word ->
+            val current = active && index == (visibleWordCount - 1).coerceAtLeast(0)
+            val spoken = !active || index < visibleWordCount
+            Text(word, Modifier.background(if (current) Color(0xFFD8E8B7) else Color.Transparent, RoundedCornerShape(4.dp))
+                .padding(horizontal = 1.dp, vertical = 1.dp).alpha(if (spoken) 1f else 0.48f),
+                color = TutorDeep, fontSize = 15.sp, lineHeight = 23.sp,
+                fontWeight = if (current) FontWeight.Bold else FontWeight.Medium)
+        }
+    }
+}
+
+@Composable
 private fun InteractiveLessonLab(
     chapter: String,
     topic: String,
@@ -1213,7 +1242,7 @@ internal fun TutorScreen(
     LaunchedEffect(chapter, topic) {
         if (topic.isNotBlank() && messages.size == 1 && !loading) {
             sendMessage(
-                "START LESSON. Give me a simple overview of the chapter \"$chapter\" and topic \"$topic\". List the important concepts, explain the first one with an everyday example, and only then ask one easy check question. Use $selectedLanguage."
+                 "START LESSON as a warm, patient teacher. Begin by naming the chapter \\"$chapter\\" and topic \\"$topic\\" in the opening sentence. Say what we are going to learn, then preview 2-3 key ideas. Teach the first concept in small steps with a familiar everyday example, explain why it works, and ask one easy check question at the end. Do not jump straight into a question or write one dense paragraph. Use simple child-friendly spoken language in $selectedLanguage."
             )
         }
     }
@@ -1376,7 +1405,7 @@ internal fun TutorScreen(
                             Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                         }
                     }
-                    if (liveCaption.isNotBlank()) Text(liveCaption, color = TutorDeep, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.Medium)
+                    if (liveCaption.isNotBlank()) WordByWordCaption(liveCaption, liveLessonActive && speechActive)
                     if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                     if (liveCaption.isNotBlank()) {
                         InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)

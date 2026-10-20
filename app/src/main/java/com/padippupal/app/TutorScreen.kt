@@ -951,6 +951,7 @@ internal fun TutorScreen(
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
     var nativeWordTiming by remember { mutableStateOf(false) }
+    var hostedWordTimings by remember { mutableStateOf<List<Pair<Long, Long>>>(emptyList()) }
     var liveVisualAction by remember { mutableStateOf("") }
     var liveVisualActionType by remember { mutableStateOf("none") }
     var liveVisualTarget by remember { mutableStateOf("") }
@@ -1224,6 +1225,7 @@ internal fun TutorScreen(
         speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
         liveWordIndex = 0
         nativeWordTiming = false
+        hostedWordTimings = emptyList()
         speechStartCallback = onStarted ?: { liveCaption = text }
         speechCompletion = onFinished
         // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
@@ -1239,6 +1241,7 @@ internal fun TutorScreen(
         }
         tutorExecutor.execute {
             val audioFile = File(context.cacheDir, "padippupal-voice-${System.nanoTime()}.wav")
+            val audioWordTimings = mutableListOf<Pair<Long, Long>>()
             val outcome = runCatching {
                 val requestBody = JSONObject()
                     .put("text", text.take(4500))
@@ -1259,6 +1262,15 @@ internal fun TutorScreen(
                     val stream = if (code in 200..299) connection.inputStream else connection.errorStream
                     responseText = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
                     if (code !in 200..299) throw IllegalStateException("Natural voice unavailable")
+                    runCatching {
+                        val timingArray = JSONObject(responseText).optJSONArray("word_timings") ?: JSONArray()
+                        for (i in 0 until timingArray.length()) {
+                            val item = timingArray.optJSONObject(i) ?: continue
+                            val startMs = item.optLong("start_ms", -1L)
+                            val endMs = item.optLong("end_ms", -1L)
+                            if (startMs >= 0L && endMs > startMs) audioWordTimings.add(startMs to endMs)
+                        }
+                    }
                 } finally {
                     connection.disconnect()
                 }
@@ -1269,6 +1281,7 @@ internal fun TutorScreen(
             tutorMainHandler.post {
                 outcome.fold(
                     onSuccess = {
+                        hostedWordTimings = audioWordTimings.toList()
                         runCatching {
                             audioPlayer.value?.release()
                             val player = MediaPlayer()
@@ -1511,19 +1524,24 @@ internal fun TutorScreen(
         var elapsedMs = 0L
         while (speechActive && liveLessonActive && !nativeWordTiming) {
             val player = audioPlayer.value
-            val progress = if (player != null && runCatching { player.duration > 0 }.getOrDefault(false)) {
-                val duration = runCatching { player.duration }.getOrDefault(0).coerceAtLeast(1)
-                val position = runCatching { player.currentPosition }.getOrDefault(0).coerceIn(0, duration)
-                position.toFloat() / duration
+            val duration = if (player != null) runCatching { player.duration }.getOrDefault(0).coerceAtLeast(0) else 0
+            val position = if (player != null) runCatching { player.currentPosition }.getOrDefault(0).coerceAtLeast(0).toLong() else elapsedMs
+            val index = if (player != null && hostedWordTimings.isNotEmpty()) {
+                hostedWordTimings.indexOfLast { it.first <= position }.coerceAtLeast(0).coerceAtMost(tokens.lastIndex)
             } else {
-                (elapsedMs.toFloat() / (tokens.size * 390L).coerceAtLeast(1L)).coerceIn(0f, 1f)
-            }
-            val weightAt = progress * totalWeight
-            var sum = 0f
-            var index = 0
-            while (index < weights.lastIndex && sum + weights[index] < weightAt) {
-                sum += weights[index]
-                index++
+                val progress = if (duration > 0) {
+                    (position.toFloat() / duration.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+                } else {
+                    (elapsedMs.toFloat() / (tokens.size * 390L).coerceAtLeast(1L)).coerceIn(0f, 1f)
+                }
+                val weightAt = progress * totalWeight
+                var sum = 0f
+                var weightedIndex = 0
+                while (weightedIndex < weights.lastIndex && sum + weights[weightedIndex] < weightAt) {
+                    sum += weights[weightedIndex]
+                    weightedIndex++
+                }
+                weightedIndex
             }
             liveWordIndex = index
             delay(45L)

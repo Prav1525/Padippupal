@@ -43,6 +43,22 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
         return FakeResponse()
 
     monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {
+        "matches": [{
+            "text": "Plants use sunlight to make food.",
+            "source": {
+                "title": "Class 6 Science textbook",
+                "board": "CBSE",
+                "class_level": 6,
+                "subject": "Science",
+                "medium": "English",
+                "page_start": 12,
+                "page_end": 12,
+                "url": "https://example.invalid/book.pdf",
+            },
+        }],
+        "warning": None,
+    })
     monkeypatch.setattr(curriculum, "find_visual_lesson", lambda board, grade, subject, query: {
         "title": "Photosynthesis", "steps": [{"label": "Sunlight"}, {"label": "Plant makes food"}]
     } if "photosynthesis" in query.casefold() else None)
@@ -61,7 +77,7 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     })
     assert response.status_code == 200
     assert response.json()["answer"].startswith("Namma")
-    assert response.json()["grounded"] is False
+    assert response.json()["grounded"] is True
     assert response.json()["visual_lesson"]["title"] == "Photosynthesis"
     assert "systemInstruction" in captured["payload"]
     prompt = captured["payload"]["systemInstruction"]["parts"][0]["text"]
@@ -72,6 +88,7 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     assert "SYLLABUS AND LESSON-PLAN BOUNDARY" in prompt
     assert "Do not silently introduce later-grade material" in prompt
     assert "Never invent NCERT chapter titles" in prompt
+    assert "Do not answer from general knowledge, web sources, or memory" in prompt
     assert captured["timeout"] == 45
 
 def test_tutor_speech_requires_server_side_gemini_key(monkeypatch):
@@ -191,3 +208,35 @@ def test_interactive_lesson_match_returns_simulation_blueprint(monkeypatch, tmp_
     assert lesson["scene_type"] == "magnet_test"
     assert lesson["challenge"]["question"]
     assert len(lesson["objects"]) >= 3
+
+
+
+def test_tutor_does_not_answer_without_matching_database_passage(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "must-not-be-called")
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {
+        "matches": [],
+        "warning": "No exact curriculum match found.",
+    })
+
+    def unexpected_urlopen(*args, **kwargs):
+        raise AssertionError("Gemini must not be called without textbook context")
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_urlopen)
+    response = TestClient(curriculum.app).post("/tutor/chat", json={
+        "board": "CBSE",
+        "class_level": 6,
+        "subject": "Science",
+        "medium": "English",
+        "app_language": "English",
+        "chapter": "A Book of Solutions",
+        "topic": "Test topic",
+        "message": "Explain this topic.",
+    })
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["grounded"] is False
+    assert body["sources"] == []
+    assert body["provider"] == "curriculum_database"
+    assert "couldn't find a matching passage" in body["answer"].lower()
+    assert "no external knowledge was used" in body["grounding_warning"].lower()

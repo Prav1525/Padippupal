@@ -18,7 +18,7 @@ PadippuPal should take a student from a school diary entry or selected chapter t
 - English/Tamil UI toggle (prototype; Tanglish support is part of the product plan)
 - GitHub Actions workflow to build and upload a debug APK
 
-The current UI is a prototype. The curriculum connection screen calls the backend health and retrieval APIs when an HTTPS endpoint is configured. A gentle AI tutor chat screen and server-side Groq integration are now implemented on the feature branch; live AI answers require GROQ_API_KEY in the backend environment. No official curriculum files are loaded yet, and diary OCR, full chapter lesson generation, concept mastery, persistent progress, and PDF export are not yet implemented.
+The current UI is a prototype. The curriculum connection screen calls the backend health and retrieval APIs when an HTTPS endpoint is configured. The tutor uses Gemini for text reasoning (`GEMINI_API_KEY`) and Gemini for natural speech, with optional configured speech fallback. Live answers require a valid server-side Gemini key and deployed backend. The app contains interactive lesson blueprints and local same-day tutor-session restoration. However, the source registry currently approves no official curriculum text for ingestion, so textbook-grounded coverage is not yet complete. Verify exact board/class/medium/edition sources before claiming a lesson is officially NCERT-grounded. Diary OCR, full chapter lesson generation, concept mastery, and PDF export remain incomplete.
 
 ## Concept mastery: core learning flow
 
@@ -77,6 +77,15 @@ A successful GitHub Actions run uploads an artifact named **PadippuPal-debug-apk
 8. Parent progress view, curriculum verification and robust testing
 
 
-## Gentle AI tutor implementation
+## Gemini-first AI tutor implementation
 
-The tutor screen supports English, Tanglish and Tamil response preferences, a student-friendly teaching prompt, and short conversation context. Groq remains the tutor's chat/reasoning provider (`POST /tutor/chat`, server-side `GROQ_API_KEY`). Natural spoken replies use Gemini 3.8 Flash-Lite TTS through `POST /tutor/speech` (`GEMINI_API_KEY` stored only in the backend/Render environment), with Android text-to-speech as a fallback. Gemini quota and billing depend on the Google AI account; do not assume unlimited free usage.
+The tutor screen supports English, Tanglish and Tamil response preferences, a student-friendly teaching prompt, and short conversation context. Gemini is the tutor's reasoning provider (`POST /tutor/chat`, server-side `GEMINI_API_KEY`) and the primary natural speech provider (`POST /tutor/speech`). Keep API keys only in the backend/Render environment. The app must not silently switch its reasoning engine to Groq. Gemini quota and billing depend on the Google AI account; do not assume unlimited free usage.
+
+
+## Curriculum trust boundary
+
+Interactive lesson blueprints guide sequence and app visuals; they are not proof that a fact or chapter is present in an official textbook. The tutor prompt now explicitly limits explanations to the selected syllabus chapter and lesson-plan step, and forbids inventing official NCERT details. The official-source registry remains the authority for source provenance and rights status. Do not ingest or redistribute NCERT textbook text without the necessary permission/legal review.
+
+## Release gate: phone end-to-end test
+
+Do not call the work complete based only on a successful build or mocked API tests. Verify the deployed Gemini tutor on the target Android phone, navigate away and back without losing the lesson, ask a follow-up that depends on the previous answer, verify the selected chapter stays in scope, open and manipulate a matching interactive lesson, and confirm speech playback. See `docs/TUTOR_RELEASE_ACCEPTANCE.md`. Gemini Live is deliberately deferred until these core flows are reliable.

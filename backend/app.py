@@ -1106,7 +1106,7 @@ def _load_tutor_session(session_id: str) -> list[dict[str, str]]:
 
 
 def _save_tutor_session(session_id: str, history: list[Any], user_message: str, answer: str) -> None:
-    """Persist only the latest bounded turns; the session id expires naturally by day."""
+    """Persist bounded recent turns and prune inactive sessions older than 30 days."""
     if not session_id:
         return
     turns: list[dict[str, str]] = []
@@ -1121,14 +1121,16 @@ def _save_tutor_session(session_id: str, history: list[Any], user_message: str, 
         {"role": "user", "content": user_message[:1200]},
         {"role": "assistant", "content": answer[:1200]},
     ])
+    now = time.time()
     with db() as conn:
         conn.execute(
             """INSERT INTO tutor_sessions(session_id, history_json, updated_at)
                VALUES (?, ?, ?)
                ON CONFLICT(session_id) DO UPDATE SET
                  history_json=excluded.history_json, updated_at=excluded.updated_at""",
-            (session_id, json.dumps(turns[-12:], ensure_ascii=False), time.time()),
+            (session_id, json.dumps(turns[-12:], ensure_ascii=False), now),
         )
+        conn.execute("DELETE FROM tutor_sessions WHERE updated_at < ?", (now - 30 * 24 * 60 * 60,))
 
 
 def infer_tutor_subject(message: str, selected_subject: str = "General") -> str:
@@ -1149,7 +1151,7 @@ def infer_tutor_subject(message: str, selected_subject: str = "General") -> str:
 
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
-    """Fast, child-friendly tutoring through a server-side Groq API key."""
+    """Child-friendly tutoring through Gemini, grounded in profile-filtered curriculum passages."""
     request_started = time.monotonic()
     # Restore server-side context if the app was re-opened without local turns.
     history_for_prompt: list[Any] = list(payload.history)

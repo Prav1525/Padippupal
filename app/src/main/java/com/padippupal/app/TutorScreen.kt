@@ -288,6 +288,10 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             "measure_length" -> listOf(MoveItem("📍", "Start", .12f, .30f), MoveItem("📍", "End", .72f, .30f))
             "motion_track" -> listOf(MoveItem("🏁", "Start", .08f, .30f), MoveItem("🚗", "Toy", .45f, .30f), MoveItem("🏁", "Finish", .84f, .30f))
             "bar_chart" -> listOf(MoveItem("A", "Group A", .18f, .12f), MoveItem("B", "Group B", .46f, .12f), MoveItem("C", "Group C", .74f, .12f))
+            "number_pattern" -> listOf(
+                MoveItem("1", "1 × 1", .04f, .30f), MoveItem("4", "2 × 2", .25f, .30f),
+                MoveItem("9", "3 × 3", .46f, .30f), MoveItem("16", "4 × 4", .67f, .30f)
+            )
             else -> {
                 val parsed = mutableListOf<MoveItem>()
                 if (raw != null) for (i in 0 until raw.length()) {
@@ -305,7 +309,8 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
         }
     }
     var positions by remember(key) { mutableStateOf(items.map { Offset(it.x, it.y) }) }
-    var feedback by remember(key) { mutableStateOf("Touch an object, drag it, and notice what changes.") }
+    var feedback by remember(key) { mutableStateOf(if (scene == "number_pattern") "Notice the growing gaps: +3, +5, +7." else "Touch an object, drag it, and notice what changes.") }
+    var selectedPatternAnswer by remember(key) { mutableStateOf<Int?>(null) }
     val steps = lesson.optJSONArray("steps")
     val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
     val stepPreferenceKey = "lesson_step_${sessionKey}_${key}"
@@ -386,7 +391,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                             val root=positions[0]
                             positions.drop(1).forEach { p -> drawLine(Color(0xFF24734B),Offset(root.x*size.width,root.y*size.height),Offset(p.x*size.width,p.y*size.height),2.dp.toPx()) }
                         }
-                        "pattern_builder" -> if (positions.size >= 2) {
+                        "pattern_builder", "number_pattern" -> if (positions.size >= 2) {
                             positions.zipWithNext().forEach { (a,b) -> drawLine(Color(0xFF83B695),Offset(a.x*size.width,a.y*size.height),Offset(b.x*size.width,b.y*size.height),2.dp.toPx()) }
                         }
                         "measure_length", "motion_track" -> {
@@ -485,6 +490,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                                         list[index]=next
                                     }
                                     feedback=when(scene) {
+                                        "number_pattern" -> "These are square numbers: 1×1, 2×2, 3×3 and 4×4. The gaps are +3, +5 and +7."
                                         "magnet_test" -> if (magnetic) "Attraction! Iron and steel are pulled toward the magnet; wood is not." else "Bring an iron or steel object close to the magnet."
                                         "fraction_builder" -> "Move equal pieces together. Each piece is one-quarter of the same whole."
                                         "angle_builder", "angle_classifier" -> "The angle is about $angle°. Move Ray B to make it wider or narrower."

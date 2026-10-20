@@ -9,7 +9,8 @@ This is the end-to-end release gate for the Gemini-first tutor. A successful CI 
 - [ ] `POST /tutor/chat` uses Gemini and returns `provider: gemini`.
 - [ ] A missing Gemini key fails clearly; it does not switch reasoning to Groq.
 - [ ] A question with a matching approved curriculum source returns source metadata and `grounded: true`.
-- [ ] A question with no approved source does not claim official NCERT verification.
+- [ ] If no matching passage exists in the stored textbook database, the tutor stops with a clear message; it does not answer from general knowledge or external websites.
+- [ ] When a chapter is selected, retrieval is restricted to the matching stored chapter PDF; a passage from another chapter must never be used.
 - [ ] A selected chapter/topic and lesson blueprint constrain the response to the current learning step.
 - [ ] `POST /tutor/speech` returns playable audio when configured; Android TTS remains the final device fallback.
 
@@ -34,7 +35,7 @@ Test on the user's actual Android phone with the release candidate installed.
 - [ ] Check exact definitions, scope, examples, exercise ordering and diagram labels against that source.
 - [ ] Keep the lesson blueprint separate from evidence that a fact is in the textbook.
 - [ ] Do not ingest or redistribute copyrighted textbook text without appropriate permission/legal review.
-- [ ] If an exact source is not approved/indexed, label the answer as general concept help rather than official textbook-grounded content.
+- [ ] If the selected chapter cannot be matched to stored textbook content, do not provide a fallback explanation from outside the database. Ask the learner to check the selected chapter or try a key term.
 
 ## 4. Gemini Live
 

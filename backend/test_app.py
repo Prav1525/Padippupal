@@ -193,3 +193,36 @@ def test_patterns_in_mathematics_contains_key_number_sequences():
     ).lower()
     for concept in ("triangular", "square", "cube", "virahanka", "powers of 2", "powers of 3", "koch snowflake"):
         assert concept in combined, f"Chapter 1 missing concept: {concept}"
+
+def test_patterns_in_mathematics_covers_shape_and_sequence_topics():
+    client = TestClient(curriculum.app)
+    response = client.get("/interactive-lessons", params={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "chapter": "Patterns in Mathematics",
+    })
+    assert response.status_code == 200
+    lessons = response.json()["lessons"]
+    topics = {lesson["topic"] for lesson in lessons}
+    assert {
+        "What is Mathematics?", "Patterns in Numbers",
+        "Visualising Number Sequences", "Relations among Number Sequences",
+        "Patterns in Shapes", "Relation to Number Sequences", "All 1s",
+    }.issubset(topics)
+    combined = " ".join(
+        [lesson["topic"] + " " + lesson["title"] + " " + lesson["caption"] for lesson in lessons]
+        + [step["text"] for lesson in lessons for step in lesson["steps"]]
+    ).lower()
+    for concept in (
+        "counting numbers", "even numbers", "triangular", "square", "cube",
+        "virahanka", "powers of 2", "powers of 3", "regular polygon",
+        "complete graph", "stacked", "koch snowflake", "192",
+    ):
+        assert concept in combined, f"Chapter 1 missing concept: {concept}"
+    ids = [lesson["id"] for lesson in lessons]
+    assert len(ids) == len(set(ids))
+    for lesson in lessons:
+        assert len(lesson["steps"]) >= 3, lesson["id"]
+        assert lesson["challenge"]["question"].strip(), lesson["id"]
+        assert lesson["challenge"]["answer"] in lesson["challenge"]["options"], lesson["id"]
+        assert lesson["challenge"]["hint"].strip(), lesson["id"]
+

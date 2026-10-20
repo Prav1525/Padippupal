@@ -74,10 +74,10 @@ def tap_bounds(path, bounds, label):
     if not match:
         raise SystemExit("Invalid accessibility bounds for " + label + ": " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
-    # UiAutomator bounds are already in screen coordinates. Scaling them to
-    # wm size incorrectly pushes bottom-navigation taps beneath system bars.
+    # UiAutomator bounds in this emulator are already physical screen pixels.
+    # Do not scale to wm size: that moved the bottom-tab tap into the system bar.
     x, y = round((x1+x2)/2), round((y1+y2)/2)
-    print("Tap", repr(label), "bounds", bounds, "using accessibility center =>", x, y)
+    print("Tap", repr(label), "bounds", bounds, "using raw screen center =>", x, y)
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
 
 def tap_numbered(path, number):

@@ -1127,6 +1127,30 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
         if source_item not in sources:
             sources.append(source_item)
 
+    lesson_blueprint = find_interactive_lesson(
+        payload.board, payload.class_level, effective_subject,
+        payload.chapter, payload.topic, payload.message
+    )
+    blueprint_context = ""
+    if lesson_blueprint:
+        blueprint_steps = lesson_blueprint.get("steps", [])
+        step_lines = [
+            f"{index + 1}. {step.get('title', 'Step')}: {step.get('text', '')}"
+            for index, step in enumerate(blueprint_steps[:8])
+            if isinstance(step, dict) and (step.get("title") or step.get("text"))
+        ]
+        challenge = lesson_blueprint.get("challenge", {})
+        challenge_text = challenge.get("question", "") if isinstance(challenge, dict) else ""
+        blueprint_context = (
+            "\n\nAPPROVED INTERACTIVE LESSON BLUEPRINT (follow this sequence; textbook passages remain the factual source):"
+            f"\nChapter: {lesson_blueprint.get('chapter', payload.chapter)}"
+            f"\nTopic: {lesson_blueprint.get('topic', payload.topic)}"
+            f"\nVisual scene: {lesson_blueprint.get('scene_type', 'explore')}"
+            f"\nVisual caption: {lesson_blueprint.get('caption', '')}"
+            + ("\nLesson steps:\n" + "\n".join(step_lines) if step_lines else "")
+            + (f"\nSuggested check question: {challenge_text}" if challenge_text else "")
+            + "\nTeach only the current small step, then ask one check question. Do not dump every step at once."
+        )
     language = payload.app_language.strip()
     system_prompt = f"""You are PadippuPal, a warm, patient school tutor who teaches a child through a real back-and-forth conversation, not a chatbot that reads a completed answer aloud.
 Learner profile: class {payload.class_level}; board {payload.board}; textbook medium {payload.medium}; subject focus: {effective_subject}; preferred explanation language {language}.
@@ -1178,6 +1202,9 @@ ACCURACY AND SAFETY:
 - Never claim to be human or to know the child's hidden feelings or personal information.
 - If a child describes immediate danger or harm, encourage them to contact a trusted adult or local emergency help.
 """
+    if blueprint_context:
+        system_prompt += "\n\n" + blueprint_context
+
     messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
     if context_blocks:
         messages.append({

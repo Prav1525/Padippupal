@@ -63,6 +63,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
+import java.time.LocalDate
 import java.util.concurrent.Executors
 
 private val TutorGreen = Color(0xFF24734B)
@@ -75,6 +76,21 @@ private val tutorMainHandler = Handler(Looper.getMainLooper())
 
 private data class TutorMessage(val role: String, val content: String, val visualLesson: JSONObject? = null, val interactiveLesson: JSONObject? = null)
 private data class TutorSource(val title: String, val url: String)
+
+private fun cleanTutorDisplayText(raw: String): String {
+    return raw
+        .replace(Regex("\\\\text\\\\{([^{}]*)\\\\}"), "$1")
+        .replace(Regex("\\\\angle\\\\s*"), "∠")
+        .replace(Regex("\\\\times\\\\s*"), " × ")
+        .replace(Regex("\\\\div\\\\s*"), " ÷ ")
+        .replace(Regex("\\\\cdot\\\\s*"), " · ")
+        .replace(Regex("\\\\circ\\\\s*"), "°")
+        .replace(Regex("\\\\frac\\\\{([^{}]+)\\\\}\\\\{([^{}]+)\\\\}"), "$1/$2")
+        .replace(Regex("\\\\(?:left|right)"), "")
+        .replace("$", "")
+        .replace(Regex("\\\\s+"), " ")
+        .trim()
+}
 
 private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
 
@@ -559,22 +575,44 @@ internal fun TutorScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val messages = remember {
-        mutableStateListOf(
-            TutorMessage(
-                "assistant",
-                when (appLanguage) {
-                    "Tanglish" -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! Namma onna konjam konjama kathukkalaam. Enna concept purinjukkanum?"
-                    "தமிழ்" -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", " + studentName) + "! நிதானமாக ஒவ்வொரு படியாகவும் கற்றுக்கொள்ளலாம். இன்று என்ன புரிந்துகொள்ள வேண்டும்?"
-                    else -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! I'm here to help. We'll take it one small step at a time. What would you like to understand today?"
+    val sessionPrefs = remember(context) { context.getSharedPreferences("padippupal_tutor_sessions", 0) }
+    val sessionKey = remember(grade, board, studentName) {
+        "session_${grade}_${board.trim().lowercase().hashCode()}_${studentName.trim().lowercase().hashCode()}"
+    }
+    val todayKey = LocalDate.now().toString()
+    val savedSession = remember(sessionPrefs, sessionKey, todayKey) {
+        runCatching {
+            val raw = sessionPrefs.getString(sessionKey, null)
+            val parsed = if (raw.isNullOrBlank()) JSONObject() else JSONObject(raw)
+            if (parsed.optString("date") == todayKey) parsed else JSONObject()
+        }.getOrDefault(JSONObject())
+    }
+    val messages = remember(sessionPrefs, sessionKey, todayKey, appLanguage, studentName) {
+        val restored = mutableStateListOf<TutorMessage>()
+        val storedMessages = savedSession.optJSONArray("messages")
+        if (storedMessages != null) {
+            for (i in 0 until storedMessages.length()) {
+                val item = storedMessages.optJSONObject(i) ?: continue
+                val role = item.optString("role")
+                val content = item.optString("content")
+                if (role in listOf("user", "assistant") && content.isNotBlank()) {
+                    restored.add(TutorMessage(role, cleanTutorDisplayText(content)))
                 }
-            )
-        )
+            }
+        }
+        if (restored.isEmpty()) {
+            restored.add(TutorMessage("assistant", when (appLanguage) {
+                "Tanglish" -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! Namma onna konjam konjama kathukkalaam. Enna concept purinjukkanum?"
+                "தமிழ்" -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", " + studentName) + "! நிதானமாக ஒவ்வொரு படியாகவும் கற்றுக்கொள்ளலாம். இன்று என்ன புரிந்துகொள்ள வேண்டும்?"
+                else -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! I'm here to help. We'll take it one small step at a time. What would you like to understand today?"
+            }))
+        }
+        restored
     }
     var input by remember { mutableStateOf("") }
-    var subject by remember { mutableStateOf("General") }
-    var chapter by remember { mutableStateOf("") }
-    var topic by remember { mutableStateOf("") }
+    var subject by remember { mutableStateOf(savedSession.optString("subject", "General")) }
+    var chapter by remember { mutableStateOf(savedSession.optString("chapter", "")) }
+    var topic by remember { mutableStateOf(savedSession.optString("topic", "")) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
     var topicMenuExpanded by remember { mutableStateOf(false) }
     var chapterOptions by remember { mutableStateOf<List<Pair<String, List<String>>>>(emptyList()) }
@@ -719,10 +757,30 @@ internal fun TutorScreen(
         }
     }
 
+    var restoringSelection by remember { mutableStateOf(true) }
     LaunchedEffect(subject) {
-        chapter = ""
-        topic = ""
+        if (restoringSelection) {
+            restoringSelection = false
+        } else {
+            chapter = ""
+            topic = ""
+        }
         loadCurriculumOutline(subject)
+    }
+
+    LaunchedEffect(messages.size, messages.lastOrNull()?.content, subject, chapter, topic, selectedLanguage) {
+        val storedMessages = JSONArray()
+        messages.takeLast(80).forEach { message ->
+            storedMessages.put(JSONObject().put("role", message.role).put("content", message.content))
+        }
+        val snapshot = JSONObject()
+            .put("date", todayKey)
+            .put("subject", subject)
+            .put("chapter", chapter)
+            .put("topic", topic)
+            .put("language", selectedLanguage)
+            .put("messages", storedMessages)
+        sessionPrefs.edit().putString(sessionKey, snapshot.toString()).apply()
     }
 
     LaunchedEffect(chapter, topic, selectedLanguage) {
@@ -933,7 +991,7 @@ internal fun TutorScreen(
                         val detail = response.optString("detail", "The tutor is temporarily unavailable.")
                         throw IllegalStateException(detail)
                     }
-                    val answer = response.optString("answer").trim()
+                    val answer = cleanTutorDisplayText(response.optString("answer").trim())
                     if (answer.isBlank()) throw IllegalStateException("The tutor returned an empty answer. Please try again.")
                     val visualLesson = response.optJSONObject("visual_lesson")
                     val interactiveLesson = response.optJSONObject("interactive_lesson")
@@ -991,6 +1049,9 @@ internal fun TutorScreen(
             Column(Modifier.weight(1f)) {
                 Text("Your AI study buddy", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep, maxLines = 1)
                 Text("Class $grade · $board", fontSize = 11.sp, color = TutorGrey)
+                if (savedSession.optJSONArray("messages") != null && messages.size > 1) {
+                    Text("Today's lesson restored", fontSize = 10.sp, color = TutorGreen)
+                }
             }
             Icon(Icons.Default.GraphicEq, contentDescription = "Voice tutor", tint = TutorGreen, modifier = Modifier.size(30.dp))
         }

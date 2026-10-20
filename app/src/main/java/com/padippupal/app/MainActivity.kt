@@ -182,8 +182,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
            }
            Icon(Icons.Default.ArrowOutward,null,tint=Color.White.copy(alpha=.75f),modifier=Modifier.size(19.dp))
          }
-         Text(if(tamil) "புரியும் வரை கற்போம்." else "Let’s make it
-make sense.",fontSize=29.sp,lineHeight=33.sp,fontWeight=FontWeight.Normal,fontFamily=androidx.compose.ui.text.font.FontFamily.Serif,color=Color.White)
+         Text(if(tamil) "புரியும் வரை கற்போம்." else "Let’s make it\nmake sense.",fontSize=29.sp,lineHeight=33.sp,fontWeight=FontWeight.Normal,fontFamily=androidx.compose.ui.text.font.FontFamily.Serif,color=Color.White)
          Text(if(tamil) "கேள், பேசு, உன் வேகத்தில் கற்றுக்கொள்." else "Ask in English, Tamil or Tanglish. Learn at your own pace, with gentle explanations.",fontSize=13.sp,lineHeight=20.sp,color=Color.White.copy(alpha=.82f))
          Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
            Row(Modifier.background(Color(0xFF315447),RoundedCornerShape(50)).padding(horizontal=11.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {

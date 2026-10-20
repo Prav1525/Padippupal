@@ -313,6 +313,7 @@ class SearchRequest(BaseModel):
     subject: str = Field(min_length=1, max_length=100)
     medium: str = Field(min_length=2, max_length=40)
     query: str = Field(min_length=2, max_length=1000)
+    chapter: str | None = Field(default=None, max_length=200)
     academic_year: str | None = None
     edition: str | None = None
     limit: int = Field(default=5, ge=1, le=10)
@@ -812,6 +813,17 @@ def terms(value: str) -> list[str]:
     return [t for t in re.findall(r"[\w-]+", value.casefold()) if len(t) > 1]
 
 
+def chapter_matches_source(chapter: str, source_title: str, source_opening: str) -> bool:
+    """Match a selected chapter against the opening of a stored book, not the web."""
+    ignored = {"the", "and", "of", "in", "a", "an", "to", "through", "for", "with"}
+    wanted = set(terms(chapter)) - ignored
+    if not wanted:
+        return True
+    # The chapter heading is normally printed at the start of each stored chapter PDF.
+    available = set(terms(f"{source_title} {source_opening[:1200]}"))
+    return len(wanted & available) / len(wanted) >= 0.8
+
+
 @app.post("/retrieve")
 def retrieve(payload: SearchRequest) -> dict[str, Any]:
     query_terms = set(terms(payload.query))
@@ -819,8 +831,10 @@ def retrieve(payload: SearchRequest) -> dict[str, Any]:
         return {"matches": [], "warning": "Enter a more specific question."}
     sql = """SELECT c.id AS chunk_id, c.chunk_no, c.page_start, c.page_end, c.text,
                     s.id AS source_id, s.board, s.academic_year, s.class_level, s.subject,
-                    s.medium, s.term, s.edition, s.title, s.source_url
+                    s.medium, s.term, s.edition, s.title, s.source_url,
+                    SUBSTR(COALESCE(sc.content, ''), 1, 1200) AS source_opening
              FROM chunks c JOIN sources s ON s.id=c.source_id
+             LEFT JOIN source_content sc ON sc.source_id=s.id
              WHERE s.status='ready' AND LOWER(s.board)=LOWER(?) AND s.class_level=?
                AND LOWER(s.subject)=LOWER(?) AND LOWER(s.medium)=LOWER(?)"""
     args: list[Any] = [payload.board, payload.class_level, payload.subject, payload.medium]
@@ -834,6 +848,10 @@ def retrieve(payload: SearchRequest) -> dict[str, Any]:
         rows = conn.execute(sql, args).fetchall()
     scored = []
     for row in rows:
+        if payload.chapter and not chapter_matches_source(
+            payload.chapter, str(row["title"]), str(row["source_opening"] or "")
+        ):
+            continue
         chunk_terms = terms(row["text"])
         # Score unique query-term coverage so repeated words do not dominate.
         chunk_term_set = set(chunk_terms)
@@ -1097,6 +1115,7 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
         subject=effective_subject,
         medium=payload.medium,
         query=" ".join(part for part in (payload.chapter, payload.topic, payload.message) if part),
+        chapter=payload.chapter or None,
         limit=2,
     ))
     matches = retrieved.get("matches", [])

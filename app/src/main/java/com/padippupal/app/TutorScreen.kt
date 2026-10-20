@@ -16,6 +16,9 @@ import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.animation.core.RepeatMode
@@ -100,16 +103,26 @@ private data class MoveItem(val icon: String, val name: String, val x: Float, va
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun WordByWordCaption(text: String, active: Boolean) {
+private fun WordByWordCaption(
+    text: String,
+    active: Boolean,
+    onWordClick: (String) -> Unit
+) {
     val words = remember(text) { text.trim().split(Regex("\\s+")).filter { it.isNotBlank() } }
     var visibleWordCount by remember(text) { mutableIntStateOf(if (active) 1 else words.size) }
     LaunchedEffect(text, active) {
-        if (!active) visibleWordCount = words.size else {
+        if (!active) {
+            visibleWordCount = words.size
+        } else {
             visibleWordCount = 1
-            // The speech API returns segment audio, not word timestamps: this is an estimated karaoke highlight.
-            for (count in 2..words.size) {
-                kotlinx.coroutines.delay(260L)
-                visibleWordCount = count
+            // Word-level timestamps are not returned by the hosted audio API.
+            // Progress is paced to a gentle speaking rate and punctuation pauses.
+            for (index in 1 until words.size) {
+                val previous = words[index - 1]
+                val pause = if (previous.endsWith(".") || previous.endsWith("?") || previous.endsWith("!")) 260L
+                    else if (previous.endsWith(",") || previous.endsWith(";") || previous.endsWith(":")) 130L else 0L
+                kotlinx.coroutines.delay(390L + pause)
+                visibleWordCount = index + 1
             }
         }
     }
@@ -120,10 +133,23 @@ private fun WordByWordCaption(text: String, active: Boolean) {
         words.forEachIndexed { index, word ->
             val current = active && index == (visibleWordCount - 1).coerceAtLeast(0)
             val spoken = !active || index < visibleWordCount
-            Text(word, Modifier.background(if (current) Color(0xFFD8E8B7) else Color.Transparent, RoundedCornerShape(4.dp))
-                .padding(horizontal = 1.dp, vertical = 1.dp).alpha(if (spoken) 1f else 0.48f),
-                color = TutorDeep, fontSize = 15.sp, lineHeight = 23.sp,
-                fontWeight = if (current) FontWeight.Bold else FontWeight.Medium)
+            val bringIntoView = remember(text, index) { BringIntoViewRequester() }
+            LaunchedEffect(current) {
+                if (current && active) runCatching { bringIntoView.bringIntoView() }
+            }
+            Text(
+                word,
+                Modifier
+                    .bringIntoViewRequester(bringIntoView)
+                    .clickable { onWordClick(word.trimEnd(',', '.', ';', ':', '?', '!')) }
+                    .background(if (current) Color(0xFFD8E8B7) else Color.Transparent, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 2.dp, vertical = 2.dp)
+                    .alpha(if (spoken) 1f else 0.62f),
+                color = TutorDeep,
+                fontSize = 15.sp,
+                lineHeight = 23.sp,
+                fontWeight = if (current) FontWeight.Bold else FontWeight.Medium
+            )
         }
     }
 }
@@ -1269,7 +1295,8 @@ internal fun TutorScreen(
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
         speak(words, onStarted = {
-            liveCaption = caption
+            // Display the exact text being spoken so word highlighting matches the audio.
+            liveCaption = words
             liveVisualAction = visualCue
             liveVisualActionType = action?.optString("type", "none") ?: "none"
             liveVisualTarget = action?.optString("target", "").orEmpty()
@@ -1431,9 +1458,11 @@ internal fun TutorScreen(
 
     var showLessonSettings by remember { mutableStateOf(false) }
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
-    LaunchedEffect(messages.size, loading) {
-        val lastIndex = messages.size + if (loading) 1 else 0
-        if (lastIndex > 0) chatListState.animateScrollToItem(lastIndex - 1)
+    LaunchedEffect(messages.size, loading, liveLessonActive) {
+        // The live-teaching panel occupies list index 0 while it is visible.
+        val livePanelOffset = if (liveCaption.isNotBlank() || liveLessonActive) 1 else 0
+        val itemCount = livePanelOffset + messages.size + if (loading) 1 else 0
+        if (itemCount > 0) chatListState.animateScrollToItem(itemCount - 1)
     }
 
     // Keep the currently spoken teaching passage in view. This is a separate
@@ -1600,7 +1629,22 @@ internal fun TutorScreen(
                                 Spacer(Modifier.weight(1f))
                                 if (liveLessonActive) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                             }
-                            if (liveCaption.isNotBlank()) WordByWordCaption(liveCaption, speechActive)
+                            if (liveCaption.isNotBlank()) {
+                                Text("Tap any word to hear its pronunciation again.", color = TutorGrey, fontSize = 10.sp)
+                                WordByWordCaption(liveCaption, speechActive) { word ->
+                                    if (word.isNotBlank()) {
+                                        audioPlayer.value?.let { player ->
+                                            runCatching { player.stop() }; runCatching { player.release() }
+                                            audioPlayer.value = null
+                                        }
+                                        ttsState.value?.stop()
+                                        speechActive = false
+                                        speechCompletion = null
+                                        speechStartCallback = null
+                                        speak(word, onStarted = { status = "Pronunciation practice · $word" })
+                                    }
+                                }
+                            }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                             if (liveCaption.isNotBlank() && liveLessonActive) InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
                             if (awaitingUnderstanding && liveLessonActive) {

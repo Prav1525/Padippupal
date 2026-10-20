@@ -888,8 +888,8 @@ internal fun TutorScreen(
         }
     }
 
-    fun sendMessage() {
-        val question = input.trim()
+    fun sendMessage(startingMessage: String? = null) {
+        val question = (startingMessage ?: input).trim()
         if (question.isEmpty() || loading) return
         val previous = messages.takeLast(8).map { it.role to it.content }
         messages.add(TutorMessage("user", question))
@@ -966,6 +966,16 @@ internal fun TutorScreen(
                     }
                 )
             }
+        }
+    }
+
+    // Starting a selected concept should teach first, not ask the child what to learn.
+    // Only auto-start before the conversation has moved beyond the initial greeting.
+    LaunchedEffect(chapter, topic) {
+        if (topic.isNotBlank() && messages.size == 1 && !loading) {
+            sendMessage(
+                "START LESSON. Give me a simple overview of the chapter \"$chapter\" and topic \"$topic\". List the important concepts, explain the first one with an everyday example, and only then ask one easy check question. Use $selectedLanguage."
+            )
         }
     }
 

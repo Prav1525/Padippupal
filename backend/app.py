@@ -707,6 +707,36 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
     }
     subject_key = subject.strip().casefold()
     ordered_titles = chapter_orders.get(subject_key, [])
+    # Explicit concept maps keep the app's chapter/topic picker useful even when
+    # the interactive-lesson database has only a first-pass set of lesson blueprints.
+    curated_concepts = {
+        "science": {
+            "The Wonderful World of Science": ["Asking scientific questions", "Observations and inferences", "Planning a fair test", "Recording evidence", "Patterns in nature"],
+            "Diversity in the Living World": ["Classifying living things", "Plant groups and features", "Animal groups and features", "Habitats and adaptations", "Biodiversity and its importance"],
+            "Mindful Eating: A Path to a Healthy Body": ["Nutrients and their functions", "Balanced meals", "Dietary fibre and water", "Reading food labels", "Healthy eating habits"],
+            "Exploring Magnets": ["Magnetic and non-magnetic materials", "North and south poles", "Attraction and repulsion", "Finding directions with a magnet", "Everyday uses and care of magnets"],
+            "Measurement of Length and Motion": ["Standard units of length", "Correct use of a ruler", "Converting metres and centimetres", "Types of motion", "Describing and comparing motion"],
+            "Materials Around Us": ["Grouping materials by properties", "Hardness and flexibility", "Transparent, translucent and opaque", "Soluble and insoluble materials", "Floating and sinking"],
+            "Temperature and its Measurement": ["Meaning of temperature", "Degrees Celsius", "Reading a thermometer", "Clinical and laboratory thermometers", "Temperature-measurement safety"],
+            "A Journey through States of Water": ["Solid, liquid and gas", "Melting and freezing", "Evaporation", "Condensation", "Water changing state in everyday life"],
+            "Methods of Separation in Everyday Life": ["Handpicking and threshing", "Winnowing and sieving", "Sedimentation and decantation", "Filtration", "Evaporation and choosing a separation method"],
+            "Living Creatures: Exploring their Characteristics": ["Features of living things", "Growth and reproduction", "Response to stimuli", "Movement and respiration", "Life cycles and habitats"],
+            "Nature's Treasures": ["Natural resources", "Air, water and soil", "Renewable and limited resources", "Conservation of water", "Reduce, reuse and recycle"],
+            "Beyond Earth": ["The Sun, Earth and Moon", "Stars and constellations", "Rotation and day and night", "The Moon's phases", "Observing the sky safely"],
+        },
+        "mathematics": {
+            "Patterns in Mathematics": ["Number patterns", "Growing patterns", "Finding a rule", "Visual patterns", "Explaining a pattern"],
+            "Lines and Angles": ["Points, lines and line segments", "Rays", "Types of angles", "Comparing angles", "Perpendicular and parallel lines"],
+            "Number Play": ["Place value", "Number puzzles", "Divisibility patterns", "Factors and multiples", "Reasoning with numbers"],
+            "Data Handling and Presentation": ["Collecting data", "Tally marks and frequency", "Tables", "Pictographs", "Reading and comparing data"],
+            "Prime Time": ["Factors and multiples", "Prime and composite numbers", "Prime factorisation", "Divisibility rules", "Common factors and multiples"],
+            "Perimeter and Area": ["Perimeter of a shape", "Area as covering", "Square units", "Perimeter of rectangles", "Comparing area and perimeter"],
+            "Fractions": ["Fractions as equal parts", "Numerator and denominator", "Equivalent fractions", "Comparing simple fractions", "Fractions on a number line"],
+            "Playing with Constructions": ["Using a ruler", "Using a compass", "Copying a line segment", "Constructing circles", "Careful geometric construction"],
+            "Symmetry": ["Line symmetry", "Lines of symmetry", "Reflecting shapes", "Symmetry in patterns", "Testing symmetry"],
+            "The Other Side of Zero": ["Positive and negative numbers", "Zero as a reference point", "Integers on a number line", "Comparing integers", "Real-life uses of negative numbers"],
+        },
+    }
     with db() as conn:
         rows = conn.execute(
             """SELECT chapter, topic, title FROM interactive_lessons
@@ -756,6 +786,16 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
                         break
                 chapter_names.append(str(source["title"]))
                 grouped[str(source["title"])] = topics
+    if board.strip().casefold() == "cbse" and class_level == 6:
+        for chapter_title, concepts in curated_concepts.get(subject_key, {}).items():
+            topic_list = grouped.setdefault(chapter_title, [])
+            for concept in concepts:
+                if concept not in topic_list:
+                    topic_list.append(concept)
+    # Include all curated textbook chapters, even if a lesson blueprint is not seeded yet.
+    if board.strip().casefold() == "cbse" and class_level == 6:
+        for chapter_title in ordered_titles:
+            grouped.setdefault(chapter_title, [])
     chapters = [
         {"chapter_number": index + 1, "title": name,
          "topics": [{"topic_number": topic_index + 1, "title": topic}
@@ -1088,7 +1128,15 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     language = payload.app_language.strip()
     system_prompt = f"""You are PadippuPal, a warm, patient school tutor who teaches a child through a real back-and-forth conversation, not a chatbot that reads a completed answer aloud.
 Learner profile: class {payload.class_level}; board {payload.board}; textbook medium {payload.medium}; subject focus: {effective_subject}; preferred explanation language {language}.
-Selected lesson path: chapter={payload.chapter or "not selected"}; subtopic={payload.topic or "not selected"}. Keep the explanation tightly focused on the selected chapter and subtopic. If the learner has not selected a subtopic, ask what part they want to learn.
+Selected lesson path: chapter={payload.chapter or "not selected"}; subtopic={payload.topic or "not selected"}. Keep the explanation tightly focused on the selected chapter and subtopic. When a chapter or topic is selected, teach it directly; do not make the child choose again.
+
+FIRST RESPONSE OF A LESSON — this takes priority over the short-reply rules below:
+- If the latest user message asks to start a lesson or introduces a newly selected topic, do NOT begin with a quiz or a question.
+- First give a child-friendly overview of the chapter/topic in 1–2 short sentences.
+- Then list 3–5 important concepts as brief, readable bullets. Choose concepts relevant to this chapter and class level; do not invent textbook-specific claims.
+- Explain the first key concept in simple language and give one familiar example.
+- Only after teaching, finish with ONE easy check question. Never ask a question before giving the overview and explanation.
+- Keep this first lesson response around 90–140 words. If no matching approved textbook passage is available, teach from reliable general knowledge and do not pretend it is textbook-verified.
 
 YOUR TEACHING LOOP — follow this every time it fits:
 1. Understand the student's whole message and the recent conversation before answering. Identify what they are asking, what they likely understand already, and the exact next learning step. Think through the complete concept first; do not expose private reasoning or dump every fact you know.
@@ -1157,7 +1205,7 @@ ACCURACY AND SAFETY:
         gemini_body = json.dumps({
             "systemInstruction": {"parts": [{"text": system_text}]},
             "contents": gemini_contents,
-            "generationConfig": {"maxOutputTokens": 180, "temperature": 0.4},
+            "generationConfig": {"maxOutputTokens": 300, "temperature": 0.4},
         }).encode("utf-8")
         gemini_request = urllib.request.Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent",

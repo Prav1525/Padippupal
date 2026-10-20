@@ -346,3 +346,70 @@ def test_lesson_plan_does_not_generate_when_retrieval_is_empty(monkeypatch):
     assert response.json()["grounded"] is False
     assert response.json()["segments"] == []
     assert "No matching textbook passage" in response.json()["warning"]
+
+
+def test_chapter_lesson_draft_schema_and_review_lifecycle(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "chapter-lessons.sqlite3")
+    monkeypatch.setenv("PADIPPUPAL_ADMIN_TOKEN", "test-admin")
+    curriculum.init_db()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,
+                source_refs_json,model,review_feedback,created_at,updated_at)
+               VALUES (?,?,?,?,?,?,'','draft',?,?,?,'',?,?)""",
+            ("draft-1","CBSE",6,"Mathematics","English","Patterns in Mathematics",
+             json.dumps({"overview":"Patterns repeat","teaching_sequence":[{"title":"Spot the rule"}]}),
+             json.dumps([{"chunk_id":"c1","page_start":1}]),"test-model",1.0,1.0))
+    client = TestClient(curriculum.app)
+    headers = {"x-admin-token":"test-admin"}
+    listing = client.get("/admin/chapter-lessons", headers=headers)
+    assert listing.status_code == 200
+    assert listing.json()["count"] == 1
+    detail = client.get("/admin/chapter-lessons/draft-1", headers=headers)
+    assert detail.status_code == 200
+    assert detail.json()["lesson"]["overview"] == "Patterns repeat"
+    reviewed = client.post("/admin/chapter-lessons/draft-1/review", headers=headers,
+                           json={"decision":"approve","feedback":"Verified against source pages"})
+    assert reviewed.status_code == 200
+    assert reviewed.json()["status"] == "approved"
+    approved = client.get("/chapter-lessons/approved", params={
+        "board":"CBSE","class_level":6,"subject":"Mathematics","medium":"English",
+        "chapter":"Patterns in Mathematics"})
+    assert approved.status_code == 200
+    assert approved.json()["lesson_id"] == "draft-1"
+    assert approved.json()["lesson"]["overview"] == "Patterns repeat"
+
+
+def test_chapter_lesson_admin_routes_fail_closed_without_token(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "chapter-lessons-auth.sqlite3")
+    monkeypatch.setenv("PADIPPUPAL_ADMIN_TOKEN", "")
+    monkeypatch.delenv("PADIPPUPAL_ALLOW_UNAUTHENTICATED_ADMIN", raising=False)
+    curriculum.init_db()
+    response = TestClient(curriculum.app).get("/admin/chapter-lessons")
+    assert response.status_code == 503
+
+
+def test_chapter_source_chunks_only_selects_exact_chapter_and_profile(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "chapter-source.sqlite3")
+    curriculum.init_db()
+    now = 1.0
+    with curriculum.db() as conn:
+        conn.execute("""INSERT INTO sources
+            (id,board,academic_year,class_level,subject,medium,term,edition,title,source_url,
+             license_note,sha256,status,page_count,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            ("s1","CBSE","2026-27",6,"Mathematics","English","","1",
+             "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp101.pdf)","",
+             "licensed","hash1","ready",5,now))
+        conn.execute("""INSERT INTO chunks (id,source_id,chunk_no,chapter,page_start,page_end,text)
+            VALUES (?,?,?,?,?,?,?)""",("c1","s1",0,"Patterns in Mathematics",1,2,"Number patterns repeat."))
+        conn.execute("""INSERT INTO chunks (id,source_id,chunk_no,chapter,page_start,page_end,text)
+            VALUES (?,?,?,?,?,?,?)""",("c2","s1",1,"Lines and Angles",3,4,"Angles meet."))
+    payload = curriculum.ChapterLessonGenerateRequest(board="CBSE",class_level=6,
+        subject="Mathematics",medium="English",chapter="Patterns in Mathematics")
+    rows = curriculum._chapter_source_chunks(payload)
+    assert [row["chunk_id"] for row in rows] == ["c1"]

@@ -1519,6 +1519,8 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         return fallback
 
     logger.warning("All cloud TTS providers unavailable; app should use Android TTS")
+    if not api_key and not os.getenv("SARVAM_API_KEY", "").strip():
+        raise HTTPException(status_code=503, detail="Natural voice is not configured yet.")
     raise HTTPException(
         status_code=503,
         detail="Cloud voice is temporarily unavailable. Please use the device voice or try again.",

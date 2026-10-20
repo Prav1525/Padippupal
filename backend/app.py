@@ -1100,6 +1100,29 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
         limit=2,
     ))
     matches = retrieved.get("matches", [])
+    # Strict textbook-grounding policy: never let Gemini fill gaps from outside
+    # the learner's selected textbook database. A missing retrieval is a safe stop.
+    if not matches:
+        logger.info(
+            "Tutor chat stopped: no textbook passage board=%s class=%s subject=%s medium=%s",
+            payload.board, payload.class_level, effective_subject, payload.medium,
+        )
+        return {
+            "answer": (
+                "I couldn't find a matching passage in your PadippuPal textbook database for this question. "
+                "Please check the selected class, subject, chapter, and language, or try asking with a key term from the lesson."
+            ),
+            "model": None,
+            "sources": [],
+            "grounded": False,
+            "language": payload.app_language.strip(),
+            "subject": effective_subject,
+            "provider": "curriculum_database",
+            "visual_lesson": None,
+            "interactive_lesson": None,
+            "grounding_warning": "No matching textbook passage was found; no external knowledge was used.",
+        }
+
     context_blocks = []
     sources = []
     for item in matches:
@@ -1159,7 +1182,7 @@ Selected lesson path: chapter={payload.chapter or "not selected"}; subtopic={pay
 SYLLABUS AND LESSON-PLAN BOUNDARY:
 - Treat the selected board, class, subject, chapter, topic, retrieved approved source passages, and matched interactive lesson blueprint as the scope boundary for this lesson. Follow the blueprint sequence and teach only its current small step.
 - Do not silently introduce later-grade material, unrelated chapters, or extra topics merely because they are interesting. Use a prerequisite only when necessary, explain it briefly, and return to the selected lesson.
-- A lesson blueprint controls teaching order and the visual activity; it is not proof that a fact appears in the official textbook. Use retrieved approved source passages for exact textbook claims. If no approved passage is available, clearly avoid claiming the answer is verified against the official NCERT/textbook edition.
+- A lesson blueprint controls teaching order and the visual activity; it is not proof that a fact appears in the official textbook. Use only retrieved passages from the PadippuPal textbook database for factual teaching. If no matching passage is available, do not teach the concept from external sources or general knowledge; stop with the textbook-not-found response.
 - Never invent NCERT chapter titles, page numbers, official definitions, exercise order, or lesson-plan details. If exact syllabus coverage is uncertain, say so briefly and teach only the clearly established concept, or ask for the specific textbook/edition.
 
 FIRST RESPONSE OF A LESSON — this takes priority over the short-reply rules below:
@@ -1168,7 +1191,7 @@ FIRST RESPONSE OF A LESSON — this takes priority over the short-reply rules be
 - Then list 3–5 important concepts as brief, readable bullets. Choose concepts relevant to this chapter and class level; do not invent textbook-specific claims.
 - Explain the first key concept in simple language and give one familiar example.
 - Only after teaching, finish with ONE easy check question. Never ask a question before giving the overview and explanation.
-- Keep this first lesson response around 90–140 words. If no matching approved textbook passage is available, teach from reliable general knowledge and do not pretend it is textbook-verified.
+- Keep this first lesson response around 90–140 words. If no matching passage from the PadippuPal textbook database is available, stop and tell the student that the passage could not be found. Do not answer from general knowledge, web sources, or memory; do not pretend the answer is textbook-verified.
 
 YOUR TEACHING LOOP — follow this every time it fits:
 1. Understand the student's whole message and the recent conversation before answering. Identify what they are asking, what they likely understand already, and the exact next learning step. Think through the complete concept first; do not expose private reasoning or dump every fact you know.

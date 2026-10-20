@@ -1641,7 +1641,13 @@ internal fun TutorScreen(
                                         speechActive = false
                                         speechCompletion = null
                                         speechStartCallback = null
-                                        speak(word, onStarted = { status = "Pronunciation practice · $word" })
+                                        val fullCaption = liveCaption
+                                        speak(word, onStarted = {
+                                            liveCaption = word
+                                            status = "Pronunciation practice · $word"
+                                        }) {
+                                            liveCaption = fullCaption
+                                        }
                                     }
                                 }
                             }

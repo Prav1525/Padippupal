@@ -813,15 +813,61 @@ def terms(value: str) -> list[str]:
     return [t for t in re.findall(r"[\w-]+", value.casefold()) if len(t) > 1]
 
 
-def chapter_matches_source(chapter: str, source_title: str, source_opening: str) -> bool:
-    """Match a selected chapter against the opening of a stored book, not the web."""
-    ignored = {"the", "and", "of", "in", "a", "an", "to", "through", "for", "with"}
-    wanted = set(terms(chapter)) - ignored
-    if not wanted:
+# Explicit catalogue for the chapter PDFs already stored in PadippuPal.
+# Keys are the original source filenames embedded in sources.title. Titles are
+# based on each stored book's own opening text, not external textbook retrieval.
+CHAPTERS_BY_FILE: dict[str, tuple[int, str]] = {
+    "fegp101": (1, "Patterns in Mathematics"),
+    "fegp102": (2, "Lines and Angles"),
+    "fegp103": (3, "Number Play"),
+    "fegp104": (4, "Data Handling and Presentation"),
+    "fegp105": (5, "Prime Time"),
+    "fegp106": (6, "Perimeter and Area"),
+    "fegp107": (7, "Fractions"),
+    "fegp108": (8, "Playing with Constructions"),
+    "fegp109": (9, "Symmetry"),
+    "fegp110": (10, "The Other Side of Zero"),
+    "fecu101": (1, "The Wonderful World of Science"),
+    "fecu102": (2, "Diversity in the Living World"),
+    "fecu103": (3, "Mindful Eating: A Path to a Healthy Body"),
+    "fecu104": (4, "Exploring Magnets"),
+    "fecu105": (5, "Measurement of Length and Motion"),
+    "fecu106": (6, "Materials Around Us"),
+    "fecu107": (7, "Temperature and its Measurement"),
+    "fecu108": (8, "A Journey through States of Water"),
+    "fecu109": (9, "Methods of Separation in Everyday Life"),
+    "fecu110": (10, "Living Creatures: Exploring their Characteristics"),
+    "fecu111": (11, "Nature's Treasures"),
+    "fecu112": (12, "Beyond Earth"),
+}
+
+
+def chapter_matches_source(chapter: str, source_title: str, source_opening: str = "") -> bool:
+    """Match only against the explicit chapter mapping for a stored source PDF.
+
+    Unknown sources and preliminary pages fail closed when a chapter is selected;
+    we never guess a chapter from partial word overlap in the source opening.
+    """
+    file_match = re.search(r"\\b(fegp\\d{3}|fecu\\d{3})\\.pdf\\b", source_title, re.IGNORECASE)
+    if not file_match:
+        return False
+    key = file_match.group(1).casefold()
+    mapped = CHAPTERS_BY_FILE.get(key)
+    if not mapped:
+        return False
+    chapter_number, chapter_title = mapped
+    requested = re.sub(r"[^a-z0-9]+", " ", chapter.casefold()).strip()
+    number_match = re.search(r"\\bchapter\\s*(\\d{1,2})\\b", requested)
+    if number_match and int(number_match.group(1)) == chapter_number:
         return True
-    # The chapter heading is normally printed at the start of each stored chapter PDF.
-    available = set(terms(f"{source_title} {source_opening[:1200]}"))
-    return len(wanted & available) / len(wanted) >= 0.8
+    # Also accept a plain leading chapter number, e.g. "7 Fractions".
+    number_match = re.match(r"^(\\d{1,2})\\s+", requested)
+    if number_match and int(number_match.group(1)) == chapter_number:
+        return True
+    def normalized(value: str) -> str:
+        value = re.sub(r"^\\s*chapter\\s*\\d*\\s*[:.\\-]?\\s*", "", value.casefold())
+        return re.sub(r"[^a-z0-9]+", " ", value).strip()
+    return normalized(chapter) == normalized(chapter_title)
 
 
 @app.post("/retrieve")

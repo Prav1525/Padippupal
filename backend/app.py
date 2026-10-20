@@ -1324,35 +1324,70 @@ def _sarvam_tutor_speech(speech_text: str, language: str) -> dict[str, Any] | No
     language_code = "ta-IN" if language in {"Tanglish", "தமிழ்"} else "en-IN"
     speaker = "ishita" if language_code == "en-IN" else "ishita"
     model = os.getenv("PADIPPUPAL_SARVAM_TTS_MODEL", "bulbul:v3").strip()
-    request_body = json.dumps({
-        "text": speech_text[:2500],
-        "model": model,
-        "language_code": language_code,
-        "speaker": speaker,
-        "pace": 0.9,
-        "temperature": 0.65,
-        "output_audio_codec": "wav",
-    }).encode("utf-8")
-    request = urllib.request.Request(
-        "https://api.sarvam.ai/text-to-speech",
-        data=request_body,
-        headers={
-            "api-subscription-key": api_key,
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-        method="POST",
-    )
+    # Split longer answers on sentence/word boundaries to respect Sarvam's
+    # 2,500-character REST limit without dropping the end of the explanation.
+    chunks: list[str] = []
+    remaining = speech_text.strip()
+    while remaining:
+        if len(remaining) <= 2400:
+            chunks.append(remaining)
+            break
+        split_at = remaining.rfind(" ", 0, 2400)
+        sentence_at = max(remaining.rfind(". ", 0, 2400), remaining.rfind("? ", 0, 2400), remaining.rfind("! ", 0, 2400))
+        if sentence_at > 1200:
+            split_at = sentence_at + 1
+        if split_at < 1:
+            split_at = 2400
+        chunks.append(remaining[:split_at].strip())
+        remaining = remaining[split_at:].strip()
+
     try:
-        with urllib.request.urlopen(request, timeout=35) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        audios = result.get("audios")
-        if not isinstance(audios, list) or not audios or not isinstance(audios[0], str):
-            raise ValueError("Sarvam returned no audio data")
-        audio_bytes = base64.b64decode(audios[0], validate=True)
-        if len(audio_bytes) < 44:
-            raise ValueError("Sarvam returned an empty or invalid WAV")
-        logger.info("Tutor speech completed provider=sarvam model=%s chars=%d", model, len(speech_text))
+        wav_frames: list[bytes] = []
+        wav_params = None
+        for chunk in chunks:
+            request_body = json.dumps({
+                "text": chunk,
+                "model": model,
+                "language_code": language_code,
+                "speaker": speaker,
+                "pace": 0.9,
+                "temperature": 0.65,
+                "output_audio_codec": "wav",
+            }).encode("utf-8")
+            request = urllib.request.Request(
+                "https://api.sarvam.ai/text-to-speech",
+                data=request_body,
+                headers={
+                    "api-subscription-key": api_key,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=35) as response:
+                result = json.loads(response.read().decode("utf-8"))
+            audios = result.get("audios")
+            if not isinstance(audios, list) or not audios or not isinstance(audios[0], str):
+                raise ValueError("Sarvam returned no audio data")
+            audio_bytes = base64.b64decode(audios[0], validate=True)
+            with wave.open(io.BytesIO(audio_bytes), "rb") as wav_reader:
+                params = wav_reader.getparams()
+                if wav_params is None:
+                    wav_params = params
+                elif (params.nchannels, params.sampwidth, params.framerate, params.comptype) != (
+                    wav_params.nchannels, wav_params.sampwidth, wav_params.framerate, wav_params.comptype
+                ):
+                    raise ValueError("Sarvam returned incompatible WAV chunks")
+                wav_frames.append(wav_reader.readframes(wav_reader.getnframes()))
+        if not wav_frames or wav_params is None:
+            raise ValueError("Sarvam returned an empty audio stream")
+        merged = io.BytesIO()
+        with wave.open(merged, "wb") as wav_writer:
+            wav_writer.setparams(wav_params)
+            for frames in wav_frames:
+                wav_writer.writeframes(frames)
+        audio_bytes = merged.getvalue()
+        logger.info("Tutor speech completed provider=sarvam model=%s chars=%d chunks=%d", model, len(speech_text), len(chunks))
         return {
             "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
             "mime_type": "audio/wav",
@@ -1361,7 +1396,7 @@ def _sarvam_tutor_speech(speech_text: str, language: str) -> dict[str, Any] | No
             "model": model,
         }
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError,
-            KeyError, IndexError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            KeyError, IndexError, ValueError, TypeError, json.JSONDecodeError, wave.Error) as exc:
         status = getattr(exc, "code", None)
         logger.warning("Sarvam TTS fallback failed status=%s error_type=%s", status, type(exc).__name__)
         return None

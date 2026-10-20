@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 import base64
+import io
+from pypdf import PdfReader
 import app as curriculum
 
 
@@ -35,8 +37,11 @@ def test_exam_master_catalog_and_two_printable_pdfs():
     assert student_pdf.startswith(b"%PDF-")
     assert parent_pdf.startswith(b"%PDF-")
     assert student_pdf != parent_pdf
-    assert b"PARENT ANSWER KEY" not in student_pdf
-    assert b"PARENT ANSWER KEY" in parent_pdf
+    student_text = "\\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(student_pdf)).pages)
+    parent_text = "\\n".join(page.extract_text() or "" for page in PdfReader(io.BytesIO(parent_pdf)).pages)
+    assert "PARENT ANSWER KEY" not in student_text
+    assert "PARENT ANSWER KEY" in parent_text
+    assert "mark-wise rubric" in parent_text
 
 
 def test_exam_master_rejects_unsupported_profile_and_chapter():

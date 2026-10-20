@@ -280,3 +280,18 @@ def test_chapter_matching_uses_the_stored_book_opening_not_other_chapters():
         "Fractions",
         "Unmapped textbook PDF",
     )
+    assert curriculum.chapter_matches_chunk(
+        "Fractions",
+        "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp107.pdf)",
+        "Fractions",
+    )
+    assert not curriculum.chapter_matches_chunk(
+        "Fractions",
+        "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp107.pdf)",
+        None,
+    )
+    assert not curriculum.chapter_matches_chunk(
+        "Fractions",
+        "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp102.pdf)",
+        "Fractions",
+    )

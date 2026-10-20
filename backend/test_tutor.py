@@ -69,6 +69,9 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     assert "Tanglish" in prompt
     assert "chapter=Life Processes" in prompt
     assert "subtopic=Photosynthesis" in prompt
+    assert "SYLLABUS AND LESSON-PLAN BOUNDARY" in prompt
+    assert "Do not silently introduce later-grade material" in prompt
+    assert "Never invent NCERT chapter titles" in prompt
     assert captured["timeout"] == 45
 
 def test_tutor_speech_requires_server_side_gemini_key(monkeypatch):

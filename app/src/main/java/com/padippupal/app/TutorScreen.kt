@@ -157,7 +157,7 @@ private fun InteractiveLessonLab(
     }
     val activeVisualIndexes = when {
         actionType == "none" || actionType.isBlank() -> emptySet()
-        actionType == "compare" || actionType == "draw-line" -> items.indices.takeLast(2).toSet()
+        actionType == "compare" || actionType == "draw-line" -> items.indices.toList().takeLast(2).toSet()
         actionType == "show-result" -> setOf(items.lastIndex)
         matchedTarget >= 0 -> setOf(matchedTarget)
         captionTarget >= 0 -> setOf(captionTarget)

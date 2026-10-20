@@ -87,7 +87,7 @@ timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-cbse.xml
 python3 .github/scripts/ui_smoke.py assert-home home-cbse.xml | tee -a "$REPORT"
 
 log "Opening tutor using accessibility bounds"
-python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
+python3 .github/scripts/ui_smoke.py tap home-cbse.xml "Begin lesson"
 sleep 8
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/tutor.png
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {

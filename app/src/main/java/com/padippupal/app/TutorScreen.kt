@@ -87,9 +87,8 @@ private fun cleanTutorDisplayText(raw: String): String {
         .replace("\\circ", "°")
         .replace("\\left", "")
         .replace("\\right", "")
-        .replace(Regex("\\\\frac\\\\{([^{}]+)\\\\}\\\\{([^{}]+)\\\\}"), "$1/$2")
         .replace("$", "")
-        .replace(Regex("\\\\s+"), " ")
+        .replace(Regex("\\s+"), " ")
         .trim()
 }
 

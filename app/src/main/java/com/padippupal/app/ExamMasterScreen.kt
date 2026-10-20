@@ -127,7 +127,7 @@ internal fun ExamMasterScreen(
                     val student = android.util.Base64.decode(json.getString("student_pdf_base64"), android.util.Base64.DEFAULT)
                     val parent = android.util.Base64.decode(json.getString("parent_key_pdf_base64"), android.util.Base64.DEFAULT)
                     val mix = json.optJSONObject("source_mix")
-                    Triple(student, parent, "${json.optInt("question_count")} questions · ${json.optInt("maximum_marks")} marks · ${mix?.optInt("exercise_based_practice_variants") ?: 0} exercise-style variants / ${mix?.optInt("inside_chapter") ?: 0} inside-chapter questions")
+                    Triple(student, parent, "${json.optInt("question_count")} questions · ${json.optInt("maximum_marks")} marks · ${mix?.optInt("syllabus_aligned_practice_variants") ?: 0} syllabus practice variants / ${mix?.optInt("chapter_context_practice_variants") ?: 0} chapter-context variants")
                 } finally { connection.disconnect() }
             }
             examHandler.post {

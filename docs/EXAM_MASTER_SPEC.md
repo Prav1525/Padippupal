@@ -2,7 +2,7 @@
 
 ## Locked settings
 - Curriculum: CBSE/NCERT Class 6 Science, using the correct textbook edition and selected chapters.
-- Examination style: Tamil Nadu school term-exam style inferred from verified available school papers. Papers vary by school and year; do not claim a single universal pattern.
+- Examination style: provisional, general school-exam style. A verified collection of Tamil Nadu school term-exam papers has not yet been assembled or cited, so do not claim the format is validated against TN school papers or that one pattern is universal.
 - Difficulty: easy to moderate. No Olympiad, competitive-exam, or unnecessarily complex questions.
 - Source ratio: target 80% exercise/book-back-based questions and 20% simple questions derived from inside-chapter content.
 - Deliverables: two separate A4 printer-friendly PDFs: (1) Student Question Paper, questions only; (2) Parent Answer Key with identical question numbers, concise model answers, mark-wise rubrics, acceptable alternatives, and score sheet.

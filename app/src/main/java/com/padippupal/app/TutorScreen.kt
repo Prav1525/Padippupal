@@ -189,7 +189,7 @@ private fun InteractiveLessonLab(chapter: String, topic: String, explanation: St
 
 
 @Composable
-private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
+private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
@@ -239,7 +239,14 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
     }
     var positions by remember(key) { mutableStateOf(items.map { Offset(it.x, it.y) }) }
     var feedback by remember(key) { mutableStateOf("Touch an object, drag it, and notice what changes.") }
-    var activeStep by remember(key) { mutableIntStateOf(0) }
+    val stepPreferenceKey = "lesson_step_${sessionKey}_${key}"
+    val stepDateKey = "${stepPreferenceKey}_date"
+    val savedStep = if (sessionPrefs.getString(stepDateKey, "") == todayKey) sessionPrefs.getInt(stepPreferenceKey, 0) else 0
+    var activeStep by remember(key) { mutableIntStateOf(savedStep.coerceIn(0, stepCount - 1)) }
+    val setActiveStep: (Int) -> Unit = { nextStep ->
+        activeStep = nextStep.coerceIn(0, stepCount - 1)
+        sessionPrefs.edit().putInt(stepPreferenceKey, activeStep).putString(stepDateKey, todayKey).apply()
+    }
     var heatLevel by remember(key) { mutableFloatStateOf(.28f) }
     var chartValue by remember(key) { mutableFloatStateOf(.62f) }
     val steps = lesson.optJSONArray("steps")
@@ -267,7 +274,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                     Text("DATABASE INTERACTIVE LESSON", color=TutorGreen, fontSize=10.sp, fontWeight=FontWeight.Bold)
                     Text(title, color=TutorDeep, fontSize=14.sp, fontWeight=FontWeight.SemiBold)
                 }
-                TextButton(onClick={ positions=items.map { Offset(it.x,it.y) }; feedback="Reset. Try another arrangement."; activeStep=0 }) { Text("Reset", color=TutorGreen) }
+                TextButton(onClick={ positions=items.map { Offset(it.x,it.y) }; feedback="Reset. Try another arrangement."; setActiveStep(0) }) { Text("Reset", color=TutorGreen) }
             }
             BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White, RoundedCornerShape(14.dp))) {
                 val w=maxWidth; val h=maxHeight
@@ -454,8 +461,8 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                 val current=steps.optJSONObject(activeStep.coerceIn(0,steps.length()-1))
                 Text("Step ${activeStep+1}/$stepCount · ${current?.optString("title","Try")}: ${current?.optString("text","Explore the objects.")}", color=TutorGreen, fontSize=11.sp)
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp), verticalAlignment=Alignment.CenterVertically) {
-                    OutlinedButton(onClick={activeStep=(activeStep-1).coerceAtLeast(0)}, enabled=activeStep>0) { Text("Previous") }
-                    Button(onClick={activeStep=(activeStep+1).coerceAtMost(stepCount-1)}, enabled=activeStep<stepCount-1, colors=ButtonDefaults.buttonColors(containerColor=TutorGreen)) { Text("Next step") }
+                    OutlinedButton(onClick={setActiveStep(activeStep-1)}, enabled=activeStep>0) { Text("Previous") }
+                    Button(onClick={setActiveStep(activeStep+1)}, enabled=activeStep<stepCount-1, colors=ButtonDefaults.buttonColors(containerColor=TutorGreen)) { Text("Next step") }
                 }
             }
             val challenge=lesson.optJSONObject("challenge")
@@ -1280,9 +1287,10 @@ internal fun TutorScreen(
                                 lineHeight = 23.sp
                             )
                             if (message.role == "assistant") {
-                                if (message.interactiveLesson != null) {
-                                    DatabaseInteractiveLessonLab(message.interactiveLesson)
-                                } else if (message.visualLesson != null) {
+                                val latestAssistant = messages.lastOrNull { it.role == "assistant" }
+                                if (message.content == latestAssistant?.content && message.interactiveLesson != null) {
+                                    DatabaseInteractiveLessonLab(message.interactiveLesson, sessionPrefs, sessionKey, todayKey)
+                                } else if (message.content == latestAssistant?.content && message.visualLesson != null) {
                                     DatabaseLessonVisual(message.visualLesson)
                                 }
                             }

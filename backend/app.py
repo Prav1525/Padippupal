@@ -1960,13 +1960,15 @@ def _sarvam_tutor_speech(speech_text: str, language: str) -> dict[str, Any] | No
             for frames in wav_frames:
                 wav_writer.writeframes(frames)
         audio_bytes = merged.getvalue()
-        logger.info("Tutor speech completed provider=sarvam model=%s chars=%d chunks=%d", model, len(speech_text), len(chunks))
+        word_timings = _align_tutor_audio_words(audio_bytes, language)
+        logger.info("Tutor speech completed provider=sarvam model=%s chars=%d chunks=%d aligned_words=%d", model, len(speech_text), len(chunks), len(word_timings))
         return {
             "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
             "mime_type": "audio/wav",
             "voice": speaker,
             "provider": "sarvam",
             "model": model,
+            "word_timings": word_timings,
         }
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError,
             KeyError, IndexError, ValueError, TypeError, json.JSONDecodeError, wave.Error) as exc:
@@ -1988,6 +1990,53 @@ def voice_health() -> dict[str, Any]:
         "gemini_configured": gemini_configured,
         "sarvam_configured": sarvam_configured,
     }
+
+
+def _align_tutor_audio_words(audio_bytes: bytes, language: str) -> list[dict[str, Any]]:
+    """Optionally obtain word-level timestamps from Groq Whisper."""
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key or not audio_bytes:
+        return []
+    boundary = "----PadippuPalAudioAlign" + uuid.uuid4().hex
+    fields = [
+        ("model", os.getenv("PADIPPUPAL_ALIGNMENT_MODEL", "whisper-large-v3-turbo")),
+        ("response_format", "verbose_json"),
+        ("timestamp_granularities[]", "word"),
+        ("language", "ta" if language == "தமிழ்" else "en"),
+    ]
+    parts = []
+    for name, value in fields:
+        parts.append(("--" + boundary + "\r\n" +
+            "Content-Disposition: form-data; name=\"" + name + "\"\r\n\r\n" +
+            value + "\r\n").encode("utf-8"))
+    parts.append(("--" + boundary + "\r\n" +
+        "Content-Disposition: form-data; name=\"file\"; filename=\"tutor.wav\"\r\n" +
+        "Content-Type: audio/wav\r\n\r\n").encode("utf-8"))
+    parts.append(audio_bytes)
+    parts.append(("\r\n--" + boundary + "--\r\n").encode("utf-8"))
+    request = urllib.request.Request(
+        "https://api.groq.com/openai/v1/audio/transcriptions",
+        data=b"".join(parts),
+        headers={"Authorization": "Bearer " + api_key,
+                 "Content-Type": "multipart/form-data; boundary=" + boundary,
+                 "Accept": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=18) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        words = result.get("words", [])
+        timings = []
+        for item in words if isinstance(words, list) else []:
+            if not isinstance(item, dict):
+                continue
+            start, end = item.get("start"), item.get("end")
+            if isinstance(start, (int, float)) and isinstance(end, (int, float)):
+                timings.append({"word": str(item.get("word", "")).strip(),
+                    "start_ms": max(0, int(float(start) * 1000)),
+                    "end_ms": max(0, int(float(end) * 1000))})
+        return timings
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        logger.warning("Tutor word alignment unavailable error_type=%s", type(exc).__name__)
+        return []
 
 
 @app.post("/tutor/speech")
@@ -2066,13 +2115,16 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
                 wav_file.setsampwidth(2)
                 wav_file.setframerate(sample_rate)
                 wav_file.writeframes(raw_audio)
-            logger.info("Tutor speech completed provider=gemini chars=%d elapsed_ms=%d", len(speech_text), int((time.monotonic() - request_started) * 1000))
+            audio_bytes = wav_buffer.getvalue()
+            word_timings = _align_tutor_audio_words(audio_bytes, language)
+            logger.info("Tutor speech completed provider=gemini chars=%d aligned_words=%d elapsed_ms=%d", len(speech_text), len(word_timings), int((time.monotonic() - request_started) * 1000))
             return {
-                "audio_base64": base64.b64encode(wav_buffer.getvalue()).decode("ascii"),
+                "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
                 "mime_type": "audio/wav",
                 "voice": "Aoede",
                 "provider": "gemini",
                 "model": model,
+                "word_timings": word_timings,
             }
         except urllib.error.HTTPError as exc:
             gemini_error = f"http_{exc.code}"

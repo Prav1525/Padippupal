@@ -829,7 +829,7 @@ private fun LessonVisual(explanation: String, subject: String) {
 
 @Composable
 private fun SpeakingCaption(text: String, active: Boolean, segmentKey: Int) {
-    val words = remember(text) { text.trim().split(Regex("\\\\s+")).filter { it.isNotBlank() } }
+    val words = remember(text) { text.trim().split(Regex("\\s+")).filter { it.isNotBlank() } }
     var currentWord by remember(text, segmentKey) { mutableIntStateOf(-1) }
     LaunchedEffect(text, active, segmentKey) {
         currentWord = if (active) 0 else -1
@@ -916,6 +916,8 @@ internal fun TutorScreen(
     var liveVisualTarget by remember { mutableStateOf("") }
     var liveSegmentIndex by remember { mutableIntStateOf(0) }
     var liveLessonActive by remember { mutableStateOf(false) }
+    var awaitingUnderstanding by remember { mutableStateOf(false) }
+    var currentCheckpoint by remember { mutableStateOf("") }
     var voiceReady by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf(savedSession.optString("language", appLanguage)) }
     var listening by remember { mutableStateOf(false) }
@@ -1160,7 +1162,7 @@ internal fun TutorScreen(
             return
         }
         engine.language = locale
-        engine.setSpeechRate(0.88f)
+        engine.setSpeechRate(0.76f)
         engine.setPitch(1.02f)
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
     }
@@ -1258,6 +1260,8 @@ internal fun TutorScreen(
         if (!liveLessonActive) return
         if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
         val segment = liveSegments[index]
+        awaitingUnderstanding = false
+        currentCheckpoint = segment.optString("checkpoint").trim()
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
@@ -1272,7 +1276,13 @@ internal fun TutorScreen(
             liveSegmentIndex = index
             status = "Live lesson · segment ${index + 1} of ${liveSegments.size}"
         }) {
-            if (liveLessonActive) playLiveSegment(index + 1)
+            if (!liveLessonActive) return@speak
+            if (currentCheckpoint.isNotBlank()) {
+                awaitingUnderstanding = true
+                status = "Pause for understanding: continue when ready, or ask for a simpler explanation."
+            } else {
+                tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(index + 1) }, 650L)
+            }
         }
     }
 
@@ -1320,7 +1330,7 @@ internal fun TutorScreen(
     }
 
     fun stopLiveLesson() {
-        liveLessonActive = false; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
+        liveLessonActive = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
@@ -1581,7 +1591,28 @@ internal fun TutorScreen(
                     if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                     if (liveCaption.isNotBlank() && liveLessonActive) {
                         InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
-                    } else if (loading) {
+                    }
+                    if (awaitingUnderstanding && liveLessonActive) {
+                        Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = {
+                                awaitingUnderstanding = false
+                                status = "Great! Let’s take the next small step."
+                                tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 900L)
+                            }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand") }
+                            OutlinedButton(onClick = {
+                                awaitingUnderstanding = false
+                                val segment = liveSegments.getOrNull(liveSegmentIndex)
+                                if (segment != null) {
+                                    val original = segment.optString("spoken_text")
+                                    speak("That is okay. Let me explain it more simply. " + original, onStarted = { liveCaption = "Let me explain it more simply. " + original }) {
+                                        tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 1000L)
+                                    }
+                                }
+                            }, modifier = Modifier.weight(1f)) { Text("Explain again") }
+                        }
+                    }
+                    if (loading) {
                         LinearProgressIndicator(Modifier.fillMaxWidth(), color = TutorGreen)
                     }
                 }

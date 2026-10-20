@@ -8,10 +8,24 @@
       "name": "NCERT Online Textbooks",
       "authority": "National Council of Educational Research and Training (NCERT), Government of India",
       "source_type": "textbooks",
-      "boards": ["CBSE-related / NCERT-aligned"],
-      "classes": [6, 7, 8, 9, 10],
-      "subjects": ["Multiple subjects; select exact book on source site"],
-      "mediums": ["English", "Hindi", "Urdu; availability varies by title"],
+      "boards": [
+        "CBSE-related / NCERT-aligned"
+      ],
+      "classes": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "subjects": [
+        "Multiple subjects; select exact book on source site"
+      ],
+      "mediums": [
+        "English",
+        "Hindi",
+        "Urdu; availability varies by title"
+      ],
       "academic_year": "Check each book's current edition",
       "official_url": "https://ncert.nic.in/textbook.php/?ln=en",
       "official_domain": "ncert.nic.in",
@@ -27,10 +41,22 @@
       "name": "CBSE Academic Curriculum 2026-27",
       "authority": "Central Board of Secondary Education (CBSE), Academic Unit",
       "source_type": "syllabus_and_curriculum",
-      "boards": ["CBSE"],
-      "classes": [6, 7, 8, 9, 10],
-      "subjects": ["See official curriculum page; coverage varies by class and subject"],
-      "mediums": ["Subject/language dependent"],
+      "boards": [
+        "CBSE"
+      ],
+      "classes": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "subjects": [
+        "See official curriculum page; coverage varies by class and subject"
+      ],
+      "mediums": [
+        "Subject/language dependent"
+      ],
       "academic_year": "2026-27",
       "official_url": "https://cbseacademic.nic.in/curriculum_2027.html",
       "official_domain": "cbseacademic.nic.in",
@@ -46,10 +72,23 @@
       "name": "Tamil Nadu Textbook and Educational Services Corporation",
       "authority": "Government of Tamil Nadu",
       "source_type": "textbook_publisher_catalogue",
-      "boards": ["Tamil Nadu State Board / Samacheer Kalvi"],
-      "classes": [6, 7, 8, 9, 10],
-      "subjects": ["Multiple subjects; exact downloadable titles not yet verified"],
-      "mediums": ["Tamil", "English; availability varies by title"],
+      "boards": [
+        "Tamil Nadu State Board / Samacheer Kalvi"
+      ],
+      "classes": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "subjects": [
+        "Multiple subjects; exact downloadable titles not yet verified"
+      ],
+      "mediums": [
+        "Tamil",
+        "English; availability varies by title"
+      ],
       "academic_year": "Must be checked per title and term",
       "official_url": "https://www.textbookcorp.in/",
       "official_domain": "textbookcorp.in",
@@ -59,6 +98,33 @@
       "ingestion_approved": false,
       "status": "publisher_verified_exact_files_and_rights_pending",
       "evidence": "Official website identifies the corporation as Government of Tamil Nadu and lists textbook sales; reviewed 2026-10-19."
+    },
+    {
+      "id": "ncert-grade6-ganita-prakash-2026-27",
+      "name": "NCERT Grade 6 Mathematics — Ganita Prakash (Reprint 2026-27)",
+      "authority": "National Council of Educational Research and Training (NCERT), Government of India",
+      "source_type": "textbook",
+      "boards": [
+        "CBSE-related / NCERT-aligned"
+      ],
+      "classes": [
+        6
+      ],
+      "subjects": [
+        "Mathematics"
+      ],
+      "mediums": [
+        "English"
+      ],
+      "academic_year": "2026-27",
+      "official_url": "https://ncert.nic.in/textbook/pdf/fegp1ps.pdf",
+      "official_domain": "ncert.nic.in",
+      "authority_verified": true,
+      "access_route_verified": true,
+      "rights_review": "RESTRICTED: NCERT textbook copyright notice prohibits reproduction, storage in retrieval systems or transmission without prior permission. Keep a link to the official NCERT copy; do not ingest or host full text unless written permission/legal review authorizes it.",
+      "ingestion_approved": false,
+      "status": "exact_official_edition_verified_reuse_not_approved",
+      "evidence": "Official NCERT PDF identifies Grade 6 Ganita Prakash, Reprint 2026-27; its contents identify Chapter 2 as Lines and Angles. Verified 2026-10-20."
     }
   ]
 }

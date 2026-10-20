@@ -45,3 +45,7 @@ The official PDFs confirm the bank's 12 chapter names and order:
 ## Current verdict
 
 **Improved and textbook-aligned; not yet fully page-by-page verified.** The 60-question count, complete answer fields, chapter coverage and PDF-generation checks are automated. Those checks do not alone prove every scientific answer or school-paper pattern.
+
+## Full question ledger
+
+The complete 60-question inventory and answer-key review is maintained in [EXAM_MASTER_QUESTION_LEDGER.md](./EXAM_MASTER_QUESTION_LEDGER.md). Its chapter page ranges are chapter-level locators, not exact page/exercise citations for each question. Do not describe the bank as fully textbook-verified until those item-level citations and any flagged teacher reviews are completed.

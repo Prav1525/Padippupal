@@ -48,12 +48,12 @@ jobs:
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 34
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -wipe-data -gpu swiftshader_indirect
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           disable-animations: true
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 240
           disable-spellchecker: true
           script: bash .github/scripts/android-ui-smoke.sh
 

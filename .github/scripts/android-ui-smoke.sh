@@ -49,6 +49,17 @@ timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
 }
 "${ADB[@]}" pull /data/local/tmp/home.xml home.xml
 
+# Android may show its first-run immersive-mode education overlay above the app.
+# Dismiss it before asserting the actual PadippuPal home screen.
+if grep -Fqi 'Viewing full screen' home.xml && grep -Fqi 'GOT IT' home.xml; then
+  log "INFO: dismissing Android full-screen education overlay"
+  python3 .github/scripts/ui_smoke.py tap home.xml "GOT IT" || "${ADB[@]}" shell input tap 540 960
+  sleep 3
+  timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || true
+  "${ADB[@]}" pull /data/local/tmp/home.xml home.xml || true
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/home-after-system-overlay.png
+fi
+
 # Retry transient Android System UI ANRs before classifying them as an app UI failure.
 for attempt in 1 2 3; do
   if grep -Eqi "System UI isn.t responding|Close app|Wait" home.xml; then

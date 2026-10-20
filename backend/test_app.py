@@ -188,7 +188,7 @@ def test_patterns_in_mathematics_contains_key_number_sequences():
     })
     lessons = response.json()["lessons"]
     combined = " ".join(
-        [lesson["topic"] + " " + lesson["title"] + " " + lesson["caption"]]
+        [lesson["topic"] + " " + lesson["title"] + " " + lesson["caption"] for lesson in lessons]
         + [step["text"] for lesson in lessons for step in lesson["steps"]]
     ).lower()
     for concept in ("triangular", "square", "cube", "virahanka", "powers of 2", "powers of 3", "koch snowflake"):

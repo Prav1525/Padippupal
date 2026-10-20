@@ -251,6 +251,16 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS planner_profile_created
           ON planner_tasks(profile_id, created_at);
+        CREATE TABLE IF NOT EXISTS chapter_lessons (
+            id TEXT PRIMARY KEY, board TEXT NOT NULL, class_level INTEGER NOT NULL,
+            subject TEXT NOT NULL, medium TEXT NOT NULL, chapter TEXT NOT NULL,
+            topic TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'draft',
+            lesson_json TEXT NOT NULL, source_refs_json TEXT NOT NULL,
+            model TEXT NOT NULL DEFAULT '', review_feedback TEXT NOT NULL DEFAULT '',
+            created_at REAL NOT NULL, updated_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS chapter_lessons_lookup
+          ON chapter_lessons(board, class_level, subject, medium, chapter, status);
         """)
         # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
         # by an administrator after the first deployment.
@@ -1201,6 +1211,144 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
     if not segments:
         raise HTTPException(status_code=502, detail="The lesson planner returned no teachable segments.")
     return {"segments": segments}
+
+
+class ChapterLessonGenerateRequest(BaseModel):
+    board: str = Field(min_length=2, max_length=80)
+    class_level: int = Field(ge=1, le=12)
+    subject: str = Field(min_length=1, max_length=100)
+    medium: str = Field(min_length=2, max_length=40)
+    chapter: str = Field(min_length=2, max_length=200)
+    topic: str = Field(default="", max_length=200)
+
+
+def _chapter_source_chunks(payload: ChapterLessonGenerateRequest) -> list[dict[str, Any]]:
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT c.id AS chunk_id, c.chunk_no, c.chapter AS chunk_chapter,
+                      c.page_start, c.page_end, c.text, s.id AS source_id,
+                      s.title, s.academic_year, s.edition
+               FROM chunks c JOIN sources s ON s.id=c.source_id
+               WHERE s.status='ready' AND LOWER(s.board)=LOWER(?)
+                 AND s.class_level=? AND LOWER(s.subject)=LOWER(?)
+                 AND LOWER(s.medium)=LOWER(?)
+               ORDER BY s.academic_year DESC, c.chunk_no""",
+            (payload.board, payload.class_level, payload.subject, payload.medium)).fetchall()
+    rows = [dict(row) for row in rows if chapter_matches_chunk(payload.chapter, str(row["title"]), row["chunk_chapter"])]
+    if not rows:
+        return []
+    source_id = str(rows[0]["source_id"])
+    return [row for row in rows if str(row["source_id"]) == source_id]
+
+
+@app.post("/admin/chapter-lessons/generate", dependencies=[Depends(require_admin)])
+def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, Any]:
+    chunks = _chapter_source_chunks(payload)
+    if not chunks:
+        raise HTTPException(status_code=404, detail="No exact, ready textbook chapter was found in the selected curriculum profile.")
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Gemini lesson synthesis is not configured on the backend.")
+    if len(chunks) > 80:
+        raise HTTPException(status_code=413, detail="Chapter is too large for one synthesis pass; split into verified sections first.")
+    refs, context = [], []
+    for chunk in chunks:
+        ref = {"chunk_id": str(chunk["chunk_id"]), "source_id": str(chunk["source_id"]),
+               "title": str(chunk["title"]), "page_start": chunk["page_start"],
+               "page_end": chunk["page_end"], "chunk_no": chunk["chunk_no"]}
+        refs.append(ref)
+        context.append(json.dumps(ref, ensure_ascii=False) + "\n" + str(chunk["text"])[:1800])
+    allowed = {ref["chunk_id"] for ref in refs}
+    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+    prompt = ("You are PadippuPal's curriculum synthesizer. Use ONLY the supplied textbook chunks; never fill gaps with general knowledge. "
+        "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
+        "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, source_chunk_ids, visual). "
+        "visual has type (number_pattern, number_line, geometry, compare, process, table, diagram, none), objects, actions, narration_sync. "
+        "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. No code; draft only.")
+    body = json.dumps({"systemInstruction":{"parts":[{"text":prompt}]},
+        "contents":[{"role":"user","parts":[{"text":"Profile: "+payload.board+", class "+str(payload.class_level)+", subject "+payload.subject+", medium "+payload.medium+", chapter "+payload.chapter+", topic "+(payload.topic or "whole chapter")+"\nALL STORED CHAPTER CHUNKS:\n"+"\n\n---\n\n".join(context)}]}],
+        "generationConfig":{"responseMimeType":"application/json","temperature":0.15,"maxOutputTokens":7000}}).encode("utf-8")
+    req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",
+        data=body, headers={"x-goog-api-key":api_key,"Content-Type":"application/json","Accept":"application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=90) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        raw = " ".join(part.get("text","") for part in result["candidates"][0]["content"]["parts"] if isinstance(part,dict))
+        lesson = json.loads(raw.strip())
+        if not isinstance(lesson,dict) or not isinstance(lesson.get("teaching_sequence"),list) or not lesson["teaching_sequence"]:
+            raise ValueError("missing teaching sequence")
+        for step in lesson["teaching_sequence"]:
+            ids = {str(x) for x in step.get("source_chunk_ids",[])}
+            if not ids or not ids.issubset(allowed):
+                raise ValueError("unverified step citation")
+            if (step.get("visual") or {}).get("type","none") not in {"number_pattern","number_line","geometry","compare","process","table","diagram","none"}:
+                raise ValueError("invalid visual recipe")
+        for concept in lesson.get("concept_map",[]):
+            ids = {str(x) for x in concept.get("source_chunk_ids",[])}
+            if not ids or not ids.issubset(allowed):
+                raise ValueError("unverified concept citation")
+        lesson_id, now = str(uuid.uuid4()), time.time()
+        with db() as conn:
+            conn.execute("""INSERT INTO chapter_lessons
+                (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,source_refs_json,model,review_feedback,created_at,updated_at)
+                VALUES (?,?,?,?,?,?,?,'draft',?,?,?,'',?,?)""",
+                (lesson_id,payload.board,payload.class_level,payload.subject,payload.medium,payload.chapter,payload.topic,
+                 json.dumps(lesson,ensure_ascii=False),json.dumps(refs,ensure_ascii=False),model,now,now))
+        return {"lesson_id":lesson_id,"status":"draft","source_chunk_count":len(chunks),"source_refs":refs,"lesson":lesson,"review_required":True}
+    except urllib.error.HTTPError as exc:
+        logger.warning("Chapter synthesis rejected: status=%s model=%s",exc.code,model)
+        raise HTTPException(status_code=503 if exc.code==429 else 502,detail="Chapter synthesis failed; no draft was published.") from exc
+    except (urllib.error.URLError,TimeoutError) as exc:
+        raise HTTPException(status_code=502,detail="Chapter synthesis connection failed; no draft was published.") from exc
+    except (KeyError,IndexError,TypeError,ValueError,json.JSONDecodeError) as exc:
+        logger.warning("Chapter synthesis validation failed: %s",type(exc).__name__)
+        raise HTTPException(status_code=502,detail="Synthesis returned invalid or unverified lesson data; no draft was published.") from exc
+
+
+@app.get("/admin/chapter-lessons", dependencies=[Depends(require_admin)])
+def list_chapter_lessons(status: str = "draft", limit: int = 50) -> dict[str, Any]:
+    if status not in {"draft","review","approved","rejected"} or not 1 <= limit <= 200:
+        raise HTTPException(status_code=422,detail="Invalid status or limit.")
+    with db() as conn:
+        rows=conn.execute("SELECT id,board,class_level,subject,medium,chapter,topic,status,model,created_at,updated_at FROM chapter_lessons WHERE status=? ORDER BY updated_at DESC LIMIT ?",(status,limit)).fetchall()
+    return {"count":len(rows),"lessons":[dict(row) for row in rows]}
+
+
+@app.get("/admin/chapter-lessons/{lesson_id}", dependencies=[Depends(require_admin)])
+def get_chapter_lesson(lesson_id: str) -> dict[str, Any]:
+    with db() as conn:
+        row=conn.execute("SELECT * FROM chapter_lessons WHERE id=?",(lesson_id,)).fetchone()
+    if not row: raise HTTPException(status_code=404,detail="Chapter lesson not found.")
+    item=dict(row); item["lesson"]=json.loads(item.pop("lesson_json")); item["source_refs"]=json.loads(item.pop("source_refs_json"))
+    return item
+
+
+class ChapterLessonReviewRequest(BaseModel):
+    decision: str = Field(pattern="^(approve|reject|request_changes)$")
+    feedback: str = Field(default="",max_length=2000)
+
+
+@app.post("/admin/chapter-lessons/{lesson_id}/review", dependencies=[Depends(require_admin)])
+def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -> dict[str, Any]:
+    status={"approve":"approved","reject":"rejected","request_changes":"review"}[payload.decision]
+    with db() as conn:
+        row=conn.execute("SELECT id FROM chapter_lessons WHERE id=?",(lesson_id,)).fetchone()
+        if not row: raise HTTPException(status_code=404,detail="Chapter lesson not found.")
+        conn.execute("UPDATE chapter_lessons SET status=?,review_feedback=?,updated_at=? WHERE id=?",(status,payload.feedback,time.time(),lesson_id))
+    return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback}
+
+
+@app.get("/chapter-lessons/approved")
+def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medium: str, chapter: str) -> dict[str, Any]:
+    with db() as conn:
+        rows=conn.execute("SELECT * FROM chapter_lessons WHERE status='approved' AND LOWER(board)=LOWER(?) AND class_level=? AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?) ORDER BY updated_at DESC",(board,class_level,subject,medium)).fetchall()
+    for row in rows:
+        if normalize(str(row["chapter"])).casefold()!=normalize(chapter).casefold(): continue
+        item=dict(row); lesson=json.loads(item.pop("lesson_json")); refs=json.loads(item.pop("source_refs_json"))
+        return {"lesson_id":item["id"],"status":"approved","lesson":lesson,"source_refs":refs,"metadata":{k:item[k] for k in ("board","class_level","subject","medium","chapter","topic","updated_at")}}
+    return {"lesson_id":None,"status":"not_found","lesson":None,"source_refs":[]}
+
+
 
 @app.post("/tutor/lesson-plan")
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:

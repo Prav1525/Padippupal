@@ -48,6 +48,29 @@ timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
   timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml
 }
 "${ADB[@]}" pull /data/local/tmp/home.xml home.xml
+
+# Retry transient Android System UI ANRs before classifying them as an app UI failure.
+for attempt in 1 2 3; do
+  if grep -Eqi "System UI isn.t responding|Close app|Wait" home.xml; then
+    log "WARNING: Android System UI is unresponsive (attempt $attempt/3)"
+    "${ADB[@]}" exec-out screencap -p > "ui-screenshots/home-anr-attempt-$attempt.png" || true
+    if [ "$attempt" -lt 3 ]; then
+      "${ADB[@]}" shell input keyevent 4 || true
+      sleep 10
+      "${ADB[@]}" shell am force-stop com.padippupal.app || true
+      "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity || true
+      sleep 12
+      timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || true
+      "${ADB[@]}" pull /data/local/tmp/home.xml home.xml || true
+    fi
+  else
+    break
+  fi
+done
+if grep -Eqi "System UI isn.t responding|Close app|Wait" home.xml; then
+  log "FAIL: Android System UI remained unresponsive after 3 attempts"
+  exit 1
+fi
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 
 log "Opening tutor using accessibility bounds"

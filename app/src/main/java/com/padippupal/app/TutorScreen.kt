@@ -1311,6 +1311,7 @@ internal fun TutorScreen(
                     Text("TEACHER IS SAYING", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Text(liveCaption, color = TutorDeep, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold)
                     if (liveVisualAction.isNotBlank()) Text("Visual cue · $liveVisualAction", color = TutorGrey, fontSize = 11.sp)
+                    InteractiveLessonLab(chapter, topic, liveCaption)
                 }
             }
         }

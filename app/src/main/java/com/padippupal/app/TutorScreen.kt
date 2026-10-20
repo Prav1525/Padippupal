@@ -95,7 +95,14 @@ private fun cleanTutorDisplayText(raw: String): String {
 private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
 
 @Composable
-private fun InteractiveLessonLab(chapter: String, topic: String, explanation: String) {
+private fun InteractiveLessonLab(
+    chapter: String,
+    topic: String,
+    explanation: String,
+    visualActionType: String = "none",
+    visualTarget: String = "",
+    segmentIndex: Int = 0
+) {
     val key = "$chapter $topic $explanation".lowercase()
     val title: String
     val hint: String
@@ -138,6 +145,25 @@ private fun InteractiveLessonLab(chapter: String, topic: String, explanation: St
             items = listOf(MoveItem("🔵","Explore",.10f,.20f),MoveItem("🟢","Observe",.40f,.46f),MoveItem("🟠","Try it",.72f,.18f))
         }
     }
+    val actionType = visualActionType.lowercase()
+    val targetKey = visualTarget.lowercase().replace("_", " ").replace("-", " ").trim()
+    val matchedTarget = items.indexOfFirst { item ->
+        val itemKey = item.name.lowercase()
+        targetKey.isNotBlank() && (targetKey == itemKey || targetKey.contains(itemKey) || itemKey.contains(targetKey))
+    }
+    val captionTarget = items.indexOfFirst { item ->
+        val itemKey = item.name.lowercase()
+        itemKey.length > 1 && explanation.lowercase().contains(itemKey)
+    }
+    val activeVisualIndexes = when {
+        actionType == "none" || actionType.isBlank() -> emptySet()
+        actionType == "compare" || actionType == "draw-line" -> items.indices.takeLast(2).toSet()
+        actionType == "show-result" -> setOf(items.lastIndex)
+        matchedTarget >= 0 -> setOf(matchedTarget)
+        captionTarget >= 0 -> setOf(captionTarget)
+        actionType in setOf("highlight", "reveal", "move", "label") -> setOf(Math.floorMod(segmentIndex, items.size))
+        else -> emptySet()
+    }
     var positions by remember(key) { mutableStateOf(items.map { Offset(it.x,it.y) }) }
     val motion = rememberInfiniteTransition(label = "lab-motion")
     val moving by motion.animateFloat(0f,1f,infiniteRepeatable(tween(2200),RepeatMode.Reverse),label="moving-particle")
@@ -174,7 +200,14 @@ private fun InteractiveLessonLab(chapter: String, topic: String, explanation: St
                             },
                         horizontalAlignment=Alignment.CenterHorizontally
                     ) {
-                        Surface(color=Color(0xFFF4FAF6),shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,Color(0xFFD1E7D8))) {
+                        Surface(
+                            color = if (index in activeVisualIndexes) Color(0xFFDDF4A8) else Color(0xFFF4FAF6),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                if (index in activeVisualIndexes) 2.dp else 1.dp,
+                                if (index in activeVisualIndexes) TutorGreen else Color(0xFFD1E7D8)
+                            )
+                        ) {
                             Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=25.sp)
                         }
                         Text(item.name,color=TutorDeep,fontSize=10.sp,maxLines=1)
@@ -684,6 +717,9 @@ internal fun TutorScreen(
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var liveCaption by remember { mutableStateOf("") }
     var liveVisualAction by remember { mutableStateOf("") }
+    var liveVisualActionType by remember { mutableStateOf("none") }
+    var liveVisualTarget by remember { mutableStateOf("") }
+    var liveSegmentIndex by remember { mutableIntStateOf(0) }
     var liveLessonActive by remember { mutableStateOf(false) }
     var voiceReady by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf(savedSession.optString("language", appLanguage)) }
@@ -1033,7 +1069,14 @@ internal fun TutorScreen(
         status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
-        speak(words, onStarted = { liveCaption = caption; liveVisualAction = visualCue; status = "Live lesson · segment ${index + 1} of ${liveSegments.size}" }) {
+        speak(words, onStarted = {
+            liveCaption = caption
+            liveVisualAction = visualCue
+            liveVisualActionType = action?.optString("type", "none") ?: "none"
+            liveVisualTarget = action?.optString("target", "").orEmpty()
+            liveSegmentIndex = index
+            status = "Live lesson · segment ${index + 1} of ${liveSegments.size}"
+        }) {
             if (liveLessonActive) playLiveSegment(index + 1)
         }
     }
@@ -1077,6 +1120,8 @@ internal fun TutorScreen(
 
     fun stopLiveLesson() {
         liveLessonActive = false; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
+        liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
+        speechStartCallback = null
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
         audioPlayer.value = null; ttsState.value?.stop(); speechCompletion = null; speechActive = false
         status = "Live lesson stopped."
@@ -1321,7 +1366,7 @@ internal fun TutorScreen(
                     Text("TEACHER IS SAYING", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Text(liveCaption, color = TutorDeep, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold)
                     if (liveVisualAction.isNotBlank()) Text("Visual cue · $liveVisualAction", color = TutorGrey, fontSize = 11.sp)
-                    InteractiveLessonLab(chapter, topic, liveCaption)
+                    InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
                 }
             }
         }

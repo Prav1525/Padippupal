@@ -14,7 +14,7 @@ def test_exam_master_catalog_and_two_printable_pdfs():
     assert data["subject"] == "Science"
     assert len(data["chapters"]) == 12
     assert data["question_bank_count"] == 60
-    assert "not verbatim textbook" in data["question_policy"].lower()
+    assert "textbook exercise ids" in data["question_policy"].lower()
 
     generated = client.post("/exam-master/generate", json={
         "board": "CBSE",
@@ -32,7 +32,7 @@ def test_exam_master_catalog_and_two_printable_pdfs():
     assert result["question_count"] == 10
     assert result["maximum_marks"] > 0
     assert result["source_mix"]["syllabus_aligned_practice_variants"] == 8
-    assert result["source_mix"]["inside_chapter"] == 2
+    assert result["source_mix"]["chapter_context_practice_variants"] == 2
     student_pdf = base64.b64decode(result["student_pdf_base64"])
     parent_pdf = base64.b64decode(result["parent_key_pdf_base64"])
     assert student_pdf.startswith(b"%PDF-")
@@ -66,9 +66,9 @@ def test_question_bank_has_complete_answers_and_honest_source_labels():
     for chapter, questions in BANK.items():
         assert len(questions) == 5, chapter
         assert sum(q[2] == "syllabus_practice_variant" for q in questions) == 4, chapter
-        assert sum(q[2] == "inside_chapter" for q in questions) == 1, chapter
+        assert sum(q[2] == "chapter_context_variant" for q in questions) == 1, chapter
         for prompt, marks, category, answer in questions:
             assert prompt.strip(), chapter
             assert marks > 0, (chapter, prompt)
-            assert category in {"syllabus_practice_variant", "inside_chapter"}, (chapter, category)
+            assert category in {"syllabus_practice_variant", "chapter_context_variant"}, (chapter, category)
             assert answer.strip(), (chapter, prompt)

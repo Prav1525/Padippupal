@@ -68,6 +68,27 @@ def assert_chapter_button(path):
         raise SystemExit("Chapter list did not load or the Choose chapter control is disabled")
     print("PASS: Mathematics chapter list loaded and can be opened")
 
+
+def tap_bounds(path, bounds, label):
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("Invalid accessibility bounds for " + label + ": " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    nodes, _ = load(path)
+    matches = [re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds", "")) for n in nodes]
+    matches = [m for m in matches if m]
+    max_x = max((int(m.group(3)) for m in matches), default=0)
+    max_y = max((int(m.group(4)) for m in matches), default=0)
+    size = subprocess.check_output(["adb", "-s", "emulator-5554", "shell", "wm", "size"], text=True)
+    found = re.search(r"(?:Physical|Override) size:\s*(\d+)x(\d+)", size)
+    sx = sy = 1.0
+    if found and max_x and max_y:
+        screen_w, screen_h = map(int, found.groups())
+        sx, sy = screen_w / max_x, screen_h / max_y
+    x, y = round((x1+x2)/2*sx), round((y1+y2)/2*sy)
+    print("Tap", repr(label), "bounds", bounds, "scale", round(sx, 3), round(sy, 3), "=>", x, y)
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
+
 def tap_numbered(path, number):
     nodes, texts = load(path)
     candidates = []
@@ -83,10 +104,7 @@ def tap_numbered(path, number):
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("First chapter option has invalid bounds: " + bounds)
-    x1, y1, x2, y2 = map(int, match.groups())
-    print("Selecting first chapter option:", node.attrib.get("text"), bounds)
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
-                   check=True, timeout=45)
+    tap_bounds(path, bounds, "chapter " + node.attrib.get("text", str(number)))
 
 def tap_first_concept(path):
     nodes, texts = load(path)
@@ -104,10 +122,7 @@ def tap_first_concept(path):
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("First concept has invalid bounds: " + bounds)
-    x1, y1, x2, y2 = map(int, match.groups())
-    print("Selecting first real concept option:", node.attrib.get("text"), bounds)
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
-                   check=True, timeout=45)
+    tap_bounds(path, bounds, "concept " + node.attrib.get("text", ""))
 
 def assert_live(path):
     _, texts = load(path)
@@ -158,11 +173,7 @@ def tap(path, target):
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit(f"Target {target!r} has invalid accessibility bounds: {bounds!r}")
-    x1, y1, x2, y2 = map(int, match.groups())
-    x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    print(f"Tapping {target!r} at ({x}, {y}), bounds={bounds}, clickable={node.attrib.get('clickable')}")
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
-                   check=True, timeout=45)
+    tap_bounds(path, bounds, target)
 
 def main():
     if len(sys.argv) < 3:

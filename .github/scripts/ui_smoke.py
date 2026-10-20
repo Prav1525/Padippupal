@@ -68,6 +68,35 @@ def assert_chapter_button(path):
         raise SystemExit("Chapter list did not load or the Choose chapter control is disabled")
     print("PASS: Mathematics chapter list loaded and can be opened")
 
+def assert_profile(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    print("PROFILE / SUBJECT TEXT:", " | ".join(texts[:140]))
+    if "cbse" not in joined:
+        raise SystemExit("Expected test profile to be CBSE, but CBSE is not visible in the tutor/settings UI")
+    if not any(term in joined for term in ("class 6", "class: 6", "standard 6", "grade 6")):
+        raise SystemExit("Expected Class 6 profile is not visible in the tutor/settings UI")
+    print("PASS: test is running against Class 6 CBSE")
+
+def assert_chapter_one(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts)
+    print("CHAPTER MENU TEXT:", " | ".join(texts[:160]))
+    if not any("pattern" in term.lower() for term in texts):
+        raise SystemExit("CBSE Class 6 Mathematics chapter list does not contain Chapter 1 'Patterns in Mathematics'. Visible labels: " + " | ".join(texts[:100]))
+    candidates = [n.attrib.get("text", "").strip() for n in nodes if re.match(r"^1[.)]\\s*\\S", n.attrib.get("text", "").strip())]
+    if not candidates or not any("pattern" in label.lower() for label in candidates):
+        raise SystemExit("The first chapter option is not 'Patterns in Mathematics'. Numbered Chapter 1 labels: " + " | ".join(candidates))
+    print("PASS: Chapter 1 is explicitly verified as Patterns in Mathematics")
+
+def assert_selected_chapter(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("SELECTED CHAPTER TEXT:", " | ".join(texts[:140]))
+    if "pattern" not in joined:
+        raise SystemExit("Selecting Chapter 1 did not leave 'Patterns in Mathematics' selected")
+    print("PASS: Patterns in Mathematics remains selected")
+
 def tap_numbered(path, number):
     nodes, texts = load(path)
     candidates = []

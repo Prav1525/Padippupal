@@ -12,6 +12,7 @@ import android.media.MediaPlayer
 import android.util.Base64
 import java.io.File
 import android.os.Handler
+import android.os.Build
 import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -948,6 +949,8 @@ internal fun TutorScreen(
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
+    var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var nativeWordTiming by remember { mutableStateOf(false) }
     var liveVisualAction by remember { mutableStateOf("") }
     var liveVisualActionType by remember { mutableStateOf("none") }
     var liveVisualTarget by remember { mutableStateOf("") }
@@ -1159,6 +1162,15 @@ internal fun TutorScreen(
             override fun onDone(utteranceId: String?) {
                 tutorMainHandler.post { finishSpeechSegment() }
             }
+            override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                if (Build.VERSION.SDK_INT >= 26) {
+                    tutorMainHandler.post {
+                        val index = speechWordStarts.indexOfLast { it <= start }.coerceAtLeast(0)
+                        liveWordIndex = index
+                        nativeWordTiming = true
+                    }
+                }
+            }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
                 tutorMainHandler.post { speechActive = false }
@@ -1209,6 +1221,9 @@ internal fun TutorScreen(
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
         speechActive = true
+        speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
+        liveWordIndex = 0
+        nativeWordTiming = false
         speechStartCallback = onStarted ?: { liveCaption = text }
         speechCompletion = onFinished
         // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
@@ -1477,27 +1492,42 @@ internal fun TutorScreen(
         if (itemCount > 0) chatListState.animateScrollToItem(itemCount - 1)
     }
 
-    // Follow the actual hosted audio playback position rather than a fixed
-    // words-per-second timer. Device TTS uses a gentle fallback estimate.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value) {
-        if (!speechActive || !liveLessonActive || liveCaption.isBlank()) {
+    // Hosted audio has no word timestamps, so align to its real playback position
+    // with word-length and punctuation weighting. Android TTS uses exact onRangeStart
+    // character offsets and must not be overwritten by this fallback loop.
+    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value, nativeWordTiming) {
+        if (!speechActive || !liveLessonActive || liveCaption.isBlank() || nativeWordTiming) {
             if (!speechActive) liveWordIndex = 0
             return@LaunchedEffect
         }
-        val wordCount = Regex("\\S+").findAll(liveCaption).count().coerceAtLeast(1)
+        val tokens = Regex("\\S+").findAll(liveCaption).map { it.value }.toList()
+        if (tokens.isEmpty()) return@LaunchedEffect
+        val weights = tokens.map { word ->
+            word.trimEnd(',', '.', ';', ':', '?', '!').length.coerceAtLeast(1).toFloat() +
+                if (word.endsWith(",") || word.endsWith(";") || word.endsWith(":")) 1.8f
+                else if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) 3.2f else 0f
+        }
+        val totalWeight = weights.sum().coerceAtLeast(1f)
         var elapsedMs = 0L
-        while (speechActive && liveLessonActive) {
+        while (speechActive && liveLessonActive && !nativeWordTiming) {
             val player = audioPlayer.value
-            val index = if (player != null && runCatching { player.duration > 0 }.getOrDefault(false)) {
+            val progress = if (player != null && runCatching { player.duration > 0 }.getOrDefault(false)) {
                 val duration = runCatching { player.duration }.getOrDefault(0).coerceAtLeast(1)
                 val position = runCatching { player.currentPosition }.getOrDefault(0).coerceIn(0, duration)
-                ((position.toFloat() / duration) * wordCount).toInt().coerceIn(0, wordCount - 1)
+                position.toFloat() / duration
             } else {
-                (elapsedMs / 390L).toInt().coerceIn(0, wordCount - 1)
+                (elapsedMs.toFloat() / (tokens.size * 390L).coerceAtLeast(1L)).coerceIn(0f, 1f)
+            }
+            val weightAt = progress * totalWeight
+            var sum = 0f
+            var index = 0
+            while (index < weights.lastIndex && sum + weights[index] < weightAt) {
+                sum += weights[index]
+                index++
             }
             liveWordIndex = index
-            delay(60L)
-            elapsedMs += 60L
+            delay(45L)
+            elapsedMs += 45L
         }
     }
     LaunchedEffect(liveCaption, speechActive, awaitingUnderstanding, liveLessonActive) {
@@ -1686,26 +1716,6 @@ internal fun TutorScreen(
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                             if (liveCaption.isNotBlank() && liveLessonActive && !speechActive && !awaitingUnderstanding) InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
-                            if (awaitingUnderstanding && liveLessonActive) {
-                                Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = {
-                                        awaitingUnderstanding = false
-                                        status = "Great! Let’s take the next small step."
-                                        tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 900L)
-                                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand") }
-                                    OutlinedButton(onClick = {
-                                        awaitingUnderstanding = false
-                                        val segment = liveSegments.getOrNull(liveSegmentIndex)
-                                        if (segment != null) {
-                                            val original = segment.optString("spoken_text")
-                                            speak("That is okay. Let me explain it more simply. " + original, onStarted = { liveCaption = "Let me explain it more simply. " + original }) {
-                                                tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 1000L)
-                                            }
-                                        }
-                                    }, modifier = Modifier.weight(1f)) { Text("Explain again") }
-                                }
-                            }
                         }
                     }
                 }
@@ -1744,6 +1754,46 @@ internal fun TutorScreen(
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
                             Text("  Your tutor is preparing an explanation…", color = TutorGrey, fontSize = 13.sp)
                         }
+                    }
+                }
+            }
+        }
+
+        // Fixed checkpoint: never hidden below the scrollable passage.
+        if (awaitingUnderstanding && liveLessonActive) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
+                color = Color.White,
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFFD1E7D8)),
+                shadowElevation = 2.dp
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Quick check", color = TutorGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = {
+                            awaitingUnderstanding = false
+                            status = "Great! Let’s take the next small step."
+                            tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 350L)
+                        }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand") }
+                        OutlinedButton(onClick = {
+                            awaitingUnderstanding = false
+                            val segment = liveSegments.getOrNull(liveSegmentIndex)
+                            if (segment != null) {
+                                val original = segment.optString("spoken_text")
+                                speak("That is okay. Let me explain it more simply. " + original, onStarted = {
+                                    liveCaption = "Let me explain it more simply. " + original
+                                    liveWordIndex = 0
+                                }) {
+                                    awaitingUnderstanding = true
+                                    currentCheckpoint = "Was that explanation clearer?"
+                                    status = "Tell your teacher whether that helped."
+                                }
+                            } else {
+                                awaitingUnderstanding = true
+                            }
+                        }, modifier = Modifier.weight(1f)) { Text("Explain again") }
                     }
                 }
             }

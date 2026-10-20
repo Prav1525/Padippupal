@@ -1452,7 +1452,11 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         if entry not in sources: sources.append(entry)
     system_prompt = ("You are PadippuPal lesson planner for class " + str(payload.class_level) + ", subject " + subject + ", chapter " + (payload.chapter or "not selected") + ", topic " + (payload.topic or payload.message) + ", language " + payload.app_language + ".\n"
         + "Use ONLY retrieved PadippuPal database passages for factual claims. Return JSON only: {segments:[{id,spoken_text,caption_text,source_chunk_ids,visual_action:{type,target,value},checkpoint}]}. "
-        + "Create at most " + str(payload.max_segments) + " short sequential segments, usually one sentence and max 24 spoken words each. "
+        + "Teach like a patient, kind primary-school teacher sitting beside one child. Use very simple everyday words, one idea at a time, and explain any new term before using it. "
+        + "Create at most " + str(payload.max_segments) + " short sequential spoken segments, usually one sentence and no more than 18 spoken words each. "
+        + "Use natural spoken punctuation: short sentences, commas for gentle breaths, and occasional ellipses only where a real pause helps. Avoid robotic lists, rushed phrasing, repeated filler, and exaggerated baby talk. "
+        + "After explaining a key idea or worked example, set checkpoint to a warm, short understanding question such as Does that make sense so far? or Would you like me to show that another way? Set checkpoint on at least every second segment, especially after examples. Do not put the checkpoint question inside spoken_text; the app will pause and ask it separately. "
+        + "When explaining an example, make visual_action point to the exact number, shape, or step being spoken about; reveal or compare one step at a time. "
         + "Each segment must cite exact chunk_id values shown in the passages. visual_action type must be one of highlight,reveal,move,compare,label,draw-line,show-result,none. Never return code or invent unsupported visuals. Use none if no matching visual is supported.")
     body = json.dumps({"systemInstruction": {"parts": [{"text": system_prompt}]},
         "contents": [{"role": "user", "parts": [{"text": "Student request: " + payload.message + "\nRetrieved passages:\n" + "\n\n---\n\n".join(context)}]}],

@@ -129,3 +129,24 @@ def test_class_six_concept_outline_has_complete_chapter_lists():
     for chapter in data["chapters"]:
         assert len(chapter["topics"]) >= 5, chapter["title"]
         assert all(item["title"].strip() for item in chapter["topics"])
+
+
+def test_lines_and_angles_blueprints_are_specific_and_interactive():
+    client = TestClient(curriculum.app)
+    response = client.get("/interactive-lessons", params={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "chapter": "Lines and Angles",
+    })
+    assert response.status_code == 200
+    lessons = {item["id"]: item for item in response.json()["lessons"]}
+    assert "mathematics-lines-and-angles-line-segment" in lessons
+    segment = lessons["mathematics-lines-and-angles-line-segment"]
+    assert segment["scene_type"] == "line_segment"
+    assert len(segment["steps"]) == 3
+    assert "two endpoints" in segment["steps"][0]["text"]
+    comparison = lessons["mathematics-lines-and-angles-comparing-angles"]
+    assert "arm length" in comparison["steps"][1]["text"]
+    classifier = lessons["mathematics-lines-and-angles-types-of-angles"]
+    assert classifier["scene_type"] == "angle_classifier"
+    assert "90 degrees" in classifier["steps"][1]["text"]
+

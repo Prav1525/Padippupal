@@ -191,7 +191,7 @@ def test_patterns_in_mathematics_contains_key_number_sequences():
         [lesson["topic"] + " " + lesson["title"] + " " + lesson["caption"] for lesson in lessons]
         + [step["text"] for lesson in lessons for step in lesson["steps"]]
     ).lower()
-    for concept in ("triangular", "square", "cube", "virahanka", "powers of 2", "powers of 3", "koch snowflake"):
+    for concept in ("counting numbers", "odd numbers", "even numbers", "triangular", "square", "cube", "virahanka", "powers of 2", "powers of 3", "hexagonal numbers", "regular polygon", "complete graph", "stacked squares", "stacked triangles", "koch snowflake", "192"):
         assert concept in combined, f"Chapter 1 missing concept: {concept}"
 
 def test_patterns_in_mathematics_covers_shape_and_sequence_topics():
@@ -225,4 +225,8 @@ def test_patterns_in_mathematics_covers_shape_and_sequence_topics():
         assert lesson["challenge"]["question"].strip(), lesson["id"]
         assert lesson["challenge"]["answer"] in lesson["challenge"]["options"], lesson["id"]
         assert lesson["challenge"]["hint"].strip(), lesson["id"]
+        refs = lesson.get("source_refs", [])
+        assert refs, f"{lesson['id']} has no stored textbook reference"
+        assert all(ref["source_id"] == "6cd135e7-63e4-4350-9b7c-02fe1f566ec3" for ref in refs)
+        assert all(ref["page_start"] <= ref["page_end"] for ref in refs)
 

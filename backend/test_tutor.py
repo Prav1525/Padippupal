@@ -240,3 +240,22 @@ def test_tutor_does_not_answer_without_matching_database_passage(monkeypatch):
     assert body["provider"] == "curriculum_database"
     assert "couldn't find a matching passage" in body["answer"].lower()
     assert "no external knowledge was used" in body["grounding_warning"].lower()
+
+
+
+def test_chapter_matching_uses_the_stored_book_opening_not_other_chapters():
+    assert curriculum.chapter_matches_source(
+        "Lines and Angles",
+        "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp102.pdf)",
+        "[Page 1] Lines and angLes2 In this chapter, we explore points, lines, rays, and angles.",
+    )
+    assert not curriculum.chapter_matches_source(
+        "Fractions",
+        "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp102.pdf)",
+        "[Page 1] Lines and angLes2 In this chapter, we explore points, lines, rays, and angles.",
+    )
+    assert curriculum.chapter_matches_source(
+        "A Journey through States of Water",
+        "NCERT Curiosity Class 6 Science — Chapter PDF (fecu108.pdf)",
+        "[Page 1] A Journey through States of Water8 Chapter On a bright summer afternoon...",
+    )

@@ -1163,7 +1163,17 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
         class_level=payload.class_level,
         subject=effective_subject,
         medium=payload.medium,
-        query=" ".join(part for part in (payload.chapter, payload.topic, payload.message) if part),
+        query=" ".join(
+            part for part in (
+                payload.chapter,
+                payload.topic,
+                " ".join(
+                    (turn.get("content", "") if isinstance(turn, dict) else turn.content)[:200]
+                    for turn in history_for_prompt[-2:]
+                ),
+                payload.message,
+            ) if part
+        )[:1000],
         limit=2,
     ))
     matches = retrieved.get("matches", [])

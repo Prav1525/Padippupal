@@ -1,0 +1,95 @@
+name: Android UI smoke test
+
+on:
+  push:
+    branches: ["main", "feature/gentle-ai-tutor"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulator-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build debug APK
+        run: gradle --no-daemon assembleDebug
+
+      - name: Launch app in Android emulator and capture screens
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            adb install app/build/outputs/apk/debug/app-debug.apk
+            adb shell am force-stop com.padippupal.app
+            adb shell am start -W -n com.padippupal.app/.MainActivity
+            sleep 8
+            adb shell pidof com.padippupal.app
+            adb shell uiautomator dump /sdcard/home.xml >/dev/null
+            adb pull /sdcard/home.xml home.xml
+            grep -q "YOUR LEARNING DESK\|A little wiser today\|PadippuPal" home.xml
+            mkdir -p ui-screenshots
+            adb exec-out screencap -p > ui-screenshots/home.png
+
+            # Open the tutor by tapping its visible accessible label.
+            python3 - <<'PY'
+            import re, subprocess, xml.etree.ElementTree as ET
+            root = ET.parse("home.xml").getroot()
+            targets = ("YOUR PERSONAL TUTOR", "Begin lesson", "Let’s make it")
+            node = next((n for n in root.iter("node")
+                         if any(t.lower() in n.attrib.get("text", "").lower() for t in targets)
+                         and n.attrib.get("clickable") == "true"), None)
+            if node is None:
+                # Text within the tutor card can be non-clickable; click its visible bounds.
+                node = next((n for n in root.iter("node")
+                             if any(t.lower() in n.attrib.get("text", "").lower() for t in targets)), None)
+            if node is None:
+                raise SystemExit("Tutor card label not found in Android accessibility tree")
+            bounds = node.attrib.get("bounds", "")
+            match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+            if not match:
+                raise SystemExit(f"Could not read tutor label bounds: {bounds}")
+            x1,y1,x2,y2 = map(int, match.groups())
+            subprocess.run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)], check=True)
+            PY
+
+            sleep 5
+            adb shell pidof com.padippupal.app
+            adb shell uiautomator dump /sdcard/tutor.xml >/dev/null
+            adb pull /sdcard/tutor.xml tutor.xml
+            test -s tutor.xml
+            adb exec-out screencap -p > ui-screenshots/tutor.png
+
+      - name: Upload emulator screenshots and UI trees
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: padippupal-emulator-ui
+          path: |
+            ui-screenshots/
+            home.xml
+            tutor.xml
+          if-no-files-found: warn
+          retention-days: 14

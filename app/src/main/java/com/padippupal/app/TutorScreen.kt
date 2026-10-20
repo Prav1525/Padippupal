@@ -101,7 +101,7 @@ private fun cleanTutorDisplayText(raw: String): String {
 
 private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
 
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun WordByWordCaption(
     text: String,

@@ -3,7 +3,7 @@
   "board": "CBSE",
   "class_level": 6,
   "academic_year": "2026-27",
-  "note": "Teacher-curated first-pass lesson blueprints for NCERT-aligned Grade 6 learning. Mathematics chapter names and first-pass subtopics are mapped to the official NCERT Ganita Prakash Grade 6 Reprint 2026-27 book; chapter-level review remains required. Science is an initial concept map and must be checked against the official Curiosity textbook before being marked complete. The official textbook remains hosted by NCERT; these blueprints do not include textbook text.",
+  "note": "Teacher-curated first-pass lesson blueprints for NCERT-aligned Grade 6 learning. Mathematics chapter names and first-pass subtopics are mapped to the official NCERT Ganita Prakash Grade 6 Reprint 2026-27 book; chapter-level review remains required. Chapter 1 blueprints use a concept-first visual progression and are illustrative teaching scaffolds, not textbook text; verify the exact edition and full topic coverage before marking the chapter complete. Science is an initial concept map and must be checked against the official Curiosity textbook before being marked complete. The official textbook remains hosted by NCERT; these blueprints do not include textbook text.",
   "lessons": [
     {
       "id": "science-the-wonderful-world-of-science-observation-and-fair-tests",
@@ -2094,151 +2094,6 @@
       }
     },
     {
-      "id": "mathematics-patterns-in-mathematics-growing-number-patterns",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "Growing number patterns",
-      "title": "Growing number patterns",
-      "scene_type": "number_pattern",
-      "caption": "Look at 1, 4, 9, 16. These are square numbers: 1×1, 2×2, 3×3 and 4×4. The gaps grow by 3, 5, then 7.",
-      "objects": [
-        {"id": "o1", "label": "1", "kind": "number_pattern", "position": [0.08, 0.30]},
-        {"id": "o2", "label": "4", "kind": "number_pattern", "position": [0.29, 0.30]},
-        {"id": "o3", "label": "9", "kind": "number_pattern", "position": [0.50, 0.30]},
-        {"id": "o4", "label": "16", "kind": "number_pattern", "position": [0.71, 0.30]}
-      ],
-      "steps": [
-        {"title": "Notice", "text": "Read the sequence: 1, 4, 9, 16. Each number is a square: 1×1, 2×2, 3×3, 4×4."},
-        {"title": "Compare the gaps", "text": "4−1 = 3, 9−4 = 5, and 16−9 = 7. The amount added increases by 2 each time."},
-        {"title": "Predict", "text": "The next gap is 9, so 16 + 9 = 25. The next square is 5×5 = 25."}
-      ],
-      "challenge": {
-        "question": "What number comes next after 1, 4, 9, 16?",
-        "options": [20, 24, 25, 27],
-        "answer": 25,
-        "success_feedback": "Exactly! The next number is 25 because 5×5 = 25, and the gaps are +3, +5, +7, then +9.",
-        "hint": "Compare the gaps: +3, +5, +7. What odd number comes next?"
-      }
-    },
-    {
-      "id": "mathematics-patterns-in-mathematics-shape-patterns",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "Shape patterns",
-      "title": "Shape patterns",
-      "scene_type": "shape_pattern",
-      "caption": "Continue a repeating shape sequence and identify the repeating unit.",
-      "objects": [
-        {
-          "id": "o1",
-          "label": "circle",
-          "kind": "shape_pattern",
-          "position": [
-            0.15,
-            0.25
-          ]
-        },
-        {
-          "id": "o2",
-          "label": "triangle",
-          "kind": "shape_pattern",
-          "position": [
-            0.47,
-            0.25
-          ]
-        },
-        {
-          "id": "o3",
-          "label": "square",
-          "kind": "shape_pattern",
-          "position": [
-            0.79,
-            0.25
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Notice",
-          "text": "Start by observing shape patterns."
-        },
-        {
-          "title": "Try",
-          "text": "Continue a repeating shape sequence and identify the repeating unit."
-        },
-        {
-          "title": "Explain",
-          "text": "Describe what changed and why."
-        }
-      ],
-      "challenge": {
-        "question": "What is the repeating unit?",
-        "success_feedback": "Good observation! Explain the evidence you used."
-      }
-    },
-    {
-      "id": "mathematics-patterns-in-mathematics-number-relationships",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "Number relationships",
-      "title": "Number relationships",
-      "scene_type": "number_machine",
-      "caption": "Change the input and infer the operation that produces each output.",
-      "objects": [
-        {
-          "id": "o1",
-          "label": "input",
-          "kind": "number_machine",
-          "position": [
-            0.15,
-            0.25
-          ]
-        },
-        {
-          "id": "o2",
-          "label": "rule",
-          "kind": "number_machine",
-          "position": [
-            0.47,
-            0.25
-          ]
-        },
-        {
-          "id": "o3",
-          "label": "output",
-          "kind": "number_machine",
-          "position": [
-            0.79,
-            0.25
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Notice",
-          "text": "Start by observing number relationships."
-        },
-        {
-          "title": "Try",
-          "text": "Change the input and infer the operation that produces each output."
-        },
-        {
-          "title": "Explain",
-          "text": "Describe what changed and why."
-        }
-      ],
-      "challenge": {
-        "question": "Which rule fits every pair?",
-        "success_feedback": "Good observation! Explain the evidence you used."
-      }
-    },
-    {
       "id": "mathematics-lines-and-angles-line-ray-and-segment",
       "board": "CBSE",
       "class_level": 6,
@@ -3802,354 +3657,6 @@
       "challenge": {
         "question": "Where do you land after the move?",
         "success_feedback": "Good observation! Explain the evidence you used."
-      }
-    },
-    {
-      "id": "mathematics-patterns-in-mathematics-what-is-mathematics",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "What is Mathematics?",
-      "title": "What is Mathematics?",
-      "scene_type": "pattern_builder",
-      "caption": "Arrange the what is mathematics? example, change one tile and infer the rule that explains the pattern.",
-      "objects": [
-        {
-          "id": "o1",
-          "label": "Start pattern",
-          "kind": "pattern_builder",
-          "position": [
-            0.15,
-            0.25
-          ]
-        },
-        {
-          "id": "o2",
-          "label": "Next tile",
-          "kind": "pattern_builder",
-          "position": [
-            0.47,
-            0.25
-          ]
-        },
-        {
-          "id": "o3",
-          "label": "Rule",
-          "kind": "pattern_builder",
-          "position": [
-            0.79,
-            0.25
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Notice",
-          "text": "Observe the example for what is mathematics?."
-        },
-        {
-          "title": "Try",
-          "text": "Arrange the what is mathematics? example, change one tile and infer the rule that explains the pattern."
-        },
-        {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
-        }
-      ],
-      "challenge": {
-        "question": "What pattern or relationship do you notice in what is mathematics??",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
-      }
-    },
-    {
-      "id": "mathematics-patterns-in-mathematics-patterns-in-numbers",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Numbers",
-      "title": "Patterns in Numbers",
-      "scene_type": "number_machine",
-      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind patterns in numbers.",
-      "objects": [
-        {
-          "id": "o1",
-          "label": "Input",
-          "kind": "number_machine",
-          "position": [
-            0.15,
-            0.25
-          ]
-        },
-        {
-          "id": "o2",
-          "label": "Rule",
-          "kind": "number_machine",
-          "position": [
-            0.47,
-            0.25
-          ]
-        },
-        {
-          "id": "o3",
-          "label": "Output",
-          "kind": "number_machine",
-          "position": [
-            0.79,
-            0.25
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Notice",
-          "text": "Observe the example for patterns in numbers."
-        },
-        {
-          "title": "Try",
-          "text": "Change the input or digit arrangement, observe the output and explain the rule behind patterns in numbers."
-        },
-        {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
-        }
-      ],
-      "challenge": {
-        "question": "What rule connects the numbers in this sequence?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
-      }
-    },
-    {
-      "id": "mathematics-patterns-in-mathematics-visualising-number-sequences",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
-      "title": "Visualising Number Sequences",
-      "scene_type": "number_machine",
-      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind visualising number sequences.",
-      "objects": [
-        {
-          "id": "o1",
-          "label": "Input",
-          "kind": "number_machine",
-          "position": [
-            0.15,
-            0.25
-          ]
-        },
-        {
-          "id": "o2",
-          "label": "Rule",
-          "kind": "number_machine",
-          "position": [
-            0.47,
-            0.25
-          ]
-        },
-        {
-          "id": "o3",
-          "label": "Output",
-          "kind": "number_machine",
-          "position": [
-            0.79,
-            0.25
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Notice",
-          "text": "Observe the example for visualising number sequences."
-        },
-        {
-          "title": "Try",
-          "text": "Change the input or digit arrangement, observe the output and explain the rule behind visualising number sequences."
-        },
-        {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
-        }
-      ],
-      "challenge": {
-        "question": "What changes as you move to the next term?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
-      }
-    },
-    {
-      "id": "mathematics-patterns-in-mathematics-relations-among-number-sequences",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "Relations among Number Sequences",
-      "title": "Relations among Number Sequences",
-      "scene_type": "number_machine",
-      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind relations among number sequences.",
-      "objects": [
-        {
-          "id": "o1",
-          "label": "Input",
-          "kind": "number_machine",
-          "position": [
-            0.15,
-            0.25
-          ]
-        },
-        {
-          "id": "o2",
-          "label": "Rule",
-          "kind": "number_machine",
-          "position": [
-            0.47,
-            0.25
-          ]
-        },
-        {
-          "id": "o3",
-          "label": "Output",
-          "kind": "number_machine",
-          "position": [
-            0.79,
-            0.25
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Notice",
-          "text": "Observe the example for relations among number sequences."
-        },
-        {
-          "title": "Try",
-          "text": "Change the input or digit arrangement, observe the output and explain the rule behind relations among number sequences."
-        },
-        {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
-        }
-      ],
-      "challenge": {
-        "question": "How are these two sequences related?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
-      }
-    },
-    {
-      "id": "mathematics-patterns-in-mathematics-patterns-in-shapes",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Shapes",
-      "title": "Patterns in Shapes",
-      "scene_type": "pattern_builder",
-      "caption": "Arrange the patterns in shapes example, change one tile and infer the rule that explains the pattern.",
-      "objects": [
-        {
-          "id": "o1",
-          "label": "Start pattern",
-          "kind": "pattern_builder",
-          "position": [
-            0.15,
-            0.25
-          ]
-        },
-        {
-          "id": "o2",
-          "label": "Next tile",
-          "kind": "pattern_builder",
-          "position": [
-            0.47,
-            0.25
-          ]
-        },
-        {
-          "id": "o3",
-          "label": "Rule",
-          "kind": "pattern_builder",
-          "position": [
-            0.79,
-            0.25
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Notice",
-          "text": "Observe the example for patterns in shapes."
-        },
-        {
-          "title": "Try",
-          "text": "Arrange the patterns in shapes example, change one tile and infer the rule that explains the pattern."
-        },
-        {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
-        }
-      ],
-      "challenge": {
-        "question": "Which part repeats in the shape pattern?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
-      }
-    },
-    {
-      "id": "mathematics-patterns-in-mathematics-relation-to-number-sequences",
-      "board": "CBSE",
-      "class_level": 6,
-      "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics",
-      "topic": "Relation to Number Sequences",
-      "title": "Relation to Number Sequences",
-      "scene_type": "number_machine",
-      "caption": "Change the input or digit arrangement, observe the output and explain the rule behind relation to number sequences.",
-      "objects": [
-        {
-          "id": "o1",
-          "label": "Input",
-          "kind": "number_machine",
-          "position": [
-            0.15,
-            0.25
-          ]
-        },
-        {
-          "id": "o2",
-          "label": "Rule",
-          "kind": "number_machine",
-          "position": [
-            0.47,
-            0.25
-          ]
-        },
-        {
-          "id": "o3",
-          "label": "Output",
-          "kind": "number_machine",
-          "position": [
-            0.79,
-            0.25
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "title": "Notice",
-          "text": "Observe the example for relation to number sequences."
-        },
-        {
-          "title": "Try",
-          "text": "Change the input or digit arrangement, observe the output and explain the rule behind relation to number sequences."
-        },
-        {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
-        }
-      ],
-      "challenge": {
-        "question": "What pattern or relationship do you notice in relation to number sequences?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
       }
     },
     {
@@ -7340,6 +6847,441 @@
       "challenge": {
         "question": "What pattern or relationship do you notice in a pinch of history?",
         "success_feedback": "Well done! Explain the clue that helped you decide."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-what-is-mathematics",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "What is Mathematics?",
+      "title": "Discovering Mathematics",
+      "scene_type": "pattern_builder",
+      "caption": "Mathematics helps us notice patterns, compare things, describe shapes and understand how quantities relate.",
+      "objects": [
+        {
+          "id": "o1",
+          "label": "Shapes",
+          "kind": "pattern_builder",
+          "position": [
+            0.18,
+            0.3
+          ]
+        },
+        {
+          "id": "o2",
+          "label": "Numbers",
+          "kind": "pattern_builder",
+          "position": [
+            0.5,
+            0.3
+          ]
+        },
+        {
+          "id": "o3",
+          "label": "Patterns",
+          "kind": "pattern_builder",
+          "position": [
+            0.82,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "First, notice",
+          "text": "Mathematics helps us notice and describe patterns around us."
+        },
+        {
+          "title": "See an example",
+          "text": "A row of tiles can repeat the same colours or shapes. Numbers can also follow a pattern."
+        },
+        {
+          "title": "Connect the idea",
+          "text": "Mathematics helps us describe what stays the same and what changes."
+        }
+      ],
+      "challenge": {
+        "question": "Which is something mathematics can help us notice?",
+        "options": [
+          "Patterns",
+          "Only stories",
+          "Only weather"
+        ],
+        "answer": "Patterns",
+        "hint": "Look at the repeating shapes or numbers. Mathematics helps describe their order.",
+        "success_feedback": "Exactly. Mathematics helps us notice and describe patterns."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-patterns-in-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Patterns in Numbers",
+      "title": "Start with Number Patterns",
+      "scene_type": "number_pattern",
+      "caption": "Begin with a simple sequence and notice how the numbers change: 2, 4, 6, 8.",
+      "objects": [
+        {
+          "id": "n1",
+          "label": "2",
+          "kind": "number",
+          "position": [
+            0.12,
+            0.3
+          ]
+        },
+        {
+          "id": "n2",
+          "label": "4",
+          "kind": "number",
+          "position": [
+            0.31,
+            0.3
+          ]
+        },
+        {
+          "id": "n3",
+          "label": "6",
+          "kind": "number",
+          "position": [
+            0.5,
+            0.3
+          ]
+        },
+        {
+          "id": "n4",
+          "label": "8",
+          "kind": "number",
+          "position": [
+            0.69,
+            0.3
+          ]
+        },
+        {
+          "id": "n5",
+          "label": "?",
+          "kind": "number",
+          "position": [
+            0.88,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Look at 2, 4, 6, 8. The numbers get bigger."
+        },
+        {
+          "title": "Compare",
+          "text": "From one number to the next, we add 2 each time."
+        },
+        {
+          "title": "Try the rule",
+          "text": "Use the same rule again to predict the next number."
+        }
+      ],
+      "challenge": {
+        "question": "What number comes next: 2, 4, 6, 8, ...?",
+        "options": [
+          "9",
+          "10",
+          "12"
+        ],
+        "answer": "10",
+        "hint": "Count forward by two: 8, then 10.",
+        "success_feedback": "Yes. The pattern adds 2 each time."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-visualising-number-sequences",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Visualising Number Sequences",
+      "title": "See Numbers as Groups",
+      "scene_type": "number_pattern",
+      "caption": "Represent numbers with dots or tiles so the sequence can be seen, not just read.",
+      "objects": [
+        {
+          "id": "a1",
+          "label": "••",
+          "kind": "dots",
+          "position": [
+            0.18,
+            0.3
+          ]
+        },
+        {
+          "id": "a2",
+          "label": "••••",
+          "kind": "dots",
+          "position": [
+            0.4,
+            0.3
+          ]
+        },
+        {
+          "id": "a3",
+          "label": "••••••",
+          "kind": "dots",
+          "position": [
+            0.62,
+            0.3
+          ]
+        },
+        {
+          "id": "a4",
+          "label": "••••••••",
+          "kind": "dots",
+          "position": [
+            0.84,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Look",
+          "text": "Each group shows a number using dots."
+        },
+        {
+          "title": "Compare",
+          "text": "The groups have 2, 4, 6 and 8 dots. Two dots are added each time."
+        },
+        {
+          "title": "Understand",
+          "text": "A picture can help us see the rule in a number sequence."
+        }
+      ],
+      "challenge": {
+        "question": "How many dots would the next group have?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "10",
+        "hint": "The groups grow by two dots each time.",
+        "success_feedback": "Correct. The next group has ten dots."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-relations-among-number-sequences",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Relations among Number Sequences",
+      "title": "Compare Two Sequences",
+      "scene_type": "number_machine",
+      "caption": "Compare two number sequences and describe how their terms are connected; begin with a simple example.",
+      "objects": [
+        {
+          "id": "s1",
+          "label": "2, 4, 6",
+          "kind": "sequence",
+          "position": [
+            0.28,
+            0.3
+          ]
+        },
+        {
+          "id": "s2",
+          "label": "3, 5, 7",
+          "kind": "sequence",
+          "position": [
+            0.72,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Compare 2, 4, 6 with 3, 5, 7."
+        },
+        {
+          "title": "Compare terms",
+          "text": "Each number in the second sequence is one more than the number in the same position in the first."
+        },
+        {
+          "title": "Say the relationship",
+          "text": "We can describe how two sequences are related by comparing matching terms."
+        }
+      ],
+      "challenge": {
+        "question": "In these sequences, how much larger is each number in the second row?",
+        "options": [
+          "1",
+          "2",
+          "3"
+        ],
+        "answer": "1",
+        "hint": "Compare 3 with 2, then 5 with 4.",
+        "success_feedback": "Exactly. Each matching number in the second sequence is one more."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-patterns-in-shapes",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Patterns in Shapes",
+      "title": "Discover Repeating Shapes",
+      "scene_type": "shape_pattern",
+      "caption": "A pattern can repeat shapes in the same order: circle, triangle, circle, triangle.",
+      "objects": [
+        {
+          "id": "circle",
+          "label": "Circle",
+          "kind": "shape",
+          "position": [
+            0.12,
+            0.3
+          ]
+        },
+        {
+          "id": "triangle",
+          "label": "Triangle",
+          "kind": "shape",
+          "position": [
+            0.31,
+            0.3
+          ]
+        },
+        {
+          "id": "circle2",
+          "label": "Circle",
+          "kind": "shape",
+          "position": [
+            0.5,
+            0.3
+          ]
+        },
+        {
+          "id": "triangle2",
+          "label": "Triangle",
+          "kind": "shape",
+          "position": [
+            0.69,
+            0.3
+          ]
+        },
+        {
+          "id": "next",
+          "label": "Next shape",
+          "kind": "choice",
+          "position": [
+            0.88,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "First, understand",
+          "text": "A shape pattern repeats a shape or group of shapes in a particular order."
+        },
+        {
+          "title": "Watch the order",
+          "text": "Circle, triangle, circle, triangle. The same two-shape group repeats."
+        },
+        {
+          "title": "Predict",
+          "text": "Use that repeating group to decide which shape belongs next."
+        }
+      ],
+      "challenge": {
+        "question": "Which shape comes next: circle, triangle, circle, triangle, ...?",
+        "options": [
+          "Circle",
+          "Triangle",
+          "Square"
+        ],
+        "answer": "Circle",
+        "hint": "The order is circle, then triangle, and it repeats.",
+        "success_feedback": "That's right. The repeating order starts again with a circle."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-relation-to-number-sequences",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Relation to Number Sequences",
+      "title": "Describe the Rule",
+      "scene_type": "number_pattern",
+      "caption": "Use the pattern you can see to explain the rule and predict the next term. Start with small, clear examples.",
+      "objects": [
+        {
+          "id": "p1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.15,
+            0.3
+          ]
+        },
+        {
+          "id": "p2",
+          "label": "3",
+          "kind": "number",
+          "position": [
+            0.38,
+            0.3
+          ]
+        },
+        {
+          "id": "p3",
+          "label": "5",
+          "kind": "number",
+          "position": [
+            0.61,
+            0.3
+          ]
+        },
+        {
+          "id": "p4",
+          "label": "7",
+          "kind": "number",
+          "position": [
+            0.84,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Look at 1, 3, 5, 7."
+        },
+        {
+          "title": "Find the rule",
+          "text": "Each term is 2 more than the one before it."
+        },
+        {
+          "title": "Explain",
+          "text": "A rule tells us how the sequence continues; use the same rule for the next term."
+        }
+      ],
+      "challenge": {
+        "question": "What number follows 1, 3, 5, 7?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "9",
+        "hint": "Add two to the last number, 7.",
+        "success_feedback": "Correct. The next number is 9 because the rule adds two."
       }
     }
   ],

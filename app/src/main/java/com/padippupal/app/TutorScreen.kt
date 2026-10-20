@@ -120,7 +120,7 @@ private fun WordByWordCaption(
                 add(offset)
                 offset += word.length
                 if (index < words.lastIndex) {
-                    offset += if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) 3 else 1
+                    offset += if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) 2 else 1
                 }
             }
         }
@@ -132,7 +132,7 @@ private fun WordByWordCaption(
         buildAnnotatedString {
             words.forEachIndexed { index, pair ->
                 val word = pair
-                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\\n\\n" else " ")
+                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\n\n" else " ")
                 val start = length
                 append(word)
                 val end = length
@@ -149,7 +149,7 @@ private fun WordByWordCaption(
         val layout = layoutResult
         if (active && layout != null && words.isNotEmpty()) {
             val index = currentWordIndex.coerceIn(0, words.lastIndex)
-            val displayOffset = wordStarts.getOrElse(index) { 0 }.coerceAtMost(text.lastIndex.coerceAtLeast(0))
+            val displayOffset = wordStarts.getOrElse(index) { 0 }.coerceAtMost(caption.length - 1).coerceAtLeast(0)
             val line = layout.getLineForOffset(displayOffset)
             val target = (layout.getLineTop(line) - with(density) { 24.dp.toPx() }).coerceAtLeast(0f).toInt()
             runCatching { scrollState.animateScrollTo(target) }
@@ -1488,7 +1488,7 @@ internal fun TutorScreen(
                         messages.add(TutorMessage("assistant", answer, visualLesson, interactiveLesson))
                         lastSources = sources
                         status = if (sources.isEmpty()) "General explanation · no matching textbook passage was found yet." else "Answer checked against ${sources.size} curriculum source(s)."
-                        if (speakReplies) speak(answer)
+                        if (speakReplies) speak(answer, onStarted = { liveCaption = answer })
                     },
                     onFailure = { error ->
                         status = error.message ?: "Couldn't reach the tutor. Please try again."
@@ -1767,9 +1767,7 @@ internal fun TutorScreen(
                     ) {
                         Column(Modifier.padding(14.dp)) {
                             if (message.role == "assistant" && message.content == liveCaption && speechActive && !liveLessonActive) {
-                                WordByWordCaption(liveCaption, true, liveWordIndex) { word ->
-                                    if (word.isNotBlank()) speak(word)
-                                }
+                                WordByWordCaption(liveCaption, true, liveWordIndex) { }
                             } else {
                                 Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
                             }

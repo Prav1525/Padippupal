@@ -1376,7 +1376,7 @@ internal fun TutorScreen(
                 require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
-                    .put("message", "Begin by explicitly introducing the selected chapter and topic to the student. Say that today we will study chapter " + chapter + " and topic " + topic + ". Then explain concepts in a logical order using simple child-friendly language and a familiar everyday example. Ask one short check question only after explaining.").put("max_segments", 5)
+                    .put("message", "Teach this as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Split the explanation into small modules, one idea per module. Each module should use only 2-3 short spoken sentences, simple child-friendly language, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages.").put("max_segments", 5)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"; connection.connectTimeout = 8000; connection.readTimeout = 50000
                 connection.setRequestProperty("Accept", "application/json"); connection.setRequestProperty("Content-Type", "application/json; charset=utf-8"); connection.doOutput = true
@@ -1831,6 +1831,14 @@ internal fun TutorScreen(
                             }
                         }, modifier = Modifier.weight(1f)) { Text("Explain again") }
                     }
+                    TextButton(
+                        onClick = {
+                            input = "I have a question about this part: " + currentCheckpoint
+                            stopLiveLesson()
+                            status = "Your question is ready below. Send it and I’ll explain this part."
+                        },
+                        modifier = Modifier.align(Alignment.End)
+                    ) { Text("I have a question", color = TutorGreen) }
                 }
             }
         }

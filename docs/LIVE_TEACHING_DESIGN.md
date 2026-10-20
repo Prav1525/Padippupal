@@ -82,3 +82,19 @@ Gemini Live is useful for free-form spoken conversation, interruptions, and low-
 - Student interruption stops queued narration and preserves progress.
 - If no supporting source chunk exists, the system refuses to invent textbook content.
 - Tests cover English and Tanglish text, short/long audio segments, failed TTS, pause/resume, interruption, and missing visual targets.
+
+
+## Implementation status (2026-10-20)
+
+Implemented in the repository:
+- `POST /tutor/lesson-plan` retrieves from the saved curriculum database and returns short structured segments.
+- Retrieval results now include stable chunk IDs; every segment must cite retrieved chunk IDs, and invalid model output is rejected.
+- Visual actions are schema-limited to an allowlist; arbitrary model-generated code is not executed.
+- The Android tutor has a **Teach live** action, requests the segment plan, speaks segments sequentially using the existing Gemini TTS endpoint (with device TTS fallback), and updates the current phrase and interactive concept lab when speech actually starts.
+- Backend tests for segment validation and no-source safe-stop passed in GitHub Actions at commit `36994b7fd652d82f9244d8f49f0de51b068f3ca6`.
+
+Known limitations before release:
+- Phrase-level captions are synchronized to playback start; exact word-level timestamps are not implemented.
+- The visual lab is selected from the current chapter/topic and changes with the spoken segment. The returned visual action is currently shown as a cue; a deterministic per-blueprint renderer that executes each allowed action against stable diagram target IDs is the next visual-engine step.
+- Pause/resume and interruption recovery are not yet implemented for the multi-segment live lesson.
+- The latest Android APK build for the callback synchronization changes is still running in GitHub Actions. The Render service's latest recorded live deployment predates the new lesson-plan endpoint, so the endpoint must be deployed and smoke-tested before the live button can work in the installed app.

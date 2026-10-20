@@ -10,6 +10,11 @@ on:
 permissions:
   contents: read
 
+# Keep only the newest emulator run for this branch; cold Android emulators are expensive.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   emulator-smoke:
     runs-on: ubuntu-latest

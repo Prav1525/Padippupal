@@ -1436,6 +1436,14 @@ internal fun TutorScreen(
         if (lastIndex > 0) chatListState.animateScrollToItem(lastIndex - 1)
     }
 
+    // Keep the currently spoken teaching passage in view. This is a separate
+    // effect from new chat messages so the live lesson follows each spoken segment.
+    LaunchedEffect(liveCaption, speechActive, awaitingUnderstanding, liveLessonActive) {
+        if (liveLessonActive && (liveCaption.isNotBlank() || awaitingUnderstanding)) {
+            chatListState.animateScrollToItem(0)
+        }
+    }
+
     Column(
         modifier = modifier.fillMaxSize().background(TutorPaper).imePadding(),
         verticalArrangement = Arrangement.spacedBy(0.dp)

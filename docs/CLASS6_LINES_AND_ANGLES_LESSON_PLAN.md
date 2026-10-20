@@ -1,6 +1,6 @@
 # PadippuPal Class 6 Maths Pilot: Lines and Angles
 
-Curriculum source: NCERT Ganita Prakash, Grade 6 Mathematics, English medium, Reprint 2026-27, Chapter 2, Lines and Angles (stored in PadippuPal as fegp102.pdf).
+Curriculum source: NCERT *Ganita Prakash*, Grade 6 Mathematics, English medium, Reprint 2026-27, Chapter 2, “Lines and Angles.” Verified against the official NCERT PDF: https://ncert.nic.in/textbook/pdf/fegp1ps.pdf (contents identify Chapter 2 as Lines and Angles). This file is an original teaching plan, not a copy of the textbook. Keep the textbook linked to NCERT; do not ingest or redistribute its full text without the required permission/legal review.
 
 ## Outcomes
 The learner identifies points, line segments, lines and rays; identifies the vertex and arms of an angle; compares angles by their opening; recognises the angle categories taught in the chapter; and practises measuring/drawing angles where covered in the chapter.

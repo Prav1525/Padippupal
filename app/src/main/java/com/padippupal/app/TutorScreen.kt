@@ -1145,7 +1145,7 @@ internal fun TutorScreen(
                 require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
-                    .put("message", "Teach the selected concept as a short interactive live lesson. Start with the first idea.").put("max_segments", 5)
+                    .put("message", "Begin by explicitly introducing the selected chapter and topic to the student. Say that today we will study chapter " + chapter + " and topic " + topic + ". Then explain concepts in a logical order using simple child-friendly language and a familiar everyday example. Ask one short check question only after explaining.").put("max_segments", 5)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"; connection.connectTimeout = 8000; connection.readTimeout = 50000
                 connection.setRequestProperty("Accept", "application/json"); connection.setRequestProperty("Content-Type", "application/json; charset=utf-8"); connection.doOutput = true

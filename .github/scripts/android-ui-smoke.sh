@@ -12,6 +12,8 @@ capture_diagnostics() {
     adb -s emulator-5554 logcat -d > ui-screenshots/logcat.txt 2>&1 || true
     adb -s emulator-5554 shell dumpsys activity activities > ui-screenshots/activities.txt 2>&1 || true
     adb -s emulator-5554 shell dumpsys window > ui-screenshots/windows.txt 2>&1 || true
+    adb -s emulator-5554 shell dumpsys connectivity > ui-screenshots/connectivity.txt 2>&1 || true
+    adb -s emulator-5554 logcat -d -s System.err AndroidRuntime OkHttp OkHttpClient TrafficStats NetworkSecurityConfig > ui-screenshots/network-errors.txt 2>&1 || true
   fi
   if [ "$rc" -ne 0 ]; then log "RESULT: FAIL (exit $rc)"; else log "RESULT: PASS"; fi
   exit "$rc"
@@ -74,6 +76,7 @@ sleep 2
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-profile settings.xml | tee -a "$REPORT"
 
 log "Loading the real Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
@@ -81,14 +84,18 @@ sleep 10
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml
 python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml | tee -a "$REPORT"
+# Wait for asynchronous API fetches and fail with the visible UI state, not a
+# generic empty-list assertion. Network and app diagnostics are captured on exit.
 python3 .github/scripts/ui_smoke.py tap chapter-options.xml "Choose chapter"
 sleep 2
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-menu.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-menu.xml chapter-menu.xml
-python3 .github/scripts/ui_smoke.py tap-numbered chapter-menu.xml 2
+python3 .github/scripts/ui_smoke.py assert-chapter-one chapter-menu.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap-numbered chapter-menu.xml 1
 sleep 3
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
+python3 .github/scripts/ui_smoke.py assert-selected-chapter chapter-selected.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Choose concept"
 sleep 2
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml

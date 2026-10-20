@@ -207,7 +207,7 @@ def _key_pdf(req, questions, total, book_count, inside_count):
             Paragraph(f"<b>{i}. {_safe(q['question'])}</b> <b>[{q['marks']} marks]</b>", st["QText"]),
             Paragraph(f"<b>Chapter:</b> {_safe(q['chapter'])}", st["SmallNote"]),
             Paragraph(f"<b>Model answer:</b> {_safe(q['answer'])}", st["QText"]),
-            Paragraph("<b>Marking guidance:</b> Award marks for the correct key idea(s) in the answer. Divide marks fairly across the valid points; accept scientifically equivalent wording and appropriate examples. Do not require memorised wording.", st["SmallNote"]),
+            Paragraph(f"<b>Suggested mark-wise rubric ({q['marks']} marks):</b> " + (("1 mark for the correct fact, term or result." if q["marks"] == 1 else "Award up to 1 mark for each distinct correct point or a correct point plus a suitable explanation/example; maximum 2 marks." if q["marks"] == 2 else "Award up to 1 mark for each distinct correct point, explanation or valid example; maximum 3 marks." if q["marks"] == 3 else "Award credit for each correct required step; maximum " + str(q["marks"]) + " marks.")) + " Accept scientifically equivalent wording and appropriate examples. Do not require memorised wording.", st["SmallNote"]),
             Spacer(1, 3*mm)]))
     story += [PageBreak(), Paragraph("PARENT SCORE SHEET", st["ExamTitle"]),
               Paragraph(f"Student: {_safe(req.student_name or '____________________________')} &nbsp;&nbsp; Date: ______________", st["Normal"]),

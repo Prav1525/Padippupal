@@ -89,6 +89,26 @@ def tap_bounds(path, bounds, label):
     print("Tap", repr(label), "bounds", bounds, "scale", round(sx, 3), round(sy, 3), "=>", x, y)
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
 
+def tap_bounds(path, bounds, label):
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("Invalid bounds for " + label + ": " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    nodes, _ = load(path)
+    parsed = [re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds", "")) for n in nodes]
+    parsed = [m for m in parsed if m]
+    max_x = max((int(m.group(3)) for m in parsed), default=0)
+    max_y = max((int(m.group(4)) for m in parsed), default=0)
+    size = subprocess.check_output(["adb", "-s", "emulator-5554", "shell", "wm", "size"], text=True)
+    found = re.search(r"(?:Physical|Override) size:\\s*(\\d+)x(\\d+)", size)
+    sx = sy = 1.0
+    if found and max_x > 0 and max_y > 0:
+        sw, sh = map(int, found.groups())
+        sx, sy = sw / max_x, sh / max_y
+    x, y = round((x1+x2)/2*sx), round((y1+y2)/2*sy)
+    print("Tapping", label, "at", (x,y), "scale", (round(sx,2),round(sy,2)))
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
+
 def tap_numbered(path, number):
     nodes, texts = load(path)
     candidates = []

@@ -2,7 +2,7 @@ name: Android UI smoke test
 
 on:
   push:
-    branches: ["main", "feature/gentle-ai-tutor"]
+    branches: ["main", "feature/gentle-ai-tutor", "fix/android-emulator-smoke"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
@@ -13,7 +13,7 @@ permissions:
 # Keep only the newest emulator run for this branch; cold Android emulators are expensive.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   emulator-smoke:
@@ -45,15 +45,32 @@ jobs:
           bash -n .github/scripts/android-ui-smoke.sh
           python3 -m py_compile .github/scripts/ui_smoke.py
 
+      - name: Enable KVM for Android emulator
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm
+            ls -l /dev/kvm
+            if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+              echo "KVM device is accessible."
+            else
+              echo "::warning::KVM exists but is not accessible; emulator may fall back to software emulation."
+            fi
+          else
+            echo "::warning::/dev/kvm is not present on this runner; emulator may be very slow or fail to boot."
+          fi
+
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 33
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
           disable-animations: true
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 240
+          disable-spellchecker: true
           script: bash .github/scripts/android-ui-smoke.sh
 
       - name: Upload emulator screenshots, UI trees, and diagnostics

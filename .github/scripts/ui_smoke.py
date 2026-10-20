@@ -68,6 +68,18 @@ def assert_chapter_button(path):
         raise SystemExit("Chapter list did not load or the Choose chapter control is disabled")
     print("PASS: Mathematics chapter list loaded and can be opened")
 
+
+def tap_bounds(path, bounds, label):
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("Invalid accessibility bounds for " + label + ": " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    # UiAutomator bounds in this emulator are already physical screen pixels.
+    # Do not scale to wm size: that moved the bottom-tab tap into the system bar.
+    x, y = round((x1+x2)/2), round((y1+y2)/2)
+    print("Tap", repr(label), "bounds", bounds, "using raw screen center =>", x, y)
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
+
 def tap_numbered(path, number):
     nodes, texts = load(path)
     candidates = []
@@ -83,10 +95,7 @@ def tap_numbered(path, number):
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("First chapter option has invalid bounds: " + bounds)
-    x1, y1, x2, y2 = map(int, match.groups())
-    print("Selecting first chapter option:", node.attrib.get("text"), bounds)
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
-                   check=True, timeout=45)
+    tap_bounds(path, bounds, "chapter " + node.attrib.get("text", str(number)))
 
 def tap_first_concept(path):
     nodes, texts = load(path)
@@ -104,10 +113,7 @@ def tap_first_concept(path):
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("First concept has invalid bounds: " + bounds)
-    x1, y1, x2, y2 = map(int, match.groups())
-    print("Selecting first real concept option:", node.attrib.get("text"), bounds)
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
-                   check=True, timeout=45)
+    tap_bounds(path, bounds, "concept " + node.attrib.get("text", ""))
 
 def assert_live(path):
     _, texts = load(path)
@@ -146,23 +152,34 @@ def assert_highlight_frames(directory):
 
 def tap(path, target):
     nodes, texts = load(path)
-    candidates = []
-    for node in nodes:
-        text = node.attrib.get("text", "").strip()
-        if target.lower() in text.lower():
-            candidates.append(node)
+    # Prefer an exact accessibility label. Substring matching is dangerous for
+    # short targets like "You": it matched the home-page sentence "You don't
+    # have to learn..." instead of the bottom navigation tab.
+    exact = [n for n in nodes if n.attrib.get("text", "").strip().casefold() == target.casefold()
+             or n.attrib.get("content-desc", "").strip().casefold() == target.casefold()]
+    candidates = exact or [
+        n for n in nodes
+        if target.casefold() in n.attrib.get("text", "").strip().casefold()
+        or target.casefold() in n.attrib.get("content-desc", "").strip().casefold()
+    ]
     if not candidates:
         raise SystemExit(f"Could not find target text {target!r}; visible labels: {' | '.join(texts[:100])}")
-    node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
+    # If the label itself isn't clickable, prefer a clickable node with the
+    # smallest bounds, avoiding a large unrelated parent container.
+    clickable = [n for n in candidates if n.attrib.get("clickable") == "true"]
+    if clickable:
+        def area(node):
+            m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
+            return (int(m.group(3)) - int(m.group(1))) * (int(m.group(4)) - int(m.group(2))) if m else 10**18
+        node = min(clickable, key=area)
+    else:
+        node = candidates[0]
     bounds = node.attrib.get("bounds", "")
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit(f"Target {target!r} has invalid accessibility bounds: {bounds!r}")
-    x1, y1, x2, y2 = map(int, match.groups())
-    x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    print(f"Tapping {target!r} at ({x}, {y}), bounds={bounds}, clickable={node.attrib.get('clickable')}")
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
-                   check=True, timeout=45)
+    print("Selected UI node:", repr(node.attrib.get("text", "")), "content-desc:", repr(node.attrib.get("content-desc", "")), "clickable:", node.attrib.get("clickable"), "bounds:", bounds)
+    tap_bounds(path, bounds, target)
 
 def main():
     if len(sys.argv) < 3:

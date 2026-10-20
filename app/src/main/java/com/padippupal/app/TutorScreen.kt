@@ -1218,198 +1218,184 @@ internal fun TutorScreen(
         }
     }
 
+    var showLessonSettings by remember { mutableStateOf(false) }
+    val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(messages.size, loading) {
+        val lastIndex = messages.size + if (loading) 1 else 0
+        if (lastIndex > 0) chatListState.animateScrollToItem(lastIndex - 1)
+    }
+
     Column(
-        modifier = modifier.fillMaxSize().background(TutorPaper).padding(horizontal = 16.dp).imePadding(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.fillMaxSize().background(TutorPaper).imePadding(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
+        // Compact, persistent header
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
-            Column(Modifier.weight(1f)) {
-                Text("Your AI study buddy", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep, maxLines = 1)
-                Text("Class $grade · $board", fontSize = 11.sp, color = TutorGrey)
-                if (savedSession.optJSONArray("messages") != null && messages.size > 1) {
-                    Text("Today's lesson restored", fontSize = 10.sp, color = TutorGreen)
-                }
-            }
-            Icon(Icons.Default.GraphicEq, contentDescription = "Voice tutor", tint = TutorGreen, modifier = Modifier.size(30.dp))
-        }
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = TutorGreen,
-            shape = RoundedCornerShape(22.dp),
-            shadowElevation = 4.dp
-        ) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(Modifier.size(42.dp).background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("Talk or type to learn", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    Text("English, Tanglish or Tamil", fontSize = 11.sp, color = Color.White.copy(alpha = 0.9f))
-                }
-                if (listening) CircularProgressIndicator(Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
-                else Icon(Icons.Default.Mic, contentDescription = "Voice input available", tint = Color.White, modifier = Modifier.size(26.dp))
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("1 · Choose a subject", color = TutorGrey, fontSize = 12.sp)
-            Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(7.dp)
-            ) {
-                listOf("Mathematics", "Science", "English", "Tamil", "Social Science", "Computer Science", "General").forEach { option ->
-                    FilterChip(
-                        selected = subject == option,
-                        onClick = { if (subject != option) subject = option },
-                        label = { Text(option, fontSize = 11.sp) }
-                    )
-                }
-            }
-            Box(Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = { chapterMenuExpanded = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !outlineLoading && chapterOptions.isNotEmpty(),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 15.dp)
-                ) {
-                    Text(
-                        if (chapter.isBlank()) "2 · Choose a chapter" else chapter,
-                        modifier = Modifier.weight(1f),
-                        color = if (chapter.isBlank()) TutorGrey else TutorDeep,
-                        maxLines = 2
-                    )
-                    Icon(Icons.Default.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
-                }
-                DropdownMenu(
-                    expanded = chapterMenuExpanded,
-                    onDismissRequest = { chapterMenuExpanded = false },
-                    modifier = Modifier.fillMaxWidth(.9f).heightIn(max = 340.dp)
-                ) {
-                    chapterOptions.forEachIndexed { index, option ->
-                        DropdownMenuItem(
-                            text = { Text("${index + 1}. ${option.first}", maxLines = 2) },
-                            onClick = {
-                                chapter = option.first
-                                topic = ""
-                                chapterMenuExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-            if (outlineLoading) {
-                LinearProgressIndicator(Modifier.fillMaxWidth(), color = TutorGreen)
-            } else if (chapterOptions.isEmpty() && subject != "General") {
-                Text("No chapter list is available yet for this subject and class.", color = TutorGrey, fontSize = 11.sp)
-            }
-            val topicOptions = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
-            Box(Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = { topicMenuExpanded = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = chapter.isNotBlank() && topicOptions.isNotEmpty(),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 15.dp)
-                ) {
-                    Text(
-                        if (topic.isBlank()) "3 · Choose a concept" else topic,
-                        modifier = Modifier.weight(1f),
-                        color = if (topic.isBlank()) TutorGrey else TutorDeep,
-                        maxLines = 2
-                    )
-                }
-                DropdownMenu(
-                    expanded = topicMenuExpanded,
-                    onDismissRequest = { topicMenuExpanded = false },
-                    modifier = Modifier.fillMaxWidth(.9f).heightIn(max = 340.dp)
-                ) {
-                    topicOptions.forEachIndexed { index, topicTitle ->
-                        DropdownMenuItem(
-                            text = { Text("${index + 1}. $topicTitle", maxLines = 2) },
-                            onClick = {
-                                topic = topicTitle
-                                topicMenuExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text("Explain in", color = TutorGrey, fontSize = 12.sp)
-            listOf("English", "Tanglish", "தமிழ்").forEach { option ->
-                FilterChip(
-                    selected = selectedLanguage == option,
-                    onClick = { selectedLanguage = option },
-                    label = { Text(option, fontSize = 11.sp) }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TutorDeep) }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("PadippuPal Tutor", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep, maxLines = 1)
+                Text(
+                    if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "Class $grade · $board",
+                    fontSize = 11.sp, color = TutorGrey, maxLines = 1
                 )
             }
-        }
-        Button(onClick = { if (liveLessonActive) stopLiveLesson() else startLiveLesson() }, enabled = !loading, modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = if (liveLessonActive) Color(0xFF9E3D35) else TutorGreen)) {
-            Text(if (liveLessonActive) "Stop live lesson" else "▶ Teach live")
-        }
-        if (liveCaption.isNotBlank()) {
-            Surface(Modifier.fillMaxWidth(), color = Color(0xFFEAF5EE), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Color(0xFFD1E7D8))) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text("TEACHER IS SAYING", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Text(liveCaption, color = TutorDeep, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold)
-                    if (liveVisualAction.isNotBlank()) Text("Visual cue · $liveVisualAction", color = TutorGrey, fontSize = 11.sp)
-                    InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
+            Surface(color = if (liveLessonActive) Color(0xFFDDF4A8) else Color(0xFFE7EFE8), shape = CircleShape) {
+                Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Box(Modifier.size(7.dp).background(if (liveLessonActive) TutorGreen else TutorGrey, CircleShape))
+                    Text(if (liveLessonActive) "LIVE" else "READY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TutorDeep)
                 }
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Read replies aloud", modifier = Modifier.weight(1f), color = TutorDeep, fontSize = 13.sp)
-            Switch(checked = speakReplies, onCheckedChange = { speakReplies = it })
-            IconButton(onClick = {
-                val lastAnswer = messages.lastOrNull { it.role == "assistant" }?.content
-                if (lastAnswer != null) speak(lastAnswer)
-            }) {
-                Icon(if (speakReplies) Icons.Default.VolumeUp else Icons.Default.VolumeOff, contentDescription = "Speak latest reply", tint = TutorGreen)
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Prefer on-device voice", color = TutorDeep, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Text("Uses your phone's selected TTS engine (Kokoro when installed)", color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp)
-            }
-            Switch(
-                checked = preferOnDeviceVoice,
-                onCheckedChange = { enabled ->
-                    preferOnDeviceVoice = enabled
-                    context.getSharedPreferences("padippupal_settings", 0).edit()
-                        .putBoolean("prefer_on_device_voice", enabled).apply()
-                    status = if (enabled) {
-                        "On-device voice enabled. Install and select Sherpa-ONNX Kokoro in Android text-to-speech settings."
-                    } else {
-                        "Hosted natural voice enabled when available."
+        // Keep the lesson controls concise; the full selection panel is expandable.
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            color = Color.White,
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2EAE3))
+        ) {
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            listOf(subject, chapter, topic).filter { it.isNotBlank() && it != "General" }.joinToString("  ·  ").ifBlank { "Choose what to learn" },
+                            color = TutorDeep, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2
+                        )
+                        Text("Explain in $selectedLanguage", color = TutorGrey, fontSize = 10.sp)
+                    }
+                    TextButton(onClick = { showLessonSettings = !showLessonSettings }) {
+                        Text(if (showLessonSettings) "Done" else "Change", color = TutorGreen, fontWeight = FontWeight.SemiBold)
+                    }
+                    Button(
+                        onClick = { if (liveLessonActive) stopLiveLesson() else startLiveLesson() },
+                        enabled = !loading && (liveLessonActive || chapter.isNotBlank() || topic.isNotBlank()),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (liveLessonActive) Color(0xFF9E3D35) else TutorGreen),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text(if (liveLessonActive) "Stop" else "▶ Teach", fontSize = 12.sp)
                     }
                 }
-            )
+                if (showLessonSettings) {
+                    Divider(color = Color(0xFFE7EEE8))
+                    Text("SUBJECT", color = TutorGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("Mathematics", "Science", "English", "Tamil", "Social Science", "Computer Science", "General").forEach { option ->
+                            FilterChip(
+                                selected = subject == option,
+                                onClick = { if (subject != option) subject = option },
+                                label = { Text(option, fontSize = 11.sp) }
+                            )
+                        }
+                    }
+                    Box(Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { chapterMenuExpanded = true }, modifier = Modifier.fillMaxWidth(),
+                            enabled = !outlineLoading && chapterOptions.isNotEmpty(),
+                            shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            Text(if (chapter.isBlank()) "Choose chapter" else chapter, modifier = Modifier.weight(1f), color = TutorDeep, maxLines = 2)
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Choose chapter", modifier = Modifier.size(16.dp))
+                        }
+                        DropdownMenu(expanded = chapterMenuExpanded, onDismissRequest = { chapterMenuExpanded = false }, modifier = Modifier.fillMaxWidth(.9f).heightIn(max = 300.dp)) {
+                            chapterOptions.forEachIndexed { index, option ->
+                                DropdownMenuItem(text = { Text("${index + 1}. ${option.first}", maxLines = 2) }, onClick = {
+                                    chapter = option.first; topic = ""; chapterMenuExpanded = false
+                                })
+                            }
+                        }
+                    }
+                    val topicOptions = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
+                    Box(Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { topicMenuExpanded = true }, modifier = Modifier.fillMaxWidth(),
+                            enabled = chapter.isNotBlank() && topicOptions.isNotEmpty(),
+                            shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            Text(if (topic.isBlank()) "Choose concept" else topic, modifier = Modifier.weight(1f), color = TutorDeep, maxLines = 2)
+                        }
+                        DropdownMenu(expanded = topicMenuExpanded, onDismissRequest = { topicMenuExpanded = false }, modifier = Modifier.fillMaxWidth(.9f).heightIn(max = 300.dp)) {
+                            topicOptions.forEachIndexed { index, topicTitle ->
+                                DropdownMenuItem(text = { Text("${index + 1}. $topicTitle", maxLines = 2) }, onClick = {
+                                    topic = topicTitle; topicMenuExpanded = false
+                                })
+                            }
+                        }
+                    }
+                    if (outlineLoading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = TutorGreen)
+                    else if (chapterOptions.isEmpty() && subject != "General") Text("No chapter list is available yet for this subject and class.", color = TutorGrey, fontSize = 11.sp)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Language", color = TutorGrey, fontSize = 11.sp)
+                        listOf("English", "Tanglish", "தமிழ்").forEach { option ->
+                            FilterChip(selected = selectedLanguage == option, onClick = { selectedLanguage = option }, label = { Text(option, fontSize = 11.sp) })
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Read replies aloud", color = TutorDeep, fontSize = 12.sp)
+                            Text("Natural voice when available", color = TutorGrey, fontSize = 10.sp)
+                        }
+                        Switch(checked = speakReplies, onCheckedChange = { speakReplies = it })
+                        IconButton(onClick = {
+                            val lastAnswer = messages.lastOrNull { it.role == "assistant" }?.content
+                            if (lastAnswer != null) speak(lastAnswer)
+                        }) { Icon(if (speakReplies) Icons.Default.VolumeUp else Icons.Default.VolumeOff, contentDescription = "Speak latest reply", tint = TutorGreen) }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Prefer on-device voice", color = TutorDeep, fontSize = 12.sp)
+                            Text("Uses your selected phone TTS engine (Kokoro if installed)", color = TutorGrey, fontSize = 10.sp)
+                        }
+                        Switch(checked = preferOnDeviceVoice, onCheckedChange = { enabled ->
+                            preferOnDeviceVoice = enabled
+                            context.getSharedPreferences("padippupal_settings", 0).edit().putBoolean("prefer_on_device_voice", enabled).apply()
+                            status = if (enabled) "On-device voice enabled. Select Sherpa-ONNX Kokoro in Android text-to-speech settings." else "Hosted natural voice enabled when available."
+                        })
+                    }
+                }
+            }
         }
+
+        // A compact live caption stays visible above the conversation while each segment plays.
+        if (liveCaption.isNotBlank() || liveLessonActive) {
+            Surface(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 7.dp),
+                color = Color(0xFFEAF5EE), shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+            ) {
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LAST SPOKEN SEGMENT", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.weight(1f))
+                        if (liveLessonActive) {
+                            Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
+                        }
+                    }
+                    if (liveCaption.isNotBlank()) Text(liveCaption, color = TutorDeep, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.Medium)
+                    if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
+                    if (liveCaption.isNotBlank()) {
+                        InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
+                    } else if (loading) {
+                        LinearProgressIndicator(Modifier.fillMaxWidth(), color = TutorGreen)
+                    }
+                }
+            }
+        }
+
+        // The chat owns the flexible space and scrolls independently of the fixed composer.
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(vertical = 6.dp)
+            state = chatListState,
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
+            contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp)
         ) {
             items(messages) { message ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = if (message.role == "user") Arrangement.End else Arrangement.Start
-                ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = if (message.role == "user") Arrangement.End else Arrangement.Start) {
                     Surface(
                         color = if (message.role == "user") TutorGreen else Color.White,
                         shape = RoundedCornerShape(
@@ -1418,15 +1404,11 @@ internal fun TutorScreen(
                             bottomEnd = if (message.role == "user") 5.dp else 18.dp
                         ),
                         shadowElevation = 1.dp,
-                        modifier = Modifier.widthIn(max = 320.dp)
+                        border = if (message.role == "assistant") BorderStroke(1.dp, Color(0xFFE5ECE6)) else null,
+                        modifier = Modifier.widthIn(max = 340.dp)
                     ) {
                         Column(Modifier.padding(14.dp)) {
-                            Text(
-                                message.content,
-                                color = if (message.role == "user") Color.White else TutorDeep,
-                                fontSize = 15.sp,
-                                lineHeight = 23.sp
-                            )
+                            Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
                             if (message.role == "assistant") {
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
                                 if (message.content == latestAssistant?.content && message.interactiveLesson != null) {
@@ -1441,66 +1423,68 @@ internal fun TutorScreen(
             }
             if (loading) {
                 item {
-                    Surface(color = Color.White, shape = RoundedCornerShape(16.dp)) {
+                    Surface(color = Color.White, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFE5ECE6))) {
                         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
-                            Text("  Let's work it out together…", color = TutorGrey, fontSize = 13.sp)
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
+                            Text("  Your tutor is preparing an explanation…", color = TutorGrey, fontSize = 13.sp)
                         }
                     }
                 }
             }
         }
-        if (status.isNotBlank()) Text(status, color = TutorGrey, fontSize = 11.sp, lineHeight = 15.sp)
+
+        if (status.isNotBlank()) {
+            Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)
+        }
         if (lastSources.isNotEmpty()) {
-            Text("Curriculum: " + lastSources.joinToString { it.title }, color = TutorGreen, fontSize = 10.sp, maxLines = 2)
+            Text("Textbook sources · " + lastSources.joinToString { it.title }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGreen, fontSize = 10.sp, maxLines = 1)
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+
+        // Fixed composer: independent from chat scrolling and responsive to the IME.
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White,
+            shadowElevation = 8.dp
         ) {
-            OutlinedTextField(
-                value = input,
-                onValueChange = { input = it },
-                modifier = Modifier.weight(1f).heightIn(min = 54.dp, max = 124.dp),
-                placeholder = { Text("Type a question or tap the mic…") },
-                shape = RoundedCornerShape(18.dp),
-                minLines = 1,
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { sendMessage() })
-            )
-            FilledIconButton(
-                onClick = {
-                    if (listening) {
-                        speechRecognizer?.stopListening()
-                        listening = false
-                    } else if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                        startVoiceInput()
-                    } else {
-                        voicePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    }
-                },
-                enabled = !loading,
-                modifier = Modifier.size(52.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = if (listening) Color(0xFFB3261E) else TutorGreen,
-                    contentColor = Color.White
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp, max = 112.dp),
+                    placeholder = { Text("Ask your teacher…", fontSize = 14.sp) },
+                    shape = RoundedCornerShape(20.dp),
+                    minLines = 1,
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { sendMessage() }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = TutorGreen,
+                        unfocusedBorderColor = Color(0xFFD7E2D9),
+                        focusedContainerColor = Color(0xFFFBFDFB),
+                        unfocusedContainerColor = Color(0xFFFBFDFB)
+                    )
                 )
-            ) {
-                Icon(if (listening) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = if (listening) "Stop voice input" else "Ask by voice")
+                FilledIconButton(
+                    onClick = {
+                        if (listening) { speechRecognizer?.stopListening(); listening = false }
+                        else if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startVoiceInput()
+                        else voicePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    },
+                    enabled = !loading,
+                    modifier = Modifier.size(50.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (listening) Color(0xFFB3261E) else Color(0xFFE7F1E9), contentColor = if (listening) Color.White else TutorGreen)
+                ) {
+                    Icon(if (listening) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = if (listening) "Stop voice input" else "Ask by voice")
+                }
+                FilledIconButton(
+                    onClick = { sendMessage() }, enabled = !loading && input.isNotBlank(), modifier = Modifier.size(50.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = TutorGreen, contentColor = Color.White)
+                ) { Icon(Icons.Default.Send, contentDescription = "Send question") }
             }
-            FilledIconButton(
-                onClick = { sendMessage() },
-                enabled = !loading && input.isNotBlank(),
-                modifier = Modifier.size(52.dp)
-            ) {
-                Icon(Icons.Default.Send, contentDescription = "Send question")
-            }
-        }
-        if (!voiceReady) {
-            Text("Voice replies use Gemini when available; voice input uses your phone's speech service.", color = TutorGrey, fontSize = 10.sp)
         }
     }
-}
-}
+}}

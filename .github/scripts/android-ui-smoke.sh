@@ -64,9 +64,29 @@ python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 
 log "Set test profile to Class 6 CBSE, English medium"
 python3 .github/scripts/ui_smoke.py tap home.xml "You"
-sleep 2
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/profile.xml
-"${ADB[@]}" pull /data/local/tmp/profile.xml profile.xml
+# Never assume a tap worked. Poll the accessibility tree for the expected
+# destination and retry the tap once only if Home is still visible.
+profile_ready=0
+for attempt in $(seq 1 6); do
+  sleep 2
+  if dump_ui /data/local/tmp/profile.xml profile.xml; then
+    if grep -Eiq 'Edit student details|Student details|Your details' profile.xml; then
+      profile_ready=1
+      log "PASS: profile screen detected after tapping You (attempt $attempt)"
+      break
+    fi
+    if [ "$attempt" -eq 3 ]; then
+      log "Profile did not open; retrying the You tab once using a fresh UI tree"
+      python3 .github/scripts/ui_smoke.py tap home.xml "You"
+    fi
+  fi
+done
+if [ "$profile_ready" -ne 1 ]; then
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/profile-navigation-failed.png || true
+  log "FAIL: tapping You did not navigate to profile; current UI tree follows"
+  cat profile.xml 2>/dev/null | head -c 12000 | tee -a "$REPORT" || true
+  exit 1
+fi
 python3 .github/scripts/ui_smoke.py tap profile.xml "Edit student details"
 sleep 2
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/setup.xml

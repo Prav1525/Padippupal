@@ -1791,7 +1791,7 @@ internal fun TutorScreen(
                                             contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
                                         ) { Text("I understand", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
                                         TextButton(
-                                            onClick = sendMessage("Please explain the last idea more simply, in smaller steps, with an example."),
+                                            onClick = { sendMessage("Please explain the last idea more simply, in smaller steps, with an example.") },
                                             contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
                                         ) { Text("Explain again", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
                                         TextButton(

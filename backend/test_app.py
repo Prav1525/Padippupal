@@ -145,7 +145,7 @@ def test_lines_and_angles_blueprints_are_specific_and_interactive():
     assert len(segment["steps"]) == 3
     assert "two endpoints" in segment["steps"][0]["text"]
     comparison = lessons["mathematics-lines-and-angles-comparing-angles"]
-    assert "arm length" in comparison["steps"][1]["text"]
+    assert "arm longer" in comparison["steps"][1]["text"]
     classifier = lessons["mathematics-lines-and-angles-types-of-angles"]
     assert classifier["scene_type"] == "angle_classifier"
     assert "90 degrees" in classifier["steps"][1]["text"]

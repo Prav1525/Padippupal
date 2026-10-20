@@ -64,27 +64,30 @@ python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 
 log "Set test profile to Class 6 CBSE, English medium"
 python3 .github/scripts/ui_smoke.py tap home.xml "You"
-# Never assume a tap worked. Poll the accessibility tree for the expected
-# destination and retry the tap once only if Home is still visible.
+# Wait for a real profile-screen state instead of assuming a tap worked.
+# If Home remains visible, retry using a freshly captured accessibility tree.
 profile_ready=0
 for attempt in $(seq 1 6); do
-  sleep 2
-  if dump_ui /data/local/tmp/profile.xml profile.xml; then
-    if grep -Eiq 'Edit student details|Student details|Your details' profile.xml; then
-      profile_ready=1
-      log "PASS: profile screen detected after tapping You (attempt $attempt)"
-      break
-    fi
-    if [ "$attempt" -eq 3 ]; then
-      log "Profile did not open; retrying the You tab once using a fresh UI tree"
-      python3 .github/scripts/ui_smoke.py tap home.xml "You"
-    fi
+  dump_ui /data/local/tmp/profile.xml profile.xml
+  if grep -qi "Edit student details" profile.xml; then
+    profile_ready=1
+    log "PASS: profile screen became visible (attempt $attempt)"
+    break
   fi
+  log "Profile screen not visible after You tap (attempt $attempt/6)"
+  if grep -qi "YOUR LEARNING DESK" profile.xml; then
+    python3 .github/scripts/ui_smoke.py tap profile.xml "You" || true
+  fi
+  sleep 2
 done
 if [ "$profile_ready" -ne 1 ]; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/profile-navigation-failed.png || true
-  log "FAIL: tapping You did not navigate to profile; current UI tree follows"
-  cat profile.xml 2>/dev/null | head -c 12000 | tee -a "$REPORT" || true
+  python3 - <<'PY' | tee -a "$REPORT"
+import xml.etree.ElementTree as ET
+root=ET.parse("profile.xml").getroot()
+print("LAST SCREEN LABELS:", " | ".join(n.attrib.get("text","").strip() for n in root.iter("node") if n.attrib.get("text","").strip())[:2500])
+PY
+  log "FAIL: tapping You did not navigate to the profile screen"
   exit 1
 fi
 python3 .github/scripts/ui_smoke.py tap profile.xml "Edit student details"

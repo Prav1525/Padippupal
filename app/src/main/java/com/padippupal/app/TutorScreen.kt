@@ -53,6 +53,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.withStyle
+import kotlinx.coroutines.delay
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -679,6 +683,26 @@ private fun LessonVisual(explanation: String, subject: String) {
             }
         }
     }
+}
+
+@Composable
+private fun SpeakingCaption(text: String, active: Boolean, segmentKey: Int) {
+    val words = remember(text) { text.trim().split(Regex("\\\\s+")).filter { it.isNotBlank() } }
+    var currentWord by remember(text, segmentKey) { mutableIntStateOf(-1) }
+    LaunchedEffect(text, active, segmentKey) {
+        currentWord = if (active) 0 else -1
+        if (active && words.isNotEmpty()) {
+            val perWord = (24000L / words.size).coerceIn(180L, 650L)
+            for (i in words.indices) { currentWord = i; delay(perWord) }
+            currentWord = -1
+        }
+    }
+    Text(buildAnnotatedString {
+        words.forEachIndexed { index, word ->
+            if (index > 0) append(" ")
+            if (active && index == currentWord) withStyle(SpanStyle(background = Color(0xFFD8EACB), color = TutorDeep, fontWeight = FontWeight.Bold)) { append(word) } else append(word)
+        }
+    }, color = TutorDeep, fontSize = 16.sp, lineHeight = 24.sp)
 }
 
 @Composable

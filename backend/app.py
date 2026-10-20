@@ -795,6 +795,8 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
     # Include all curated textbook chapters, even if a lesson blueprint is not seeded yet.
     if board.strip().casefold() == "cbse" and class_level == 6:
         for chapter_title in ordered_titles:
+            if chapter_title not in chapter_names:
+                chapter_names.append(chapter_title)
             grouped.setdefault(chapter_title, [])
     chapters = [
         {"chapter_number": index + 1, "title": name,

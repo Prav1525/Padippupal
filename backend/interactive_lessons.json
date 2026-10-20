@@ -3,7 +3,7 @@
   "board": "CBSE",
   "class_level": 6,
   "academic_year": "2026-27",
-  "note": "Teacher-curated first-pass lesson blueprints. Mathematics chapter subtopics are aligned to the supplied NCERT Ganita Prakash Grade 6 2026–27 chapter PDFs; Science coverage is an initial concept map and should be checked against the official Curiosity textbook before being marked complete.",
+  "note": "Teacher-curated first-pass lesson blueprints for NCERT-aligned Grade 6 learning. Mathematics chapter names and first-pass subtopics are mapped to the official NCERT Ganita Prakash Grade 6 Reprint 2026-27 book; chapter-level review remains required. Science is an initial concept map and must be checked against the official Curiosity textbook before being marked complete. The official textbook remains hosted by NCERT; these blueprints do not include textbook text.",
   "lessons": [
     {
       "id": "science-the-wonderful-world-of-science-observation-and-fair-tests",
@@ -7371,5 +7371,25 @@
         "success_feedback": "Well done! Explain the clue that helped you decide."
       }
     }
-  ]
+  ],
+  "sources": {
+    "Mathematics": {
+      "textbook": "Ganita Prakash",
+      "class_level": 6,
+      "academic_year": "2026-27",
+      "official_url": "https://ncert.nic.in/textbook/pdf/fegp1ps.pdf",
+      "verification_status": "official_edition_and_chapter_titles_verified",
+      "rights_status": "restricted_do_not_ingest_or_redistribute_full_text_without_permission",
+      "notes": "The chapter names and first-pass lesson topics are teacher-curated against the official Grade 6 book. The blueprint is not a copy of textbook content. Exact lesson objectives and every subtopic still require chapter-level review before claiming full textbook coverage."
+    },
+    "Science": {
+      "textbook": "Curiosity",
+      "class_level": 6,
+      "academic_year": "2026-27",
+      "official_url": "https://ncert.nic.in/textbook.php?gesc1=1-10",
+      "verification_status": "official_catalogue_linked_chapter_level_review_pending",
+      "rights_status": "restricted_do_not_ingest_or_redistribute_full_text_without_permission",
+      "notes": "The current lesson set is an initial concept map. Verify each chapter title, scope, and learning objective against the exact official Grade 6 edition before marking it syllabus-verified."
+    }
+  }
 }

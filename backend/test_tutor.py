@@ -259,3 +259,24 @@ def test_chapter_matching_uses_the_stored_book_opening_not_other_chapters():
         "NCERT Curiosity Class 6 Science — Chapter PDF (fecu108.pdf)",
         "[Page 1] A Journey through States of Water8 Chapter On a bright summer afternoon...",
     )
+
+    assert curriculum.chapter_matches_source(
+        "Chapter 7: Fractions",
+        "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp107.pdf)",
+    )
+    assert curriculum.chapter_matches_source(
+        "Chapter 4",
+        "NCERT Curiosity Class 6 Science — Chapter PDF (fecu104.pdf)",
+    )
+    assert not curriculum.chapter_matches_source(
+        "Fractions",
+        "NCERT Ganita Prakash Class 6 Mathematics — Chapter PDF (fegp102.pdf)",
+    )
+    assert not curriculum.chapter_matches_source(
+        "Fractions",
+        "NCERT Ganita Prakash Class 6 Mathematics — Preliminary Pages",
+    )
+    assert not curriculum.chapter_matches_source(
+        "Fractions",
+        "Unmapped textbook PDF",
+    )

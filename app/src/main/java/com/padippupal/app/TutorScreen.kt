@@ -1273,7 +1273,7 @@ internal fun TutorScreen(
     LaunchedEffect(chapter, topic) {
         if (topic.isNotBlank() && messages.size == 1 && !loading) {
             sendMessage(
-                 "START LESSON as a warm, patient teacher. Begin by naming the chapter \\"$chapter\\" and topic \\"$topic\\" in the opening sentence. Say what we are going to learn, then preview 2-3 key ideas. Teach the first concept in small steps with a familiar everyday example, explain why it works, and ask one easy check question at the end. Do not jump straight into a question or write one dense paragraph. Use simple child-friendly spoken language in $selectedLanguage."
+                 "START LESSON as a warm, patient teacher. Begin by naming the chapter $chapter and topic $topic in the opening sentence. Say what we are going to learn, then preview 2-3 key ideas. Teach the first concept in small steps with a familiar everyday example, explain why it works, and ask one easy check question at the end. Do not jump straight into a question or write one dense paragraph. Use simple child-friendly spoken language in $selectedLanguage."
             )
         }
     }

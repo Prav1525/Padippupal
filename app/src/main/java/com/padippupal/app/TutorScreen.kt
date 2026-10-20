@@ -582,6 +582,9 @@ internal fun TutorScreen(
     var loading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
     var speakReplies by remember { mutableStateOf(true) }
+    var preferOnDeviceVoice by remember(context) {
+        mutableStateOf(context.getSharedPreferences("padippupal_settings", 0).getBoolean("prefer_on_device_voice", false))
+    }
     var speechActive by remember { mutableStateOf(false) }
     var voiceReady by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf(appLanguage) }
@@ -774,19 +777,23 @@ internal fun TutorScreen(
     }
 
     fun speakWithDeviceTts(text: String) {
-        status = "Gemini voice unavailable; using device voice."
-        val engine = ttsState.value ?: run { speechActive = false; return }
-        val locale = when (selectedLanguage) {
-            "Tanglish" -> Locale("en", "IN")
-            "தமிழ்" -> Locale("ta", "IN")
-            else -> Locale("en", "IN")
+        status = if (preferOnDeviceVoice) {
+            "Using this phone's TTS engine. Choose Sherpa-ONNX Kokoro in Android text-to-speech settings for local Kokoro speech."
+        } else {
+            "Natural voice unavailable; using this phone's TTS engine."
         }
-        val availability = engine.isLanguageAvailable(locale)
-        if (availability < TextToSpeech.LANG_AVAILABLE) {
+        val engine = ttsState.value ?: run { speechActive = false; return }
+        val candidateLocales = when (selectedLanguage) {
+            "Tanglish" -> listOf(Locale("en", "IN"), Locale.US)
+            "தமிழ்" -> listOf(Locale("ta", "IN"))
+            else -> listOf(Locale("en", "IN"), Locale.US)
+        }
+        val locale = candidateLocales.firstOrNull { engine.isLanguageAvailable(it) >= TextToSpeech.LANG_AVAILABLE }
+        if (locale == null) {
             status = if (selectedLanguage == "தமிழ்") {
-                "Natural voice unavailable and Tamil voice isn't installed on this phone."
+                "This selected voice engine has no Tamil voice. Choose Tanglish or install a Tamil-capable engine."
             } else {
-                "Natural voice unavailable and an Indian English voice isn't installed."
+                "No compatible English voice is available in the selected phone TTS engine."
             }
             speechActive = false
             return
@@ -802,6 +809,12 @@ internal fun TutorScreen(
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
         speechActive = true
+        // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
+        // through the user's selected system engine (e.g. Sherpa-ONNX Kokoro).
+        if (preferOnDeviceVoice) {
+            speakWithDeviceTts(text)
+            return
+        }
         val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
         if (!base.startsWith("https://")) {
             speakWithDeviceTts(text)
@@ -1100,6 +1113,25 @@ internal fun TutorScreen(
             }) {
                 Icon(if (speakReplies) Icons.Default.VolumeUp else Icons.Default.VolumeOff, contentDescription = "Speak latest reply", tint = TutorGreen)
             }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Prefer on-device voice", color = TutorDeep, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Uses your phone's selected TTS engine (Kokoro when installed)", color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp)
+            }
+            Switch(
+                checked = preferOnDeviceVoice,
+                onCheckedChange = { enabled ->
+                    preferOnDeviceVoice = enabled
+                    context.getSharedPreferences("padippupal_settings", 0).edit()
+                        .putBoolean("prefer_on_device_voice", enabled).apply()
+                    status = if (enabled) {
+                        "On-device voice enabled. Install and select Sherpa-ONNX Kokoro in Android text-to-speech settings."
+                    } else {
+                        "Hosted natural voice enabled when available."
+                    }
+                }
+            )
         }
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),

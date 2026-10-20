@@ -177,7 +177,7 @@ def _paper_pdf(req, questions, total):
     story = [Paragraph(_safe(req.school_name or "PadippuPal"), st["ExamTitle"]),
              Paragraph(_safe(req.exam_title), st["ExamTitle"]),
              Paragraph(f"Class {req.class_level} · {_safe(req.subject)} · {_safe(req.board)}", st["ExamSub"]),
-             Paragraph(f"Chapters: {_safe('; '.join(dict.fromkeys(q['chapter'] for q in questions))}", st["ExamSub"]),
+             Paragraph(f"Chapters: {_safe('; '.join(dict.fromkeys(q['chapter'] for q in questions)))}", st["ExamSub"]),
              Spacer(1, 5*mm)]
     student = req.student_name.strip() or "________________________________"
     story += [Paragraph(f"Name: {_safe(student)} &nbsp;&nbsp;&nbsp; Date: __________________", st["Normal"]),

@@ -72,3 +72,12 @@ def test_question_bank_has_complete_answers_and_honest_source_labels():
             assert marks > 0, (chapter, prompt)
             assert category in {"syllabus_practice_variant", "chapter_context_variant"}, (chapter, category)
             assert answer.strip(), (chapter, prompt)
+
+
+def test_exam_master_answers_use_precise_ncert_concepts():
+    from exam_master import BANK
+    materials_answer = next(q[3] for q in BANK["Materials Around Us"] if q[0].startswith("A shopkeeper uses transparent jars"))
+    constellation_answer = BANK["Beyond Earth"][0][3]
+    assert "see the contents clearly" in materials_answer
+    assert "defined region of the sky" in constellation_answer
+    assert not any("floats on water" in q[0] for q in BANK["Materials Around Us"])

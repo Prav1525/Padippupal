@@ -53,5 +53,7 @@ jobs:
             home.xml
             tutor.xml
             home-return.xml
+            feedback.xml
+            settings.xml
           if-no-files-found: warn
           retention-days: 14

@@ -74,7 +74,38 @@ sleep 2
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap settings.xml "Done"
+
+log "Loading the real Mathematics chapter list"
+python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
+sleep 10
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
+"${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml
+python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap chapter-options.xml "Choose chapter"
+sleep 2
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-menu.xml
+"${ADB[@]}" pull /data/local/tmp/chapter-menu.xml chapter-menu.xml
+python3 .github/scripts/ui_smoke.py tap-first-numbered chapter-menu.xml
+sleep 3
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
+"${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
+python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Done"
+sleep 3
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
+"${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
+python3 .github/scripts/ui_smoke.py tap ready-to-teach.xml "Teach"
+
+log "Recording live lesson frames to verify inline spoken-word highlighting"
+"${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
+"${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames
+"${ADB[@]}" shell 'i=0; while [ "$i" -lt 35 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done'
+"${ADB[@]}" pull /data/local/tmp/padippupal-live-frames ui-screenshots/live-frames
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-lesson.png
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml
+"${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml
+python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-highlight-frames live-lesson.xml ui-screenshots/live-frames | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-lesson.xml "Stop"
 sleep 2
 
 log "Testing Android back navigation to Home"

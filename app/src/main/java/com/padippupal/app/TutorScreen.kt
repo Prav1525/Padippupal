@@ -679,6 +679,11 @@ internal fun TutorScreen(
         mutableStateOf(context.getSharedPreferences("padippupal_settings", 0).getBoolean("prefer_on_device_voice", false))
     }
     var speechActive by remember { mutableStateOf(false) }
+    var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var liveCaption by remember { mutableStateOf("") }
+    var liveVisualAction by remember { mutableStateOf("") }
+    var liveLessonActive by remember { mutableStateOf(false) }
     var voiceReady by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf(savedSession.optString("language", appLanguage)) }
     var listening by remember { mutableStateOf(false) }
@@ -865,6 +870,13 @@ internal fun TutorScreen(
     val ttsState = remember { mutableStateOf<TextToSpeech?>(null) }
     val audioPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
 
+    fun finishSpeechSegment() {
+        speechActive = false
+        val callback = speechCompletion
+        speechCompletion = null
+        callback?.invoke()
+    }
+
     DisposableEffect(context) {
         val engine = TextToSpeech(context) { result ->
             tutorMainHandler.post { voiceReady = result == TextToSpeech.SUCCESS }
@@ -872,7 +884,7 @@ internal fun TutorScreen(
         engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {}
             override fun onDone(utteranceId: String?) {
-                tutorMainHandler.post { speechActive = false }
+                tutorMainHandler.post { finishSpeechSegment() }
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
@@ -889,13 +901,14 @@ internal fun TutorScreen(
         }
     }
 
-    fun speakWithDeviceTts(text: String) {
+    fun speakWithDeviceTts(text: String, onFinished: (() -> Unit)? = null) {
+        speechCompletion = onFinished
         status = if (preferOnDeviceVoice) {
             "Using this phone's TTS engine. Choose Sherpa-ONNX Kokoro in Android text-to-speech settings for local Kokoro speech."
         } else {
             "Natural voice unavailable; using this phone's TTS engine."
         }
-        val engine = ttsState.value ?: run { speechActive = false; return }
+        val engine = ttsState.value ?: run { finishSpeechSegment(); return }
         val candidateLocales = when (selectedLanguage) {
             "Tanglish" -> listOf(Locale("en", "IN"), Locale.US)
             "தமிழ்" -> listOf(Locale("ta", "IN"))
@@ -908,7 +921,7 @@ internal fun TutorScreen(
             } else {
                 "No compatible English voice is available in the selected phone TTS engine."
             }
-            speechActive = false
+            finishSpeechSegment()
             return
         }
         engine.language = locale
@@ -917,20 +930,21 @@ internal fun TutorScreen(
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
     }
 
-    fun speak(text: String) {
+    fun speak(text: String, onFinished: (() -> Unit)? = null) {
         // Auto-read and the manual speaker button must not launch overlapping
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
         speechActive = true
+        speechCompletion = onFinished
         // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
         // through the user's selected system engine (e.g. Sherpa-ONNX Kokoro).
         if (preferOnDeviceVoice) {
-            speakWithDeviceTts(text)
+            speakWithDeviceTts(text, onFinished)
             return
         }
         val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
         if (!base.startsWith("https://")) {
-            speakWithDeviceTts(text)
+            speakWithDeviceTts(text, onFinished)
             return
         }
         tutorExecutor.execute {
@@ -974,13 +988,13 @@ internal fun TutorScreen(
                                 it.release()
                                 if (audioPlayer.value === it) audioPlayer.value = null
                                 audioFile.delete()
-                                speechActive = false
+                                finishSpeechSegment()
                             }
                             player.setOnErrorListener { failedPlayer, _, _ ->
                                 failedPlayer.release()
                                 if (audioPlayer.value === failedPlayer) audioPlayer.value = null
                                 audioFile.delete()
-                                speakWithDeviceTts(text)
+                                speakWithDeviceTts(text, onFinished)
                                 true
                             }
                             player.prepare()
@@ -988,17 +1002,74 @@ internal fun TutorScreen(
                             status = "Speaking with Gemini natural voice."
                         }.onFailure {
                             audioFile.delete()
-                            speakWithDeviceTts(text)
+                            speakWithDeviceTts(text, onFinished)
                         }
                     },
                     onFailure = {
                         audioFile.delete()
                         status = "Gemini voice request failed; using device voice. Check network and voice service configuration."
-                        speakWithDeviceTts(text)
+                        speakWithDeviceTts(text, onFinished)
                     }
                 )
             }
         }
+    }
+
+    fun playLiveSegment(index: Int) {
+        if (!liveLessonActive) return
+        if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
+        val segment = liveSegments[index]
+        liveCaption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
+        val action = segment.optJSONObject("visual_action")
+        liveVisualAction = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
+        status = "Live lesson · segment ${index + 1} of ${liveSegments.size}"
+        val words = segment.optString("spoken_text").trim()
+        if (words.isBlank()) { playLiveSegment(index + 1); return }
+        speak(words) { if (liveLessonActive) playLiveSegment(index + 1) }
+    }
+
+    fun startLiveLesson() {
+        if (loading || liveLessonActive) return
+        if (chapter.isBlank() && topic.isBlank()) { status = "Choose a chapter or concept first."; return }
+        loading = true
+        status = "Preparing a textbook-grounded live lesson…"
+        tutorExecutor.execute {
+            val outcome = runCatching {
+                val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+                require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
+                val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
+                    .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
+                    .put("message", "Teach the selected concept as a short interactive live lesson. Start with the first idea.").put("max_segments", 5)
+                val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"; connection.connectTimeout = 8000; connection.readTimeout = 50000
+                connection.setRequestProperty("Accept", "application/json"); connection.setRequestProperty("Content-Type", "application/json; charset=utf-8"); connection.doOutput = true
+                try {
+                    connection.outputStream.use { it.write(body.toString().toByteArray(StandardCharsets.UTF_8)) }
+                    val code = connection.responseCode
+                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                    val responseText = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+                    val response = JSONObject(responseText.ifBlank { "{}" })
+                    if (code !in 200..299) throw IllegalStateException(response.optString("detail", "Could not prepare the live lesson."))
+                    if (!response.optBoolean("grounded", false)) throw IllegalStateException(response.optString("warning", "No matching textbook passage was found."))
+                    val array = response.optJSONArray("segments") ?: JSONArray()
+                    val segments = (0 until array.length()).mapNotNull { array.optJSONObject(it) }
+                    if (segments.isEmpty()) throw IllegalStateException("No textbook-backed lesson segments were returned.")
+                    segments
+                } finally { connection.disconnect() }
+            }
+            tutorMainHandler.post {
+                loading = false
+                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; playLiveSegment(0) },
+                    onFailure = { error -> status = error.message ?: "Could not prepare the live lesson." })
+            }
+        }
+    }
+
+    fun stopLiveLesson() {
+        liveLessonActive = false; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
+        audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
+        audioPlayer.value = null; ttsState.value?.stop(); speechCompletion = null; speechActive = false
+        status = "Live lesson stopped."
     }
 
     fun sendMessage(startingMessage: String? = null) {
@@ -1230,6 +1301,20 @@ internal fun TutorScreen(
                 )
             }
         }
+        Button(onClick = { if (liveLessonActive) stopLiveLesson() else startLiveLesson() }, enabled = !loading, modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = if (liveLessonActive) Color(0xFF9E3D35) else TutorGreen)) {
+            Text(if (liveLessonActive) "Stop live lesson" else "▶ Teach live")
+        }
+        if (liveCaption.isNotBlank()) {
+            Surface(Modifier.fillMaxWidth(), color = Color(0xFFEAF5EE), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, Color(0xFFD1E7D8))) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("TEACHER IS SAYING", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(liveCaption, color = TutorDeep, fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold)
+                    if (liveVisualAction.isNotBlank()) Text("Visual cue · $liveVisualAction", color = TutorGrey, fontSize = 11.sp)
+                }
+            }
+        }
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Read replies aloud", modifier = Modifier.weight(1f), color = TutorDeep, fontSize = 13.sp)
             Switch(checked = speakReplies, onCheckedChange = { speakReplies = it })

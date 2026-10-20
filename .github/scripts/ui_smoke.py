@@ -34,7 +34,29 @@ def assert_tutor(path):
     expected_any = ("chapter", "math", "tutor", "lesson", "ask", "subject", "class", "english", "tamil", "topic")
     if not any(term in joined.lower() for term in expected_any):
         raise SystemExit("Tutor screen has no recognizable tutor/lesson/chapter labels")
-    print("PASS: tutor screen differs from Home and exposes lesson-related labels")
+    feedback = ("How did that explanation feel?", "I understand", "Explain again", "Ask")
+    missing = [term for term in feedback if term.lower() not in joined.lower()]
+    if missing:
+        raise SystemExit("Tutor feedback controls are missing: " + ", ".join(missing))
+    print("PASS: tutor screen and all three explanation-feedback controls are accessible")
+
+def assert_feedback(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts)
+    print("FEEDBACK TEXT:", " | ".join(texts[:100]))
+    if "great!" not in joined.lower():
+        raise SystemExit("Tapping I understand did not show supportive feedback")
+    print("PASS: I understand action shows supportive feedback")
+
+def assert_settings(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    print("SETTINGS TEXT:", " | ".join(texts[:140]))
+    expected = ("Mathematics", "Choose chapter", "Choose concept", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
+    missing = [term for term in expected if term.lower() not in joined]
+    if missing:
+        raise SystemExit("Tutor settings are missing expected controls: " + ", ".join(missing))
+    print("PASS: subject, chapter/topic, language, and voice settings are accessible")
 
 def tap(path, target):
     nodes, texts = load(path)

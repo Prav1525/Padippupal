@@ -744,7 +744,7 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
                 ).fetchall()
                 for chunk in chunks:
                     for raw_line in str(chunk["text"] or "").splitlines():
-                        line = re.sub(r"^[#*\\-\\s]+|[#*\\-\\s]+$", "", raw_line).strip()
+                        line = re.sub(r"^[#*\\-\s]+|[#*\\-\s]+$", "", raw_line).strip()
                         if 3 <= len(line) <= 90 and len(line.split()) <= 12:
                             key = line.casefold()
                             if key not in seen and key != str(source["title"]).casefold():
@@ -1255,7 +1255,7 @@ ACCURACY AND SAFETY:
                 provider_code = str(error_obj.get("code", error_obj.get("type", "")))[:80]
         except (json.JSONDecodeError, TypeError, ValueError):
             pass
-        diagnostic = (provider_message or raw_error).replace("\\n", " ").replace("\\r", " ")[:240]
+        diagnostic = (provider_message or raw_error).replace("\n", " ").replace("\\r", " ")[:240]
         logger.warning(
             "Groq chat request rejected: status=%s code=%s content_type=%s detail=%s model=%s",
             exc.code, provider_code, exc.headers.get("Content-Type", "") if exc.headers else "",
@@ -1299,12 +1299,12 @@ class TutorSpeechRequest(BaseModel):
 
 
 def _clean_tutor_speech_text(text: str) -> str:
-    speech_text = re.sub(r"\\s+", " ", text).strip()
+    speech_text = re.sub(r"\s+", " ", text).strip()
     speech_text = re.sub(
-        r"^(?:tutor reply|response|instructions to the voice|voice instructions)\\s*:\\s*",
+        r"^(?:tutor reply|response|instructions to the voice|voice instructions)\s*:\s*",
         "", speech_text, flags=re.IGNORECASE,
     ).strip()
-    sentences = re.split(r"(?<=[.!?。！？])\\s+", speech_text)
+    sentences = re.split(r"(?<=[.!?。！？])\s+", speech_text)
     deduped: list[str] = []
     for sentence in sentences:
         sentence = sentence.strip()
@@ -1439,11 +1439,11 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         prompt = (
             "VOICE DIRECTION (do not say these directions aloud): A warm, gentle, "
             "patient female school-teacher voice. Moderate-slow pace, natural pauses, "
-            "clear articulation. " + language_instruction + "\\n"
+            "clear articulation. " + language_instruction + "\n"
             "Speak ONLY the exact words between the SAY tags below. Do not speak the "
             "tag names, directions, labels, or anything before or after the tagged text. "
-            "Do not explain, summarize, repeat, or add words.\\n"
-            "<SAY>\\n" + speech_text + "\\n</SAY>"
+            "Do not explain, summarize, repeat, or add words.\n"
+            "<SAY>\n" + speech_text + "\n</SAY>"
         )
         body = json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
@@ -1485,7 +1485,7 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
             )
             if len(raw_audio) < 4:
                 raise ValueError("Gemini returned an empty audio stream")
-            rate_match = re.search(r"rate=(\\d+)", mime_type)
+            rate_match = re.search(r"rate=(\d+)", mime_type)
             sample_rate = int(rate_match.group(1)) if rate_match else 24000
             wav_buffer = io.BytesIO()
             with wave.open(wav_buffer, "wb") as wav_file:

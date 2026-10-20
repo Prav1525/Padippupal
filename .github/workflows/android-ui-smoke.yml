@@ -48,7 +48,7 @@ jobs:
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 33
           arch: x86_64
           profile: pixel_2
           emulator-options: -no-window -no-audio -no-boot-anim

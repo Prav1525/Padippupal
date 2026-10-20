@@ -842,6 +842,21 @@ CHAPTERS_BY_FILE: dict[str, tuple[int, str]] = {
 }
 
 
+def chapter_matches_chunk(chapter: str, source_title: str, chunk_chapter: str | None) -> bool:
+    """Require the stored chunk's explicit chapter field to agree with the catalogue."""
+    file_match = re.search(r"\\b(fegp\\d{3}|fecu\\d{3})\\.pdf\\b", source_title, re.IGNORECASE)
+    if not file_match or not chunk_chapter:
+        return False
+    mapped = CHAPTERS_BY_FILE.get(file_match.group(1).casefold())
+    if not mapped:
+        return False
+    canonical = re.sub(r"[^a-z0-9]+", " ", mapped[1].casefold()).strip()
+    stored = re.sub(r"[^a-z0-9]+", " ", chunk_chapter.casefold()).strip()
+    if stored != canonical:
+        return False
+    return chapter_matches_source(chapter, source_title)
+
+
 def chapter_matches_source(chapter: str, source_title: str, source_opening: str = "") -> bool:
     """Match only against the explicit chapter mapping for a stored source PDF.
 
@@ -875,8 +890,8 @@ def retrieve(payload: SearchRequest) -> dict[str, Any]:
     query_terms = set(terms(payload.query))
     if not query_terms:
         return {"matches": [], "warning": "Enter a more specific question."}
-    sql = """SELECT c.id AS chunk_id, c.chunk_no, c.page_start, c.page_end, c.text,
-                    s.id AS source_id, s.board, s.academic_year, s.class_level, s.subject,
+    sql = """SELECT c.id AS chunk_id, c.chunk_no, c.chapter AS chunk_chapter,
+                    c.page_start, c.page_end, c.text, s.id AS source_id, s.board, s.academic_year, s.class_level, s.subject,
                     s.medium, s.term, s.edition, s.title, s.source_url,
                     SUBSTR(COALESCE(sc.content, ''), 1, 1200) AS source_opening
              FROM chunks c JOIN sources s ON s.id=c.source_id
@@ -894,8 +909,8 @@ def retrieve(payload: SearchRequest) -> dict[str, Any]:
         rows = conn.execute(sql, args).fetchall()
     scored = []
     for row in rows:
-        if payload.chapter and not chapter_matches_source(
-            payload.chapter, str(row["title"]), str(row["source_opening"] or "")
+        if payload.chapter and not chapter_matches_chunk(
+            payload.chapter, str(row["title"]), row["chunk_chapter"]
         ):
             continue
         chunk_terms = terms(row["text"])

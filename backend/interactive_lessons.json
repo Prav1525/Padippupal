@@ -7857,6 +7857,89 @@
       }
     },
     {
+      "id": "mathematics-patterns-in-mathematics-all-ones",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "All 1s",
+      "title": "The All-Ones Sequence",
+      "scene_type": "number_pattern",
+      "caption": "A simple sequence can repeat the same number: 1, 1, 1, 1, 1. Not every pattern has to grow.",
+      "objects": [
+        {
+          "id": "one1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.12,
+            0.3
+          ]
+        },
+        {
+          "id": "one2",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.31,
+            0.3
+          ]
+        },
+        {
+          "id": "one3",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.5,
+            0.3
+          ]
+        },
+        {
+          "id": "one4",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.6900000000000001,
+            0.3
+          ]
+        },
+        {
+          "id": "one5",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.88,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Look",
+          "text": "The sequence is 1, 1, 1, 1, 1."
+        },
+        {
+          "title": "Notice",
+          "text": "The value stays the same each time; the rule is to repeat one."
+        },
+        {
+          "title": "Explain",
+          "text": "A pattern can repeat without increasing or decreasing."
+        }
+      ],
+      "challenge": {
+        "question": "What comes next: 1, 1, 1, 1, ...?",
+        "options": [
+          "1",
+          "2",
+          "3"
+        ],
+        "answer": "1",
+        "hint": "The same number repeats each time.",
+        "success_feedback": "Correct. This sequence keeps repeating 1."
+      }
+    },
+    {
       "id": "mathematics-patterns-in-mathematics-describe-the-rule",
       "board": "CBSE",
       "class_level": 6,

@@ -6912,7 +6912,16 @@
         "answer": "Counting steps",
         "hint": "Think about which activity involves counting or comparing.",
         "success_feedback": "Correct. Counting is one way we use mathematics."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 1,
+          "page_end": 2,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-counting-patterns",
@@ -6995,7 +7004,16 @@
         "answer": "10",
         "hint": "Compare 8 and the next number: add 2.",
         "success_feedback": "Yes. Adding 2 gives 10."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 3,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-odd-numbers",
@@ -7078,7 +7096,16 @@
         "answer": "9",
         "hint": "Add 2 to 7.",
         "success_feedback": "Right. The next odd number is 9."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 4,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-triangular-numbers",
@@ -7152,7 +7179,16 @@
         "answer": "10",
         "hint": "Add the next row of 4 dots to 6.",
         "success_feedback": "Correct. Six plus four makes 10."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 3,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-square-numbers",
@@ -7226,7 +7262,16 @@
         "answer": "9",
         "hint": "There are 3 rows with 3 dots in each row.",
         "success_feedback": "Exactly. 3 times 3 is 9."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 3,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-cube-numbers",
@@ -7300,7 +7345,16 @@
         "answer": "8",
         "hint": "First 2 times 2 is 4; then multiply by 2 again.",
         "success_feedback": "Correct. 2 cubed is 8."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 3,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-virahanka-sequence",
@@ -7311,7 +7365,7 @@
       "topic": "Patterns in Numbers",
       "title": "Discover the Virahanka Sequence",
       "scene_type": "number_pattern",
-      "caption": "In this sequence, each new term is made by adding the previous two terms: 1, 1, 2, 3, 5, 8.",
+      "caption": "The Virahanka sequence shown in this chapter is 1, 2, 3, 5, 8, 13, ... Each new term is the sum of the previous two.",
       "objects": [
         {
           "id": "item1",
@@ -7370,29 +7424,38 @@
       ],
       "steps": [
         {
-          "title": "Start small",
-          "text": "The sequence begins 1, 1."
+          "title": "Notice",
+          "text": "The book's sequence begins 1, 2, 3, 5, 8, 13."
         },
         {
-          "title": "Add the previous pair",
-          "text": "1+1=2, and then 1+2=3."
+          "title": "Find the rule",
+          "text": "After the first two terms, add the previous two numbers: 2+3=5, 3+5=8."
         },
         {
-          "title": "Continue the same rule",
-          "text": "Add 2+3 to get 5, then 3+5 to get 8."
+          "title": "Try it",
+          "text": "Add 5 and 8 to find the next term, 13."
         }
       ],
       "challenge": {
-        "question": "What comes after 3, 5, 8 in this sequence?",
+        "question": "What comes after 3, 5, 8 in the Virahanka sequence?",
         "options": [
-          "10",
           "11",
-          "13"
+          "13",
+          "15"
         ],
         "answer": "13",
-        "hint": "Add the last two numbers, 5 and 8.",
-        "success_feedback": "Yes. 5 plus 8 is 13."
-      }
+        "hint": "Add the previous two terms: 5 + 8.",
+        "success_feedback": "Correct. The next term is 13."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 3,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-powers-of-two",
@@ -7475,7 +7538,16 @@
         "answer": "16",
         "hint": "Double 8.",
         "success_feedback": "Correct. Double 8 is 16."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 6,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-powers-of-three",
@@ -7558,7 +7630,16 @@
         "answer": "81",
         "hint": "Multiply 27 by 3.",
         "success_feedback": "Right. 27 times 3 is 81."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 3,
+          "page_end": 6,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-relations-between-sequences",
@@ -7632,7 +7713,16 @@
         "answer": "9",
         "hint": "Add 1+3 first, then add 5.",
         "success_feedback": "Correct. The total is 9, which is 3×3."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 6,
+          "page_end": 7,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-patterns-in-shapes",
@@ -7715,7 +7805,16 @@
         "answer": "Circle",
         "hint": "Repeat the same two-shape group.",
         "success_feedback": "Correct. The next shape is a circle."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 9,
+          "page_end": 11,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-growing-shapes",
@@ -7789,7 +7888,16 @@
         "answer": "4",
         "hint": "Add one tile to 3.",
         "success_feedback": "Exactly. Three plus one is four."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 9,
+          "page_end": 12,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-koch-snowflake",
@@ -7854,7 +7962,16 @@
         "answer": "Repeating the same construction",
         "hint": "The rule is applied again to each side.",
         "success_feedback": "Yes. Repeating the construction creates the pattern."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 12,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-all-ones",
@@ -7937,7 +8054,16 @@
         "answer": "1",
         "hint": "The same number repeats each time.",
         "success_feedback": "Correct. This sequence keeps repeating 1."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 3,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-describe-the-rule",
@@ -8011,7 +8137,16 @@
         "answer": "Add 2",
         "hint": "Compare each number with the one before it.",
         "success_feedback": "Correct. The difference is always 2."
-      }
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 3,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-counting-numbers",
@@ -8085,7 +8220,16 @@
       "board": "CBSE",
       "class_level": 6,
       "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics"
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 4,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-even-numbers",
@@ -8159,7 +8303,16 @@
       "board": "CBSE",
       "class_level": 6,
       "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics"
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 4,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums",
@@ -8224,7 +8377,16 @@
       "board": "CBSE",
       "class_level": 6,
       "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics"
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 8,
+          "page_end": 16,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-regular-polygons",
@@ -8289,7 +8451,16 @@
       "board": "CBSE",
       "class_level": 6,
       "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics"
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 11,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-complete-graphs",
@@ -8354,14 +8525,23 @@
       "board": "CBSE",
       "class_level": 6,
       "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics"
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 17,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-stacked-shapes",
       "topic": "Patterns in Shapes",
-      "title": "Explore Stacked Squares and Triangles",
+      "title": "Count Stacked Squares and Triangles",
       "scene_type": "shape_pattern",
-      "caption": "Stacked rows of squares or triangles grow in a regular way. Count each row and compare the totals.",
+      "caption": "The textbook's stacked-square and stacked-triangle sequences contain 1, 4, 9, 16, 25, ... small pieces.",
       "objects": [
         {
           "id": "s1",
@@ -8393,33 +8573,42 @@
       ],
       "steps": [
         {
-          "title": "Count the rows",
-          "text": "Start with one row, then stack another row beneath it."
+          "title": "Count the pieces",
+          "text": "Count the little squares in each stacked-square picture, or the little triangles in each stacked-triangle picture."
         },
         {
-          "title": "Compare each stage",
-          "text": "Count the pieces in each new stage and describe what was added."
+          "title": "Compare the totals",
+          "text": "The totals shown by these two shape sequences are 1, 4, 9, 16, 25, ..."
         },
         {
-          "title": "Predict the next stage",
-          "text": "Use the same row-building rule to draw and count the next stack."
+          "title": "Connect the pattern",
+          "text": "These totals are square numbers. The stacked-triangle picture builds each row up and then down."
         }
       ],
       "challenge": {
-        "question": "If a stack grows by adding one new row each time, what should you do next?",
+        "question": "Which number sequence is shown by the number of small squares in the stacked-square sequence?",
         "options": [
-          "Add the next row",
-          "Remove all rows",
-          "Change the rule"
+          "1, 2, 3, 4, ...",
+          "1, 4, 9, 16, ...",
+          "2, 4, 6, 8, ..."
         ],
-        "answer": "Add the next row",
-        "hint": "Keep the same building rule.",
-        "success_feedback": "Correct. Continue the pattern by adding the next row."
+        "answer": "1, 4, 9, 16, ...",
+        "hint": "Count the little squares in each stage.",
+        "success_feedback": "Correct. The totals are square numbers."
       },
       "board": "CBSE",
       "class_level": 6,
       "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics"
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 17,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     },
     {
       "id": "mathematics-patterns-in-mathematics-koch-snowflake-sequence",
@@ -8484,7 +8673,99 @@
       "board": "CBSE",
       "class_level": 6,
       "subject": "Mathematics",
-      "chapter": "Patterns in Mathematics"
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 17,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-hexagonal-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Visualising Number Sequences",
+      "title": "Discover Hexagonal Numbers",
+      "scene_type": "number_pattern",
+      "caption": "The textbook shows the sequence 1, 7, 19, 37, ... as hexagonal numbers.",
+      "objects": [
+        {
+          "id": "h1",
+          "label": "1",
+          "kind": "number_pattern",
+          "position": [
+            0.15,
+            0.35
+          ]
+        },
+        {
+          "id": "h2",
+          "label": "7",
+          "kind": "number_pattern",
+          "position": [
+            0.4,
+            0.35
+          ]
+        },
+        {
+          "id": "h3",
+          "label": "19",
+          "kind": "number_pattern",
+          "position": [
+            0.65,
+            0.35
+          ]
+        },
+        {
+          "id": "h4",
+          "label": "37",
+          "kind": "number_pattern",
+          "position": [
+            0.85,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Look at the sequence",
+          "text": "The book gives 1, 7, 19, 37, ... and names these hexagonal numbers."
+        },
+        {
+          "title": "Visualise the dots",
+          "text": "Draw each stage as a growing hexagon-like arrangement of dots, following the picture in the textbook."
+        },
+        {
+          "title": "Use the source picture",
+          "text": "Compare the stages and draw the next picture using the same construction shown in the book."
+        }
+      ],
+      "challenge": {
+        "question": "Which sequence does the textbook identify as hexagonal numbers?",
+        "options": [
+          "1, 3, 6, 10, ...",
+          "1, 4, 9, 16, ...",
+          "1, 7, 19, 37, ..."
+        ],
+        "answer": "1, 7, 19, 37, ...",
+        "hint": "Look at the special sequence introduced on page 5.",
+        "success_feedback": "Correct. The textbook calls 1, 7, 19, 37, ... hexagonal numbers."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 5,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
     }
   ],
   "sources": {

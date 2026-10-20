@@ -62,6 +62,30 @@ dump_ui() {
 dump_ui /data/local/tmp/home.xml home.xml
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 
+log "Set test profile to Class 6 CBSE, English medium"
+python3 .github/scripts/ui_smoke.py tap home.xml "You"
+sleep 2
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/profile.xml
+"${ADB[@]}" pull /data/local/tmp/profile.xml profile.xml
+python3 .github/scripts/ui_smoke.py tap profile.xml "Edit student details"
+sleep 2
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/setup.xml
+"${ADB[@]}" pull /data/local/tmp/setup.xml setup.xml
+python3 .github/scripts/ui_smoke.py tap setup.xml "Education board"
+sleep 1
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/board-options.xml
+"${ADB[@]}" pull /data/local/tmp/board-options.xml board-options.xml
+python3 .github/scripts/ui_smoke.py tap board-options.xml "CBSE"
+sleep 1
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/setup-cbse.xml
+"${ADB[@]}" pull /data/local/tmp/setup-cbse.xml setup-cbse.xml
+python3 .github/scripts/ui_smoke.py tap setup-cbse.xml "Save my details"
+sleep 3
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/home-cbse.png
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-cbse.xml
+"${ADB[@]}" pull /data/local/tmp/home-cbse.xml home-cbse.xml
+python3 .github/scripts/ui_smoke.py assert-home home-cbse.xml | tee -a "$REPORT"
+
 log "Opening tutor using accessibility bounds"
 python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
 sleep 8
@@ -89,7 +113,7 @@ timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
 
-log "Loading the real Mathematics chapter list"
+log "Loading the real CBSE Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
 sleep 10
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
@@ -99,7 +123,7 @@ python3 .github/scripts/ui_smoke.py tap chapter-options.xml "Choose chapter"
 sleep 2
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-menu.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-menu.xml chapter-menu.xml
-python3 .github/scripts/ui_smoke.py tap-numbered chapter-menu.xml 2
+python3 .github/scripts/ui_smoke.py tap-numbered chapter-menu.xml 1
 sleep 3
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
@@ -140,4 +164,4 @@ timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-return.xml 
 }
 "${ADB[@]}" pull /data/local/tmp/home-return.xml home-return.xml
 python3 .github/scripts/ui_smoke.py assert-home home-return.xml | tee -a "$REPORT"
-log "PASS: app launch, home UI, tutor navigation, tutor UI, and back navigation"
+log "PASS: Class 6 CBSE Mathematics Chapter 1 selection, live lesson, inline highlighting, tutor feedback, and back navigation"

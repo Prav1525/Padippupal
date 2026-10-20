@@ -931,7 +931,7 @@ def retrieve(payload: SearchRequest) -> dict[str, Any]:
             "score": round(score, 4),
             "text": row["text"],
             "source": {
-                "source_id": row["source_id"], "title": row["title"],
+                "source_id": row["source_id"], "chunk_id": row["chunk_id"], "title": row["title"],
                 "board": row["board"], "academic_year": row["academic_year"],
                 "class_level": row["class_level"], "subject": row["subject"],
                 "medium": row["medium"], "term": row["term"], "edition": row["edition"],
@@ -1162,6 +1162,98 @@ def infer_tutor_subject(message: str, selected_subject: str = "General") -> str:
             return subject
     return selected_subject.strip() or "General"
 
+
+class LessonVisualAction(BaseModel):
+    type: str = Field(pattern=r"^(highlight|reveal|move|compare|label|draw-line|show-result|none)$")
+    target: str = Field(default="", max_length=100)
+    value: str = Field(default="", max_length=160)
+
+class LessonSegment(BaseModel):
+    id: str = Field(min_length=1, max_length=40, pattern=r"^[a-zA-Z0-9_-]+$")
+    spoken_text: str = Field(min_length=1, max_length=500)
+    caption_text: str = Field(min_length=1, max_length=500)
+    source_chunk_ids: list[str] = Field(min_length=1, max_length=5)
+    visual_action: LessonVisualAction
+    checkpoint: str | None = Field(default=None, max_length=240)
+
+class LessonPlanRequest(TutorChatRequest):
+    max_segments: int = Field(default=5, ge=2, le=8)
+
+def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: int) -> dict[str, Any]:
+    candidate = raw.strip()
+    if candidate.startswith("```"):
+        candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate, flags=re.IGNORECASE)
+    try:
+        data = json.loads(candidate)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=502, detail="The lesson planner returned invalid JSON.") from exc
+    if not isinstance(data, dict) or not isinstance(data.get("segments"), list):
+        raise HTTPException(status_code=502, detail="The lesson planner returned an incomplete lesson plan.")
+    segments = []
+    for item in data["segments"][:max_segments]:
+        try:
+            segment = LessonSegment.model_validate(item)
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail="The lesson planner returned an invalid segment.") from exc
+        if not set(segment.source_chunk_ids).issubset(allowed_chunk_ids):
+            raise HTTPException(status_code=502, detail="The lesson planner referenced a passage outside the retrieved textbook context.")
+        segments.append(segment.model_dump())
+    if not segments:
+        raise HTTPException(status_code=502, detail="The lesson planner returned no teachable segments.")
+    return {"segments": segments}
+
+@app.post("/tutor/lesson-plan")
+def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
+    """Create short source-grounded lesson segments for synchronized playback."""
+    subject = infer_tutor_subject(payload.message, payload.subject)
+    retrieved = retrieve(SearchRequest(board=payload.board, class_level=payload.class_level, subject=subject,
+        medium=payload.medium, query=" ".join(part for part in (payload.chapter, payload.topic, payload.message) if part),
+        chapter=payload.chapter or None, limit=5))
+    matches = retrieved.get("matches", [])
+    if not matches:
+        return {"lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
+                "warning": "No matching textbook passage was found; no lesson was generated."}
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Gemini tutor is not configured on the backend.")
+    allowed_ids = {str(item.get("source", {}).get("chunk_id", "")) for item in matches if item.get("source", {}).get("chunk_id")}
+    if not allowed_ids:
+        raise HTTPException(status_code=502, detail="Retrieved passages have no stable chunk IDs; lesson generation stopped safely.")
+    context = []
+    sources = []
+    for item in matches:
+        src = item.get("source", {})
+        cid = str(src.get("chunk_id", ""))
+        context.append("chunk_id=" + cid + "; source=" + str(src.get("title", "textbook")) + "; pages=" + str(src.get("page_start")) + "-" + str(src.get("page_end")) + "\n" + str(item.get("text", ""))[:1400])
+        entry = {"chunk_id": cid, "title": src.get("title", "Approved textbook"), "page_start": src.get("page_start"), "page_end": src.get("page_end")}
+        if entry not in sources: sources.append(entry)
+    system_prompt = ("You are PadippuPal lesson planner for class " + str(payload.class_level) + ", subject " + subject + ", chapter " + (payload.chapter or "not selected") + ", topic " + (payload.topic or payload.message) + ", language " + payload.app_language + ".\n"
+        + "Use ONLY retrieved PadippuPal database passages for factual claims. Return JSON only: {segments:[{id,spoken_text,caption_text,source_chunk_ids,visual_action:{type,target,value},checkpoint}]}. "
+        + "Create at most " + str(payload.max_segments) + " short sequential segments, usually one sentence and max 24 spoken words each. "
+        + "Each segment must cite exact chunk_id values shown in the passages. visual_action type must be one of highlight,reveal,move,compare,label,draw-line,show-result,none. Never return code or invent unsupported visuals. Use none if no matching visual is supported.")
+    body = json.dumps({"systemInstruction": {"parts": [{"text": system_prompt}]},
+        "contents": [{"role": "user", "parts": [{"text": "Student request: " + payload.message + "\nRetrieved passages:\n" + "\n\n---\n\n".join(context)}]}],
+        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2, "maxOutputTokens": 1600}}).encode("utf-8")
+    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+    req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", data=body,
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=45) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
+        validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+    except urllib.error.HTTPError as exc:
+        logger.warning("Gemini lesson planner rejected: status=%s model=%s", exc.code, model)
+        raise HTTPException(status_code=503 if exc.code == 429 else 502, detail="The lesson planner could not answer right now.") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        logger.warning("Gemini lesson planner connection failure: %s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="The lesson planner connection failed.") from exc
+    except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        logger.warning("Gemini lesson planner response parsing failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="The lesson planner returned an invalid response.") from exc
+    return {"lesson_id": str(uuid.uuid4()), "segments": validated["segments"], "grounded": True, "sources": sources,
+            "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
+            "timing_mode": "segment", "word_timestamps_available": False}
 
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:

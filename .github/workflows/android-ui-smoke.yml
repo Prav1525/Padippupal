@@ -37,6 +37,14 @@ jobs:
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
 
+      - name: Install screenshot inspection dependency
+        run: python3 -m pip install --user --disable-pip-version-check Pillow
+
+      - name: Validate smoke-test scripts
+        run: |
+          bash -n .github/scripts/android-ui-smoke.sh
+          python3 -m py_compile .github/scripts/ui_smoke.py
+
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -60,5 +68,10 @@ jobs:
             home-return.xml
             feedback.xml
             settings.xml
+            chapter-options.xml
+            chapter-menu.xml
+            chapter-selected.xml
+            ready-to-teach.xml
+            live-lesson.xml
           if-no-files-found: warn
           retention-days: 14

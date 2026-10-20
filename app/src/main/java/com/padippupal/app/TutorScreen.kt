@@ -949,7 +949,7 @@ internal fun TutorScreen(
         }
         val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
         if (!base.startsWith("https://")) {
-            speakWithDeviceTts(text, onFinished)
+            speakWithDeviceTts(text, onStarted, onFinished)
             return
         }
         tutorExecutor.execute {
@@ -999,7 +999,7 @@ internal fun TutorScreen(
                                 failedPlayer.release()
                                 if (audioPlayer.value === failedPlayer) audioPlayer.value = null
                                 audioFile.delete()
-                                speakWithDeviceTts(text, onFinished)
+                                speakWithDeviceTts(text, onStarted, onFinished)
                                 true
                             }
                             player.prepare()
@@ -1010,13 +1010,13 @@ internal fun TutorScreen(
                             status = "Speaking with Gemini natural voice."
                         }.onFailure {
                             audioFile.delete()
-                            speakWithDeviceTts(text, onFinished)
+                            speakWithDeviceTts(text, onStarted, onFinished)
                         }
                     },
                     onFailure = {
                         audioFile.delete()
                         status = "Gemini voice request failed; using device voice. Check network and voice service configuration."
-                        speakWithDeviceTts(text, onFinished)
+                        speakWithDeviceTts(text, onStarted, onFinished)
                     }
                 )
             }

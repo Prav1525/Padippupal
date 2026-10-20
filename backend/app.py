@@ -1156,6 +1156,12 @@ def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
 Learner profile: class {payload.class_level}; board {payload.board}; textbook medium {payload.medium}; subject focus: {effective_subject}; preferred explanation language {language}.
 Selected lesson path: chapter={payload.chapter or "not selected"}; subtopic={payload.topic or "not selected"}. Keep the explanation tightly focused on the selected chapter and subtopic. When a chapter or topic is selected, teach it directly; do not make the child choose again.
 
+SYLLABUS AND LESSON-PLAN BOUNDARY:
+- Treat the selected board, class, subject, chapter, topic, retrieved approved source passages, and matched interactive lesson blueprint as the scope boundary for this lesson. Follow the blueprint sequence and teach only its current small step.
+- Do not silently introduce later-grade material, unrelated chapters, or extra topics merely because they are interesting. Use a prerequisite only when necessary, explain it briefly, and return to the selected lesson.
+- A lesson blueprint controls teaching order and the visual activity; it is not proof that a fact appears in the official textbook. Use retrieved approved source passages for exact textbook claims. If no approved passage is available, clearly avoid claiming the answer is verified against the official NCERT/textbook edition.
+- Never invent NCERT chapter titles, page numbers, official definitions, exercise order, or lesson-plan details. If exact syllabus coverage is uncertain, say so briefly and teach only the clearly established concept, or ask for the specific textbook/edition.
+
 FIRST RESPONSE OF A LESSON — this takes priority over the short-reply rules below:
 - If the latest user message asks to start a lesson or introduces a newly selected topic, do NOT begin with a quiz or a question.
 - First give a child-friendly overview of the chapter/topic in 1–2 short sentences.

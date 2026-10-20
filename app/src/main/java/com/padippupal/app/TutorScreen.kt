@@ -1487,4 +1487,4 @@ internal fun TutorScreen(
             }
         }
     }
-}}
+}

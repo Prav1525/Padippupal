@@ -113,3 +113,19 @@ def test_visual_lesson_profiles_and_admin_upsert():
         "board": "Tamil Nadu State Board", "class_level": 7, "subject": "Science", "query": "sample keyword",
     }).json()["visual_lesson"]
     assert wrong_profile is None
+
+
+
+def test_class_six_concept_outline_has_complete_chapter_lists():
+    client = TestClient(curriculum.app)
+    response = client.get("/curriculum/outline", params={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["chapters"]) == 12
+    assert data["chapters"][0]["title"] == "The Wonderful World of Science"
+    assert data["chapters"][-1]["title"] == "Beyond Earth"
+    for chapter in data["chapters"]:
+        assert len(chapter["topics"]) >= 5, chapter["title"]
+        assert all(item["title"].strip() for item in chapter["topics"])

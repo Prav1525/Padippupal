@@ -25,6 +25,7 @@ Free CPU Spaces can sleep when idle and may have cold-start latency. This is a t
 
 - `GET /` — service information
 - `GET /health` — lightweight health check
+- `GET /demo` — browser voice preview page with English/Tanglish samples and voice/speed controls
 - `POST /tts` — returns 24 kHz mono WAV audio
 
 Example request:

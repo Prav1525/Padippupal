@@ -88,6 +88,27 @@ def tap_numbered(path, number):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
                    check=True, timeout=45)
 
+def tap_first_concept(path):
+    nodes, texts = load(path)
+    candidates = []
+    for node in nodes:
+        label = node.attrib.get("text", "").strip()
+        if not label or label.lower() in ("choose concept", "choose chapter", "done", "cancel"):
+            continue
+        if node.attrib.get("clickable") == "true" and node.attrib.get("enabled") == "true":
+            candidates.append(node)
+    if not candidates:
+        raise SystemExit("No selectable concept was shown. Visible labels: " + " | ".join(texts[:120]))
+    node = candidates[0]
+    bounds = node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("First concept has invalid bounds: " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    print("Selecting first real concept option:", node.attrib.get("text"), bounds)
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
+                   check=True, timeout=45)
+
 def assert_live(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
@@ -161,6 +182,8 @@ def main():
         assert_chapter_button(path)
     elif action == "tap-numbered" and len(sys.argv) >= 4:
         tap_numbered(path, sys.argv[3])
+    elif action == "tap-first-concept":
+        tap_first_concept(path)
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:

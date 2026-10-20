@@ -42,7 +42,7 @@ def assert_tutor(path):
 
 def assert_feedback(path):
     _, texts = load(path)
-    joined = "\\n".join(texts)
+    joined = "\n".join(texts)
     print("FEEDBACK TEXT:", " | ".join(texts[:100]))
     if "great!" not in joined.lower():
         raise SystemExit("Tapping I understand did not show supportive feedback")
@@ -50,7 +50,7 @@ def assert_feedback(path):
 
 def assert_settings(path):
     nodes, texts = load(path)
-    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
     print("SETTINGS TEXT:", " | ".join(texts[:140]))
     expected = ("Mathematics", "Choose chapter", "Choose concept", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
     missing = [term for term in expected if term.lower() not in joined]
@@ -89,6 +89,10 @@ def main():
         assert_home(path)
     elif action == "assert-tutor":
         assert_tutor(path)
+    elif action == "assert-feedback":
+        assert_feedback(path)
+    elif action == "assert-settings":
+        assert_settings(path)
     elif action == "tap" and len(sys.argv) >= 4:
         tap(path, sys.argv[3])
     else:

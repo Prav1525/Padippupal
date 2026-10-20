@@ -58,6 +58,70 @@ def assert_settings(path):
         raise SystemExit("Tutor settings are missing expected controls: " + ", ".join(missing))
     print("PASS: subject, chapter/topic, language, and voice settings are accessible")
 
+def assert_chapter_button(path):
+    nodes, texts = load(path)
+    print("CHAPTER OPTIONS TEXT:", " | ".join(texts[:120]))
+    node = next((n for n in nodes if "choose chapter" in n.attrib.get("text", "").lower()), None)
+    if node is None:
+        raise SystemExit("Choose chapter control was not found after selecting Mathematics")
+    if node.attrib.get("enabled") != "true":
+        raise SystemExit("Chapter list did not load or the Choose chapter control is disabled")
+    print("PASS: Mathematics chapter list loaded and can be opened")
+
+def tap_first_numbered(path):
+    nodes, texts = load(path)
+    candidates = []
+    for node in nodes:
+        label = node.attrib.get("text", "").strip()
+        if re.match(r"^1[.)]\s*\S", label):
+            candidates.append(node)
+    if not candidates:
+        raise SystemExit("No first numbered chapter option found. Visible labels: " + " | ".join(texts[:100]))
+    node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
+    bounds = node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("First chapter option has invalid bounds: " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    print("Selecting first chapter option:", node.attrib.get("text"), bounds)
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
+                   check=True, timeout=45)
+
+def assert_live(path):
+    _, texts = load(path)
+    joined = "\n".join(texts).lower()
+    print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
+    if "teacher is speaking" not in joined and "quick check" not in joined:
+        raise SystemExit("Live lesson did not reach the speaking/checkpoint UI")
+    if not any(term in joined for term in ("today, we are going to learn", "chapter", "let's learn", "let me explain", "does that make sense")):
+        raise SystemExit("Live lesson panel is visible but no teaching caption/checkpoint was found")
+    print("PASS: live lesson panel and spoken teaching text are visible")
+
+def assert_highlight_frames(directory):
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise SystemExit("Pillow is required to inspect word-highlight screenshots") from exc
+    root = Path(directory)
+    frames = sorted(root.glob("*.png"))
+    if not frames:
+        raise SystemExit("No live lesson frames were captured")
+    target = (216, 232, 183)  # WordByWordCaption highlight: #D8E8B7
+    best_count = 0
+    best_frame = ""
+    for frame in frames:
+        try:
+            image = Image.open(frame).convert("RGB")
+            count = sum(1 for pixel in image.getdata() if pixel == target)
+            if count > best_count:
+                best_count, best_frame = count, str(frame)
+        except Exception as exc:
+            print("Skipping unreadable frame", frame, exc)
+    print(f"Highlight pixel scan: {len(frames)} frames; max exact highlight pixels={best_count} in {best_frame}")
+    if best_count < 12:
+        raise SystemExit("No clear inline word-highlight background was detected in the captured live lesson frames")
+    print("PASS: at least one emulator frame contains the inline spoken-word highlight")
+
 def tap(path, target):
     nodes, texts = load(path)
     candidates = []
@@ -67,7 +131,6 @@ def tap(path, target):
             candidates.append(node)
     if not candidates:
         raise SystemExit(f"Could not find target text {target!r}; visible labels: {' | '.join(texts[:100])}")
-    # Prefer a clickable node, otherwise use the bounds of the text label itself.
     node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
     bounds = node.attrib.get("bounds", "")
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
@@ -81,7 +144,7 @@ def tap(path, target):
 
 def main():
     if len(sys.argv) < 3:
-        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|tap} XML [TARGET]")
+        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]
     if not Path(path).is_file():
         raise SystemExit("UI XML file does not exist: " + path)
@@ -93,6 +156,14 @@ def main():
         assert_feedback(path)
     elif action == "assert-settings":
         assert_settings(path)
+    elif action == "assert-chapter-button":
+        assert_chapter_button(path)
+    elif action == "tap-first-numbered":
+        tap_first_numbered(path)
+    elif action == "assert-live":
+        assert_live(path)
+    elif action == "assert-highlight-frames" and len(sys.argv) >= 4:
+        assert_highlight_frames(sys.argv[3])
     elif action == "tap" and len(sys.argv) >= 4:
         tap(path, sys.argv[3])
     else:

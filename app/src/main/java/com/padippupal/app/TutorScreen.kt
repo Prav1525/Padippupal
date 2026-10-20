@@ -98,6 +98,7 @@ private fun cleanTutorDisplayText(raw: String): String {
 
 private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun WordByWordCaption(text: String, active: Boolean) {
     val words = remember(text) { text.trim().split(Regex("\\s+")).filter { it.isNotBlank() } }
@@ -1028,7 +1029,7 @@ internal fun TutorScreen(
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
         speechActive = true
-        speechStartCallback = onStarted
+        speechStartCallback = onStarted ?: { liveCaption = text }
         speechCompletion = onFinished
         // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
         // through the user's selected system engine (e.g. Sherpa-ONNX Kokoro).
@@ -1435,9 +1436,9 @@ internal fun TutorScreen(
                             Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                         }
                     }
-                    if (liveCaption.isNotBlank()) WordByWordCaption(liveCaption, liveLessonActive && speechActive)
+                    if (liveCaption.isNotBlank()) WordByWordCaption(liveCaption, speechActive)
                     if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                    if (liveCaption.isNotBlank()) {
+                    if (liveCaption.isNotBlank() && liveLessonActive) {
                         InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
                     } else if (loading) {
                         LinearProgressIndicator(Modifier.fillMaxWidth(), color = TutorGreen)

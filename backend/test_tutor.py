@@ -188,3 +188,21 @@ def test_interactive_lesson_match_returns_simulation_blueprint(monkeypatch, tmp_
     assert lesson["scene_type"] == "magnet_test"
     assert lesson["challenge"]["question"]
     assert len(lesson["objects"]) >= 3
+
+
+
+def test_daily_tutor_session_round_trips_bounded_history(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "tutor-session.sqlite3")
+    curriculum.init_db()
+    curriculum._save_tutor_session(
+        "random-daily-session-id",
+        [{"role": "user", "content": "I am confused."}],
+        "Why does that happen?",
+        "Because the particles move faster when heated.",
+    )
+    restored = curriculum._load_tutor_session("random-daily-session-id")
+    assert [turn["role"] for turn in restored] == ["user", "user", "assistant"]
+    assert restored[-2]["content"] == "Why does that happen?"
+    assert "particles move faster" in restored[-1]["content"]
+    assert curriculum._load_tutor_session("different-session-id") == []

@@ -111,14 +111,14 @@ private fun WordByWordCaption(
     currentWordIndex: Int,
     onWordClick: (String) -> Unit
 ) {
-    val words = remember(text) { Regex("\\S+").findAll(text).map { it.value to it.range }.toList() }
+    val words = remember(text) { Regex("\\S+").findAll(text).map { it.value }.toList() }
     val scrollState = rememberScrollState()
     var layoutResult by remember(text) { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     val density = LocalDensity.current
     val caption = remember(text, active, currentWordIndex) {
         buildAnnotatedString {
             words.forEachIndexed { index, pair ->
-                val (word, range) = pair
+                val word = pair
                 if (index > 0) append(" ")
                 val start = length
                 append(word)
@@ -136,7 +136,8 @@ private fun WordByWordCaption(
         val layout = layoutResult
         if (active && layout != null && words.isNotEmpty()) {
             val index = currentWordIndex.coerceIn(0, words.lastIndex)
-            val line = layout.getLineForOffset(words[index].second.first.coerceAtMost(text.lastIndex.coerceAtLeast(0)))
+            val displayOffset = words.take(index).sumOf { it.length + 1 }.coerceAtMost(text.lastIndex.coerceAtLeast(0))
+            val line = layout.getLineForOffset(displayOffset)
             val target = (layout.getLineTop(line) - with(density) { 24.dp.toPx() }).coerceAtLeast(0f).toInt()
             runCatching { scrollState.animateScrollTo(target) }
         }
@@ -1709,7 +1710,7 @@ internal fun TutorScreen(
                     }
                 }
             }
-            items(messages) { message ->
+            if (!liveLessonActive) items(messages) { message ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (message.role == "user") Arrangement.End else Arrangement.Start) {
                     Surface(
                         color = if (message.role == "user") TutorGreen else Color.White,

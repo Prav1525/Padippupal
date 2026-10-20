@@ -352,6 +352,7 @@ def test_chapter_lesson_draft_schema_and_review_lifecycle(monkeypatch, tmp_path)
     monkeypatch.setattr(curriculum, "DATABASE_URL", "")
     monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "chapter-lessons.sqlite3")
     monkeypatch.setenv("PADIPPUPAL_ADMIN_TOKEN", "test-admin")
+    monkeypatch.setattr(curriculum, "ADMIN_TOKEN", "test-admin")
     curriculum.init_db()
     with curriculum.db() as conn:
         conn.execute(
@@ -386,6 +387,7 @@ def test_chapter_lesson_admin_routes_fail_closed_without_token(monkeypatch, tmp_
     monkeypatch.setattr(curriculum, "DATABASE_URL", "")
     monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "chapter-lessons-auth.sqlite3")
     monkeypatch.setenv("PADIPPUPAL_ADMIN_TOKEN", "")
+    monkeypatch.setattr(curriculum, "ADMIN_TOKEN", "")
     monkeypatch.delenv("PADIPPUPAL_ALLOW_UNAUTHENTICATED_ADMIN", raising=False)
     curriculum.init_db()
     response = TestClient(curriculum.app).get("/admin/chapter-lessons")

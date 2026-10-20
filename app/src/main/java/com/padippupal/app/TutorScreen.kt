@@ -113,6 +113,18 @@ private fun WordByWordCaption(
     onWordClick: (String) -> Unit
 ) {
     val words = remember(text) { Regex("\\S+").findAll(text).map { it.value }.toList() }
+    val wordStarts = remember(text) {
+        buildList {
+            var offset = 0
+            words.forEachIndexed { index, word ->
+                add(offset)
+                offset += word.length
+                if (index < words.lastIndex) {
+                    offset += if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) 3 else 1
+                }
+            }
+        }
+    }
     val scrollState = rememberScrollState()
     var layoutResult by remember(text) { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     val density = LocalDensity.current
@@ -120,7 +132,7 @@ private fun WordByWordCaption(
         buildAnnotatedString {
             words.forEachIndexed { index, pair ->
                 val word = pair
-                if (index > 0) append(" ")
+                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\\n\\n" else " ")
                 val start = length
                 append(word)
                 val end = length
@@ -137,7 +149,7 @@ private fun WordByWordCaption(
         val layout = layoutResult
         if (active && layout != null && words.isNotEmpty()) {
             val index = currentWordIndex.coerceIn(0, words.lastIndex)
-            val displayOffset = words.take(index).sumOf { it.length + 1 }.coerceAtMost(text.lastIndex.coerceAtLeast(0))
+            val displayOffset = wordStarts.getOrElse(index) { 0 }.coerceAtMost(text.lastIndex.coerceAtLeast(0))
             val line = layout.getLineForOffset(displayOffset)
             val target = (layout.getLineTop(line) - with(density) { 24.dp.toPx() }).coerceAtLeast(0f).toInt()
             runCatching { scrollState.animateScrollTo(target) }
@@ -1226,7 +1238,7 @@ internal fun TutorScreen(
         liveWordIndex = 0
         nativeWordTiming = false
         hostedWordTimings = emptyList()
-        speechStartCallback = onStarted ?: { liveCaption = text }
+        speechStartCallback = onStarted ?: { if (liveLessonActive) liveCaption = text }
         speechCompletion = onFinished
         // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
         // through the user's selected system engine (e.g. Sherpa-ONNX Kokoro).
@@ -1348,7 +1360,7 @@ internal fun TutorScreen(
                 awaitingUnderstanding = true
                 status = "Pause for understanding: continue when ready, or ask for a simpler explanation."
             } else {
-                tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(index + 1) }, 650L)
+                tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(index + 1) }, 1150L)
             }
         }
     }
@@ -1548,9 +1560,11 @@ internal fun TutorScreen(
             elapsedMs += 45L
         }
     }
-    LaunchedEffect(liveCaption, speechActive, awaitingUnderstanding, liveLessonActive) {
+    LaunchedEffect(liveCaption, speechActive, awaitingUnderstanding, liveLessonActive, liveWordIndex) {
         if (liveLessonActive && (liveCaption.isNotBlank() || awaitingUnderstanding)) {
             chatListState.animateScrollToItem(0)
+        } else if (!liveLessonActive && liveCaption.isNotBlank() && speechActive) {
+            chatListState.animateScrollToItem(messages.lastIndex.coerceAtLeast(0))
         }
     }
 
@@ -1695,7 +1709,7 @@ internal fun TutorScreen(
             verticalArrangement = Arrangement.spacedBy(9.dp),
             contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp)
         ) {
-            if (liveCaption.isNotBlank() || liveLessonActive) {
+            if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
                 item(key = "live-teaching-passage") {
                     Surface(
                         Modifier.fillMaxWidth(),
@@ -1752,7 +1766,13 @@ internal fun TutorScreen(
                         modifier = Modifier.widthIn(max = 340.dp)
                     ) {
                         Column(Modifier.padding(14.dp)) {
-                            Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
+                            if (message.role == "assistant" && message.content == liveCaption && speechActive && !liveLessonActive) {
+                                WordByWordCaption(liveCaption, true, liveWordIndex) { word ->
+                                    if (word.isNotBlank()) speak(word)
+                                }
+                            } else {
+                                Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
+                            }
                             if (message.role == "assistant") {
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
                                 if (message.content == latestAssistant?.content && message.interactiveLesson != null) {

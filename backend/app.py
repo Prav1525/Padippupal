@@ -1106,7 +1106,7 @@ def _load_tutor_session(session_id: str) -> list[dict[str, str]]:
 
 
 def _save_tutor_session(session_id: str, history: list[Any], user_message: str, answer: str) -> None:
-    """Persist bounded recent turns and prune inactive sessions older than 30 days."""
+    """Persist bounded recent turns and prune inactive sessions older than 48 hours."""
     if not session_id:
         return
     turns: list[dict[str, str]] = []
@@ -1130,7 +1130,7 @@ def _save_tutor_session(session_id: str, history: list[Any], user_message: str, 
                  history_json=excluded.history_json, updated_at=excluded.updated_at""",
             (session_id, json.dumps(turns[-12:], ensure_ascii=False), now),
         )
-        conn.execute("DELETE FROM tutor_sessions WHERE updated_at < ?", (now - 30 * 24 * 60 * 60,))
+        conn.execute("DELETE FROM tutor_sessions WHERE updated_at < ?", (now - 48 * 60 * 60,))
 
 
 def infer_tutor_subject(message: str, selected_subject: str = "General") -> str:

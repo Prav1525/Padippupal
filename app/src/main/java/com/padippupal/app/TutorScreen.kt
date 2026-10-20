@@ -642,6 +642,11 @@ internal fun TutorScreen(
             if (parsed.optString("date") == todayKey) parsed else JSONObject()
         }.getOrDefault(JSONObject())
     }
+    // A fresh random id scopes server memory to this learner's session for today.
+    // It is saved with the local snapshot and is not a secret or an API key.
+    val sessionId = remember(sessionPrefs, sessionKey, todayKey) {
+        savedSession.optString("session_id").ifBlank { java.util.UUID.randomUUID().toString() }
+    }
     val messages = remember(sessionPrefs, sessionKey, todayKey, appLanguage, studentName) {
         val restored = mutableStateListOf<TutorMessage>()
         val storedMessages = savedSession.optJSONArray("messages")
@@ -830,6 +835,7 @@ internal fun TutorScreen(
         }
         val snapshot = JSONObject()
             .put("date", todayKey)
+            .put("session_id", sessionId)
             .put("subject", subject)
             .put("chapter", chapter)
             .put("topic", topic)
@@ -1028,6 +1034,7 @@ internal fun TutorScreen(
                     .put("message", question)
                     .put("chapter", chapter)
                     .put("topic", topic)
+                    .put("session_id", sessionId)
                     .put("history", history)
                 val connection = URL("$base/tutor/chat").openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"

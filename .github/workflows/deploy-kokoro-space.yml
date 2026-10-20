@@ -1,0 +1,53 @@
+name: Deploy Kokoro TTS to Hugging Face Space
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "kokoro-space/**"
+      - ".github/workflows/deploy-kokoro-space.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PadippuPal
+        uses: actions/checkout@v4
+
+      - name: Validate required files
+        run: |
+          test -f kokoro-space/README.md
+          test -f kokoro-space/Dockerfile
+          test -f kokoro-space/app.py
+          test -f kokoro-space/requirements.txt
+
+      - name: Push Docker Space files to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: ${{ vars.HF_SPACE_REPO }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HF_TOKEN:-}" ]; then
+            echo "Missing repository secret HF_TOKEN. Add a Hugging Face write token in GitHub Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          SPACE_REPO="${HF_SPACE_REPO:-Praveen1525/Padipal}"
+          git clone "https://user:${HF_TOKEN}@huggingface.co/spaces/${SPACE_REPO}" hf-space
+          cp kokoro-space/README.md hf-space/README.md
+          cp kokoro-space/Dockerfile hf-space/Dockerfile
+          cp kokoro-space/app.py hf-space/app.py
+          cp kokoro-space/requirements.txt hf-space/requirements.txt
+          cd hf-space
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md Dockerfile app.py requirements.txt
+          if git diff --cached --quiet; then
+            echo "Hugging Face Space already has the latest files."
+            exit 0
+          fi
+          git commit -m "Deploy PadippuPal Kokoro voice lab"
+          git push origin HEAD:main

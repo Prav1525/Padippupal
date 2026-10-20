@@ -1090,33 +1090,44 @@ def _interactive_lesson_row(row: Any) -> dict[str, Any]:
 
 
 def find_interactive_lesson(board: str, class_level: int, subject: str, chapter: str, topic: str, query: str = "") -> dict[str, Any] | None:
-    """Return the closest active lesson blueprint for the selected curriculum path."""
-    topic_norm, chapter_norm, query_norm = normalize(topic).casefold(), normalize(chapter).casefold(), normalize(query).casefold()
+    """Return a blueprint only when the selected curriculum path matches exactly.
+
+    Deliberately do not fuzzy-match by topic words or the user's free-text query:
+    an unrelated activity is worse than showing no activity.
+    """
+    chapter_norm = normalize(chapter).casefold()
+    topic_norm = normalize(topic).casefold()
+    if not chapter_norm or not topic_norm:
+        return None
+
     with db() as conn:
         rows = conn.execute("SELECT * FROM interactive_lessons WHERE active=1").fetchall()
-    ranked: list[tuple[int, dict[str, Any]]] = []
+
+    matches: list[tuple[int, dict[str, Any]]] = []
     for row in rows:
-        row_board, row_subject = str(row["board"]).casefold(), str(row["subject"]).casefold()
+        row_board = str(row["board"]).casefold()
+        row_subject = str(row["subject"]).casefold()
         if row_board not in ("*", board.casefold()) or row_subject not in ("*", subject.casefold()):
             continue
         if int(row["class_level"]) not in (0, class_level):
             continue
-        row_chapter, row_topic = normalize(str(row["chapter"])).casefold(), normalize(str(row["topic"])).casefold()
-        score = 0
-        if topic_norm and row_topic == topic_norm: score += 100
-        elif topic_norm and (topic_norm in row_topic or row_topic in topic_norm): score += 60
-        elif query_norm and row_topic in query_norm: score += 45
-        else:
-            words = [word for word in re.findall(r"[a-z0-9]+", row_topic) if len(word) > 3]
-            score += min(40, sum(5 for word in words if word in query_norm))
-        if chapter_norm and row_chapter == chapter_norm: score += 40
-        elif chapter_norm and row_chapter in chapter_norm: score += 20
-        if row_board == board.casefold(): score += 8
-        if row_subject == subject.casefold(): score += 8
-        if score >= 45: ranked.append((score, _interactive_lesson_row(row)))
-    if not ranked: return None
-    ranked.sort(key=lambda item: item[0], reverse=True)
-    return ranked[0][1]
+        row_chapter = normalize(str(row["chapter"])).casefold()
+        row_topic = normalize(str(row["topic"])).casefold()
+        if row_chapter != chapter_norm or row_topic != topic_norm:
+            continue
+
+        # Prefer a blueprint specific to this board/class/subject over a wildcard.
+        specificity = (
+            (4 if row_board == board.casefold() else 0)
+            + (2 if int(row["class_level"]) == class_level else 0)
+            + (1 if row_subject == subject.casefold() else 0)
+        )
+        matches.append((specificity, _interactive_lesson_row(row)))
+
+    if not matches:
+        return None
+    matches.sort(key=lambda item: item[0], reverse=True)
+    return matches[0][1]
 
 
 @app.get("/interactive-lessons")

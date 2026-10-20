@@ -60,6 +60,7 @@ timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
 }
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-profile tutor.xml | tee -a "$REPORT"
 
 log "Testing the I understand feedback action"
 python3 .github/scripts/ui_smoke.py tap tutor.xml "I understand"
@@ -76,7 +77,6 @@ sleep 2
 timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py assert-profile settings.xml | tee -a "$REPORT"
 
 log "Loading the real Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"

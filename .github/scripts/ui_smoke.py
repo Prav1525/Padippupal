@@ -70,23 +70,16 @@ def assert_chapter_button(path):
 
 
 def tap_bounds(path, bounds, label):
-    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
     if not match:
         raise SystemExit("Invalid accessibility bounds for " + label + ": " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
-    nodes, _ = load(path)
-    matches = [re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds", "")) for n in nodes]
-    matches = [m for m in matches if m]
-    max_x = max((int(m.group(3)) for m in matches), default=0)
-    max_y = max((int(m.group(4)) for m in matches), default=0)
-    size = subprocess.check_output(["adb", "-s", "emulator-5554", "shell", "wm", "size"], text=True)
-    found = re.search(r"(?:Physical|Override) size:\s*(\d+)x(\d+)", size)
-    sx = sy = 1.0
-    if found and max_x and max_y:
-        screen_w, screen_h = map(int, found.groups())
-        sx, sy = screen_w / max_x, screen_h / max_y
-    x, y = round((x1+x2)/2*sx), round((y1+y2)/2*sy)
-    print("Tap", repr(label), "bounds", bounds, "scale", round(sx, 3), round(sy, 3), "=>", x, y)
+    # UIAutomator bounds are already in screen pixel coordinates. Scaling them
+    # to wm size was wrong on this emulator: its accessibility tree ends above
+    # the system navigation area, so max_y is not the physical screen height.
+    # That multiplied the bottom-tab y coordinate by 1.07 and tapped below it.
+    x, y = round((x1+x2)/2), round((y1+y2)/2)
+    print("Tap", repr(label), "bounds", bounds, "using screen coordinates =>", x, y)
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
 
 def tap_numbered(path, number):

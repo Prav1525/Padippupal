@@ -413,3 +413,65 @@ def test_chapter_source_chunks_only_selects_exact_chapter_and_profile(monkeypatc
         subject="Mathematics",medium="English",chapter="Patterns in Mathematics")
     rows = curriculum._chapter_source_chunks(payload)
     assert [row["chunk_id"] for row in rows] == ["c1"]
+
+
+
+def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
+    from contextlib import contextmanager
+
+    chunk_id = "chunk-verified-1"
+    approved_row = {
+        "id": "lesson-approved-1",
+        "chapter": "Life Processes",
+        "topic": "",
+        "lesson_json": json.dumps({
+            "chapter_title": "Life Processes",
+            "overview": "Plants make food using light.",
+            "learning_objectives": ["Understand photosynthesis"],
+            "teaching_sequence": [{
+                "id": "step-1",
+                "teacher_says": "Let's look at how a plant makes its food.",
+                "caption": "Plants use light to make food.",
+                "checkpoint": "What does the plant need?",
+                "source_chunk_ids": [chunk_id],
+                "visual": {"type": "process", "objects": ["sunlight", "leaf"], "actions": ["reveal"]},
+            }],
+        }),
+        "source_refs_json": json.dumps([{
+            "chunk_id": chunk_id, "source_id": "source-1", "title": "Class 6 Science",
+            "page_start": 12, "page_end": 13,
+        }]),
+    }
+
+    class FakeResult:
+        def fetchall(self):
+            return [approved_row]
+
+    class FakeConnection:
+        def execute(self, query, params=()):
+            assert "status='approved'" in query
+            assert params == ("CBSE", 6, "Science", "English")
+            return FakeResult()
+
+    @contextmanager
+    def fake_db():
+        yield FakeConnection()
+
+    monkeypatch.setattr(curriculum, "db", fake_db)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
+        AssertionError("approved lesson should bypass fresh retrieval")))
+    client = TestClient(curriculum.app)
+    response = client.post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Science",
+        "medium": "English", "app_language": "Tanglish",
+        "chapter": "Life Processes", "message": "Continue the lesson",
+        "max_segments": 5,
+    })
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["provider"] == "approved_chapter_lesson"
+    assert body["lesson_id"] == "lesson-approved-1"
+    assert body["chapter_overview"] == "Plants make food using light."
+    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
+    assert body["segments"][0]["visual_action"]["type"] == "reveal"
+    assert body["segments"][0]["checkpoint"] == "What does the plant need?"

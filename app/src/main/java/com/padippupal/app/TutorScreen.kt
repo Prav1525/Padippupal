@@ -1158,9 +1158,15 @@ internal fun TutorScreen(
                     if (code !in 200..299) throw IllegalStateException(response.optString("detail", "Could not prepare the live lesson."))
                     if (!response.optBoolean("grounded", false)) throw IllegalStateException(response.optString("warning", "No matching textbook passage was found."))
                     val array = response.optJSONArray("segments") ?: JSONArray()
-                    val segments = (0 until array.length()).mapNotNull { array.optJSONObject(it) }
-                    if (segments.isEmpty()) throw IllegalStateException("No textbook-backed lesson segments were returned.")
-                    segments
+                    val lessonSegments = (0 until array.length()).mapNotNull { array.optJSONObject(it) }
+                    if (lessonSegments.isEmpty()) throw IllegalStateException("No textbook-backed lesson segments were returned.")
+                    // Orient the learner before the curriculum lesson begins.
+                    val opening = JSONObject()
+                        .put("id", "lesson-opening")
+                        .put("spoken_text", "Today, we are going to learn the chapter $chapter, focusing on $topic.")
+                        .put("caption_text", "Today, we are going to learn the chapter $chapter, focusing on $topic.")
+                        .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+                    listOf(opening) + lessonSegments
                 } finally { connection.disconnect() }
             }
             tutorMainHandler.post {

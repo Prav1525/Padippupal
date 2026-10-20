@@ -59,6 +59,24 @@ timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
 
+log "Testing the I understand feedback action"
+python3 .github/scripts/ui_smoke.py tap tutor.xml "I understand"
+sleep 2
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/feedback.xml
+"${ADB[@]}" pull /data/local/tmp/feedback.xml feedback.xml
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/feedback.png
+python3 .github/scripts/ui_smoke.py assert-feedback feedback.xml | tee -a "$REPORT"
+
+log "Testing tutor settings and voice controls"
+python3 .github/scripts/ui_smoke.py tap feedback.xml "Change"
+sleep 2
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
+timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
+"${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
+python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap settings.xml "Done"
+sleep 2
+
 log "Testing Android back navigation to Home"
 "${ADB[@]}" shell input keyevent 4
 sleep 5

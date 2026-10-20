@@ -79,14 +79,15 @@ private data class TutorSource(val title: String, val url: String)
 
 private fun cleanTutorDisplayText(raw: String): String {
     return raw
-        .replace(Regex("\\\\text\\\\{([^{}]*)\\\\}"), "$1")
-        .replace(Regex("\\\\angle\\\\s*"), "∠")
-        .replace(Regex("\\\\times\\\\s*"), " × ")
-        .replace(Regex("\\\\div\\\\s*"), " ÷ ")
-        .replace(Regex("\\\\cdot\\\\s*"), " · ")
-        .replace(Regex("\\\\circ\\\\s*"), "°")
+        .replace("\\text", "")
+        .replace("\\angle", "∠")
+        .replace("\\times", " × ")
+        .replace("\\div", " ÷ ")
+        .replace("\\cdot", " · ")
+        .replace("\\circ", "°")
+        .replace("\\left", "")
+        .replace("\\right", "")
         .replace(Regex("\\\\frac\\\\{([^{}]+)\\\\}\\\\{([^{}]+)\\\\}"), "$1/$2")
-        .replace(Regex("\\\\(?:left|right)"), "")
         .replace("$", "")
         .replace(Regex("\\\\s+"), " ")
         .trim()
@@ -625,7 +626,7 @@ internal fun TutorScreen(
     }
     var speechActive by remember { mutableStateOf(false) }
     var voiceReady by remember { mutableStateOf(false) }
-    var selectedLanguage by remember { mutableStateOf(appLanguage) }
+    var selectedLanguage by remember { mutableStateOf(savedSession.optString("language", appLanguage)) }
     var listening by remember { mutableStateOf(false) }
     val speechRecognizer = remember(context) {
         if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null

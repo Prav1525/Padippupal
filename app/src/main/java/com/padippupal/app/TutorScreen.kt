@@ -684,8 +684,25 @@ internal fun TutorScreen(
                         val title = item.optString("title").trim()
                         if (title.isBlank()) return@mapNotNull null
                         val topicsJson = item.optJSONArray("topics") ?: JSONArray()
-                        val topics = (0 until topicsJson.length()).map { topicsJson.optString(it) }
-                            .filter { it.isNotBlank() }.distinct().take(20)
+                        val topics = (0 until topicsJson.length()).mapNotNull { topicIndex ->
+                            val rawTopic = topicsJson.opt(topicIndex)
+                            val topicTitle = when (rawTopic) {
+                                is JSONObject -> rawTopic.optString("title").ifBlank {
+                                    rawTopic.optString("name")
+                                }
+                                is String -> {
+                                    val trimmed = rawTopic.trim()
+                                    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                                        runCatching {
+                                            val parsed = JSONObject(trimmed)
+                                            parsed.optString("title").ifBlank { parsed.optString("name") }
+                                        }.getOrDefault(trimmed)
+                                    } else trimmed
+                                }
+                                else -> ""
+                            }.trim()
+                            topicTitle.takeIf { it.isNotBlank() }
+                        }.distinct().take(30)
                         title to topics
                     }
                 } finally {
@@ -1142,9 +1159,10 @@ internal fun TutorScreen(
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).heightIn(min = 54.dp, max = 124.dp),
                 placeholder = { Text("Type a question or tap the mic…") },
                 shape = RoundedCornerShape(18.dp),
+                minLines = 1,
                 maxLines = 4,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { sendMessage() })

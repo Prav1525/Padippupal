@@ -256,7 +256,7 @@ private fun InteractiveLessonLab(
 
 
 @Composable
-private fun ChapterOneMathAnimation(scene: String, title: String, caption: String) {
+private fun ChapterOneMathAnimation(scene: String, title: String, topic: String, caption: String) {
     var stage by remember(scene, title) { mutableIntStateOf(0) }
     LaunchedEffect(scene, title) {
         stage = 0
@@ -337,23 +337,40 @@ private fun ChapterOneMathAnimation(scene: String, title: String, caption: Strin
                     )
                 }
                 "number_machine" -> {
-                    Text("Follow the number through the machine", color = TutorGrey, fontSize = 12.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                        listOf(Triple("INPUT", "2", 0), Triple("RULE", "× 3", 1), Triple("OUTPUT", "6", 2)).forEach { item ->
-                            Column(
-                                Modifier.weight(1f).background(if (stage >= item.third) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(12.dp)).padding(vertical = 14.dp, horizontal = 4.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(item.first, color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                Text(item.second, color = TutorDeep, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
-                            }
-                            if (item.third < 2) Text("→", color = TutorGreen, fontWeight = FontWeight.Bold)
-                        }
+                    val topicKey = topic.lowercase()
+                    val sequenceMode = topicKey.contains("sequence") || topicKey.contains("relations among")
+                    val digitMode = topicKey.contains("patterns in numbers")
+                    val values = when {
+                        sequenceMode -> listOf("1", "3", "6", "10", "15")
+                        digitMode -> listOf("12", "21", "12", "21", "12")
+                        else -> listOf("2", "4", "6", "8", "10")
+                    }
+                    val explanation = when {
+                        sequenceMode -> listOf("Start with one dot.", "Add a row of two: 1 + 2 = 3.", "Add three more: 3 + 3 = 6.", "Keep adding the next row: 10, then 15.")[stage]
+                        digitMode -> listOf("Look at the digits in 12.", "Reverse the digits: 21.", "The same digits can form a different number.", "A digit arrangement can create a repeating pattern.")[stage]
+                        else -> listOf("Start with 2.", "Add 2 each time: 4, then 6.", "The rule is +2 at every step.", "Predict the next terms: 10, then 12.")[stage]
                     }
                     Text(
-                        listOf("Start with input 2.", "The rule multiplies the input by 3.", "2 × 3 gives the output 6.", "Try the same rule mentally: input 4 gives output 12.")[stage],
-                        color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp
+                        when {
+                            sequenceMode -> "Triangular numbers: each term adds a new row"
+                            digitMode -> "Digit patterns: observe how the digits change"
+                            else -> "Number sequences: find the rule between terms"
+                        },
+                        color = TutorGrey, fontSize = 12.sp
                     )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        values.forEachIndexed { index, number ->
+                            Column(
+                                Modifier.weight(1f).background(if (index <= stage + 1) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 12.dp, horizontal = 2.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(number, color = TutorDeep, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+                                Text(if (sequenceMode) "△ ${index + 1}" else if (digitMode) "digits" else "term ${index + 1}", color = TutorGreen, fontSize = 9.sp)
+                            }
+                            if (index < values.lastIndex) Text("→", color = TutorGreen, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Text(explanation, color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
                 }
             }
             Text(caption, color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
@@ -374,8 +391,10 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
-    if (scene in setOf("number_pattern", "shape_pattern", "number_machine") && lesson.optString("chapter") == "Patterns in Mathematics") {
-        ChapterOneMathAnimation(scene, title, caption)
+    if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {
+        val topicKey = lesson.optString("topic").lowercase()
+        val mappedScene = if (scene == "pattern_builder" || topicKey.contains("shape")) "shape_pattern" else scene
+        ChapterOneMathAnimation(mappedScene, title, lesson.optString("topic"), caption)
         return
     }
     val items = remember(key) {

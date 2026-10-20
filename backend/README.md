@@ -61,11 +61,16 @@ This is a working starter engine, not a production deployment. The Android app a
 
 ## Gentle AI tutor
 
-- POST /tutor/chat — child-friendly, class-aware teaching through Groq; accepts board, class, subject, textbook medium, preferred explanation language (English, Tanglish, or Tamil), current question and up to 8 recent turns.
+- POST /tutor/chat — child-friendly, class-aware teaching through Gemini (`GEMINI_API_KEY`); accepts board, class, subject, textbook medium, preferred explanation language (English, Tanglish, or Tamil), selected chapter/topic, current question and recent turns.
 - The endpoint retrieves up to four keyword-matched passages for the exact board/class/subject/medium before generating an answer. If no passage matches, it can explain general concepts but must not claim the answer came from the official textbook.
-- Configure GROQ_API_KEY only in the Render service environment; never put it in Android, GitHub, or the APK.
+- Configure `GEMINI_API_KEY` only in the Render service environment; never put it in Android, GitHub, or the APK. `PADIPPUPAL_GEMINI_CHAT_MODEL` overrides the default `gemini-2.5-flash` model.
 - Optional natural speech: configure GEMINI_API_KEY only in the same Render service environment. The app calls POST /tutor/speech for Gemini-generated WAV audio and automatically falls back to Android TTS if cloud speech is not configured or fails. Set PADIPPUPAL_GEMINI_TTS_MODEL to override the default Gemini TTS model. Gemini API quota, model availability, and billing depend on the Google AI account; do not assume unlimited free usage.
 - Voice requests send the tutor reply text and selected explanation language to Google. Avoid including a child's identifying or sensitive information in prompts, and review Google's current data terms before production use.
-- Optional PADIPPUPAL_GROQ_MODEL overrides the default openai/gpt-oss-20b model ID. Check the provider's current model catalogue and account limits before changing it.
+- The tutor prompt constrains teaching to the selected chapter/topic and matching interactive lesson blueprint. If approved source passages are unavailable, the model must not claim textbook verification or invent official NCERT details.
 - The Android tutor uses the phone's installed Android text-to-speech engine for spoken replies. English, Tanglish (Indian English voice) and Tamil voice availability/quality depends on installed voices. No cloud TTS credentials are bundled into the app.
 - API calls are not stored as a student transcript by this endpoint. The last few turns are sent with each request to keep the conversation coherent.
+
+
+## Release and source-trust gates
+
+The lesson catalog is a teaching/visual blueprint, not an authoritative substitute for the current official textbook. `source_registry.json` currently marks all source entries as not approved for automatic ingestion. Before describing an answer as NCERT-grounded, verify the exact official syllabus/textbook edition, chapter and medium and ensure the required usage rights are in place. Gemini Live is intentionally not part of the current release; add it only after the request/response tutor, session restoration, visual lesson and speech paths pass phone testing.

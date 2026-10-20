@@ -239,6 +239,8 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     }
     var positions by remember(key) { mutableStateOf(items.map { Offset(it.x, it.y) }) }
     var feedback by remember(key) { mutableStateOf("Touch an object, drag it, and notice what changes.") }
+    val steps = lesson.optJSONArray("steps")
+    val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
     val stepPreferenceKey = "lesson_step_${sessionKey}_${key}"
     val stepDateKey = "${stepPreferenceKey}_date"
     val savedStep = if (sessionPrefs.getString(stepDateKey, "") == todayKey) sessionPrefs.getInt(stepPreferenceKey, 0) else 0
@@ -249,8 +251,6 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     }
     var heatLevel by remember(key) { mutableFloatStateOf(.28f) }
     var chartValue by remember(key) { mutableFloatStateOf(.62f) }
-    val steps = lesson.optJSONArray("steps")
-    val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
     val motion = rememberInfiniteTransition(label = "interactive-db-motion")
     val pulse by motion.animateFloat(0f, 1f, infiniteRepeatable(tween(1800), RepeatMode.Reverse), label = "pulse")
     val vertex = positions.getOrNull(0) ?: Offset(.5f, .5f)

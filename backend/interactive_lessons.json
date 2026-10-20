@@ -3,7 +3,7 @@
   "board": "CBSE",
   "class_level": 6,
   "academic_year": "2026-27",
-  "note": "Teacher-curated first-pass lesson blueprints for NCERT-aligned Grade 6 learning. Mathematics chapter names and first-pass subtopics are mapped to the official NCERT Ganita Prakash Grade 6 Reprint 2026-27 book; chapter-level review remains required. Chapter 1 has a concept-first lesson map covering number families, visual number sequences, sequence relationships, regular polygons, complete graphs, stacked shapes and the Koch snowflake. These are teacher-authored scaffolds, not textbook text; verify examples and coverage against the exact edition before marking the chapter fully verified. Science is an initial concept map and must be checked against the official Curiosity textbook before being marked complete. The official textbook remains hosted by NCERT; these blueprints do not include textbook text.",
+  "note": "Teacher-curated first-pass lesson blueprints for NCERT-aligned Grade 6 learning. Mathematics chapter names and first-pass subtopics are mapped to the official NCERT Ganita Prakash Grade 6 Reprint 2026-27 book; chapter-level review remains required. Chapter 1 includes number families, visual sequences, sequence relationships, regular polygons, complete graphs, stacked shapes and the Koch snowflake sequence. These are teacher-authored scaffolds, not textbook text; examples and coverage must be verified against the exact edition before marking the chapter fully verified. Science is an initial concept map and must be checked against the official Curiosity textbook before being marked complete. The official textbook remains hosted by NCERT; these blueprints do not include textbook text.",
   "lessons": [
     {
       "id": "science-the-wonderful-world-of-science-observation-and-fair-tests",
@@ -8011,6 +8011,451 @@
         "answer": "Add 2",
         "hint": "Compare each number with the one before it.",
         "success_feedback": "Correct. The difference is always 2."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-counting-numbers",
+      "topic": "Patterns in Numbers",
+      "title": "Count in Order",
+      "scene_type": "number_pattern",
+      "caption": "Counting numbers follow 1, 2, 3, 4, 5, ... Each step adds one.",
+      "objects": [
+        {
+          "id": "n1",
+          "label": "1",
+          "kind": "number_pattern",
+          "position": [
+            0.12,
+            0.3
+          ]
+        },
+        {
+          "id": "n2",
+          "label": "2",
+          "kind": "number_pattern",
+          "position": [
+            0.3,
+            0.3
+          ]
+        },
+        {
+          "id": "n3",
+          "label": "3",
+          "kind": "number_pattern",
+          "position": [
+            0.48,
+            0.3
+          ]
+        },
+        {
+          "id": "n4",
+          "label": "4",
+          "kind": "number_pattern",
+          "position": [
+            0.66,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Look at 1, 2, 3, 4, 5."
+        },
+        {
+          "title": "Find the rule",
+          "text": "Each number is one more than the number before it."
+        },
+        {
+          "title": "Try it",
+          "text": "Add one to 5 to continue the counting sequence."
+        }
+      ],
+      "challenge": {
+        "question": "What comes after 5, 6, 7?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "8",
+        "hint": "Keep counting forward by one.",
+        "success_feedback": "Correct. Counting numbers increase by one."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-even-numbers",
+      "topic": "Patterns in Numbers",
+      "title": "Spot the Even-Number Pattern",
+      "scene_type": "number_pattern",
+      "caption": "Even numbers are 2, 4, 6, 8, 10, ... Each next even number is two more.",
+      "objects": [
+        {
+          "id": "e1",
+          "label": "2",
+          "kind": "number_pattern",
+          "position": [
+            0.12,
+            0.3
+          ]
+        },
+        {
+          "id": "e2",
+          "label": "4",
+          "kind": "number_pattern",
+          "position": [
+            0.3,
+            0.3
+          ]
+        },
+        {
+          "id": "e3",
+          "label": "6",
+          "kind": "number_pattern",
+          "position": [
+            0.48,
+            0.3
+          ]
+        },
+        {
+          "id": "e4",
+          "label": "8",
+          "kind": "number_pattern",
+          "position": [
+            0.66,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Look at 2, 4, 6, 8."
+        },
+        {
+          "title": "Find the rule",
+          "text": "Each number is two more than the number before it."
+        },
+        {
+          "title": "Try it",
+          "text": "Add two to 8 to find the next even number."
+        }
+      ],
+      "challenge": {
+        "question": "What comes after 2, 4, 6, 8?",
+        "options": [
+          "9",
+          "10",
+          "12"
+        ],
+        "answer": "10",
+        "hint": "Add two to 8.",
+        "success_feedback": "Yes. The next even number is 10."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums",
+      "topic": "Relations among Number Sequences",
+      "title": "Two Triangular Numbers Make a Square",
+      "scene_type": "number_machine",
+      "caption": "Adding consecutive triangular numbers makes square numbers: 1+3=4, 3+6=9, 6+10=16.",
+      "objects": [
+        {
+          "id": "t1",
+          "label": "1 + 3",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.3
+          ]
+        },
+        {
+          "id": "t2",
+          "label": "= 4",
+          "kind": "number_machine",
+          "position": [
+            0.48,
+            0.3
+          ]
+        },
+        {
+          "id": "t3",
+          "label": "2 × 2",
+          "kind": "number_machine",
+          "position": [
+            0.78,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "See the parts",
+          "text": "The first triangular numbers are 1, 3, 6, 10, ... ."
+        },
+        {
+          "title": "Join two neighbours",
+          "text": "Add consecutive triangular numbers: 1+3=4 and 3+6=9."
+        },
+        {
+          "title": "Connect to squares",
+          "text": "The totals 4, 9, 16 are square numbers: 2×2, 3×3, 4×4."
+        }
+      ],
+      "challenge": {
+        "question": "What is 3 + 6, the sum of two consecutive triangular numbers?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "9",
+        "hint": "Add 3 and 6, then recognise the square number.",
+        "success_feedback": "Correct. 3 + 6 = 9 = 3 × 3."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-regular-polygons",
+      "topic": "Patterns in Shapes",
+      "title": "Count the Sides of Regular Polygons",
+      "scene_type": "shape_pattern",
+      "caption": "Regular polygons follow a side-count pattern: triangle 3, square 4, pentagon 5, hexagon 6, and so on.",
+      "objects": [
+        {
+          "id": "p1",
+          "label": "Triangle · 3 sides",
+          "kind": "shape_pattern",
+          "position": [
+            0.16,
+            0.35
+          ]
+        },
+        {
+          "id": "p2",
+          "label": "Square · 4 sides",
+          "kind": "shape_pattern",
+          "position": [
+            0.42,
+            0.35
+          ]
+        },
+        {
+          "id": "p3",
+          "label": "Pentagon · 5 sides",
+          "kind": "shape_pattern",
+          "position": [
+            0.68,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Look at the shapes",
+          "text": "A triangle has 3 sides, a square has 4, and a pentagon has 5."
+        },
+        {
+          "title": "Find the pattern",
+          "text": "Each next regular polygon has one more side."
+        },
+        {
+          "title": "Predict",
+          "text": "After a pentagon with 5 sides comes a hexagon with 6 sides."
+        }
+      ],
+      "challenge": {
+        "question": "How many sides does the next polygon have after a regular pentagon?",
+        "options": [
+          "4",
+          "6",
+          "8"
+        ],
+        "answer": "6",
+        "hint": "Add one side to 5.",
+        "success_feedback": "Correct. A regular hexagon has 6 sides."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-complete-graphs",
+      "topic": "Relation to Number Sequences",
+      "title": "Connect Complete Graphs to Triangular Numbers",
+      "scene_type": "shape_pattern",
+      "caption": "In a complete graph, every point connects to every other point. The edge counts for 2, 3, 4, 5 points are 1, 3, 6, 10.",
+      "objects": [
+        {
+          "id": "g1",
+          "label": "2 points · 1 line",
+          "kind": "shape_pattern",
+          "position": [
+            0.16,
+            0.35
+          ]
+        },
+        {
+          "id": "g2",
+          "label": "3 points · 3 lines",
+          "kind": "shape_pattern",
+          "position": [
+            0.42,
+            0.35
+          ]
+        },
+        {
+          "id": "g3",
+          "label": "4 points · 6 lines",
+          "kind": "shape_pattern",
+          "position": [
+            0.68,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Connect every pair",
+          "text": "Start with two points and draw the one line joining them."
+        },
+        {
+          "title": "Add a point",
+          "text": "With three points, connect every pair; there are 3 lines."
+        },
+        {
+          "title": "Notice the number pattern",
+          "text": "The edge counts 1, 3, 6, 10 match triangular numbers."
+        }
+      ],
+      "challenge": {
+        "question": "How many edges are in a complete graph with 4 points?",
+        "options": [
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": "6",
+        "hint": "Connect each of the four points to all the others, counting each line once.",
+        "success_feedback": "Yes. Four fully connected points have 6 edges."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-stacked-shapes",
+      "topic": "Patterns in Shapes",
+      "title": "Explore Stacked Squares and Triangles",
+      "scene_type": "shape_pattern",
+      "caption": "Stacked rows of squares or triangles grow in a regular way. Count each row and compare the totals.",
+      "objects": [
+        {
+          "id": "s1",
+          "label": "1 row",
+          "kind": "shape_pattern",
+          "position": [
+            0.16,
+            0.35
+          ]
+        },
+        {
+          "id": "s2",
+          "label": "2 rows",
+          "kind": "shape_pattern",
+          "position": [
+            0.42,
+            0.35
+          ]
+        },
+        {
+          "id": "s3",
+          "label": "3 rows",
+          "kind": "shape_pattern",
+          "position": [
+            0.68,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Count the rows",
+          "text": "Start with one row, then stack another row beneath it."
+        },
+        {
+          "title": "Compare each stage",
+          "text": "Count the pieces in each new stage and describe what was added."
+        },
+        {
+          "title": "Predict the next stage",
+          "text": "Use the same row-building rule to draw and count the next stack."
+        }
+      ],
+      "challenge": {
+        "question": "If a stack grows by adding one new row each time, what should you do next?",
+        "options": [
+          "Add the next row",
+          "Remove all rows",
+          "Change the rule"
+        ],
+        "answer": "Add the next row",
+        "hint": "Keep the same building rule.",
+        "success_feedback": "Correct. Continue the pattern by adding the next row."
+      }
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-koch-snowflake-sequence",
+      "topic": "Patterns in Shapes",
+      "title": "Count the Koch Snowflake Edges",
+      "scene_type": "pattern_builder",
+      "caption": "Each Koch snowflake step replaces every edge with four smaller edges, so the edge counts go 3, 12, 48, 192, ...",
+      "objects": [
+        {
+          "id": "k1",
+          "label": "3 edges",
+          "kind": "pattern_builder",
+          "position": [
+            0.16,
+            0.35
+          ]
+        },
+        {
+          "id": "k2",
+          "label": "12 edges",
+          "kind": "pattern_builder",
+          "position": [
+            0.42,
+            0.35
+          ]
+        },
+        {
+          "id": "k3",
+          "label": "48 edges",
+          "kind": "pattern_builder",
+          "position": [
+            0.68,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Start with a triangle",
+          "text": "The first outline has 3 edges."
+        },
+        {
+          "title": "Repeat the construction",
+          "text": "Each edge is replaced by four smaller edges, so 3 becomes 12."
+        },
+        {
+          "title": "Find the number rule",
+          "text": "Repeat the rule: 12 becomes 48, then 192. Multiply by 4 each time."
+        }
+      ],
+      "challenge": {
+        "question": "How many edges come after 3, 12, 48?",
+        "options": [
+          "96",
+          "144",
+          "192"
+        ],
+        "answer": "192",
+        "hint": "Multiply 48 by 4.",
+        "success_feedback": "Correct. 48 × 4 = 192."
       }
     }
   ],

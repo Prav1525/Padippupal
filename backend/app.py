@@ -1287,7 +1287,7 @@ ACCURACY AND SAFETY:
         "interactive_lesson": interactive_lesson,
     }
 
-# ---------------- Natural cloud speech (Gemini TTS) ----------------
+# ---------------- Natural cloud speech (Gemini primary, Sarvam fallback) ----------------
 import base64
 import io
 import wave
@@ -1298,126 +1298,196 @@ class TutorSpeechRequest(BaseModel):
     app_language: str = Field(default="English", max_length=30)
 
 
-@app.get("/health/voice")
-def voice_health() -> dict[str, Any]:
-    """Report voice configuration status without exposing any credentials."""
-    return {
-        "provider": "gemini",
-        "configured": bool(os.getenv("GEMINI_API_KEY", "").strip()),
-        "model": os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip(),
-        "fallback": "android-tts",
-    }
-
-
-@app.post("/tutor/speech")
-def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
-    """Synthesize a gentle spoken tutor reply with Gemini; API key stays server-side."""
-    request_started = time.monotonic()
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise HTTPException(status_code=503, detail="Natural voice is not configured yet.")
-    model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
-    language = payload.app_language.strip()
-    # The speech endpoint accepts only the tutor's final answer, never the chat
-    # prompt or internal instructions. Collapse exact repeated sentences that can
-    # otherwise sound like a stuck/replaying tutor.
-    speech_text = re.sub(r"\s+", " ", payload.text).strip()
+def _clean_tutor_speech_text(text: str) -> str:
+    speech_text = re.sub(r"\\s+", " ", text).strip()
     speech_text = re.sub(
-        r"^(?:tutor reply|response|instructions to the voice|voice instructions)\s*:\s*",
+        r"^(?:tutor reply|response|instructions to the voice|voice instructions)\\s*:\\s*",
         "", speech_text, flags=re.IGNORECASE,
     ).strip()
-    sentences = re.split(r"(?<=[.!?。！？])\s+", speech_text)
+    sentences = re.split(r"(?<=[.!?。！？])\\s+", speech_text)
     deduped: list[str] = []
     for sentence in sentences:
         sentence = sentence.strip()
         if sentence and (not deduped or sentence.casefold() != deduped[-1].casefold()):
             deduped.append(sentence)
-    speech_text = " ".join(deduped)
-    language_instruction = {
-        "Tanglish": "Use natural conversational Tanglish (Tamil-English code-switching), with fluent Tamil words and natural Indian English.",
-        "தமிழ்": "Use fluent, natural Tamil in Tamil script.",
-        "English": "Use natural Indian English with clear pronunciation.",
-    }.get(language, "Use the requested language naturally.")
-    # Put instructions in the prompt as directions, and tightly delimit the only
-    # content to vocalize. Never ask the model to read the directions themselves.
-    prompt = (
-        "VOICE DIRECTION (do not say these directions aloud): A warm, gentle, "
-        "patient female school-teacher voice. Moderate-slow pace, natural pauses, "
-        "clear articulation. " + language_instruction + "\n"
-        "Speak ONLY the exact words between the SAY tags below. Do not speak the "
-        "tag names, directions, labels, or anything before or after the tagged text. "
-        "Do not explain, summarize, repeat, or add words.\n"
-        "<SAY>\n" + speech_text + "\n</SAY>"
-    )
-    body = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseModalities": ["AUDIO"],
-            "speechConfig": {
-                "languageCode": {"Tanglish": "en-IN", "தமிழ்": "ta-IN", "English": "en-IN"}.get(language, "en-IN"),
-                "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": "Aoede"}},
-            },
-        },
+    return " ".join(deduped)
+
+
+def _sarvam_tutor_speech(speech_text: str, language: str) -> dict[str, Any] | None:
+    """Return Sarvam WAV audio when configured; otherwise let the caller use device TTS."""
+    api_key = os.getenv("SARVAM_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    # Tamil script uses ta-IN. Tanglish is best-effort: the text is kept intact,
+    # with ta-IN selected so the Tamil words are not treated as generic English.
+    language_code = "ta-IN" if language in {"Tanglish", "தமிழ்"} else "en-IN"
+    speaker = "ishita" if language_code == "en-IN" else "ishita"
+    model = os.getenv("PADIPPUPAL_SARVAM_TTS_MODEL", "bulbul:v3").strip()
+    request_body = json.dumps({
+        "text": speech_text[:2500],
+        "model": model,
+        "language_code": language_code,
+        "speaker": speaker,
+        "pace": 0.9,
+        "temperature": 0.65,
+        "output_audio_codec": "wav",
     }).encode("utf-8")
     request = urllib.request.Request(
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-        data=body,
+        "https://api.sarvam.ai/text-to-speech",
+        data=request_body,
         headers={
-            "x-goog-api-key": api_key,
+            "api-subscription-key": api_key,
             "Content-Type": "application/json",
             "Accept": "application/json",
         },
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=45) as response:
+        with urllib.request.urlopen(request, timeout=35) as response:
             result = json.loads(response.read().decode("utf-8"))
-        parts = result["candidates"][0]["content"]["parts"]
-        # Gemini can return speech as multiple audio parts. Join every PCM chunk
-        # in response order; using only the first inlineData part can truncate speech.
-        audio_parts = [
-            part["inlineData"]
-            for part in parts
-            if isinstance(part, dict)
-            and isinstance(part.get("inlineData"), dict)
-            and part["inlineData"].get("data")
-        ]
-        if not audio_parts:
-            raise ValueError("Gemini returned no audio data")
-        mime_type = audio_parts[0].get("mimeType", "audio/L16;rate=24000")
-        raw_audio = b"".join(
-            base64.b64decode(part["data"], validate=True)
-            for part in audio_parts
-        )
-        if len(raw_audio) < 4:
-            raise ValueError("Gemini returned an empty audio stream")
-        # Gemini TTS returns raw 16-bit PCM. Wrap the complete stream in WAV for Android.
-        rate_match = re.search(r"rate=(\d+)", mime_type)
-        sample_rate = int(rate_match.group(1)) if rate_match else 24000
-        wav_buffer = io.BytesIO()
-        with wave.open(wav_buffer, "wb") as wav_file:
-            wav_file.setnchannels(1)
-            wav_file.setsampwidth(2)
-            wav_file.setframerate(sample_rate)
-            wav_file.writeframes(raw_audio)
-        logger.info("Tutor speech completed provider=gemini chars=%d elapsed_ms=%d", len(speech_text), int((time.monotonic() - request_started) * 1000))
+        audios = result.get("audios")
+        if not isinstance(audios, list) or not audios or not isinstance(audios[0], str):
+            raise ValueError("Sarvam returned no audio data")
+        audio_bytes = base64.b64decode(audios[0], validate=True)
+        if len(audio_bytes) < 44:
+            raise ValueError("Sarvam returned an empty or invalid WAV")
+        logger.info("Tutor speech completed provider=sarvam model=%s chars=%d", model, len(speech_text))
         return {
-            "audio_base64": base64.b64encode(wav_buffer.getvalue()).decode("ascii"),
+            "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
             "mime_type": "audio/wav",
-            "voice": "Kore",
-            "provider": "gemini",
+            "voice": speaker,
+            "provider": "sarvam",
             "model": model,
         }
-    except urllib.error.HTTPError as exc:
-        logger.warning("Gemini TTS HTTP error status=%s model=%s", exc.code, model)
-        if exc.code == 429:
-            raise HTTPException(status_code=503, detail="Natural voice is temporarily at its usage limit.") from exc
-        raise HTTPException(status_code=502, detail="Natural voice could not be generated right now.") from exc
-    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, StopIteration,
-            ValueError, TypeError, json.JSONDecodeError) as exc:
-        logger.warning("Gemini TTS failed error_type=%s model=%s", type(exc).__name__, model)
-        raise HTTPException(status_code=502, detail="Natural voice generation failed. Please try again.") from exc
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError,
+            KeyError, IndexError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        status = getattr(exc, "code", None)
+        logger.warning("Sarvam TTS fallback failed status=%s error_type=%s", status, type(exc).__name__)
+        return None
 
+
+@app.get("/health/voice")
+def voice_health() -> dict[str, Any]:
+    """Report voice provider status without exposing credentials."""
+    gemini_configured = bool(os.getenv("GEMINI_API_KEY", "").strip())
+    sarvam_configured = bool(os.getenv("SARVAM_API_KEY", "").strip())
+    return {
+        "provider": "gemini",
+        "configured": gemini_configured or sarvam_configured,
+        "model": os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip(),
+        "fallback": "sarvam" if sarvam_configured else "android-tts",
+        "gemini_configured": gemini_configured,
+        "sarvam_configured": sarvam_configured,
+    }
+
+
+@app.post("/tutor/speech")
+def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
+    """Try Gemini first, then Sarvam, leaving Android TTS as the app's final fallback."""
+    request_started = time.monotonic()
+    language = payload.app_language.strip()
+    speech_text = _clean_tutor_speech_text(payload.text)
+    if not speech_text:
+        raise HTTPException(status_code=422, detail="There is no text to speak.")
+
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
+    gemini_error: str | None = None
+
+    if api_key:
+        language_instruction = {
+            "Tanglish": "Use natural conversational Tanglish (Tamil-English code-switching), with fluent Tamil words and natural Indian English.",
+            "தமிழ்": "Use fluent, natural Tamil in Tamil script.",
+            "English": "Use natural Indian English with clear pronunciation.",
+        }.get(language, "Use the requested language naturally.")
+        prompt = (
+            "VOICE DIRECTION (do not say these directions aloud): A warm, gentle, "
+            "patient female school-teacher voice. Moderate-slow pace, natural pauses, "
+            "clear articulation. " + language_instruction + "\\n"
+            "Speak ONLY the exact words between the SAY tags below. Do not speak the "
+            "tag names, directions, labels, or anything before or after the tagged text. "
+            "Do not explain, summarize, repeat, or add words.\\n"
+            "<SAY>\\n" + speech_text + "\\n</SAY>"
+        )
+        body = json.dumps({
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseModalities": ["AUDIO"],
+                "speechConfig": {
+                    "languageCode": {"Tanglish": "en-IN", "தமிழ்": "ta-IN", "English": "en-IN"}.get(language, "en-IN"),
+                    "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": "Aoede"}},
+                },
+            },
+        }).encode("utf-8")
+        request = urllib.request.Request(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+            data=body,
+            headers={
+                "x-goog-api-key": api_key,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=45) as response:
+                result = json.loads(response.read().decode("utf-8"))
+            parts = result["candidates"][0]["content"]["parts"]
+            audio_parts = [
+                part["inlineData"]
+                for part in parts
+                if isinstance(part, dict)
+                and isinstance(part.get("inlineData"), dict)
+                and part["inlineData"].get("data")
+            ]
+            if not audio_parts:
+                raise ValueError("Gemini returned no audio data")
+            mime_type = audio_parts[0].get("mimeType", "audio/L16;rate=24000")
+            raw_audio = b"".join(
+                base64.b64decode(part["data"], validate=True)
+                for part in audio_parts
+            )
+            if len(raw_audio) < 4:
+                raise ValueError("Gemini returned an empty audio stream")
+            rate_match = re.search(r"rate=(\\d+)", mime_type)
+            sample_rate = int(rate_match.group(1)) if rate_match else 24000
+            wav_buffer = io.BytesIO()
+            with wave.open(wav_buffer, "wb") as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)
+                wav_file.setframerate(sample_rate)
+                wav_file.writeframes(raw_audio)
+            logger.info("Tutor speech completed provider=gemini chars=%d elapsed_ms=%d", len(speech_text), int((time.monotonic() - request_started) * 1000))
+            return {
+                "audio_base64": base64.b64encode(wav_buffer.getvalue()).decode("ascii"),
+                "mime_type": "audio/wav",
+                "voice": "Aoede",
+                "provider": "gemini",
+                "model": model,
+            }
+        except urllib.error.HTTPError as exc:
+            gemini_error = f"http_{exc.code}"
+            logger.warning("Gemini TTS HTTP error status=%s model=%s; trying Sarvam fallback", exc.code, model)
+        except (urllib.error.URLError, TimeoutError, KeyError, IndexError,
+                StopIteration, ValueError, TypeError, json.JSONDecodeError) as exc:
+            gemini_error = type(exc).__name__
+            logger.warning("Gemini TTS failed error_type=%s model=%s; trying Sarvam fallback", gemini_error, model)
+    else:
+        gemini_error = "not_configured"
+        logger.info("Gemini TTS is not configured; trying Sarvam fallback")
+
+    fallback = _sarvam_tutor_speech(speech_text, language)
+    if fallback:
+        fallback["fallback_reason"] = gemini_error
+        fallback["elapsed_ms"] = int((time.monotonic() - request_started) * 1000)
+        return fallback
+
+    logger.warning("All cloud TTS providers unavailable; app should use Android TTS")
+    raise HTTPException(
+        status_code=503,
+        detail="Cloud voice is temporarily unavailable. Please use the device voice or try again.",
+    )
 
 
 # Learner planner and diary scanning APIs. Curriculum ingestion remains an invisible

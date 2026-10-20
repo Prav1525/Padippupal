@@ -8081,7 +8081,11 @@
         "answer": "8",
         "hint": "Keep counting forward by one.",
         "success_feedback": "Correct. Counting numbers increase by one."
-      }
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics"
     },
     {
       "id": "mathematics-patterns-in-mathematics-even-numbers",
@@ -8151,7 +8155,11 @@
         "answer": "10",
         "hint": "Add two to 8.",
         "success_feedback": "Yes. The next even number is 10."
-      }
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics"
     },
     {
       "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums",
@@ -8212,7 +8220,11 @@
         "answer": "9",
         "hint": "Add 3 and 6, then recognise the square number.",
         "success_feedback": "Correct. 3 + 6 = 9 = 3 × 3."
-      }
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics"
     },
     {
       "id": "mathematics-patterns-in-mathematics-regular-polygons",
@@ -8273,7 +8285,11 @@
         "answer": "6",
         "hint": "Add one side to 5.",
         "success_feedback": "Correct. A regular hexagon has 6 sides."
-      }
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics"
     },
     {
       "id": "mathematics-patterns-in-mathematics-complete-graphs",
@@ -8334,7 +8350,11 @@
         "answer": "6",
         "hint": "Connect each of the four points to all the others, counting each line once.",
         "success_feedback": "Yes. Four fully connected points have 6 edges."
-      }
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics"
     },
     {
       "id": "mathematics-patterns-in-mathematics-stacked-shapes",
@@ -8395,7 +8415,11 @@
         "answer": "Add the next row",
         "hint": "Keep the same building rule.",
         "success_feedback": "Correct. Continue the pattern by adding the next row."
-      }
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics"
     },
     {
       "id": "mathematics-patterns-in-mathematics-koch-snowflake-sequence",
@@ -8456,7 +8480,11 @@
         "answer": "192",
         "hint": "Multiply 48 by 4.",
         "success_feedback": "Correct. 48 × 4 = 192."
-      }
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics"
     }
   ],
   "sources": {

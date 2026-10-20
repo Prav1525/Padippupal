@@ -1778,6 +1778,31 @@ internal fun TutorScreen(
                                 } else if (message.content == latestAssistant?.content && message.visualLesson != null) {
                                     DatabaseLessonVisual(message.visualLesson)
                                 }
+                                if (message.content == latestAssistant?.content && !liveLessonActive && !loading) {
+                                    Spacer(Modifier.height(8.dp))
+                                    Text("How did that explanation feel?", color = TutorGrey, fontSize = 11.sp)
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        TextButton(
+                                            onClick = { status = "Great! We’ll build on this one small step at a time." },
+                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
+                                        ) { Text("I understand", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
+                                        TextButton(
+                                            onClick = sendMessage("Please explain the last idea more simply, in smaller steps, with an example."),
+                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
+                                        ) { Text("Explain again", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
+                                        TextButton(
+                                            onClick = {
+                                                input = "I have a question about " + topic.ifBlank { chapter.ifBlank { "this explanation" } } + ": "
+                                                status = "Type your question in the box below, then tap send."
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
+                                        ) { Text("Ask", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
+                                    }
+                                }
                             }
                         }
                     }

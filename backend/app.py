@@ -280,7 +280,7 @@ def init_db() -> None:
             try:
                 lesson_data = json.loads(lesson_file.read_text(encoding="utf-8"))
                 for lesson in lesson_data.get("lessons", []):
-                    lesson_payload = {key: lesson.get(key) for key in ("objects", "steps", "challenge")}
+                    lesson_payload = {key: lesson.get(key) for key in ("objects", "steps", "challenge", "source_refs")}
                     conn.execute(
                         """INSERT INTO interactive_lessons
                            (id, board, class_level, subject, chapter, topic, title, scene_type,
@@ -1086,7 +1086,7 @@ def _interactive_lesson_row(row: Any) -> dict[str, Any]:
         "subject": row["subject"], "chapter": row["chapter"], "topic": row["topic"],
         "title": row["title"], "scene_type": row["scene_type"], "caption": row["caption"],
         "objects": payload.get("objects", []), "steps": payload.get("steps", []),
-        "challenge": payload.get("challenge", {})}
+        "challenge": payload.get("challenge", {}), "source_refs": payload.get("source_refs", [])}
 
 
 def find_interactive_lesson(board: str, class_level: int, subject: str, chapter: str, topic: str, query: str = "") -> dict[str, Any] | None:

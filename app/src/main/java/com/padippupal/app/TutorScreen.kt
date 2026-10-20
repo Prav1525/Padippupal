@@ -679,6 +679,7 @@ internal fun TutorScreen(
         mutableStateOf(context.getSharedPreferences("padippupal_settings", 0).getBoolean("prefer_on_device_voice", false))
     }
     var speechActive by remember { mutableStateOf(false) }
+    var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var liveCaption by remember { mutableStateOf("") }
@@ -882,7 +883,9 @@ internal fun TutorScreen(
             tutorMainHandler.post { voiceReady = result == TextToSpeech.SUCCESS }
         }
         engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {}
+            override fun onStart(utteranceId: String?) {
+                tutorMainHandler.post { val callback = speechStartCallback; speechStartCallback = null; callback?.invoke() }
+            }
             override fun onDone(utteranceId: String?) {
                 tutorMainHandler.post { finishSpeechSegment() }
             }
@@ -901,7 +904,8 @@ internal fun TutorScreen(
         }
     }
 
-    fun speakWithDeviceTts(text: String, onFinished: (() -> Unit)? = null) {
+    fun speakWithDeviceTts(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
+        speechStartCallback = onStarted
         speechCompletion = onFinished
         status = if (preferOnDeviceVoice) {
             "Using this phone's TTS engine. Choose Sherpa-ONNX Kokoro in Android text-to-speech settings for local Kokoro speech."
@@ -930,16 +934,17 @@ internal fun TutorScreen(
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
     }
 
-    fun speak(text: String, onFinished: (() -> Unit)? = null) {
+    fun speak(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
         // Auto-read and the manual speaker button must not launch overlapping
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
         speechActive = true
+        speechStartCallback = onStarted
         speechCompletion = onFinished
         // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
         // through the user's selected system engine (e.g. Sherpa-ONNX Kokoro).
         if (preferOnDeviceVoice) {
-            speakWithDeviceTts(text, onFinished)
+            speakWithDeviceTts(text, onStarted, onFinished)
             return
         }
         val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
@@ -999,6 +1004,9 @@ internal fun TutorScreen(
                             }
                             player.prepare()
                             player.start()
+                            val startedCallback = speechStartCallback
+                            speechStartCallback = null
+                            startedCallback?.invoke()
                             status = "Speaking with Gemini natural voice."
                         }.onFailure {
                             audioFile.delete()
@@ -1019,13 +1027,15 @@ internal fun TutorScreen(
         if (!liveLessonActive) return
         if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
         val segment = liveSegments[index]
-        liveCaption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
+        val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
-        liveVisualAction = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
-        status = "Live lesson · segment ${index + 1} of ${liveSegments.size}"
+        val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
+        status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
-        speak(words) { if (liveLessonActive) playLiveSegment(index + 1) }
+        speak(words, onStarted = { liveCaption = caption; liveVisualAction = visualCue; status = "Live lesson · segment ${index + 1} of ${liveSegments.size}" }) {
+            if (liveLessonActive) playLiveSegment(index + 1)
+        }
     }
 
     fun startLiveLesson() {

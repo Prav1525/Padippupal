@@ -256,12 +256,128 @@ private fun InteractiveLessonLab(
 
 
 @Composable
+private fun ChapterOneMathAnimation(scene: String, title: String, caption: String) {
+    var stage by remember(scene, title) { mutableIntStateOf(0) }
+    LaunchedEffect(scene, title) {
+        stage = 0
+        while (true) {
+            delay(3000L)
+            stage = (stage + 1) % 4
+        }
+    }
+    val transition = rememberInfiniteTransition(label = "chapter-one-maths")
+    val pulse by transition.animateFloat(
+        initialValue = 0.94f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "pattern-pulse"
+    )
+    Surface(
+        Modifier.fillMaxWidth().padding(top = 8.dp),
+        color = Color(0xFFEAF5EE),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("WATCH THE PATTERN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(title, color = TutorDeep, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            when (scene) {
+                "number_pattern" -> {
+                    Text("Square numbers grow in a pattern", color = TutorGrey, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val nums = listOf("1", "4", "9", "16", "25")
+                        nums.forEachIndexed { index, number ->
+                            if (index > 0) Text("→", color = TutorGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Column(
+                                Modifier.weight(1f).background(
+                                    if (index < stage + 1) Color(0xFFDDF4A8) else Color.White,
+                                    RoundedCornerShape(10.dp)
+                                ).padding(vertical = 10.dp, horizontal = 2.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(number, color = TutorDeep, fontSize = if (index == stage) (18 * pulse).sp else 17.sp, fontWeight = FontWeight.ExtraBold)
+                                Text(listOf("1²", "2²", "3²", "4²", "5²")[index], color = TutorGreen, fontSize = 10.sp)
+                            }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        listOf("+3", "+5", "+7", "+9").forEachIndexed { index, gap ->
+                            Text(gap, color = if (index < stage) TutorGreen else TutorGrey, fontSize = 12.sp, fontWeight = if (index < stage) FontWeight.Bold else FontWeight.Normal)
+                        }
+                    }
+                    Text(
+                        when (stage) {
+                            0 -> "1 = 1 × 1. Watch the first square number appear."
+                            1 -> "4 − 1 = 3, then 9 − 4 = 5. The gaps are growing."
+                            2 -> "16 − 9 = 7. Each new gap increases by 2."
+                            else -> "Next gap is +9, so 16 + 9 = 25. Five times five is 25!"
+                        },
+                        color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp
+                    )
+                }
+                "shape_pattern" -> {
+                    Text("A repeating unit makes a shape pattern", color = TutorGrey, fontSize = 12.sp)
+                    val symbols = listOf("●", "▲", "■", "●", "▲", "■", "●", "▲", "■")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        symbols.forEachIndexed { index, symbol ->
+                            Box(
+                                Modifier.weight(1f).aspectRatio(1f).background(
+                                    if (index / 3 <= stage) Color(0xFFDDF4A8) else Color.White,
+                                    RoundedCornerShape(7.dp)
+                                ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(symbol, color = listOf(Color(0xFF24734B), Color(0xFFDB8A2E), Color(0xFF4B78B8))[index % 3], fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    Text(
+                        listOf("The repeating unit is circle, triangle, square.", "Now the same three shapes repeat again.", "Look for the unit, not just the next shape.", "Circle, triangle, square — then the pattern starts again.")[stage],
+                        color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp
+                    )
+                }
+                "number_machine" -> {
+                    Text("Follow the number through the machine", color = TutorGrey, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf(Triple("INPUT", "2", 0), Triple("RULE", "× 3", 1), Triple("OUTPUT", "6", 2)).forEach { item ->
+                            Column(
+                                Modifier.weight(1f).background(if (stage >= item.third) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(12.dp)).padding(vertical = 14.dp, horizontal = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(item.first, color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                Text(item.second, color = TutorDeep, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
+                            }
+                            if (item.third < 2) Text("→", color = TutorGreen, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Text(
+                        listOf("Start with input 2.", "The rule multiplies the input by 3.", "2 × 3 gives the output 6.", "Try the same rule mentally: input 4 gives output 12.")[stage],
+                        color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp
+                    )
+                }
+            }
+            Text(caption, color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                repeat(4) { index ->
+                    Box(Modifier.weight(1f).height(3.dp).background(if (index == stage) TutorGreen else Color(0xFFD1E7D8), RoundedCornerShape(3.dp)))
+                }
+                Text("AUTO", color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
+    if (scene in setOf("number_pattern", "shape_pattern", "number_machine") && lesson.optString("chapter") == "Patterns in Mathematics") {
+        ChapterOneMathAnimation(scene, title, caption)
+        return
+    }
     val items = remember(key) {
         when (scene) {
             "fraction_builder" -> listOf(

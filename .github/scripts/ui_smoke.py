@@ -68,15 +68,16 @@ def assert_chapter_button(path):
         raise SystemExit("Chapter list did not load or the Choose chapter control is disabled")
     print("PASS: Mathematics chapter list loaded and can be opened")
 
-def tap_first_numbered(path):
+def tap_numbered(path, number):
     nodes, texts = load(path)
     candidates = []
+    pattern = rf"^{re.escape(str(number))}[.)]\s*\S"
     for node in nodes:
         label = node.attrib.get("text", "").strip()
-        if re.match(r"^1[.)]\s*\S", label):
+        if re.match(pattern, label):
             candidates.append(node)
     if not candidates:
-        raise SystemExit("No first numbered chapter option found. Visible labels: " + " | ".join(texts[:100]))
+        raise SystemExit(f"No numbered option {number} found. Visible labels: " + " | ".join(texts[:100]))
     node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
     bounds = node.attrib.get("bounds", "")
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
@@ -158,8 +159,8 @@ def main():
         assert_settings(path)
     elif action == "assert-chapter-button":
         assert_chapter_button(path)
-    elif action == "tap-first-numbered":
-        tap_first_numbered(path)
+    elif action == "tap-numbered" and len(sys.argv) >= 4:
+        tap_numbered(path, sys.argv[3])
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:

@@ -188,20 +188,27 @@ def test_interactive_lesson_catalog_covers_all_class_six_chapters(monkeypatch, t
     assert science.status_code == 200
     assert maths.status_code == 200
     assert science.json()["count"] == 36
-    # Chapter 1 duplicate blueprints were consolidated into six intentional lessons.
-    assert maths.json()["count"] == 88
+    # The catalogue may grow as chapter-specific lessons are added.
+    assert maths.json()["count"] >= 91
     chapter_one = client.get("/interactive-lessons", params={
         "board": "CBSE", "class_level": 6, "subject": "Mathematics",
         "chapter": "Patterns in Mathematics", "limit": 100
     })
     chapter_lessons = chapter_one.json()["lessons"]
     assert chapter_one.status_code == 200
-    assert len(chapter_lessons) == 6
+    assert len(chapter_lessons) >= 20
     topics = {item["topic"] for item in chapter_lessons}
-    assert "What is Mathematics?" in topics
-    assert "Patterns in Shapes" in topics
-    assert "Patterns in Numbers" in topics
-    assert all(item["objects"] and item["steps"] and item["challenge"]["question"] for item in chapter_lessons)
+    assert {
+        "What is Mathematics?", "All 1s", "Patterns in Numbers",
+        "Odd and Even Numbers", "Triangular Numbers", "Square Numbers",
+        "Cube Numbers", "Virahanka Numbers", "Powers of 2 and 3",
+        "Visualising Number Sequences", "Odd Numbers Make Squares",
+        "Two Triangles Make a Square", "Relations among Number Sequences",
+        "Hexagonal Numbers and Cubes", "Patterns in Shapes", "Regular Polygons",
+        "Complete Graphs", "Stacked Shapes", "Koch Snowflake",
+        "Relation to Number Sequences"
+    }.issubset(topics)
+    assert all(item["objects"] and len(item["steps"]) >= 3 and item["challenge"]["question"] for item in chapter_lessons)
     assert all(item["objects"] and item["steps"] and item["challenge"]["question"] for item in science.json()["lessons"] + maths.json()["lessons"])
     assert len({item["chapter"] for item in science.json()["lessons"]}) == 12
     assert len({item["chapter"] for item in maths.json()["lessons"]}) == 10

@@ -1280,8 +1280,11 @@ internal fun TutorScreen(
                                 lineHeight = 23.sp
                             )
                             if (message.role == "assistant") {
-                                val lessonAnimation = message.visualLesson ?: message.interactiveLesson
-                                if (lessonAnimation != null) DatabaseLessonVisual(lessonAnimation)
+                                if (message.interactiveLesson != null) {
+                                    DatabaseInteractiveLessonLab(message.interactiveLesson)
+                                } else if (message.visualLesson != null) {
+                                    DatabaseLessonVisual(message.visualLesson)
+                                }
                             }
                         }
                     }

@@ -70,16 +70,14 @@ def assert_chapter_button(path):
 
 
 def tap_bounds(path, bounds, label):
-    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("Invalid accessibility bounds for " + label + ": " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
-    # UIAutomator bounds are already in screen pixel coordinates. Scaling them
-    # to wm size was wrong on this emulator: its accessibility tree ends above
-    # the system navigation area, so max_y is not the physical screen height.
-    # That multiplied the bottom-tab y coordinate by 1.07 and tapped below it.
+    # UiAutomator bounds are already in screen coordinates. Scaling them to
+    # wm size incorrectly pushes bottom-navigation taps beneath system bars.
     x, y = round((x1+x2)/2), round((y1+y2)/2)
-    print("Tap", repr(label), "bounds", bounds, "using screen coordinates =>", x, y)
+    print("Tap", repr(label), "bounds", bounds, "using accessibility center =>", x, y)
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
 
 def tap_numbered(path, number):

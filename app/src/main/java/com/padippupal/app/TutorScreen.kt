@@ -205,10 +205,15 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                 MoveItem("🧲", "Magnet", .08f, .32f), MoveItem("📎", "Iron clip", .70f, .18f),
                 MoveItem("📎", "Steel pin", .70f, .55f), MoveItem("🪵", "Wood", .42f, .58f)
             )
-            "angle_builder" -> listOf(
+            "angle_builder", "angle_classifier" -> listOf(
                 MoveItem("📍", "Vertex", .42f, .43f), MoveItem("➡️", "Ray A", .76f, .43f),
                 MoveItem("↗️", "Ray B", .60f, .12f)
             )
+            "point_marker" -> listOf(MoveItem("📍", "Point A", .48f, .42f))
+            "line_segment" -> listOf(MoveItem("A", "Endpoint A", .20f, .43f), MoveItem("B", "Endpoint B", .76f, .43f))
+            "line" -> listOf(MoveItem("A", "Point A", .25f, .43f), MoveItem("B", "Point B", .70f, .43f))
+            "ray" -> listOf(MoveItem("A", "Start", .22f, .43f), MoveItem("B", "Ray point", .70f, .43f))
+            "line_ray_segment" -> listOf(MoveItem("AB", "Segment", .04f, .05f), MoveItem("→", "Ray", .04f, .36f), MoveItem("↔", "Line", .04f, .67f))
             "integer_line" -> listOf(
                 MoveItem("🔵", "−3", .15f, .30f), MoveItem("🟢", "0", .48f, .30f),
                 MoveItem("🟠", "+3", .80f, .30f)
@@ -242,7 +247,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
     val motion = rememberInfiniteTransition(label = "interactive-db-motion")
     val pulse by motion.animateFloat(0f, 1f, infiniteRepeatable(tween(1800), RepeatMode.Reverse), label = "pulse")
     val vertex = positions.getOrNull(0) ?: Offset(.5f, .5f)
-    val angle = if (scene == "angle_builder" && positions.size >= 3) {
+    val angle = if (scene in listOf("angle_builder", "angle_classifier") && positions.size >= 3) {
         val a = positions[1]; val b = positions[2]
         val degA = Math.toDegrees(kotlin.math.atan2((a.y-vertex.y).toDouble(), (a.x-vertex.x).toDouble()))
         val degB = Math.toDegrees(kotlin.math.atan2((b.y-vertex.y).toDouble(), (b.x-vertex.x).toDouble()))
@@ -328,7 +333,50 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                             drawLine(Color(0xFF91B9A0), Offset(size.width*.06f,size.height*.78f), Offset(size.width*.94f,size.height*.78f), 3.dp.toPx())
                             for (i in 0..10) drawLine(Color(0xFF91B9A0), Offset(size.width*(.08f+i*.084f),size.height*.73f), Offset(size.width*(.08f+i*.084f),size.height*.83f), 1.dp.toPx())
                         }
-                        "angle_builder" -> if (positions.size >= 3) {
+                        "point_marker" -> if (positions.isNotEmpty()) {
+                            val p = positions[0]
+                            drawCircle(Color(0xFF24734B), 7.dp.toPx(), Offset(p.x*size.width,p.y*size.height))
+                        }
+                        "line_segment" -> if (positions.size >= 2) {
+                            val a = positions[0]; val b = positions[1]
+                            drawLine(Color(0xFF24734B), Offset(a.x*size.width,a.y*size.height), Offset(b.x*size.width,b.y*size.height), 3.dp.toPx())
+                            drawCircle(Color(0xFF24734B), 6.dp.toPx(), Offset(a.x*size.width,a.y*size.height))
+                            drawCircle(Color(0xFF24734B), 6.dp.toPx(), Offset(b.x*size.width,b.y*size.height))
+                        }
+                        "line" -> if (positions.size >= 2) {
+                            val y = ((positions[0].y + positions[1].y) / 2f) * size.height
+                            drawLine(Color(0xFF24734B), Offset(size.width*.08f,y), Offset(size.width*.92f,y), 3.dp.toPx())
+                            drawLine(Color(0xFF24734B), Offset(size.width*.08f,y), Offset(size.width*.16f,y-7.dp.toPx()), 2.dp.toPx())
+                            drawLine(Color(0xFF24734B), Offset(size.width*.08f,y), Offset(size.width*.16f,y+7.dp.toPx()), 2.dp.toPx())
+                            drawLine(Color(0xFF24734B), Offset(size.width*.92f,y), Offset(size.width*.84f,y-7.dp.toPx()), 2.dp.toPx())
+                            drawLine(Color(0xFF24734B), Offset(size.width*.92f,y), Offset(size.width*.84f,y+7.dp.toPx()), 2.dp.toPx())
+                        }
+                        "ray" -> if (positions.size >= 2) {
+                            val a = positions[0]; val b = positions[1]
+                            val start = Offset(a.x*size.width,a.y*size.height)
+                            val tip = Offset((b.x + .18f).coerceAtMost(.96f)*size.width,b.y*size.height)
+                            drawLine(Color(0xFF24734B), start, tip, 3.dp.toPx())
+                            drawCircle(Color(0xFF24734B), 6.dp.toPx(), start)
+                            drawLine(Color(0xFF24734B), tip, Offset(tip.x-10.dp.toPx(),tip.y-6.dp.toPx()), 2.dp.toPx())
+                            drawLine(Color(0xFF24734B), tip, Offset(tip.x-10.dp.toPx(),tip.y+6.dp.toPx()), 2.dp.toPx())
+                        }
+                        "line_ray_segment" -> {
+                            val color = Color(0xFF24734B)
+                            val x0 = size.width*.28f; val x1 = size.width*.60f; val x2 = size.width*.86f
+                            val y1 = size.height*.24f; val y2 = size.height*.51f; val y3 = size.height*.78f
+                            drawLine(color, Offset(x0,y1), Offset(x1,y1), 3.dp.toPx())
+                            drawCircle(color, 5.dp.toPx(), Offset(x0,y1)); drawCircle(color, 5.dp.toPx(), Offset(x1,y1))
+                            drawLine(color, Offset(x0,y2), Offset(x2,y2), 3.dp.toPx())
+                            drawCircle(color, 5.dp.toPx(), Offset(x0,y2))
+                            drawLine(color, Offset(x2,y2), Offset(x2-10.dp.toPx(),y2-6.dp.toPx()), 2.dp.toPx())
+                            drawLine(color, Offset(x2,y2), Offset(x2-10.dp.toPx(),y2+6.dp.toPx()), 2.dp.toPx())
+                            drawLine(color, Offset(size.width*.08f,y3), Offset(size.width*.92f,y3), 3.dp.toPx())
+                            drawLine(color, Offset(size.width*.08f,y3), Offset(size.width*.16f,y3-6.dp.toPx()), 2.dp.toPx())
+                            drawLine(color, Offset(size.width*.08f,y3), Offset(size.width*.16f,y3+6.dp.toPx()), 2.dp.toPx())
+                            drawLine(color, Offset(size.width*.92f,y3), Offset(size.width*.84f,y3-6.dp.toPx()), 2.dp.toPx())
+                            drawLine(color, Offset(size.width*.92f,y3), Offset(size.width*.84f,y3+6.dp.toPx()), 2.dp.toPx())
+                        }
+                        "angle_builder", "angle_classifier" -> if (positions.size >= 3) {
                             val v=positions[0]
                             positions.drop(1).take(2).forEach { p -> drawLine(Color(0xFF24734B), Offset(v.x*size.width,v.y*size.height), Offset(p.x*size.width,p.y*size.height), 3.dp.toPx()) }
                             drawCircle(Color(0xFF24734B), 5.dp.toPx(), Offset(v.x*size.width,v.y*size.height))
@@ -365,7 +413,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                                     feedback=when(scene) {
                                         "magnet_test" -> if (magnetic) "Attraction! Iron and steel are pulled toward the magnet; wood is not." else "Bring an iron or steel object close to the magnet."
                                         "fraction_builder" -> "Move equal pieces together. Each piece is one-quarter of the same whole."
-                                        "angle_builder" -> "The angle is about $angle°. Move Ray B to make it wider or narrower."
+                                        "angle_builder", "angle_classifier" -> "The angle is about $angle°. Move Ray B to make it wider or narrower."
                                         "integer_line" -> "Numbers to the left are smaller; numbers to the right are greater."
                                         "area_grid" -> "Count the unit squares covered by the shape to estimate its area."
                                         "symmetry_mirror" -> "Compare the two sides of the mirror line."
@@ -382,7 +430,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject) {
                     }
                 }
             }
-            if (scene=="angle_builder") Text("Current angle: $angle°", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
+            if (scene in listOf("angle_builder", "angle_classifier")) Text("Current angle: $angle°", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
             if (scene=="measure_length" && positions.size>=2) Text("Measured length: ${(kotlin.math.abs(positions[1].x-positions[0].x)*100).toInt()} model units", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
             if (scene=="motion_track") Text("Watch the toy move along the measured track. Drag the toy to compare positions.", color=TutorGreen, fontSize=11.sp)
             if (scene=="bar_chart") {

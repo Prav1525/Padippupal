@@ -39,13 +39,27 @@ if [ "$started" -ne 1 ]; then
   log "FAIL: app process did not start within 60 seconds"
   exit 1
 fi
-sleep 5
+# Cold API-35 emulator + Compose can take a while to finish the first frame.
+# The app PID alone is not readiness; wait for the accessibility tree to exist.
+sleep 20
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/home.png
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
-  sleep 3
-  timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml
+dump_ui() {
+  local remote="$1" local_file="$2" attempt
+  for attempt in $(seq 1 8); do
+    "${ADB[@]}" shell rm -f "$remote" >/dev/null 2>&1 || true
+    if timeout 35s "${ADB[@]}" shell uiautomator dump "$remote" 2>&1 | tee -a "$REPORT"; then
+      if "${ADB[@]}" pull "$remote" "$local_file" >/dev/null 2>&1 && [ -s "$local_file" ] && grep -q '<hierarchy' "$local_file"; then
+        return 0
+      fi
+    fi
+    log "Accessibility tree not ready for $local_file (attempt $attempt/8); waiting 5 seconds"
+    sleep 5
+  done
+  log "FAIL: accessibility tree unavailable after retries for $local_file"
+  "${ADB[@]}" exec-out screencap -p > "ui-screenshots/failed-$(basename "$local_file" .xml).png" || true
+  return 1
 }
-"${ADB[@]}" pull /data/local/tmp/home.xml home.xml
+dump_ui /data/local/tmp/home.xml home.xml
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 
 log "Opening tutor using accessibility bounds"

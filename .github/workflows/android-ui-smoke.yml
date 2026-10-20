@@ -45,6 +45,22 @@ jobs:
           bash -n .github/scripts/android-ui-smoke.sh
           python3 -m py_compile .github/scripts/ui_smoke.py
 
+      - name: Enable KVM for Android emulator
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm
+            ls -l /dev/kvm
+            if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+              echo "KVM device is accessible."
+            else
+              echo "::warning::KVM exists but is not accessible; emulator may fall back to software emulation."
+            fi
+          else
+            echo "::warning::/dev/kvm is not present on this runner; emulator may be very slow or fail to boot."
+          fi
+
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:

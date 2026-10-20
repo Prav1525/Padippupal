@@ -2276,7 +2276,7 @@
       "topic": "Line, ray and segment",
       "title": "Line, ray and segment",
       "scene_type": "line_ray_segment",
-      "caption": "Drag endpoints to compare a line, a ray and a finite line segment.",
+      "caption": "Compare three drawings: a segment stops at two endpoints, a ray starts at one endpoint and continues one way, and a line continues both ways.",
       "objects": [
         {
           "id": "o1",
@@ -2308,21 +2308,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Start by observing line, ray and segment."
+          "title": "Notice the endpoints",
+          "text": "A line segment has two endpoints. A ray has one starting point. A line has no endpoints."
         },
         {
-          "title": "Try",
-          "text": "Drag endpoints to compare a line, a ray and a finite line segment."
+          "title": "Compare the drawings",
+          "text": "Follow each drawing: the segment stops at both ends, the ray continues in one direction, and the line continues in both directions."
         },
         {
-          "title": "Explain",
-          "text": "Describe what changed and why."
+          "title": "Explain the difference",
+          "text": "Choose the drawing that has two endpoints and tell how you know."
         }
       ],
       "challenge": {
-        "question": "Which one has two endpoints?",
-        "success_feedback": "Good observation! Explain the evidence you used."
+        "question": "Which drawing has exactly one endpoint?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -2334,7 +2334,7 @@
       "topic": "Measure an angle",
       "title": "Measure an angle",
       "scene_type": "angle_builder",
-      "caption": "Rotate a ray around a fixed vertex and observe the angle open and close.",
+      "caption": "Rotate a ray around a fixed vertex and estimate the opening before reading its measure.",
       "objects": [
         {
           "id": "o1",
@@ -2366,21 +2366,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Start by observing measure an angle."
+          "title": "Find the vertex",
+          "text": "The two arms meet at the vertex. Keep the vertex fixed while the ray turns."
         },
         {
-          "title": "Try",
-          "text": "Rotate a ray around a fixed vertex and observe the angle open and close."
+          "title": "Estimate the opening",
+          "text": "Compare the opening with a right angle to make a first estimate."
         },
         {
-          "title": "Explain",
-          "text": "Describe what changed and why."
+          "title": "Measure carefully",
+          "text": "Align a protractor's centre with the vertex and its zero line with one arm, then read where the other arm crosses the scale."
         }
       ],
       "challenge": {
-        "question": "What happens to the angle as the ray turns?",
-        "success_feedback": "Good observation! Explain the evidence you used."
+        "question": "What should stay fixed while you rotate the ray?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -2392,7 +2392,7 @@
       "topic": "Types of angles",
       "title": "Types of angles",
       "scene_type": "angle_classifier",
-      "caption": "Adjust the angle and sort it as acute, right, obtuse or straight.",
+      "caption": "Adjust the angle and classify its opening as acute, right, obtuse or straight.",
       "objects": [
         {
           "id": "o1",
@@ -2424,21 +2424,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Start by observing types of angles."
+          "title": "Use a right angle as a reference",
+          "text": "A right angle measures exactly 90 degrees."
         },
         {
-          "title": "Try",
-          "text": "Adjust the angle and sort it as acute, right, obtuse or straight."
+          "title": "Compare the opening",
+          "text": "Acute is less than 90 degrees; obtuse is between 90 and 180 degrees; straight is 180 degrees."
         },
         {
-          "title": "Explain",
-          "text": "Describe what changed and why."
+          "title": "Classify it",
+          "text": "Choose the name that matches the opening and explain your clue."
         }
       ],
       "challenge": {
         "question": "Which angle is exactly 90 degrees?",
-        "success_feedback": "Good observation! Explain the evidence you used."
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4189,8 +4189,8 @@
       "chapter": "Lines and Angles",
       "topic": "Point",
       "title": "Point",
-      "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore point. Compare the new position with the target.",
+      "scene_type": "point_marker",
+      "caption": "Place and label a point to show an exact location. A point marks a location; the dot is only a drawing convention.",
       "objects": [
         {
           "id": "o1",
@@ -4222,21 +4222,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for point."
+          "title": "Notice a location",
+          "text": "A point tells us exactly where something is, like the tip of a pencil on paper."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore point. Compare the new position with the target."
+          "title": "Place and label it",
+          "text": "Tap or move point A to a location. The letter is its name; it does not give the point a size."
         },
         {
           "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "text": "Describe what the point marks. Remember that a mathematical point has no length or width."
         }
       ],
       "challenge": {
-        "question": "What location does this point mark?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "What does point A represent in this drawing?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4247,8 +4247,8 @@
       "chapter": "Lines and Angles",
       "topic": "Line Segment",
       "title": "Line Segment",
-      "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore line segment. Compare the new position with the target.",
+      "scene_type": "line_segment",
+      "caption": "Move endpoints A and B. The segment joins them and has a fixed, finite length.",
       "objects": [
         {
           "id": "o1",
@@ -4280,21 +4280,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for line segment."
+          "title": "Find the endpoints",
+          "text": "A line segment joins two endpoints, A and B."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore line segment. Compare the new position with the target."
+          "title": "Change its length",
+          "text": "Move an endpoint and notice that the segment's length changes, but it still has two endpoints."
         },
         {
           "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "text": "Compare the segment with a line that continues in both directions."
         }
       ],
       "challenge": {
         "question": "How many endpoints does a line segment have?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4305,8 +4305,8 @@
       "chapter": "Lines and Angles",
       "topic": "Line",
       "title": "Line",
-      "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore line. Compare the new position with the target.",
+      "scene_type": "line",
+      "caption": "A line continues without end in both directions. The arrows show that it keeps going.",
       "objects": [
         {
           "id": "o1",
@@ -4338,21 +4338,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for line."
+          "title": "Look both ways",
+          "text": "A mathematical line continues endlessly in both directions."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore line. Compare the new position with the target."
+          "title": "Follow the arrows",
+          "text": "The arrows show that the drawing continues; they are not endpoints."
         },
         {
           "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "text": "Compare a line with a segment that stops at two endpoints."
         }
       ],
       "challenge": {
-        "question": "How is a line different from a line segment?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "Does a line have endpoints?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4363,8 +4363,8 @@
       "chapter": "Lines and Angles",
       "topic": "Ray",
       "title": "Ray",
-      "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore ray. Compare the new position with the target.",
+      "scene_type": "ray",
+      "caption": "A ray starts at one endpoint and continues endlessly in one direction.",
       "objects": [
         {
           "id": "o1",
@@ -4396,21 +4396,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for ray."
+          "title": "Find the starting point",
+          "text": "A ray has one endpoint called its starting point."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore ray. Compare the new position with the target."
+          "title": "Follow its direction",
+          "text": "The ray continues endlessly in one direction, shown by an arrow."
         },
         {
           "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "text": "Point to the endpoint and the direction in which the ray continues."
         }
       ],
       "challenge": {
-        "question": "Which point is the ray's starting point?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "How many endpoints does a ray have?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4422,7 +4422,7 @@
       "topic": "Angle",
       "title": "Angle",
       "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore angle. Compare the new position with the target.",
+      "caption": "Two rays with the same endpoint form an angle. The shared endpoint is the vertex; the rays are its arms.",
       "objects": [
         {
           "id": "o1",
@@ -4454,21 +4454,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for angle."
+          "title": "Find the vertex",
+          "text": "The common endpoint of the two rays is called the vertex."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore angle. Compare the new position with the target."
+          "title": "Find the arms",
+          "text": "The two rays starting at the vertex are the arms of the angle."
         },
         {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "title": "Explore the opening",
+          "text": "Rotate one arm and watch the opening change while the vertex stays fixed."
         }
       ],
       "challenge": {
-        "question": "Which two rays form this angle?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "What do we call the common endpoint of the two arms?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4480,7 +4480,7 @@
       "topic": "Comparing Angles",
       "title": "Comparing Angles",
       "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore comparing angles. Compare the new position with the target.",
+      "caption": "Compare the opening between the arms. Angle size depends on the opening, not on how long the arms are drawn.",
       "objects": [
         {
           "id": "o1",
@@ -4512,21 +4512,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for comparing angles."
+          "title": "Look at the opening",
+          "text": "An angle with a wider opening is larger than one with a narrower opening."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore comparing angles. Compare the new position with the target."
+          "title": "Change arm length",
+          "text": "Make an arm longer without rotating it. The angle's opening stays the same, so its measure does not change."
         },
         {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "title": "Compare and explain",
+          "text": "Choose the wider opening and explain why arm length alone does not decide angle size."
         }
       ],
       "challenge": {
-        "question": "Which angle opens wider?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "If an arm gets longer but does not rotate, does the angle change?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4538,7 +4538,7 @@
       "topic": "Making Rotating Arms",
       "title": "Making Rotating Arms",
       "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore making rotating arms. Compare the new position with the target.",
+      "caption": "Keep the vertex fixed and rotate one arm. Predict whether the opening becomes wider or narrower before you move it.",
       "objects": [
         {
           "id": "o1",
@@ -4570,21 +4570,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for making rotating arms."
+          "title": "Start with two arms",
+          "text": "The arms meet at a fixed vertex to form an angle."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore making rotating arms. Compare the new position with the target."
+          "title": "Predict and rotate",
+          "text": "Predict what will happen, then rotate one arm and observe the opening."
         },
         {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "title": "Describe the change",
+          "text": "Explain how turning an arm changes the angle while the vertex remains in place."
         }
       ],
       "challenge": {
-        "question": "How does rotating one arm change the angle?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "When you rotate one arm farther away from the other, what happens to the opening?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4595,8 +4595,8 @@
       "chapter": "Lines and Angles",
       "topic": "Special Types of Angles",
       "title": "Special Types of Angles",
-      "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore special types of angles. Compare the new position with the target.",
+      "scene_type": "angle_classifier",
+      "caption": "Change the angle opening and identify it using the chapter's angle categories.",
       "objects": [
         {
           "id": "o1",
@@ -4628,21 +4628,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for special types of angles."
+          "title": "Estimate the opening",
+          "text": "Compare the angle with a square corner, which is a right angle of 90 degrees."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore special types of angles. Compare the new position with the target."
+          "title": "Sort the angle",
+          "text": "An acute angle is smaller than 90 degrees; an obtuse angle is greater than 90 but smaller than 180 degrees; a straight angle is 180 degrees."
         },
         {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "title": "Explain your choice",
+          "text": "Name the angle type and use its opening or measure as evidence."
         }
       ],
       "challenge": {
-        "question": "Is this angle acute, right, obtuse or straight?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "What type of angle measures exactly 90 degrees?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4654,7 +4654,7 @@
       "topic": "Measuring Angles",
       "title": "Measuring Angles",
       "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore measuring angles. Compare the new position with the target.",
+      "caption": "Estimate the opening first. When using a protractor, place its centre on the vertex and align the baseline with one arm.",
       "objects": [
         {
           "id": "o1",
@@ -4686,21 +4686,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for measuring angles."
+          "title": "Estimate first",
+          "text": "Compare the opening with a right angle to estimate whether it is less than, equal to, or greater than 90 degrees."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore measuring angles. Compare the new position with the target."
+          "title": "Align the protractor",
+          "text": "Put the protractor's centre on the vertex and align one arm with the zero line."
         },
         {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "title": "Read the measure",
+          "text": "Read the scale where the second arm crosses it. Check that you used the scale starting at zero on the aligned arm."
         }
       ],
       "challenge": {
-        "question": "What is the angle measure in degrees?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "Where should the centre of the protractor be placed?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4712,7 +4712,7 @@
       "topic": "Drawing Angles",
       "title": "Drawing Angles",
       "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore drawing angles. Compare the new position with the target.",
+      "caption": "Draw a target angle by marking the vertex, aligning a protractor with the first arm, marking the target measure, and drawing the second arm.",
       "objects": [
         {
           "id": "o1",
@@ -4744,21 +4744,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for drawing angles."
+          "title": "Mark the vertex",
+          "text": "Place a point for the vertex and draw the first arm."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore drawing angles. Compare the new position with the target."
+          "title": "Mark the measure",
+          "text": "Align the protractor's centre with the vertex and its zero line with the first arm. Mark the required angle."
         },
         {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "title": "Draw and check",
+          "text": "Draw the second arm through the mark, then check the angle's opening and measure."
         }
       ],
       "challenge": {
-        "question": "Where should the second ray be placed to make the target angle?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "What must align with the protractor's zero line?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {
@@ -4769,8 +4769,8 @@
       "chapter": "Lines and Angles",
       "topic": "Types of Angles and their Measures",
       "title": "Types of Angles and their Measures",
-      "scene_type": "angle_builder",
-      "caption": "Move the point or rotate a ray to explore types of angles and their measures. Compare the new position with the target.",
+      "scene_type": "angle_classifier",
+      "caption": "Connect the angle's appearance with its measure and name. Estimate first, then use a protractor when needed.",
       "objects": [
         {
           "id": "o1",
@@ -4802,21 +4802,21 @@
       ],
       "steps": [
         {
-          "title": "Notice",
-          "text": "Observe the example for types of angles and their measures."
+          "title": "Match type and measure",
+          "text": "Acute angles are below 90 degrees; right angles are 90 degrees; obtuse angles are between 90 and 180 degrees; straight angles are 180 degrees."
         },
         {
-          "title": "Try",
-          "text": "Move the point or rotate a ray to explore types of angles and their measures. Compare the new position with the target."
+          "title": "Read or estimate",
+          "text": "Use a right angle as a reference, or measure with a correctly aligned protractor."
         },
         {
-          "title": "Explain",
-          "text": "Describe the rule and use it to predict what happens next."
+          "title": "Justify the type",
+          "text": "Give both the angle name and the measure range that supports your choice."
         }
       ],
       "challenge": {
-        "question": "What pattern or relationship do you notice in types of angles and their measures?",
-        "success_feedback": "Well done! Explain the clue that helped you decide."
+        "question": "An angle is 120 degrees. Is it acute, right, obtuse, or straight?",
+        "success_feedback": "Good thinking! Explain the clue that helped you decide."
       }
     },
     {

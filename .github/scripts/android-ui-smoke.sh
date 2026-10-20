@@ -25,8 +25,6 @@ timeout 120s "${ADB[@]}" install -r app/build/outputs/apk/debug/app-debug.apk
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity
 
-# Avoid am start -W: on hosted software-rendered emulators it may report a false
-# timeout while the Activity is actually running.
 started=0
 for attempt in $(seq 1 30); do
   if "${ADB[@]}" shell pidof com.padippupal.app 2>/dev/null | grep -q '[0-9]'; then
@@ -39,8 +37,6 @@ if [ "$started" -ne 1 ]; then
   log "FAIL: app process did not start within 60 seconds"
   exit 1
 fi
-# Cold API-35 emulator + Compose can take a while to finish the first frame.
-# The app PID alone is not readiness; wait for the accessibility tree to exist.
 sleep 20
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/home.png
 dump_ui() {
@@ -64,8 +60,6 @@ python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 
 log "Set test profile to Class 6 CBSE, English medium"
 python3 .github/scripts/ui_smoke.py tap home.xml "You"
-# Wait for a real profile-screen state instead of assuming a tap worked.
-# If Home remains visible, retry using a freshly captured accessibility tree.
 profile_ready=0
 for attempt in $(seq 1 6); do
   dump_ui /data/local/tmp/profile.xml profile.xml
@@ -104,9 +98,17 @@ timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/setup-cbse.xml
 "${ADB[@]}" pull /data/local/tmp/setup-cbse.xml setup-cbse.xml
 python3 .github/scripts/ui_smoke.py tap setup-cbse.xml "Save my details"
 sleep 3
+
+# Saving the profile returns to the profile page, not Home. Navigate explicitly
+# to Home before asserting home-screen labels or opening the tutor.
+dump_ui /data/local/tmp/profile-saved.xml profile-saved.xml
+if grep -qi "Edit student details" profile-saved.xml; then
+  log "Profile saved; explicitly navigating back to Home tab"
+  python3 .github/scripts/ui_smoke.py tap profile-saved.xml "Home"
+  sleep 3
+fi
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/home-cbse.png
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-cbse.xml
-"${ADB[@]}" pull /data/local/tmp/home-cbse.xml home-cbse.xml
+dump_ui /data/local/tmp/home-cbse.xml home-cbse.xml
 python3 .github/scripts/ui_smoke.py assert-home home-cbse.xml | tee -a "$REPORT"
 
 log "Opening tutor using accessibility bounds"

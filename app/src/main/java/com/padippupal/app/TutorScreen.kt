@@ -2044,8 +2044,20 @@ internal fun TutorScreen(
                     }
                 }
             }
+            if (loading) {
+                item {
+                    Surface(color = Color.White, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFE5ECE6))) {
+                        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
+                            Text("  Your tutor is preparing an explanation…", color = TutorGrey, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Keep the understanding prompt anchored above the composer, not buried in lesson history.
         if (awaitingUnderstanding && liveLessonActive) {
-            item(key = "understanding-checkpoint") {
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
                 color = Color.White,
@@ -2088,18 +2100,6 @@ internal fun TutorScreen(
                         },
                         modifier = Modifier.align(Alignment.End)
                     ) { Text("I have a question", color = TutorGreen) }
-                }
-            }
-            }
-        }
-            if (loading) {
-                item {
-                    Surface(color = Color.White, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFE5ECE6))) {
-                        Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
-                            Text("  Your tutor is preparing an explanation…", color = TutorGrey, fontSize = 13.sp)
-                        }
-                    }
                 }
             }
         }

@@ -103,6 +103,44 @@ private fun cleanTutorDisplayText(raw: String): String {
         .trim()
 }
 
+internal fun groundedAnswerFallbackSegments(answer: String): List<JSONObject> {
+    val normalized = cleanTutorDisplayText(answer)
+        .replace(Regex("(?m)^\\s*[-•*]\\s+"), "")
+        .take(4000)
+    if (normalized.isBlank()) return emptyList()
+
+    // Keep sentence boundaries where possible, then split long sentences into
+    // short speakable modules. This fallback is allowed only for an answer that
+    // the chat endpoint has already marked grounded and supplied with sources.
+    val chunks = mutableListOf<String>()
+    val sentences = normalized.split(Regex("(?<=[.!?])\\s+|\\n+"))
+        .map { it.trim() }.filter { it.isNotBlank() }
+    for (sentence in sentences) {
+        val words = sentence.split(Regex("\\s+")).filter { it.isNotBlank() }
+        var start = 0
+        while (start < words.size) {
+            val end = (start + 20).coerceAtMost(words.size)
+            val chunk = words.subList(start, end).joinToString(" ").trim()
+            if (chunk.isNotBlank()) chunks += chunk
+            start = end
+        }
+    }
+    if (chunks.size > 8) {
+        val firstSeven = chunks.take(7).toMutableList()
+        firstSeven += chunks.drop(7).joinToString(" ").take(500)
+        chunks.clear()
+        chunks.addAll(firstSeven)
+    }
+    return chunks.take(8).mapIndexed { index, text ->
+        JSONObject()
+            .put("id", "grounded-fallback-${index + 1}")
+            .put("spoken_text", text)
+            .put("caption_text", text)
+            .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+            .put("checkpoint", if ((index + 1) % 2 == 0 && index < chunks.lastIndex) "Does that make sense so far?" else JSONObject.NULL)
+    }
+}
+
 private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
 
 @Composable
@@ -1461,6 +1499,19 @@ internal fun TutorScreen(
         speechPaused = false
         pausedHostedAudio = false
         if (chapter.isBlank() && topic.isBlank()) { status = "Choose a chapter or concept first."; return }
+        // Teach is an explicit switch from chat mode to live mode. Stop any
+        // automatic chat read-aloud first so the shared speech guard cannot
+        // silently reject the first live segment.
+        audioPlayer.value?.let { player ->
+            runCatching { player.stop() }
+            runCatching { player.release() }
+        }
+        audioPlayer.value = null
+        runCatching { ttsState.value?.stop() }
+        speechCompletion = null
+        speechStartCallback = null
+        speechActive = false
+        speechPlaybackStarted = false
         loading = true
         status = "Preparing a textbook-grounded live lesson…"
         tutorExecutor.execute {
@@ -1495,8 +1546,29 @@ internal fun TutorScreen(
             }
             tutorMainHandler.post {
                 loading = false
-                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; playLiveSegment(0) },
-                    onFailure = { error -> status = error.message ?: "Could not prepare the live lesson." })
+                outcome.fold(
+                    onSuccess = { segments ->
+                        liveSegments = segments
+                        liveLessonActive = true
+                        playLiveSegment(0)
+                    },
+                    onFailure = { error ->
+                        // The live planner can reject a model segment when its
+                        // citation/schema is malformed. Do not abandon a child
+                        // when the chat endpoint already returned a grounded,
+                        // sourced explanation for this exact selected topic.
+                        val groundedAnswer = messages.lastOrNull { it.role == "assistant" }?.content.orEmpty()
+                        val fallbackSegments = if (lastSources.isNotEmpty()) groundedAnswerFallbackSegments(groundedAnswer) else emptyList()
+                        if (fallbackSegments.isNotEmpty()) {
+                            liveSegments = fallbackSegments
+                            liveLessonActive = true
+                            status = "Using the textbook-checked explanation; detailed lesson plan unavailable."
+                            playLiveSegment(0)
+                        } else {
+                            status = error.message ?: "Could not prepare the live lesson."
+                        }
+                    }
+                )
             }
         }
     }

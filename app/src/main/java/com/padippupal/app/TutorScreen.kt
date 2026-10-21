@@ -156,7 +156,7 @@ private fun WordByWordCaption(
         }
     }
     Box(
-        Modifier.fillMaxWidth().heightIn(max = 150.dp).verticalScroll(scrollState)
+        Modifier.fillMaxWidth().heightIn(max = 220.dp).verticalScroll(scrollState)
     ) {
         ClickableText(
             text = caption,
@@ -331,6 +331,18 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
             Text("WATCH THE PATTERN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Text(title, color = TutorDeep, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             when (scene) {
+                "all_ones" -> {
+                    Text("A repeating number pattern", color = TutorGrey, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { index ->
+                            Column(Modifier.weight(1f).background(if (index <= stage) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 13.dp, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("1", color = TutorDeep, fontSize = if (index == stage) (22 * pulse).sp else 20.sp, fontWeight = FontWeight.ExtraBold)
+                                Text("term ${index + 1}", color = TutorGreen, fontSize = 9.sp)
+                            }
+                        }
+                    }
+                    Text(listOf("Every term is 1.", "The number stays the same each time.", "There is no increase or decrease.", "So the next term is also 1.")[stage], color = TutorDeep, fontSize = 14.sp, lineHeight = 20.sp)
+                }
                 "number_pattern" -> {
                     Text("Square numbers grow in a pattern", color = TutorGrey, fontSize = 12.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1747,7 +1759,20 @@ internal fun TutorScreen(
                                 }
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                            if (liveCaption.isNotBlank() && liveLessonActive && !speechActive && !awaitingUnderstanding) InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
+                            if (liveCaption.isNotBlank() && liveLessonActive && !awaitingUnderstanding) {
+                                if (chapter.contains("Patterns in Mathematics", ignoreCase = true) && subject == "Mathematics") {
+                                    val topicKey = topic.lowercase()
+                                    val scene = when {
+                                        topicKey.contains("all 1s") || topicKey.contains("all ones") -> "all_ones"
+                                        topicKey.contains("shape") -> "shape_pattern"
+                                        topicKey.contains("sequence") || topicKey.contains("relationship") || topicKey.contains("patterns in numbers") || topicKey.contains("number") -> "number_machine"
+                                        else -> "shape_pattern"
+                                    }
+                                    ChapterOneMathAnimation(scene, topic.ifBlank { "Explore the pattern" }, topic, liveCaption)
+                                } else {
+                                    InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
+                                }
+                            }
                         }
                     }
                 }

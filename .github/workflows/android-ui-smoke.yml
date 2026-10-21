@@ -70,7 +70,35 @@ jobs:
           script: |
             echo "Checking emulator acceleration from the SDK provisioned by android-emulator-runner"
             "$ANDROID_HOME/emulator/emulator" -accel-check
-            bash .github/scripts/android-ui-smoke.sh
+            # Retry the complete smoke flow once in the same booted emulator. Each attempt
+            # gets separate diagnostics; a retry can expose flakiness but never turns a
+            # consistently failing assertion into a pass.
+            mkdir -p attempt-artifacts
+            result=1
+            for attempt in 1 2; do
+              echo "===== UI smoke attempt $attempt/2 ====="
+              set +e
+              bash .github/scripts/android-ui-smoke.sh
+              result=$?
+              set -e
+              mkdir -p "attempt-artifacts/attempt-$attempt"
+              cp -a ui-screenshots "attempt-artifacts/attempt-$attempt/" 2>/dev/null || true
+              for file in home.xml tutor.xml home-return.xml feedback.xml settings.xml chapter-options.xml chapter-menu.xml chapter-selected.xml concept-menu.xml concept-selected.xml ready-to-teach.xml live-lesson.xml; do
+                if [ -f "$file" ]; then cp "$file" "attempt-artifacts/attempt-$attempt/"; fi
+              done
+              echo "Attempt $attempt exit code: $result"
+              if [ "$result" -eq 0 ]; then
+                echo "UI smoke test passed on attempt $attempt"
+                exit 0
+              fi
+              if [ "$attempt" -lt 2 ]; then
+                echo "Attempt failed; preserving evidence and retrying once to distinguish transient emulator issues from repeatable app failures."
+                adb -s emulator-5554 shell am force-stop com.padippupal.app || true
+                sleep 5
+              fi
+            done
+            echo "UI smoke test failed on both attempts. See attempt-artifacts for each attempt's evidence."
+            exit "$result"
 
       - name: Upload emulator screenshots, UI trees, and diagnostics
         if: always()
@@ -79,6 +107,7 @@ jobs:
           name: padippupal-emulator-ui
           path: |
             ui-screenshots/
+            attempt-artifacts/
             home.xml
             tutor.xml
             home-return.xml

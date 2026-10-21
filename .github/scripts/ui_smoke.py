@@ -146,7 +146,13 @@ def assert_live(path):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
-    print("PASS: live lesson panel and actual inline teaching caption text are accessible")
+    forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")
+    found_activity = [label for label in forbidden_activity_labels if label in joined]
+    if found_activity:
+        raise SystemExit("Interactive activity UI reappeared in the teaching flow: " + ", ".join(found_activity))
+    if "patterns in mathematics" in joined and "watch the pattern" not in joined:
+        raise SystemExit("Class 6 Patterns in Mathematics live lesson is missing its passive auto-playing concept animation")
+    print("PASS: live lesson has inline teaching text, no interactive activity, and the pilot's passive pattern animation")
 
 def assert_highlight_frames(directory):
     try:

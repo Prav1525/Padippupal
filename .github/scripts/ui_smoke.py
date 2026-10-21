@@ -162,6 +162,35 @@ def assert_live(path):
             raise SystemExit("Live lesson is hiding a required control: " + control)
     print("PASS: inline lesson caption, truthful playback status, Stop, and student question input are accessible")
 
+def has_pause_control(path):
+    nodes, _ = load(path)
+    return any(
+        n.attrib.get("text", "").strip().lower() in ("pause", "resume")
+        and n.attrib.get("clickable") == "true"
+        for n in nodes
+    )
+
+def assert_pause_control(path):
+    if not has_pause_control(path):
+        raise SystemExit("Pause/Resume control is not visible during active live audio")
+    print("PASS: Pause/Resume control is visible during active playback")
+
+def assert_paused(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    if "lesson paused" not in joined or not any(
+        n.attrib.get("text", "").strip().lower() == "resume" for n in nodes
+    ):
+        raise SystemExit("Pause did not enter the paused state or expose Resume")
+    print("PASS: pause state is visible and Resume is available")
+
+def assert_resumed(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    if "teacher is speaking" not in joined:
+        raise SystemExit("Resume did not return to confirmed speaking state")
+    print("PASS: Resume returned to confirmed speaking state")
+
 def assert_highlight_frames(directory):
     try:
         from PIL import Image
@@ -209,7 +238,7 @@ def tap(path, target):
 
 def main():
     if len(sys.argv) < 3:
-        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
+        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|assert-pause-control|assert-paused|assert-resumed|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]
     if not Path(path).is_file():
         raise SystemExit("UI XML file does not exist: " + path)
@@ -231,6 +260,15 @@ def main():
         tap_first_concept(path)
     elif action == "assert-live":
         assert_live(path)
+    elif action == "has-pause-control":
+        if not has_pause_control(path):
+            raise SystemExit("Pause/Resume control is not visible yet")
+    elif action == "assert-pause-control":
+        assert_pause_control(path)
+    elif action == "assert-paused":
+        assert_paused(path)
+    elif action == "assert-resumed":
+        assert_resumed(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:
         assert_highlight_frames(sys.argv[3])
     elif action == "tap" and len(sys.argv) >= 4:

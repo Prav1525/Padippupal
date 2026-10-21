@@ -716,7 +716,16 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
             "Fractions", "Playing with Constructions", "Symmetry", "The Other Side of Zero",
         ],
     }
-    subject_key = subject.strip().casefold()
+    # Accept the labels used by student-facing UI as well as canonical database names.
+    # The app may send "Maths" or "Math" while stored source metadata uses "Mathematics";
+    # exact SQL equality then returns no sources and the chapter picker appears empty.
+    raw_subject_key = re.sub(r"\\s+", " ", subject.strip().casefold())
+    subject_aliases = {
+        "math": "mathematics", "maths": "mathematics", "mathematics": "mathematics",
+        "sci": "science", "science": "science",
+    }
+    subject_key = subject_aliases.get(raw_subject_key, raw_subject_key)
+    db_subject = {"mathematics": "Mathematics", "science": "Science"}.get(subject_key, subject.strip())
     ordered_titles = chapter_orders.get(subject_key, [])
     # Explicit concept maps keep the app's chapter/topic picker useful even when
     # the interactive-lesson database has only a first-pass set of lesson blueprints.
@@ -754,7 +763,7 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
                WHERE active=1 AND LOWER(board)=LOWER(?) AND class_level=?
                  AND LOWER(subject)=LOWER(?)
                ORDER BY chapter, topic""",
-            (board, class_level, subject),
+            (board, class_level, db_subject),
         ).fetchall()
         grouped: dict[str, list[str]] = {}
         for row in rows:
@@ -775,7 +784,7 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
                    WHERE LOWER(board)=LOWER(?) AND class_level=?
                      AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?) AND status='ready'
                    ORDER BY academic_year DESC, title""",
-                (board, class_level, subject, medium),
+                (board, class_level, db_subject, medium),
             ).fetchall()
             for source in sources:
                 topics: list[str] = []

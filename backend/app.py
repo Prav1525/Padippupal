@@ -1225,18 +1225,35 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
         # Fill only safe display defaults; never invent source citations or spoken content.
         if isinstance(item, dict):
             item = dict(item)
-            # IDs are presentation metadata, not model-authored lesson content. Gemini
-            # sometimes emits a numeric ID; normalize malformed IDs instead of rejecting
-            # an otherwise grounded lesson. Source citations remain strictly validated below.
+            # Normalize presentation metadata that can safely default without changing
+            # the lesson content. Never synthesize spoken text or textbook citations.
             raw_id = item.get("id")
             if not isinstance(raw_id, str) or not re.fullmatch(r"^[a-zA-Z0-9_-]{1,40}$", raw_id):
                 item["id"] = f"segment-{index}"
-            if not isinstance(item.get("caption_text"), str) or not item["caption_text"].strip():
+            raw_caption = item.get("caption_text")
+            if not isinstance(raw_caption, str) or not raw_caption.strip():
                 if isinstance(item.get("spoken_text"), str):
                     item["caption_text"] = item["spoken_text"]
-            if not item.get("visual_action"):
-                item["visual_action"] = {"type": "none", "target": "", "value": ""}
-            item.setdefault("checkpoint", None)
+            raw_visual = item.get("visual_action")
+            if not isinstance(raw_visual, dict):
+                raw_visual = {}
+            visual_type = raw_visual.get("type", "none")
+            if not isinstance(visual_type, str) or visual_type not in {
+                "highlight", "reveal", "move", "compare", "label", "draw-line", "show-result", "none"
+            }:
+                visual_type = "none"
+            visual_target = raw_visual.get("target", "")
+            visual_value = raw_visual.get("value", "")
+            item["visual_action"] = {
+                "type": visual_type,
+                "target": visual_target[:100] if isinstance(visual_target, str) else "",
+                "value": visual_value[:160] if isinstance(visual_value, str) else "",
+            }
+            raw_checkpoint = item.get("checkpoint")
+            if not isinstance(raw_checkpoint, str) or not raw_checkpoint.strip():
+                item["checkpoint"] = None
+            else:
+                item["checkpoint"] = raw_checkpoint[:240]
         try:
             segment = LessonSegment.model_validate(item)
         except Exception as exc:

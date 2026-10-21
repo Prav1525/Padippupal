@@ -353,34 +353,33 @@ private fun LivePatternVisual(topic: String, segmentIndex: Int) {
     val values = if (isAllOnes) listOf("1", "11", "111", "1111", "11111") else listOf("2", "4", "6", "8", "10")
     val activeIndex = Math.floorMod(segmentIndex, values.size)
     Surface(
-        Modifier.fillMaxWidth().padding(top = 8.dp),
+        Modifier.fillMaxWidth().padding(top = 4.dp),
         color = Color(0xFFEAF5EE),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, Color(0xFFD1E7D8))
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("WATCH THE PATTERN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("WATCH THE PATTERN", color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Text(
                 if (isAllOnes) "Each step adds one more 1" else "Notice the rule between each number",
-                color = TutorDeep, fontSize = 14.sp, fontWeight = FontWeight.SemiBold
+                color = TutorDeep, fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1
             )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 values.forEachIndexed { index, value ->
                     Column(
                         Modifier.weight(1f)
-                            .background(if (index == activeIndex) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(9.dp))
-                            .padding(vertical = 10.dp, horizontal = 2.dp),
+                            .background(if (index == activeIndex) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(7.dp))
+                            .padding(vertical = 4.dp, horizontal = 1.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(value, color = TutorDeep, fontSize = if (index == activeIndex) 15.sp else 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                        Text("${index + 1}", color = TutorGreen, fontSize = 9.sp)
+                        Text(value, color = TutorDeep, fontSize = if (index == activeIndex) 13.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text("${index + 1}", color = TutorGreen, fontSize = 8.sp, lineHeight = 9.sp)
                     }
                 }
             }
             Text(
-                if (isAllOnes) "1 → 11 → 111 → 1111. One digit is added at each step."
-                else "Read the numbers in order and look for what changes each time.",
-                color = TutorGrey, fontSize = 11.sp, lineHeight = 15.sp
+                if (isAllOnes) "One digit is added at each step." else "Read the numbers in order and look for what changes.",
+                color = TutorGrey, fontSize = 9.sp, lineHeight = 11.sp, maxLines = 1
             )
         }
     }

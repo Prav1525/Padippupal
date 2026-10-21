@@ -1691,11 +1691,17 @@ internal fun TutorScreen(
                         val interactiveLesson = result[3] as JSONObject?
                         messages.add(TutorMessage("assistant", answer, visualLesson, interactiveLesson))
                         lastSources = sources
-                        status = if (sources.isEmpty()) "General explanation · no matching textbook passage was found yet." else "Answer checked against ${sources.size} curriculum source(s)."
-                        if (speakReplies) speak(answer, onStarted = { liveCaption = answer })
+                        // A chat request may finish after the learner has explicitly
+                        // started a live lesson. Keep its sourced answer for fallback,
+                        // but never let that late result replace live playback status
+                        // or start a competing read-aloud.
+                        if (!liveLessonActive) {
+                            status = if (sources.isEmpty()) "General explanation · no matching textbook passage was found yet." else "Answer checked against ${sources.size} curriculum source(s)."
+                            if (speakReplies) speak(answer, onStarted = { liveCaption = answer })
+                        }
                     },
                     onFailure = { error ->
-                        status = error.message ?: "Couldn't reach the tutor. Please try again."
+                        if (!liveLessonActive) status = error.message ?: "Couldn't reach the tutor. Please try again."
                     }
                 )
             }

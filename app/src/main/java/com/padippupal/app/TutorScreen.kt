@@ -1169,11 +1169,34 @@ internal fun TutorScreen(
     val ttsState = remember { mutableStateOf<TextToSpeech?>(null) }
     val audioPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
 
+    var speechWatchdog by remember { mutableStateOf<Runnable?>(null) }
+
     fun finishSpeechSegment() {
+        speechWatchdog?.let { tutorMainHandler.removeCallbacks(it) }
+        speechWatchdog = null
         speechActive = false
         val callback = speechCompletion
         speechCompletion = null
+        speechStartCallback = null
         callback?.invoke()
+    }
+
+    fun armSpeechWatchdog(timeoutMs: Long, spokenText: String) {
+        speechWatchdog?.let { tutorMainHandler.removeCallbacks(it) }
+        val watchdog = Runnable {
+            if (speechActive && speechCompletion != null) {
+                status = "Speech took too long; continuing the lesson."
+                ttsState.value?.stop()
+                audioPlayer.value?.let { player ->
+                    runCatching { player.stop() }
+                    runCatching { player.release() }
+                    if (audioPlayer.value === player) audioPlayer.value = null
+                }
+                finishSpeechSegment()
+            }
+        }
+        speechWatchdog = watchdog
+        tutorMainHandler.postDelayed(watchdog, timeoutMs)
     }
 
     DisposableEffect(context) {
@@ -1198,7 +1221,17 @@ internal fun TutorScreen(
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                tutorMainHandler.post { speechActive = false }
+                tutorMainHandler.post {
+                    status = "Voice playback failed; continuing with the lesson text."
+                    finishSpeechSegment()
+                }
+            }
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                tutorMainHandler.post {
+                    status = "Voice playback failed ($errorCode); continuing with the lesson text."
+                    finishSpeechSegment()
+                }
             }
         })
         ttsState.value = engine
@@ -1238,7 +1271,13 @@ internal fun TutorScreen(
         engine.language = locale
         engine.setSpeechRate(0.76f)
         engine.setPitch(1.02f)
-        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
+        // A broken or silent TTS engine must never hold the live lesson forever.
+        armSpeechWatchdog(20_000L, text)
+        val result = engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
+        if (result == TextToSpeech.ERROR) {
+            status = "Voice engine could not speak this segment; continuing with lesson text."
+            finishSpeechSegment()
+        }
     }
 
     fun speak(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
@@ -1252,6 +1291,8 @@ internal fun TutorScreen(
         hostedWordTimings = emptyList()
         speechStartCallback = onStarted ?: { if (liveLessonActive) liveCaption = text }
         speechCompletion = onFinished
+        // Network speech can stall too; bound it so a checkpoint can still be reached.
+        armSpeechWatchdog(65_000L, text)
         // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
         // through the user's selected system engine (e.g. Sherpa-ONNX Kokoro).
         if (preferOnDeviceVoice) {

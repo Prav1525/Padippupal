@@ -99,6 +99,13 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn("couldn't load curriculum", helper)
         self.assertIn('chapter-options-timeout.png', script)
 
+    def test_selecting_concept_does_not_send_internal_prompt_as_chat(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertNotIn("LaunchedEffect(chapter, topic)", tutor)
+        self.assertNotIn('sendMessage(\n                 "START LESSON as a warm, patient teacher.', tutor)
+        self.assertIn('status = "Preparing a textbook-grounded live lesson…"', tutor)
+        self.assertIn('URL("$base/tutor/lesson-plan")', tutor)
+
     def test_live_lesson_invalidates_stale_chat_speech_callbacks(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
         self.assertIn("var speechGeneration by remember { mutableIntStateOf(0) }", tutor)

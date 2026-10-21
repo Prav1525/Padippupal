@@ -28,6 +28,31 @@ jobs:
           done
           echo "API health endpoint did not respond after retries."
           exit 1
+      - name: Verify Class 6 CBSE Mathematics chapter outline
+        shell: bash
+        run: |
+          set -euo pipefail
+          response=$(curl --connect-timeout 10 --max-time 30 --retry 3 --retry-all-errors --retry-delay 5 -fsS --get \
+            --data-urlencode 'board=CBSE' \
+            --data-urlencode 'class_level=6' \
+            --data-urlencode 'subject=Mathematics' \
+            --data-urlencode 'medium=English' \
+            https://padippupal-curriculum-api.onrender.com/curriculum/outline)
+          echo "$response"
+          RESPONSE_JSON="$response" python - <<'PY'
+          import json, os, sys
+          payload = json.loads(os.environ["RESPONSE_JSON"])
+          chapters = payload.get("chapters")
+          if not isinstance(chapters, list):
+              sys.exit("FAIL: /curriculum/outline response has no chapters array")
+          if payload.get("chapter_count") != 10 or len(chapters) != 10:
+              sys.exit(f"FAIL: expected 10 CBSE Class 6 Mathematics chapters, got chapter_count={payload.get('chapter_count')}, array_length={len(chapters)}")
+          if chapters[0].get("title") != "Patterns in Mathematics":
+              sys.exit(f"FAIL: first chapter should be Patterns in Mathematics, got {chapters[0].get('title')!r}")
+          if len(chapters[0].get("topics", [])) < 5:
+              sys.exit("FAIL: Patterns in Mathematics has fewer than five topic entries")
+          print("PASS: deployed API returns all 10 CBSE Class 6 Mathematics chapters and the expected first chapter/topics.")
+          PY
       - name: Verify retrieval returns the indexed test source
         shell: bash
         run: |

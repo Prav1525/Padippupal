@@ -72,6 +72,8 @@ fi
 # The normal app default is Tamil Nadu State Board, which has no matching CBSE-only
 # lesson records. Use an isolated CBSE profile so this test checks the supported
 # Patterns in Mathematics lesson rather than silently testing the wrong curriculum.
+log "Resetting smoke-test profile so every retry starts from the same settings"
+"${ADB[@]}" shell "run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml"
 log "Configuring smoke-test profile: CBSE, Class 6, English"
 ${ADB[@]} shell "run-as com.padippupal.app sh -c 'mkdir -p shared_prefs && echo PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9InllcyIgPz48bWFwPjxzdHJpbmcgbmFtZT0iZ3JhZGUiPjY8L3N0cmluZz48c3RyaW5nIG5hbWU9ImJvYXJkIj5DQlNFPC9zdHJpbmc+PHN0cmluZyBuYW1lPSJtZWRpdW0iPkVuZ2xpc2g8L3N0cmluZz48c3RyaW5nIG5hbWU9Imxhbmd1YWdlIj5FbmdsaXNoPC9zdHJpbmc+PC9tYXA+ | base64 -d > shared_prefs/padippupal_profile.xml && test -s shared_prefs/padippupal_profile.xml'"
 "${ADB[@]}" shell am force-stop com.padippupal.app

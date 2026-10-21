@@ -497,3 +497,46 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "reveal"
     assert body["segments"][0]["checkpoint"] == "What does the plant need?"
+
+
+
+def test_lesson_plan_drops_one_malformed_segment_and_keeps_grounded_segments():
+    valid = {
+        "id": "s1", "spoken_text": "Look at the numbers.",
+        "caption_text": "Look at the numbers.", "source_chunk_ids": ["known"],
+        "visual_action": {"type": "highlight", "target": "numbers", "value": ""},
+        "checkpoint": "What do you notice?",
+    }
+    malformed = {"id": "bad segment", "spoken_text": "", "source_chunk_ids": ["unknown"]}
+    result = curriculum._validate_lesson_plan(
+        json.dumps({"segments": [malformed, valid]}), {"known"}, 5
+    )
+    assert len(result["segments"]) == 1
+    assert result["segments"][0]["id"] == "s1"
+    assert result["segments"][0]["source_chunk_ids"] == ["known"]
+    assert result["segments"][0]["checkpoint"] == "What do you notice?"
+
+
+def test_lesson_plan_normalizes_common_shape_errors_without_inventing_sources():
+    result = curriculum._validate_lesson_plan(json.dumps({"segments": [{
+        "id": "segment one", "spoken_text": "Notice this pattern.",
+        "source_chunk_ids": "known",
+        "visual_action": {"type": "unsupported-action", "target": "pattern"},
+    }]}), {"known"}, 5)
+    segment = result["segments"][0]
+    assert segment["id"] == "segment-one"
+    assert segment["caption_text"] == "Notice this pattern."
+    assert segment["source_chunk_ids"] == ["known"]
+    assert segment["visual_action"]["type"] == "none"
+
+
+def test_lesson_plan_rejects_all_segments_without_retrieved_source_ids():
+    import pytest
+    with pytest.raises(curriculum.HTTPException) as exc:
+        curriculum._validate_lesson_plan(json.dumps({"segments": [{
+            "id": "s1", "spoken_text": "Unverified claim.",
+            "caption_text": "Unverified claim.", "source_chunk_ids": ["invented"],
+            "visual_action": {"type": "none"},
+        }]}), {"known"}, 5)
+    assert exc.value.status_code == 502
+    assert "textbook-grounded" in exc.value.detail

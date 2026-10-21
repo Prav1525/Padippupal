@@ -99,6 +99,17 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn("couldn't load curriculum", helper)
         self.assertIn('chapter-options-timeout.png', script)
 
+    def test_live_lesson_panel_does_not_expand_to_fill_unused_viewport(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        start = tutor.index('if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive))')
+        end = tutor.index('item(key = "live-teaching-passage")', start)
+        end = tutor.index('if (liveCaption.isNotBlank() && liveLessonActive', end)
+        live_panel = tutor[start:end]
+        self.assertIn('Surface(\\n                        Modifier.fillMaxWidth(),', live_panel)
+        self.assertIn('Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp)', live_panel)
+        self.assertNotIn('fillParentMaxHeight()', live_panel)
+        self.assertNotIn('Arrangement.Center', live_panel)
+
     def test_selecting_concept_does_not_send_internal_prompt_as_chat(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
         self.assertNotIn("LaunchedEffect(chapter, topic)", tutor)

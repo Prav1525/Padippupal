@@ -348,6 +348,36 @@ def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
     assert body["word_timestamps_available"] is False
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
 
+def test_lesson_plan_recovers_from_invalid_model_segments_with_verbatim_grounded_excerpt(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "chapter-one-chunk"
+    class FakeResponse:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self):
+            invalid = {"segments": [{
+                "id": "bad", "spoken_text": "Unsupported claim.", "caption_text": "Unsupported claim.",
+                "source_chunk_ids": ["fabricated-id"],
+                "visual_action": {"type": "none", "target": "", "value": ""},
+            }]}
+            return json.dumps({"candidates": [{"content": {"parts": [{"text": json.dumps(invalid)}]}}]}).encode()
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": "Patterns can repeat in numbers and shapes. Look for what changes each time.",
+        "source": {"chunk_id": chunk_id, "title": "NCERT Class 6 Mathematics",
+                   "page_start": 1, "page_end": 2}}]})
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics", "medium": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach this textbook topic", "app_language": "English"})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["grounded"] is True
+    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
+    assert body["segments"][0]["spoken_text"] == "Patterns can repeat in numbers and shapes."
+    assert body["segments"][0]["visual_action"]["type"] == "none"
+
+
 def test_lesson_plan_rejects_unretrieved_chunk_ids():
     import pytest
     with pytest.raises(curriculum.HTTPException):

@@ -183,6 +183,16 @@ private fun InteractiveLessonLab(
     val hint: String
     val items: List<MoveItem>
     when {
+        listOf("pattern", "sequence", "repeating", "growing pattern").any { it in key } -> {
+            title = "Spot the repeating pattern"
+            hint = "Look at what repeats, then predict what comes next."
+            items = listOf(
+                MoveItem("🔵", "A", .06f, .24f),
+                MoveItem("🟢", "B", .27f, .24f),
+                MoveItem("🔵", "A", .48f, .24f),
+                MoveItem("🟢", "B", .69f, .24f)
+            )
+        }
         listOf("fraction", "numerator", "denominator", "half", "quarter").any { it in key } -> {
             title = "Build a fraction"; hint = "Drag equal pieces together to make one whole."
             items = listOf(MoveItem("🟩","1/4",.08f,.25f),MoveItem("🟩","1/4",.30f,.25f),MoveItem("🟩","1/4",.52f,.25f),MoveItem("⬜","1/4",.74f,.25f))

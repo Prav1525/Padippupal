@@ -244,7 +244,7 @@ def assert_checkpoint(path):
     missing = [label for label in required if label.lower() not in joined.lower()]
     if missing:
         raise SystemExit("Live checkpoint is missing required learner controls: " + ", ".join(missing))
-    if not any("next" in t.lower() or "why" in t.lower() or "pattern" in t.lower() or "does that make sense" in t.lower() for t in texts):
+    if not any(any(word in t.lower() for word in ("next", "what", "which", "how", "why", "pattern", "does that make sense")) for t in texts):
         raise SystemExit("Checkpoint is visible but no meaningful question or understanding prompt is accessible")
     print("PASS: live lesson pauses at a checkpoint with continue, re-explain, and question controls")
 

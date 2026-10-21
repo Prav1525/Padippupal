@@ -958,6 +958,7 @@ internal fun TutorScreen(
         mutableStateOf(context.getSharedPreferences("padippupal_settings", 0).getBoolean("prefer_on_device_voice", false))
     }
     var speechActive by remember { mutableStateOf(false) }
+    var speechPlaybackStarted by remember { mutableStateOf(false) }
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
@@ -1161,6 +1162,7 @@ internal fun TutorScreen(
 
     fun finishSpeechSegment() {
         speechActive = false
+        speechPlaybackStarted = false
         val callback = speechCompletion
         speechCompletion = null
         callback?.invoke()
@@ -1316,10 +1318,10 @@ internal fun TutorScreen(
                             }
                             player.prepare()
                             player.start()
+                            status = "Speaking with Gemini natural voice."
                             val startedCallback = speechStartCallback
                             speechStartCallback = null
                             startedCallback?.invoke()
-                            status = "Speaking with Gemini natural voice."
                         }.onFailure {
                             audioFile.delete()
                             speakWithDeviceTts(text, onStarted, onFinished)
@@ -1337,7 +1339,8 @@ internal fun TutorScreen(
 
     fun playLiveSegment(index: Int) {
         if (!liveLessonActive) return
-        if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
+        if (index >= liveSegments.size) { liveLessonActive = false; speechPlaybackStarted = false; status = "Live lesson complete."; return }
+        speechPlaybackStarted = false
         val segment = liveSegments[index]
         awaitingUnderstanding = false
         currentCheckpoint = if ((index + 1) % 2 == 0) segment.optString("checkpoint").trim().ifBlank { "Does that make sense so far?" } else ""
@@ -1351,6 +1354,7 @@ internal fun TutorScreen(
         // The start callback is shared by hosted audio and the device TTS fallback.
         speak(words, onStarted = {
             // Display the exact text being spoken so word highlighting matches the audio.
+            speechPlaybackStarted = true
             liveCaption = words
             liveWordIndex = 0
             liveVisualAction = visualCue
@@ -1418,6 +1422,7 @@ internal fun TutorScreen(
         speechStartCallback = null
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
         audioPlayer.value = null; ttsState.value?.stop(); speechCompletion = null; speechActive = false
+        speechPlaybackStarted = false
         status = "Live lesson stopped."
     }
 
@@ -1731,8 +1736,9 @@ internal fun TutorScreen(
                                 Spacer(Modifier.width(6.dp))
                                 Text(
                                     when {
-                                        speechActive -> "TEACHER IS SPEAKING"
+                                        speechPlaybackStarted -> "TEACHER IS SPEAKING"
                                         awaitingUnderstanding -> "PAUSE FOR CHECK-IN"
+                                        speechActive -> "PREPARING LESSON AUDIO"
                                         else -> "LESSON SEGMENT"
                                     },
                                     color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold

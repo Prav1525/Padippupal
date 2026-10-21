@@ -1434,7 +1434,7 @@ internal fun TutorScreen(
         speechPlaybackStarted = false
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        currentCheckpoint = if ((index + 1) % 2 == 0) segment.optString("checkpoint").trim().ifBlank { "Does that make sense so far?" } else ""
+        currentCheckpoint = if ((index + 1) % 2 == 0) segment.optString("checkpoint").trim().takeUnless { it.isBlank() || it.equals("null", ignoreCase = true) } ?: "Does that make sense so far?" else ""
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val words = segment.optString("spoken_text").trim()
         // Defensive guard: malformed curriculum segments must never enter the speech

@@ -68,7 +68,7 @@ jobs:
           emulator-boot-timeout: 420
           script: |
             echo "Checking emulator acceleration from the SDK provisioned by android-emulator-runner"
-            emulator -accel-check
+            "$ANDROID_HOME/emulator/emulator" -accel-check
             bash .github/scripts/android-ui-smoke.sh
 
       - name: Upload emulator screenshots, UI trees, and diagnostics

@@ -13,7 +13,7 @@ permissions:
 # Keep only the newest emulator run for this branch; cold Android emulators are expensive.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   emulator-smoke:
@@ -55,7 +55,6 @@ jobs:
           sudo udevadm trigger --name-match=kvm
           test -e /dev/kvm && ls -l /dev/kvm
           test -r /dev/kvm && test -w /dev/kvm
-          "$ANDROID_HOME/emulator/emulator" -accel-check
 
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
@@ -67,7 +66,10 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
           disable-animations: true
           emulator-boot-timeout: 420
-          script: bash .github/scripts/android-ui-smoke.sh
+          script: |
+            echo "Checking emulator acceleration from the SDK provisioned by android-emulator-runner"
+            emulator -accel-check
+            bash .github/scripts/android-ui-smoke.sh
 
       - name: Upload emulator screenshots, UI trees, and diagnostics
         if: always()

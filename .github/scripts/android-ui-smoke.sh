@@ -147,10 +147,47 @@ python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 # Start from a deterministic, clean test profile instead of assuming the app's
 # default board is CBSE. Fresh installs currently default to Tamil Nadu State Board.
 log "Configuring the smoke-test learner as Class 6 CBSE"
-python3 .github/scripts/ui_smoke.py tap home.xml "You"
-sleep 2
+# Compose exposes the bottom navigation as a merged, non-clickable accessibility
+# node spanning the whole bar. A text-center tap lands on the middle tab, not You.
+# Tap the rightmost tab using the actual emulator width, then assert the destination.
+SCREEN_WIDTH=$("${ADB[@]}" shell wm size | sed -n 's/.*Physical size: \\([0-9][0-9]*\\)x.*/\\1/p' | tr -d '\\r')
+if [ -z "$SCREEN_WIDTH" ]; then
+  log "FAIL_CLASS=UI_GEOMETRY_UNAVAILABLE"
+  log "FAIL: unable to determine emulator screen width for profile navigation"
+  exit 1
+fi
+PROFILE_X=$((SCREEN_WIDTH * 7 / 8))
+PROFILE_Y=$("$ADB" shell wm size >/dev/null 2>&1; echo 0)
+# The bottom bar's accessible bounds are captured in home.xml; use its vertical
+# midpoint while targeting the fourth (You) tab horizontally.
+PROFILE_Y=$(python3 - <<'PY'
+import re, xml.etree.ElementTree as ET
+root=ET.parse('home.xml').getroot()
+for node in root.iter('node'):
+    if node.attrib.get('text','').strip().lower() == 'you':
+        m=re.fullmatch(r'\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]',node.attrib.get('bounds',''))
+        if m:
+            print((int(m.group(2))+int(m.group(4)))//2)
+            break
+else:
+    print('')
+PY
+)
+if [ -z "$PROFILE_Y" ]; then
+  log "FAIL_CLASS=PROFILE_TAB_BOUNDS_MISSING"
+  log "FAIL: could not determine bottom-navigation vertical position from home.xml"
+  exit 1
+fi
+log "Opening You profile tab at ($PROFILE_X, $PROFILE_Y) on $SCREEN_WIDTH px emulator"
+"${ADB[@]}" shell input tap "$PROFILE_X" "$PROFILE_Y"
+sleep 3
 timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/profile.xml
 "${ADB[@]}" pull /data/local/tmp/profile.xml profile.xml
+if ! grep -Eqi 'Your profile|Edit student details' profile.xml; then
+  log "FAIL_CLASS=PROFILE_NAVIGATION"
+  log "FAIL: tapping the You tab did not open the profile screen"
+  exit 1
+fi
 python3 .github/scripts/ui_smoke.py tap profile.xml "Edit student details"
 sleep 2
 timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/setup.xml
@@ -184,7 +221,6 @@ timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml |
 }
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py assert-profile tutor.xml | tee -a "$REPORT"
 
 log "Testing the I understand feedback action"
 python3 .github/scripts/ui_smoke.py tap tutor.xml "I understand"

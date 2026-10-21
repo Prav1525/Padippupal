@@ -193,6 +193,34 @@ def tap(path, target):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
+
+def tap_bottom_tab(path, side):
+    # Bottom-nav labels are exposed as merged Compose semantics nodes whose
+    # bounds span the entire bar and are marked non-clickable. Target the tab's
+    # horizontal slot rather than tapping the center of that merged node.
+    nodes, texts = load(path)
+    label = "You" if side == "right" else "Home"
+    node = next((n for n in nodes if n.attrib.get("text", "").strip().lower() == label.lower()), None)
+    if node is None:
+        raise SystemExit(f"Bottom navigation label {label!r} was not found. Visible labels: " + " | ".join(texts[:100]))
+    bounds = node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit(f"Bottom navigation bounds are invalid for {label}: {bounds!r}")
+    x1, y1, x2, y2 = map(int, match.groups())
+    width_result = subprocess.run(["adb", "-s", "emulator-5554", "shell", "wm", "size"],
+                                  check=True, capture_output=True, text=True, timeout=10)
+    width_match = re.search(r"(?:Physical|Override) size: (\d+)x(\d+)", width_result.stdout)
+    if not width_match:
+        raise SystemExit("Could not determine emulator dimensions: " + width_result.stdout.strip())
+    width = int(width_match.group(1))
+    # Four equal-width tabs; keep the tap comfortably inside the first/last tab.
+    x = width // 5 if side == "left" else (width * 4) // 5
+    y = (y1 + y2) // 2
+    print(f"Tapping bottom tab {label!r} at ({x}, {y}); merged accessibility bounds={bounds}, screen width={width}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+                   check=True, timeout=45)
+
 def validate_dispatch():
     # Ensure every action called by the shell journey is implemented in this helper.
     import ast
@@ -236,7 +264,7 @@ def main():
         assert_chapter_one(path)
     elif action == "assert-selected-chapter":
         assert_selected_chapter(path)
-    elif action == "tap-numbered" and len(sys.argv) >= 4:
+    elif action == "tap-bottom-tab" and len(sys.argv) >= 4:\n        tap_bottom_tab(path, sys.argv[3])\n    elif action == "tap-numbered" and len(sys.argv) >= 4:
         tap_numbered(path, sys.argv[3])
     elif action == "tap-first-concept":
         tap_first_concept(path)

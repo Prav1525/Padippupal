@@ -400,7 +400,7 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
                 "number_machine" -> {
                     val topicKey = topic.lowercase()
                     val sequenceMode = topicKey.contains("sequence") || topicKey.contains("relations among")
-                    val digitMode = topicKey.contains("patterns in numbers")
+                    val digitMode = topicKey.contains("digit") || topicKey.contains("reverse")
                     val values = when {
                         sequenceMode -> listOf("1", "3", "6", "10", "15")
                         digitMode -> listOf("12", "21", "12", "21", "12")
@@ -434,7 +434,7 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
                     Text(explanation, color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
                 }
             }
-            Text(caption, color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
+            Text(if (caption.isBlank()) "Watch how the example changes as your teacher explains." else "Follow the example above as your teacher explains each step.", color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 repeat(4) { index ->
                     Box(Modifier.weight(1f).height(3.dp).background(if (index == stage) TutorGreen else Color(0xFFD1E7D8), RoundedCornerShape(3.dp)))
@@ -1388,7 +1388,7 @@ internal fun TutorScreen(
                 require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
-                    .put("message", "Teach this as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Split the explanation into small modules, one idea per module. Each module should use only 2-3 short spoken sentences, simple child-friendly language, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages.").put("max_segments", 5)
+                    .put("message", "Teach a child this exact textbook topic: " + topic + " in " + chapter + ". Do not treat a subtopic label as the whole chapter. Begin with a child-friendly orientation, then a concrete example, guide the child to notice one thing, invite a prediction, explain the rule simply, and recap. Use one small idea per segment, short natural spoken sentences with gentle pauses, and a specific child-answerable checkpoint after the example or key idea. Never invent textbook facts or use a visual that conflicts with the explanation; use only retrieved textbook passages.").put("max_segments", 5)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"; connection.connectTimeout = 8000; connection.readTimeout = 50000
                 connection.setRequestProperty("Accept", "application/json"); connection.setRequestProperty("Content-Type", "application/json; charset=utf-8"); connection.doOutput = true
@@ -1766,7 +1766,7 @@ internal fun TutorScreen(
                                         topicKey.contains("all 1s") || topicKey.contains("all ones") -> "all_ones"
                                         topicKey.contains("shape") -> "shape_pattern"
                                         topicKey.contains("sequence") || topicKey.contains("relationship") || topicKey.contains("patterns in numbers") || topicKey.contains("number") -> "number_machine"
-                                        else -> "shape_pattern"
+                                        else -> "number_machine"
                                     }
                                     ChapterOneMathAnimation(scene, topic.ifBlank { "Explore the pattern" }, topic, liveCaption)
                                 } else {

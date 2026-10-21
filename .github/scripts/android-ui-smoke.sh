@@ -177,7 +177,19 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml
 python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py assert-live-layout ui-screenshots/live-lesson.png | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py assert-highlight-frames live-lesson.xml ui-screenshots/live-frames | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap live-lesson.xml "Stop"
+
+log "Testing live playback pause and resume"
+python3 .github/scripts/ui_smoke.py tap live-lesson.xml "Pause"
+sleep 1
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-paused.xml
+"${ADB[@]}" pull /data/local/tmp/live-paused.xml live-paused.xml
+python3 .github/scripts/ui_smoke.py assert-playback-state live-paused.xml paused | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-paused.xml "Resume"
+sleep 2
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml
+"${ADB[@]}" pull /data/local/tmp/live-resumed.xml live-resumed.xml
+python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playing | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-resumed.xml "Stop"
 sleep 2
 
 log "Testing Android back navigation to Home"

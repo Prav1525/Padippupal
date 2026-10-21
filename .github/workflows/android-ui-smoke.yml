@@ -54,6 +54,8 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           test -e /dev/kvm && ls -l /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+          "$ANDROID_HOME/emulator/emulator" -accel-check
 
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
@@ -61,7 +63,8 @@ jobs:
           api-level: 30
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 4096 -cores 2
+          # Keep the guest memory modest so the emulator does not starve the hosted runner.
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
           disable-animations: true
           emulator-boot-timeout: 420
           script: bash .github/scripts/android-ui-smoke.sh

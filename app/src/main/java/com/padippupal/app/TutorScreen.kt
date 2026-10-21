@@ -1337,6 +1337,8 @@ internal fun TutorScreen(
         status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
+        // Some hosted voice paths do not invoke onStarted; do not leave loading text over audio.
+        status = "Playing segment ${index + 1} of ${liveSegments.size}…"
         speak(words, onStarted = {
             // Display the exact text being spoken so word highlighting matches the audio.
             liveCaption = words

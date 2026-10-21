@@ -120,17 +120,33 @@ if grep -Fqi 'Viewing full screen' home.xml && grep -Fqi 'GOT IT' home.xml; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/home-after-system-overlay.png
 fi
 
-# Retry transient Android System UI ANRs before classifying them as an app UI failure.
+# Recover from a launcher ANR using the actual Android dialog controls. The
+# prior loop pressed Back (which does not dismiss an ANR dialog) and restarted
+# PadippuPal repeatedly, so it could never recover from Pixel Launcher's dialog.
+# Distinguish the launcher from our app and keep bounded retries.
 for attempt in 1 2 3; do
-  if grep -Eqi "System UI isn.t responding|Close app|Wait" home.xml; then
-    log "WARNING: Android System UI is unresponsive (attempt $attempt/3)"
+  if grep -Eqi "Pixel Launcher isn.t responding|System UI isn.t responding|Application Not Responding" home.xml; then
+    if grep -Eqi "Pixel Launcher isn.t responding" home.xml; then
+      log "WARN_CLASS=EMULATOR_LAUNCHER_ANR"
+      log "WARNING: Pixel Launcher ANR dialog detected (attempt $attempt/3); PadippuPal home is visible underneath"
+    else
+      log "WARN_CLASS=EMULATOR_SYSTEM_UI_ANR"
+      log "WARNING: Android System UI ANR dialog detected (attempt $attempt/3)"
+    fi
     "${ADB[@]}" exec-out screencap -p > "ui-screenshots/home-anr-attempt-$attempt.png" || true
-    if [ "$attempt" -lt 3 ]; then
-      "${ADB[@]}" shell input keyevent 4 || true
-      sleep 10
-      "${ADB[@]}" shell am force-stop com.padippupal.app || true
-      "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity || true
+    if grep -Eqi 'text="Wait"|>Wait<' home.xml; then
+      log "Attempting Android ANR recovery via Wait"
+      python3 .github/scripts/ui_smoke.py tap home.xml "Wait" || true
       sleep 12
+    fi
+    timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || true
+    "${ADB[@]}" pull /data/local/tmp/home.xml home.xml || true
+    if grep -Eqi "Pixel Launcher isn.t responding|System UI isn.t responding|Application Not Responding" home.xml; then
+      log "ANR dialog persisted; attempting Close app so Android can restart its launcher"
+      python3 .github/scripts/ui_smoke.py tap home.xml "Close app" || true
+      sleep 8
+      "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity || true
+      sleep 8
       timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || true
       "${ADB[@]}" pull /data/local/tmp/home.xml home.xml || true
     fi
@@ -138,8 +154,9 @@ for attempt in 1 2 3; do
     break
   fi
 done
-if grep -Eqi "System UI isn.t responding|Close app|Wait" home.xml; then
-  log "FAIL: Android System UI remained unresponsive after 3 attempts"
+if grep -Eqi "Pixel Launcher isn.t responding|System UI isn.t responding|Application Not Responding" home.xml; then
+  log "FAIL_CLASS=EMULATOR_LAUNCHER_OR_SYSTEM_UI_ANR"
+  log "FAIL: Android launcher/System UI ANR dialog persisted after Wait/Close recovery; app assertions have not started"
   exit 1
 fi
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"

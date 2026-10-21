@@ -193,7 +193,28 @@ def tap(path, target):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
+def validate_dispatch():
+    # Ensure every action called by the shell journey is implemented in this helper.
+    import ast
+    source = Path(__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    actions = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Compare) and isinstance(node.left, ast.Name) and node.left.id == "action":
+            for comparator in node.comparators:
+                if isinstance(comparator, ast.Constant) and isinstance(comparator.value, str):
+                    actions.add(comparator.value)
+    script = Path(__file__).with_name("android-ui-smoke.sh").read_text(encoding="utf-8")
+    called = set(re.findall(r"ui_smoke\\.py\\s+([a-z][a-z-]+)", script))
+    missing = sorted(called - actions)
+    if missing:
+        raise SystemExit("Smoke-test actions missing from ui_smoke.py dispatcher: " + ", ".join(missing))
+    print("PASS: all shell-invoked smoke-test actions are registered:", ", ".join(sorted(called)))
+
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] == "--validate-dispatch":
+        validate_dispatch()
+        return
     if len(sys.argv) < 3:
         raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]

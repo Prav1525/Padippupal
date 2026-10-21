@@ -141,12 +141,26 @@ def tap_first_concept(path):
 def assert_live(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
-    print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
+    print("LIVE LESSON TEXT:", " | ".join(texts[:160]))
+    known_failures = (
+        "lesson planner returned an invalid segment",
+        "lesson planner returned invalid json",
+        "lesson planner could not produce a valid textbook-grounded segment",
+        "lesson planner connection failed",
+        "tutor could not answer",
+    )
+    found = next((message for message in known_failures if message in joined), None)
+    if found:
+        raise SystemExit("Live lesson surfaced a backend/planner failure instead of teaching: " + found)
     if "teacher is speaking" not in joined and "quick check" not in joined:
-        raise SystemExit("Live lesson did not reach the speaking/checkpoint UI")
+        raise SystemExit("Live lesson did not reach the speaking/checkpoint UI; captured UI: " + " | ".join(texts[:80]))
     if "tap any word to hear its pronunciation again." not in joined:
         raise SystemExit("Live lesson is active but the single inline teaching caption is missing")
-    print("PASS: live lesson panel and spoken teaching text are visible")
+    if not re.search(r"\\b\\d+\\s*/\\s*\\d+\\b", joined):
+        raise SystemExit("Live lesson did not expose segment progress; playback may be stuck before the first segment")
+    if "today, we are going to learn" not in joined and "let's look" not in joined and "let us look" not in joined:
+        raise SystemExit("Live lesson is missing its expected teacher-led opening")
+    print("PASS: live lesson, teacher opening, segment progress, and inline spoken caption are visible")
 
 def assert_highlight_frames(directory):
     try:

@@ -71,7 +71,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR_SUBJECT,T
   Scaffold(
     containerColor = Paper,
     topBar = {
-      if (page !in listOf(Page.TUTOR, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.EXAM_MASTER, Page.SETUP)) {
+      if (page !in listOf(Page.TUTOR_SUBJECT, Page.TUTOR, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.EXAM_MASTER, Page.SETUP)) {
         TopAppBar(
           title = {
             Row(verticalAlignment = Alignment.CenterVertically) {

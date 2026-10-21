@@ -1737,15 +1737,10 @@ internal fun TutorScreen(
         }
     }
 
-    // Starting a selected concept should teach first, not ask the child what to learn.
-    // Only auto-start before the conversation has moved beyond the initial greeting.
-    LaunchedEffect(chapter, topic) {
-        if (topic.isNotBlank() && messages.size == 1 && !loading) {
-            sendMessage(
-                 "START LESSON as a warm, patient teacher. Begin by naming the chapter $chapter and topic $topic in the opening sentence. Say what we are going to learn, then preview 2-3 key ideas. Teach the first concept in small steps with a familiar everyday example, explain why it works, and ask one easy check question at the end. Do not jump straight into a question or write one dense paragraph. Use simple child-friendly spoken language in $selectedLanguage."
-            )
-        }
-    }
+    // Selecting a concept only updates the selection. Do not send an internal
+    // lesson instruction through chat: it leaks into the transcript and starts a
+    // competing request that can keep loading=true and block the Teach action.
+    // The explicit Teach button owns the live-lesson request and playback lifecycle.
 
     var showLessonSettings by remember { mutableStateOf(false) }
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()

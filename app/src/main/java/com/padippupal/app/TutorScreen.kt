@@ -1337,8 +1337,8 @@ internal fun TutorScreen(
         status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
-        // Some hosted voice paths do not invoke onStarted; do not leave loading text over audio.
-        status = "Playing segment ${index + 1} of ${liveSegments.size}…"
+        // Stay in Preparing until the audio engine confirms playback has actually started.
+        // The start callback is shared by hosted audio and the device TTS fallback.
         speak(words, onStarted = {
             // Display the exact text being spoken so word highlighting matches the audio.
             liveCaption = words
@@ -1706,15 +1706,27 @@ internal fun TutorScreen(
             if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
                 item(key = "live-teaching-passage") {
                     Surface(
-                        Modifier.fillMaxWidth(),
+                        Modifier.fillMaxWidth().then(
+                            if (!awaitingUnderstanding) Modifier.fillParentMaxHeight() else Modifier
+                        ),
                         color = Color(0xFFEAF5EE), shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, Color(0xFFD1E7D8))
                     ) {
-                        Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(
+                            Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalArrangement = if (awaitingUnderstanding) Arrangement.spacedBy(5.dp) else Arrangement.Center
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LAST SPOKEN SEGMENT", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    when {
+                                        speechActive -> "TEACHER IS SPEAKING"
+                                        awaitingUnderstanding -> "PAUSE FOR CHECK-IN"
+                                        else -> "LESSON SEGMENT"
+                                    },
+                                    color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold
+                                )
                                 Spacer(Modifier.weight(1f))
                                 if (liveLessonActive) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                             }

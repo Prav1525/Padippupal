@@ -1511,26 +1511,57 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         + "After explaining a key idea or worked example, set checkpoint to a warm, short understanding question such as Does that make sense so far? or Would you like me to show that another way? Set checkpoint on at least every second segment, especially after examples. Do not put the checkpoint question inside spoken_text; the app will pause and ask it separately. "
         + "When explaining an example, make visual_action point to the exact number, shape, or step being spoken about; reveal or compare one step at a time. "
         + "Each segment must cite exact chunk_id values shown in the passages. visual_action type must be one of highlight,reveal,move,compare,label,draw-line,show-result,none. Never return code or invent unsupported visuals. Use none if no matching visual is supported.")
-    body = json.dumps({"systemInstruction": {"parts": [{"text": system_prompt}]},
-        "contents": [{"role": "user", "parts": [{"text": "Student request: " + payload.message + "\nRetrieved passages:\n" + "\n\n---\n\n".join(context)}]}],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2, "maxOutputTokens": 1600}}).encode("utf-8")
     model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
-    req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", data=body,
-        headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"}, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=45) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
-        validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
-    except urllib.error.HTTPError as exc:
-        logger.warning("Gemini lesson planner rejected: status=%s model=%s", exc.code, model)
-        raise HTTPException(status_code=503 if exc.code == 429 else 502, detail="The lesson planner could not answer right now.") from exc
-    except (urllib.error.URLError, TimeoutError) as exc:
-        logger.warning("Gemini lesson planner connection failure: %s", type(exc).__name__)
-        raise HTTPException(status_code=502, detail="The lesson planner connection failed.") from exc
-    except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
-        logger.warning("Gemini lesson planner response parsing failed: %s", type(exc).__name__)
-        raise HTTPException(status_code=502, detail="The lesson planner returned an invalid response.") from exc
+    base_user_prompt = "Student request: " + payload.message + "\nRetrieved passages:\n" + "\n\n---\n\n".join(context)
+    retry_instruction = (
+        "The previous response failed lesson-plan JSON/schema validation. Return exactly one valid JSON object, "
+        "with no markdown fences or extra prose. Each segment must have a string id, string spoken_text, string caption_text, "
+        "source_chunk_ids containing only exact chunk_id values from the supplied passages, visual_action as an object "
+        "with string type/target/value fields, and checkpoint as a short string or null. Do not add facts or citations."
+    )
+    validated = None
+    for attempt in range(2):
+        user_prompt = base_user_prompt if attempt == 0 else base_user_prompt + "\n\n" + retry_instruction
+        body = json.dumps({
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"role": "user", "parts": [{"text": user_prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.2 if attempt == 0 else 0.0,
+                "maxOutputTokens": 1600,
+            },
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+            data=body,
+            headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=45) as response:
+                result = json.loads(response.read().decode("utf-8"))
+            raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
+            validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+            break
+        except urllib.error.HTTPError as exc:
+            logger.warning("Gemini lesson planner rejected: status=%s model=%s", exc.code, model)
+            raise HTTPException(status_code=503 if exc.code == 429 else 502, detail="The lesson planner could not answer right now.") from exc
+        except HTTPException as exc:
+            if attempt == 0 and exc.status_code == 502:
+                logger.warning("Gemini lesson planner output validation failed; retrying once detail=%s", exc.detail[:180])
+                continue
+            raise
+        except (urllib.error.URLError, TimeoutError) as exc:
+            logger.warning("Gemini lesson planner connection failure: %s", type(exc).__name__)
+            raise HTTPException(status_code=502, detail="The lesson planner connection failed.") from exc
+        except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            if attempt == 0:
+                logger.warning("Gemini lesson planner response parsing failed: %s; retrying once", type(exc).__name__)
+                continue
+            logger.warning("Gemini lesson planner response parsing failed after retry: %s", type(exc).__name__)
+            raise HTTPException(status_code=502, detail="The lesson planner returned an invalid response.") from exc
+    if validated is None:
+        raise HTTPException(status_code=502, detail="The lesson planner could not produce a valid grounded lesson.")
     return {"lesson_id": str(uuid.uuid4()), "segments": validated["segments"], "grounded": True, "sources": sources,
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False}

@@ -172,7 +172,7 @@ private fun WordByWordCaption(
         buildAnnotatedString {
             words.forEachIndexed { index, pair ->
                 val word = pair
-                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\n\n" else " ")
+                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\n" else " ")
                 val start = length
                 append(word)
                 val end = length
@@ -2103,21 +2103,21 @@ internal fun TutorScreen(
         // Keep the understanding prompt anchored above the composer, not buried in lesson history.
         if (awaitingUnderstanding && liveLessonActive) {
             Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 3.dp),
                 color = Color.White,
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, Color(0xFFD1E7D8)),
                 shadowElevation = 2.dp
             ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("Quick check", color = TutorGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 17.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
                             awaitingUnderstanding = false
                             status = "Great! Let’s take the next small step."
                             tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 350L)
-                        }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand") }
+                        }, modifier = Modifier.weight(1f).heightIn(min = 40.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand", fontSize = 13.sp) }
                         OutlinedButton(onClick = {
                             awaitingUnderstanding = false
                             val segment = liveSegments.getOrNull(liveSegmentIndex)
@@ -2134,7 +2134,7 @@ internal fun TutorScreen(
                             } else {
                                 awaitingUnderstanding = true
                             }
-                        }, modifier = Modifier.weight(1f)) { Text("Explain again") }
+                        }, modifier = Modifier.weight(1f).heightIn(min = 40.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)) { Text("Explain again", fontSize = 13.sp) }
                     }
                     TextButton(
                         onClick = {
@@ -2142,13 +2142,14 @@ internal fun TutorScreen(
                             stopLiveLesson()
                             status = "Your question is ready below. Send it and I’ll explain this part."
                         },
-                        modifier = Modifier.align(Alignment.End)
-                    ) { Text("I have a question", color = TutorGreen) }
+                        modifier = Modifier.align(Alignment.End),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                    ) { Text("I have a question", color = TutorGreen, fontSize = 12.sp) }
                 }
             }
         }
 
-        if (status.isNotBlank()) {
+        if (status.isNotBlank() && !(awaitingUnderstanding && liveLessonActive)) {
             Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)
         }
         if (lastSources.isNotEmpty()) {

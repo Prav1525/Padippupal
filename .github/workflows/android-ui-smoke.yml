@@ -65,6 +65,7 @@ jobs:
         run: |
           bash -n .github/scripts/android-ui-smoke.sh
           python3 -m py_compile .github/scripts/ui_smoke.py
+          python3 .github/scripts/ui_smoke.py --validate-dispatch
 
       - name: Launch app in Android emulator and test navigation
         timeout-minutes: 12

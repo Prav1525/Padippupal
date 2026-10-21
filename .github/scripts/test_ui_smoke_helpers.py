@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import concept_candidates
+from ui_smoke import concept_candidates, has_pause_control, assert_paused, assert_resumed
 
 
 class ConceptCandidateTests(unittest.TestCase):
@@ -30,6 +30,43 @@ class ConceptCandidateTests(unittest.TestCase):
         </hierarchy>""")
         candidates = concept_candidates(list(root.iter("node")))
         self.assertEqual([n.attrib["text"] for n in candidates], ["3. Valid row"])
+
+
+class PlaybackStateAssertionTests(unittest.TestCase):
+    def test_pause_control_requires_visible_bounded_pause_or_resume_button(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="PAUSE FOR CHECK-IN" bounds="[10,10][300,60]" clickable="false"/>
+          <node text="Pause" bounds="[10,70][120,120]" clickable="false" enabled="true"/>
+          <node text="Resume" bounds="[130,70][240,120]" enabled="false"/>
+        </hierarchy>""")
+        path = Path(self._temporary_xml(ET.tostring(root, encoding="unicode")))
+        try:
+            self.assertTrue(has_pause_control(str(path)))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_paused_and_resumed_assertions_check_state_labels(self):
+        paused = Path(self._temporary_xml("""<hierarchy>
+          <node text="LESSON PAUSED"/>
+          <node text="Lesson paused. Resume will replay this short segment from the beginning."/>
+          <node text="Resume" bounds="[10,10][100,50]"/>
+        </hierarchy>"""))
+        resumed = Path(self._temporary_xml("""<hierarchy>
+          <node text="TEACHER IS SPEAKING"/>
+        </hierarchy>"""))
+        try:
+            assert_paused(str(paused))
+            assert_resumed(str(resumed))
+        finally:
+            paused.unlink(missing_ok=True)
+            resumed.unlink(missing_ok=True)
+
+    @staticmethod
+    def _temporary_xml(content):
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False) as file:
+            file.write(content)
+            return file.name
 
 
 class RetryIsolationTests(unittest.TestCase):

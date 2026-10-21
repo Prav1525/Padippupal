@@ -146,7 +146,15 @@ def assert_live(path):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
-    print("PASS: live lesson panel and actual inline teaching caption text are accessible")
+    if "playing segment" in joined:
+        raise SystemExit("A segment is reported as playing before playback-start confirmation")
+    accessible = "\\n".join(
+        texts + [n.attrib.get("content-desc", "").strip() for n in load(path)[0]]
+    ).lower()
+    for control in ("stop", "ask your teacher"):
+        if control not in accessible:
+            raise SystemExit("Live lesson is hiding a required control: " + control)
+    print("PASS: inline lesson caption, truthful playback status, Stop, and student question input are accessible")
 
 def assert_highlight_frames(directory):
     try:

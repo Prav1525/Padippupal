@@ -149,6 +149,7 @@ python3 .github/scripts/ui_smoke.py tap-numbered chapter-menu.xml 1
 sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
+python3 .github/scripts/ui_smoke.py assert-chapter-selected chapter-selected.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Choose concept"
 sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml

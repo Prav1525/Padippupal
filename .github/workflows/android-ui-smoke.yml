@@ -48,6 +48,13 @@ jobs:
           bash -n .github/scripts/android-ui-smoke.sh
           python3 -m py_compile .github/scripts/ui_smoke.py
 
+      - name: Enable KVM hardware acceleration for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -e /dev/kvm && ls -l /dev/kvm
+
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:

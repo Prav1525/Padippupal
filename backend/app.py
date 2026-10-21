@@ -1220,12 +1220,34 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
     if not isinstance(data, dict) or not isinstance(data.get("segments"), list):
         raise HTTPException(status_code=502, detail="The lesson planner returned an incomplete lesson plan.")
     segments = []
-    for item in data["segments"][:max_segments]:
+    for index, item in enumerate(data["segments"][:max_segments], start=1):
+        # The model occasionally omits presentation-only fields even with JSON mode.
+        # Fill only safe display defaults; never invent source citations or spoken content.
+        if isinstance(item, dict):
+            item = dict(item)
+            if not item.get("id"):
+                item["id"] = f"segment-{index}"
+            if not item.get("caption_text") and isinstance(item.get("spoken_text"), str):
+                item["caption_text"] = item["spoken_text"]
+            if not item.get("visual_action"):
+                item["visual_action"] = {"type": "none", "target": "", "value": ""}
+            item.setdefault("checkpoint", None)
         try:
             segment = LessonSegment.model_validate(item)
         except Exception as exc:
-            raise HTTPException(status_code=502, detail="The lesson planner returned an invalid segment.") from exc
+            # Log actionable field/type diagnostics without logging student text or model output.
+            errors = exc.errors(include_input=False) if hasattr(exc, "errors") else []
+            diagnostics = "; ".join(
+                f"{'.'.join(str(part) for part in error.get('loc', ())) or 'segment'}:{error.get('type', 'invalid')}"
+                for error in errors
+            )[:500] or type(exc).__name__
+            logger.warning("Lesson planner segment validation failed: index=%s fields=%s", index, diagnostics)
+            raise HTTPException(
+                status_code=502,
+                detail=f"The lesson planner returned an invalid segment (segment {index}; fields: {diagnostics}).",
+            ) from exc
         if not set(segment.source_chunk_ids).issubset(allowed_chunk_ids):
+            logger.warning("Lesson planner cited unknown textbook chunk: segment=%s", index)
             raise HTTPException(status_code=502, detail="The lesson planner referenced a passage outside the retrieved textbook context.")
         segments.append(segment.model_dump())
     if not segments:

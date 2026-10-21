@@ -22,7 +22,7 @@ adb devices -l | tee ui-screenshots/adb-devices.txt
 
 # Emulator boot_completed can become 1 while Android's package/activity services
 # are still restarting. Do not race PackageManager with APK installation.
-log "Waiting for Android framework and PackageManager readiness (max 180s)"
+log "Waiting for Android framework and PackageManager readiness (max 180s; every ADB/UI operation is bounded)"
 timeout 30s adb -s emulator-5554 wait-for-device
 ready=0
 for attempt in $(seq 1 36); do
@@ -82,11 +82,16 @@ if [ "$started" -ne 1 ]; then
   log "FAIL: app process did not start within 60 seconds"
   exit 1
 fi
-sleep 5
+sleep 15
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/home.png
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
-  sleep 3
-  timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml
+# UIAutomator can hang when Android accessibility/SystemUI is unhealthy. Bound
+# each attempt so the test produces diagnostics instead of burning several minutes.
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
+  log "First home accessibility dump failed; checking framework health before one retry"
+  "${ADB[@]}" shell service check accessibility >> "$REPORT" 2>&1 || true
+  "${ADB[@]}" shell dumpsys activity activities > ui-screenshots/activities-before-retry.txt 2>&1 || true
+  sleep 2
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml
 }
 "${ADB[@]}" pull /data/local/tmp/home.xml home.xml
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
@@ -95,9 +100,9 @@ log "Opening tutor using accessibility bounds"
 python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
 sleep 8
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/tutor.png
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
   sleep 3
-  timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml
 }
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
@@ -105,7 +110,7 @@ python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
 log "Testing the I understand feedback action"
 python3 .github/scripts/ui_smoke.py tap tutor.xml "I understand"
 sleep 2
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/feedback.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/feedback.xml
 "${ADB[@]}" pull /data/local/tmp/feedback.xml feedback.xml
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/feedback.png
 python3 .github/scripts/ui_smoke.py assert-feedback feedback.xml | tee -a "$REPORT"
@@ -114,35 +119,35 @@ log "Testing tutor settings and voice controls"
 python3 .github/scripts/ui_smoke.py tap feedback.xml "Change"
 sleep 2
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
 
 log "Loading the real Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
 sleep 10
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml
 python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py tap chapter-options.xml "Choose chapter"
 sleep 2
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-menu.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-menu.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-menu.xml chapter-menu.xml
 python3 .github/scripts/ui_smoke.py tap-numbered chapter-menu.xml 2
 sleep 3
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
 python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Choose concept"
 sleep 2
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
 "${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
 python3 .github/scripts/ui_smoke.py tap-first-concept concept-menu.xml
 sleep 2
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
 "${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml
 python3 .github/scripts/ui_smoke.py tap concept-selected.xml "Done"
 sleep 3
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
 python3 .github/scripts/ui_smoke.py tap ready-to-teach.xml "Teach"
 
@@ -152,7 +157,7 @@ log "Recording live lesson frames to verify inline spoken-word highlighting"
 "${ADB[@]}" shell 'i=0; while [ "$i" -lt 35 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done'
 "${ADB[@]}" pull /data/local/tmp/padippupal-live-frames ui-screenshots/live-frames
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-lesson.png
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml
 "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml
 python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py assert-highlight-frames live-lesson.xml ui-screenshots/live-frames | tee -a "$REPORT"
@@ -163,9 +168,9 @@ log "Testing Android back navigation to Home"
 "${ADB[@]}" shell input keyevent 4
 sleep 5
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/home-return.png
-timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-return.xml || {
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-return.xml || {
   sleep 3
-  timeout 120s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-return.xml
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-return.xml
 }
 "${ADB[@]}" pull /data/local/tmp/home-return.xml home-return.xml
 python3 .github/scripts/ui_smoke.py assert-home home-return.xml | tee -a "$REPORT"

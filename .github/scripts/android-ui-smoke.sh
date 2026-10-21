@@ -73,7 +73,7 @@ fi
 # lesson records. Use an isolated CBSE profile so this test checks the supported
 # Patterns in Mathematics lesson rather than silently testing the wrong curriculum.
 log "Configuring smoke-test profile: CBSE, Class 6, English"
-"${ADB[@]}" shell run-as com.padippupal sh -c 'mkdir -p /data/user/0/com.padippupal.app/shared_prefs && echo PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9InllcyIgPz48bWFwPjxzdHJpbmcgbmFtZT0iZ3JhZGUiPjY8L3N0cmluZz48c3RyaW5nIG5hbWU9ImJvYXJkIj5DQlNFPC9zdHJpbmc+PHN0cmluZyBuYW1lPSJtZWRpdW0iPkVuZ2xpc2g8L3N0cmluZz48c3RyaW5nIG5hbWU9Imxhbmd1YWdlIj5FbmdsaXNoPC9zdHJpbmc+PC9tYXA+ | base64 -d > /data/user/0/com.padippupal.app/shared_prefs/padippupal_profile.xml && test -s /data/user/0/com.padippupal.app/shared_prefs/padippupal_profile.xml'
+"${ADB[@]}" shell run-as com.padippupal.app sh -c 'mkdir -p /data/user/0/com.padippupal.app/shared_prefs && echo PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9InllcyIgPz48bWFwPjxzdHJpbmcgbmFtZT0iZ3JhZGUiPjY8L3N0cmluZz48c3RyaW5nIG5hbWU9ImJvYXJkIj5DQlNFPC9zdHJpbmc+PHN0cmluZyBuYW1lPSJtZWRpdW0iPkVuZ2xpc2g8L3N0cmluZz48c3RyaW5nIG5hbWU9Imxhbmd1YWdlIj5FbmdsaXNoPC9zdHJpbmc+PC9tYXA+ | base64 -d > /data/user/0/com.padippupal.app/shared_prefs/padippupal_profile.xml && test -s /data/user/0/com.padippupal.app/shared_prefs/padippupal_profile.xml'
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity
 

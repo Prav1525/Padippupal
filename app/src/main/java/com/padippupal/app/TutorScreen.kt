@@ -1954,15 +1954,13 @@ internal fun TutorScreen(
             if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
                 item(key = "live-teaching-passage") {
                     Surface(
-                        Modifier.fillMaxWidth().then(
-                            if (!awaitingUnderstanding) Modifier.fillParentMaxHeight() else Modifier
-                        ),
+                        Modifier.fillMaxWidth(),
                         color = Color(0xFFEAF5EE), shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, Color(0xFFD1E7D8))
                     ) {
                         Column(
-                            Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 9.dp),
-                            verticalArrangement = if (awaitingUnderstanding) Arrangement.spacedBy(5.dp) else Arrangement.Center
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))

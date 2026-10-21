@@ -1225,10 +1225,15 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
         # Fill only safe display defaults; never invent source citations or spoken content.
         if isinstance(item, dict):
             item = dict(item)
-            if not item.get("id"):
+            # IDs are presentation metadata, not model-authored lesson content. Gemini
+            # sometimes emits a numeric ID; normalize malformed IDs instead of rejecting
+            # an otherwise grounded lesson. Source citations remain strictly validated below.
+            raw_id = item.get("id")
+            if not isinstance(raw_id, str) or not re.fullmatch(r"^[a-zA-Z0-9_-]{1,40}$", raw_id):
                 item["id"] = f"segment-{index}"
-            if not item.get("caption_text") and isinstance(item.get("spoken_text"), str):
-                item["caption_text"] = item["spoken_text"]
+            if not isinstance(item.get("caption_text"), str) or not item["caption_text"].strip():
+                if isinstance(item.get("spoken_text"), str):
+                    item["caption_text"] = item["spoken_text"]
             if not item.get("visual_action"):
                 item["visual_action"] = {"type": "none", "target": "", "value": ""}
             item.setdefault("checkpoint", None)

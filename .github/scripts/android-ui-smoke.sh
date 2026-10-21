@@ -17,8 +17,12 @@ capture_diagnostics() {
     timeout -k 1s 5s adb -s emulator-5554 get-state > ui-screenshots/adb-state-on-exit.txt 2>&1
     timeout -k 1s 5s adb -s emulator-5554 logcat -d > ui-screenshots/logcat.txt 2>&1
     timeout -k 1s 5s adb -s emulator-5554 shell dumpsys activity activities > ui-screenshots/activities.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 shell dumpsys activity lastanr > ui-screenshots/last-anr.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 shell dumpsys dropbox --print system_app_anr > ui-screenshots/system-anr-dropbox.txt 2>&1
     timeout -k 1s 5s adb -s emulator-5554 shell dumpsys window > ui-screenshots/windows.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 shell ps -A > ui-screenshots/processes.txt 2>&1
     timeout -k 1s 5s adb -s emulator-5554 shell dumpsys connectivity > ui-screenshots/connectivity.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 logcat -d -b all > ui-screenshots/full-logcat.txt 2>&1
     timeout -k 1s 5s adb -s emulator-5554 logcat -d -s System.err AndroidRuntime OkHttp OkHttpClient TrafficStats NetworkSecurityConfig > ui-screenshots/network-errors.txt 2>&1
   fi
   log "Diagnostics collection finished (some files may contain timeout/offline errors)"
@@ -48,9 +52,22 @@ timeout -k 1s 5s "${ADB[@]}" get-state | tee -a "$REPORT" || {
 }
 timeout -k 1s 8s "${ADB[@]}" shell pm path android | tee -a "$REPORT" || {
   log "FAIL_CLASS=EMULATOR_PACKAGE_MANAGER"
-  log "FAIL: Android package manager did not answer health probe"
+  log "FAIL: Android package manager did not answer basic health probe"
   exit 1
 }
+log "Checking package manager can enumerate installed packages"
+timeout -k 1s 10s "${ADB[@]}" shell cmd package list packages --user 0 > ui-screenshots/package-manager-probe.txt 2>&1 || {
+  log "FAIL_CLASS=EMULATOR_PACKAGE_MANAGER_STALLED"
+  log "FAIL: package manager enumeration stalled before APK install"
+  exit 1
+}
+log "Package manager probe returned $(wc -l < ui-screenshots/package-manager-probe.txt) package lines"
+timeout -k 1s 6s "${ADB[@]}" shell dumpsys activity activities > ui-screenshots/preinstall-activities.txt 2>&1 || true
+if grep -Eqi "Application Not Responding: com\\.android\\.systemui|System UI isn.t responding" ui-screenshots/preinstall-activities.txt; then
+  log "FAIL_CLASS=EMULATOR_SYSTEM_UI_ANR"
+  log "FAIL: Android System UI is already in an ANR state before APK installation"
+  exit 1
+fi
 log "Installing debug APK (hard timeout 45 seconds; output captured)"
 set +e
 timeout -k 2s 45s "${ADB[@]}" install -r "$APK" > ui-screenshots/install-output.txt 2>&1
@@ -58,8 +75,13 @@ install_rc=$?
 set -e
 cat ui-screenshots/install-output.txt | tee -a "$REPORT"
 if [ "$install_rc" -ne 0 ]; then
-  log "FAIL_CLASS=APK_INSTALL_OR_EMULATOR"
-  log "FAIL: APK installation failed/timed out (exit $install_rc)"
+  if [ "$install_rc" -eq 124 ] && [ ! -s ui-screenshots/install-output.txt ]; then
+    log "FAIL_CLASS=ADB_INSTALL_CLIENT_STALLED"
+    log "FAIL: adb install produced no installer output before timeout; this is not an app UI assertion failure"
+  else
+    log "FAIL_CLASS=APK_INSTALL_OR_EMULATOR"
+    log "FAIL: APK installation failed/timed out (exit $install_rc)"
+  fi
   exit "$install_rc"
 fi
 "${ADB[@]}" shell am force-stop com.padippupal.app

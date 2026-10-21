@@ -175,6 +175,7 @@ log "Recording live lesson frames to verify inline spoken-word highlighting"
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml
 "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml
 python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-live-layout ui-screenshots/live-lesson.png | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py assert-highlight-frames live-lesson.xml ui-screenshots/live-frames | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py tap live-lesson.xml "Stop"
 sleep 2

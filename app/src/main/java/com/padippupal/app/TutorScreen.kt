@@ -999,6 +999,8 @@ internal fun TutorScreen(
         mutableStateOf(context.getSharedPreferences("padippupal_settings", 0).getBoolean("prefer_on_device_voice", false))
     }
     var speechActive by remember { mutableStateOf(false) }
+    // Invalidates asynchronous TTS/network callbacks when the user switches modes or stops playback.
+    var speechGeneration by remember { mutableIntStateOf(0) }
     var speechPlaybackStarted by remember { mutableStateOf(false) }
     var speechPaused by remember { mutableStateOf(false) }
     var pausedHostedAudio by remember { mutableStateOf(false) }
@@ -1219,14 +1221,20 @@ internal fun TutorScreen(
         }
         engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                tutorMainHandler.post { val callback = speechStartCallback; speechStartCallback = null; callback?.invoke() }
+                tutorMainHandler.post {
+                    if (utteranceId != "padippupal-tutor-$speechGeneration") return@post
+                    val callback = speechStartCallback; speechStartCallback = null; callback?.invoke()
+                }
             }
             override fun onDone(utteranceId: String?) {
-                tutorMainHandler.post { finishSpeechSegment() }
+                tutorMainHandler.post {
+                    if (utteranceId == "padippupal-tutor-$speechGeneration") finishSpeechSegment()
+                }
             }
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                 if (Build.VERSION.SDK_INT >= 26) {
                     tutorMainHandler.post {
+                        if (utteranceId != "padippupal-tutor-$speechGeneration") return@post
                         val index = speechWordStarts.indexOfLast { it <= start }.coerceAtLeast(0)
                         liveWordIndex = index
                         nativeWordTiming = true
@@ -1235,7 +1243,9 @@ internal fun TutorScreen(
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                tutorMainHandler.post { speechActive = false }
+                tutorMainHandler.post {
+                    if (utteranceId == "padippupal-tutor-$speechGeneration") speechActive = false
+                }
             }
         })
         ttsState.value = engine
@@ -1275,13 +1285,15 @@ internal fun TutorScreen(
         engine.language = locale
         engine.setSpeechRate(0.76f)
         engine.setPitch(1.02f)
-        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
+        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor-$speechGeneration")
     }
 
     fun speak(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
         // Auto-read and the manual speaker button must not launch overlapping
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
+        speechGeneration += 1
+        val requestGeneration = speechGeneration
         speechActive = true
         speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
         liveWordIndex = 0
@@ -1342,6 +1354,10 @@ internal fun TutorScreen(
                 require(audioFile.length() > 44) { "Empty audio response" }
             }
             tutorMainHandler.post {
+                if (requestGeneration != speechGeneration) {
+                    audioFile.delete()
+                    return@post
+                }
                 outcome.fold(
                     onSuccess = {
                         hostedWordTimings = audioWordTimings.toList()
@@ -1351,12 +1367,22 @@ internal fun TutorScreen(
                             audioPlayer.value = player
                             player.setDataSource(audioFile.absolutePath)
                             player.setOnCompletionListener { completedPlayer ->
+                                if (requestGeneration != speechGeneration) {
+                                    runCatching { completedPlayer.release() }
+                                    audioFile.delete()
+                                    return@setOnCompletionListener
+                                }
                                 completedPlayer.release()
                                 if (audioPlayer.value === completedPlayer) audioPlayer.value = null
                                 audioFile.delete()
                                 finishSpeechSegment()
                             }
                             player.setOnErrorListener { failedPlayer, _, _ ->
+                                if (requestGeneration != speechGeneration) {
+                                    runCatching { failedPlayer.release() }
+                                    audioFile.delete()
+                                    return@setOnErrorListener true
+                                }
                                 failedPlayer.release()
                                 if (audioPlayer.value === failedPlayer) audioPlayer.value = null
                                 audioFile.delete()
@@ -1368,6 +1394,11 @@ internal fun TutorScreen(
                             // prepareAsync keeps the UI responsive; start/highlighting only
                             // begin once Android confirms that the audio is prepared.
                             player.setOnPreparedListener { preparedPlayer ->
+                                if (requestGeneration != speechGeneration) {
+                                    runCatching { preparedPlayer.release() }
+                                    audioFile.delete()
+                                    return@setOnPreparedListener
+                                }
                                 runCatching {
                                     preparedPlayer.start()
                                     status = "Speaking with Gemini natural voice."
@@ -1502,9 +1533,10 @@ internal fun TutorScreen(
         speechPaused = false
         pausedHostedAudio = false
         if (chapter.isBlank() && topic.isBlank()) { status = "Choose a chapter or concept first."; return }
-        // Teach is an explicit switch from chat mode to live mode. Stop any
-        // automatic chat read-aloud first so the shared speech guard cannot
-        // silently reject the first live segment.
+        // Teach is an explicit switch from chat mode to live mode. Invalidate
+        // pending chat TTS/network callbacks as well as stopping active playback;
+        // otherwise an old auto-read response can overwrite live lesson state.
+        speechGeneration += 1
         audioPlayer.value?.let { player ->
             runCatching { player.stop() }
             runCatching { player.release() }
@@ -1577,6 +1609,7 @@ internal fun TutorScreen(
     }
 
     fun stopLiveLesson() {
+        speechGeneration += 1
         liveLessonActive = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null

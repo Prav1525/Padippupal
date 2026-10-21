@@ -156,7 +156,7 @@ def assert_live(path):
         raise SystemExit("Live lesson did not reach the speaking/checkpoint UI; captured UI: " + " | ".join(texts[:80]))
     if "tap any word to hear its pronunciation again." not in joined:
         raise SystemExit("Live lesson is active but the single inline teaching caption is missing")
-    if not re.search(r"\\b\\d+\\s*/\\s*\\d+\\b", joined):
+    if not re.search(r"\b\d+\s*/\s*\d+\b", joined):
         raise SystemExit("Live lesson did not expose segment progress; playback may be stuck before the first segment")
     if "today, we are going to learn" not in joined and "let's look" not in joined and "let us look" not in joined:
         raise SystemExit("Live lesson is missing its expected teacher-led opening")

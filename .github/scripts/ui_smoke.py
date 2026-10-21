@@ -23,6 +23,18 @@ def assert_home(path):
         raise SystemExit("Home screen is missing expected accessible labels: " + ", ".join(missing))
     print("PASS: expected home-screen labels are accessible")
 
+def assert_subject_selection(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("SUBJECT SELECTION TEXT:", " | ".join(texts[:100]))
+    if "choose a subject" not in joined:
+        raise SystemExit("Subject-first route did not open the Choose a subject screen")
+    if not any(subject in joined for subject in ("mathematics", "science")):
+        raise SystemExit("Subject selection screen has no accessible subject options")
+    if "i understand" in joined or "explain again" in joined:
+        raise SystemExit("Teaching feedback controls appeared before entering the tutor")
+    print("PASS: subject selection appears before the dedicated tutor screen")
+
 def assert_tutor(path):
     _, texts = load(path)
     joined = "\n".join(texts)
@@ -246,12 +258,14 @@ def tap(path, target):
 
 def main():
     if len(sys.argv) < 3:
-        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|assert-pause-control|assert-paused|assert-resumed|tap} XML [TARGET]")
+        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-subject-selection|assert-tutor|assert-feedback|assert-settings|assert-live|assert-pause-control|assert-paused|assert-resumed|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]
     if not Path(path).is_file():
         raise SystemExit("UI XML file does not exist: " + path)
     if action == "assert-home":
         assert_home(path)
+    elif action == "assert-subject-selection":
+        assert_subject_selection(path)
     elif action == "assert-tutor":
         assert_tutor(path)
     elif action == "assert-feedback":

@@ -160,18 +160,41 @@ def assert_highlight_frames(directory):
     target = (216, 232, 183)  # WordByWordCaption highlight: #D8E8B7
     best_count = 0
     best_frame = ""
+    centers = []
     for frame in frames:
         try:
             image = Image.open(frame).convert("RGB")
-            count = sum(1 for pixel in image.getdata() if pixel == target)
+            pixels = image.load()
+            coords = [(x, y) for y in range(image.height) for x in range(image.width) if pixels[x, y] == target]
+            count = len(coords)
             if count > best_count:
                 best_count, best_frame = count, str(frame)
+            # The same lesson text must visibly move its highlight as speech progresses.
+            if count >= 12:
+                centers.append((sum(x for x, _ in coords) / count, sum(y for _, y in coords) / count))
         except Exception as exc:
             print("Skipping unreadable frame", frame, exc)
-    print(f"Highlight pixel scan: {len(frames)} frames; max exact highlight pixels={best_count} in {best_frame}")
+    distinct_centers = []
+    for center in centers:
+        if all(((center[0] - prior[0]) ** 2 + (center[1] - prior[1]) ** 2) ** 0.5 >= 18 for prior in distinct_centers):
+            distinct_centers.append(center)
+    print(f"Highlight pixel scan: {len(frames)} frames; max exact highlight pixels={best_count} in {best_frame}; distinct highlight positions={len(distinct_centers)}")
     if best_count < 12:
         raise SystemExit("No clear inline word-highlight background was detected in the captured live lesson frames")
-    print("PASS: at least one emulator frame contains the inline spoken-word highlight")
+    if len(distinct_centers) < 2:
+        raise SystemExit("Inline highlight was found but did not move across at least two words during speech")
+    print("PASS: inline spoken-word highlight is visible and moves across the lesson text")
+
+def assert_playback_state(path, expected):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("PLAYBACK STATE TEXT:", " | ".join(texts[:100]))
+    required = ("stop", "resume") if expected == "paused" else ("stop", "pause")
+    missing = [label for label in required if label not in joined]
+    if missing:
+        raise SystemExit(f"Live playback {expected} state is missing controls: " + ", ".join(missing))
+    print(f"PASS: live playback {expected} state exposes the expected controls")
+
 
 def assert_live_layout(path):
     try:
@@ -243,6 +266,8 @@ def main():
         assert_highlight_frames(sys.argv[3])
     elif action == "assert-live-layout":
         assert_live_layout(path)
+    elif action == "assert-playback-state" and len(sys.argv) >= 4:
+        assert_playback_state(path, sys.argv[3])
     elif action == "tap" and len(sys.argv) >= 4:
         tap(path, sys.argv[3])
     else:

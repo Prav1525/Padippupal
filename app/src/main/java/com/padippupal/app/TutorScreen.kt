@@ -1292,7 +1292,7 @@ internal fun TutorScreen(
         speechStartCallback = onStarted ?: { if (liveLessonActive) liveCaption = text }
         speechCompletion = onFinished
         // Network speech can stall too; bound it so a checkpoint can still be reached.
-        armSpeechWatchdog(65_000L, text)
+        armSpeechWatchdog(18_000L, text)
         // When enabled, bypass hosted TTS entirely. Android routes TextToSpeech
         // through the user's selected system engine (e.g. Sherpa-ONNX Kokoro).
         if (preferOnDeviceVoice) {
@@ -1314,7 +1314,7 @@ internal fun TutorScreen(
                 val connection = URL("$base/tutor/speech").openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.connectTimeout = 8000
-                connection.readTimeout = 50000
+                connection.readTimeout = 12000
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 connection.doOutput = true
@@ -1344,6 +1344,12 @@ internal fun TutorScreen(
                 require(audioFile.length() > 44) { "Empty audio response" }
             }
             tutorMainHandler.post {
+                // The watchdog may have advanced the lesson while this request was
+                // still blocked. Never start late audio or overwrite the next segment.
+                if (!speechActive) {
+                    audioFile.delete()
+                    return@post
+                }
                 outcome.fold(
                     onSuccess = {
                         hostedWordTimings = audioWordTimings.toList()

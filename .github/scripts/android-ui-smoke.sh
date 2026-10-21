@@ -144,8 +144,38 @@ if grep -Eqi "System UI isn.t responding|Close app|Wait" home.xml; then
 fi
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 
+# Start from a deterministic, clean test profile instead of assuming the app's
+# default board is CBSE. Fresh installs currently default to Tamil Nadu State Board.
+log "Configuring the smoke-test learner as Class 6 CBSE"
+python3 .github/scripts/ui_smoke.py tap home.xml "You"
+sleep 2
+timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/profile.xml
+"${ADB[@]}" pull /data/local/tmp/profile.xml profile.xml
+python3 .github/scripts/ui_smoke.py tap profile.xml "Edit student details"
+sleep 2
+timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/setup.xml
+"${ADB[@]}" pull /data/local/tmp/setup.xml setup.xml
+python3 .github/scripts/ui_smoke.py tap setup.xml "Tamil Nadu State Board"
+sleep 1
+timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/board-menu.xml
+"${ADB[@]}" pull /data/local/tmp/board-menu.xml board-menu.xml
+python3 .github/scripts/ui_smoke.py tap board-menu.xml "CBSE"
+sleep 1
+timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/setup-cbse.xml
+"${ADB[@]}" pull /data/local/tmp/setup-cbse.xml setup-cbse.xml
+python3 .github/scripts/ui_smoke.py tap setup-cbse.xml "Save my details"
+sleep 2
+timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/profile-cbse.xml
+"${ADB[@]}" pull /data/local/tmp/profile-cbse.xml profile-cbse.xml
+python3 .github/scripts/ui_smoke.py assert-profile profile-cbse.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap profile-cbse.xml "Home"
+sleep 2
+timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-cbse.xml
+"${ADB[@]}" pull /data/local/tmp/home-cbse.xml home-cbse.xml
+python3 .github/scripts/ui_smoke.py assert-home home-cbse.xml | tee -a "$REPORT"
+
 log "Opening tutor using accessibility bounds"
-python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
+python3 .github/scripts/ui_smoke.py tap home-cbse.xml "Begin lesson"
 sleep 8
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/tutor.png
 timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {

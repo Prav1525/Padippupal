@@ -70,6 +70,14 @@ def assert_chapter_button(path):
         raise SystemExit("Chapter options are empty for the selected board/class/subject. This is a curriculum/API-data failure, not a successful load.")
     print("PASS: chapter picker is enabled and the UI does not report an empty chapter list")
 
+def assert_chapter_selected(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("SELECTED CHAPTER TEXT:", " | ".join(texts[:100]))
+    if "patterns in mathematics" not in joined:
+        raise SystemExit("Smoke test did not select Class 6 Mathematics Chapter 1: Patterns in Mathematics")
+    print("PASS: selected the expected Mathematics Chapter 1")
+
 def tap_numbered(path, number):
     nodes, texts = load(path)
     candidates = []
@@ -182,6 +190,8 @@ def main():
         assert_settings(path)
     elif action == "assert-chapter-button":
         assert_chapter_button(path)
+    elif action == "assert-chapter-selected":
+        assert_chapter_selected(path)
     elif action == "tap-numbered" and len(sys.argv) >= 4:
         tap_numbered(path, sys.argv[3])
     elif action == "tap-first-concept":

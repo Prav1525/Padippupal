@@ -93,6 +93,7 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn('utteranceId != "padippupal-tutor-$speechGeneration"', tutor)
         self.assertIn("speechGeneration += 1\n        audioPlayer.value?.let", tutor)
         self.assertIn("fun stopLiveLesson() {\n        speechGeneration += 1", tutor)
+        self.assertIn('it.isBlank() || it.equals("null", ignoreCase = true)', tutor)
 
     def test_application_failure_is_not_hidden_by_retry(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke-retry.sh").read_text()

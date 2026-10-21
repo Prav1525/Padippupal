@@ -271,7 +271,54 @@ timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson
 "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml
 python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py assert-highlight-frames live-lesson.xml ui-screenshots/live-frames | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap live-lesson.xml "Stop"
+
+# Live teaching-loop regression: the tutor must stop at a checkpoint, support
+# a simpler re-explanation, then continue only after the learner confirms.
+log "Waiting up to 60 seconds for a live lesson checkpoint"
+checkpoint_found=0
+for attempt in $(seq 1 12); do
+  timeout -k 2s 15s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-checkpoint.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-checkpoint.xml live-checkpoint.xml >/dev/null 2>&1 || true
+  if [ -s live-checkpoint.xml ] && grep -Fq 'Quick check' live-checkpoint.xml; then
+    checkpoint_found=1
+    break
+  fi
+  sleep 5
+done
+if [ "$checkpoint_found" -ne 1 ]; then
+  log "FAIL_CLASS=LIVE_CHECKPOINT_MISSING"
+  log "FAIL: tutor did not present a Quick check within 60 seconds of starting the lesson"
+  exit 1
+fi
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-checkpoint.png
+python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml | tee -a "$REPORT"
+
+log "Testing the explain-again adaptation path"
+python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "Explain again"
+simpler_found=0
+for attempt in $(seq 1 12); do
+  sleep 2
+  timeout -k 2s 15s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-simpler.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-simpler.xml live-simpler.xml >/dev/null 2>&1 || true
+  if [ -s live-simpler.xml ] && grep -Fq 'Was that explanation clearer?' live-simpler.xml; then
+    simpler_found=1
+    break
+  fi
+done
+if [ "$simpler_found" -ne 1 ]; then
+  log "FAIL_CLASS=EXPLAIN_AGAIN_DID_NOT_RETURN_TO_CHECKPOINT"
+  log "FAIL: Explain again did not finish with a second comprehension check within 24 seconds"
+  exit 1
+fi
+python3 .github/scripts/ui_smoke.py assert-simpler-checkpoint live-simpler.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-simpler.xml "I understand"
+sleep 2
+timeout -k 2s 15s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml
+"${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml
+python3 .github/scripts/ui_smoke.py assert-continued live-continued.xml | tee -a "$REPORT"
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-continued.png
+
+python3 .github/scripts/ui_smoke.py tap live-continued.xml "Stop"
 sleep 2
 
 log "Testing Android back navigation to Home"

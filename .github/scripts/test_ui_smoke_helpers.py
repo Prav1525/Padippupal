@@ -91,6 +91,8 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn("var speechGeneration by remember { mutableIntStateOf(0) }", tutor)
         self.assertIn('if (requestGeneration != speechGeneration)', tutor)
         self.assertIn('utteranceId != "padippupal-tutor-$speechGeneration"', tutor)
+        self.assertIn('if (!liveLessonActive) status = error.message ?: "Couldn\'t reach the tutor. Please try again."', tutor)
+        self.assertIn('if (speakReplies) speak(answer, onStarted = { liveCaption = answer })', tutor)
         self.assertIn("speechGeneration += 1\n        audioPlayer.value?.let", tutor)
         self.assertIn("fun stopLiveLesson() {\n        speechGeneration += 1", tutor)
         self.assertIn('it.isBlank() || it.equals("null", ignoreCase = true)', tutor)

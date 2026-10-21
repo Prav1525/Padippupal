@@ -176,11 +176,13 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xm
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
 python3 .github/scripts/ui_smoke.py tap ready-to-teach.xml "Teach"
 
-log "Waiting up to 90 seconds for confirmed playback (lesson-plan request can take 50s and hosted voice fallback 15s)"
+log "Waiting up to 90 seconds for confirmed playback (one hard deadline; bounded UI dumps)"
 pause_ready=false
-for attempt in $(seq 1 45); do
-  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml >/dev/null 2>&1 || true
-  "${ADB[@]}" pull /data/local/tmp/live-pause-control.xml ui-screenshots/live-pause-control.xml >/dev/null 2>&1 || true
+playback_deadline=$((SECONDS + 90))
+rm -f ui-screenshots/live-pause-control.xml
+while [ "$SECONDS" -lt "$playback_deadline" ]; do
+  timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml >/dev/null 2>&1 || true
+  timeout 5s "${ADB[@]}" pull /data/local/tmp/live-pause-control.xml ui-screenshots/live-pause-control.xml >/dev/null 2>&1 || true
   if [ -f ui-screenshots/live-pause-control.xml ] && python3 .github/scripts/ui_smoke.py has-pause-control ui-screenshots/live-pause-control.xml >/dev/null 2>&1; then
     pause_ready=true
     break
@@ -188,7 +190,25 @@ for attempt in $(seq 1 45); do
   sleep 2
 done
 if [ "$pause_ready" != true ]; then
-  echo "FAIL: live audio never exposed a usable Pause/Resume control" | tee -a "$REPORT"
+  # Capture the last visible state so an app-state failure is diagnosable from
+  # CI artifacts rather than reported only as a missing button.
+  timeout 5s "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-playback-timeout.png 2>/dev/null || true
+  timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-playback-timeout.xml >/dev/null 2>&1 || true
+  timeout 5s "${ADB[@]}" pull /data/local/tmp/live-playback-timeout.xml ui-screenshots/live-playback-timeout.xml >/dev/null 2>&1 || true
+  if [ -f ui-screenshots/live-playback-timeout.xml ]; then
+    python3 - "ui-screenshots/live-playback-timeout.xml" <<'PY' | tee -a "$REPORT"
+import sys
+import xml.etree.ElementTree as ET
+try:
+    root = ET.parse(sys.argv[1]).getroot()
+    labels = [n.attrib.get("text", "").strip() for n in root.iter("node")]
+    labels = [label for label in labels if label]
+    print("PLAYBACK TIMEOUT UI STATE: " + " | ".join(labels[:100]))
+except Exception as exc:
+    print("PLAYBACK TIMEOUT UI STATE: unable to parse last hierarchy: " + str(exc))
+PY
+  fi
+  echo "FAIL: live audio never exposed a usable Pause/Resume control before the 90-second deadline" | tee -a "$REPORT"
   exit 1
 fi
 python3 .github/scripts/ui_smoke.py assert-pause-control ui-screenshots/live-pause-control.xml | tee -a "$REPORT"

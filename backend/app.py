@@ -1211,12 +1211,29 @@ class LessonPlanRequest(TutorChatRequest):
 
 def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: int) -> dict[str, Any]:
     candidate = raw.strip()
+    # Gemini JSON mode normally returns a bare object, but some model/API versions
+    # wrap it in a Markdown fence or add a short preamble. Decode the first complete
+    # JSON object rather than failing the entire live lesson on harmless framing.
     if candidate.startswith("```"):
-        candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate, flags=re.IGNORECASE)
+        candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate, flags=re.IGNORECASE).strip()
     try:
         data = json.loads(candidate)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=502, detail="The lesson planner returned invalid JSON.") from exc
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        data = None
+        for offset, char in enumerate(candidate):
+            if char != "{":
+                continue
+            try:
+                parsed, _end = decoder.raw_decode(candidate[offset:])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict) and "segments" in parsed:
+                data = parsed
+                break
+        if data is None:
+            logger.warning("Lesson planner output was not parseable JSON (length=%s)", len(raw))
+            raise HTTPException(status_code=502, detail="The lesson planner returned invalid JSON.")
     if not isinstance(data, dict) or not isinstance(data.get("segments"), list):
         raise HTTPException(status_code=502, detail="The lesson planner returned an incomplete lesson plan.")
     segments = []

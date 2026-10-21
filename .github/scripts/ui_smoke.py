@@ -235,6 +235,41 @@ def tap_bottom_tab(path, side):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
+
+def assert_checkpoint(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes])
+    print("LIVE CHECKPOINT TEXT:", " | ".join(texts[:120]))
+    required = ("Quick check", "I understand", "Explain again", "I have a question")
+    missing = [label for label in required if label.lower() not in joined.lower()]
+    if missing:
+        raise SystemExit("Live checkpoint is missing required learner controls: " + ", ".join(missing))
+    if not any("next" in t.lower() or "why" in t.lower() or "pattern" in t.lower() or "does that make sense" in t.lower() for t in texts):
+        raise SystemExit("Checkpoint is visible but no meaningful question or understanding prompt is accessible")
+    print("PASS: live lesson pauses at a checkpoint with continue, re-explain, and question controls")
+
+
+def assert_simpler_checkpoint(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes])
+    print("SIMPLER CHECKPOINT TEXT:", " | ".join(texts[:120]))
+    if "was that explanation clearer?" not in joined.lower():
+        raise SystemExit("Explain again did not return to a comprehension check")
+    if "i understand" not in joined.lower():
+        raise SystemExit("Simpler explanation checkpoint has no I understand continuation control")
+    print("PASS: re-explanation returns to a second comprehension check")
+
+
+def assert_continued(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    print("CONTINUED LESSON TEXT:", " | ".join(texts[:120]))
+    if "next small step" not in joined:
+        raise SystemExit("Confirming understanding did not acknowledge the learner and advance the lesson")
+    if "quick check" in joined:
+        raise SystemExit("Lesson appears to remain at the same checkpoint instead of advancing")
+    print("PASS: learner confirmation advances beyond the checkpoint")
+
 def validate_dispatch():
     # Ensure every action called by the shell journey is implemented in this helper.
     import ast
@@ -284,6 +319,12 @@ def main():
         tap_numbered(path, sys.argv[3])
     elif action == "tap-first-concept":
         tap_first_concept(path)
+    elif action == "assert-checkpoint":
+        assert_checkpoint(path)
+    elif action == "assert-simpler-checkpoint":
+        assert_simpler_checkpoint(path)
+    elif action == "assert-continued":
+        assert_continued(path)
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:

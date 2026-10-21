@@ -132,12 +132,15 @@ internal fun groundedAnswerFallbackSegments(answer: String): List<JSONObject> {
         chunks.addAll(firstSeven)
     }
     return chunks.take(8).mapIndexed { index, text ->
-        JSONObject()
+        val segment = JSONObject()
             .put("id", "grounded-fallback-${index + 1}")
             .put("spoken_text", text)
             .put("caption_text", text)
             .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-            .put("checkpoint", if ((index + 1) % 2 == 0 && index < chunks.lastIndex) "Does that make sense so far?" else JSONObject.NULL)
+        if ((index + 1) % 2 == 0 && index < chunks.lastIndex) {
+            segment.put("checkpoint", "Does that make sense so far?")
+        }
+        segment
     }
 }
 

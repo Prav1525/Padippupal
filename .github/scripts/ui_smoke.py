@@ -84,7 +84,7 @@ def assert_chapter_one(path):
     print("CHAPTER MENU TEXT:", " | ".join(texts[:160]))
     if not any("pattern" in term.lower() for term in texts):
         raise SystemExit("CBSE Class 6 Mathematics chapter list does not contain Chapter 1 'Patterns in Mathematics'. Visible labels: " + " | ".join(texts[:100]))
-    candidates = [n.attrib.get("text", "").strip() for n in nodes if re.match(r"^1[.)]\\s*\\S", n.attrib.get("text", "").strip())]
+    candidates = [n.attrib.get("text", "").strip() for n in nodes if re.match(r"^1[.)]\s*\S", n.attrib.get("text", "").strip())]
     if not candidates or not any("pattern" in label.lower() for label in candidates):
         raise SystemExit("The first chapter option is not 'Patterns in Mathematics'. Numbered Chapter 1 labels: " + " | ".join(candidates))
     print("PASS: Chapter 1 is explicitly verified as Patterns in Mathematics")

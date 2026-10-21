@@ -163,6 +163,12 @@ def assert_live(path):
     lesson_words = ("one", "all 1s", "pattern", "number")
     if not any(term in joined for term in lesson_words):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
+    # Class 6 Chapter 1 must keep its mapped visual in the same teaching viewport,
+    # including during the student understanding check.
+    if "patterns in mathematics" in joined or "all 1s" in joined:
+        for visual_label in ("watch the pattern", "111", "1111"):
+            if visual_label not in joined:
+                raise SystemExit("Live Chapter 1 lesson is missing its in-viewport pattern visual: " + visual_label)
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
     if "playing segment" in joined:

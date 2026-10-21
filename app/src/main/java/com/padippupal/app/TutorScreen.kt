@@ -1269,7 +1269,9 @@ internal fun TutorScreen(
                 val connection = URL("$base/tutor/speech").openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.connectTimeout = 8000
-                connection.readTimeout = 50000
+                // Voice is an enhancement, not a reason to leave the lesson frozen.
+                // Fall back to Android TTS promptly if hosted synthesis stalls.
+                connection.readTimeout = 15000
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 connection.doOutput = true
@@ -1307,9 +1309,9 @@ internal fun TutorScreen(
                             val player = MediaPlayer()
                             audioPlayer.value = player
                             player.setDataSource(audioFile.absolutePath)
-                            player.setOnCompletionListener {
-                                it.release()
-                                if (audioPlayer.value === it) audioPlayer.value = null
+                            player.setOnCompletionListener { completedPlayer ->
+                                completedPlayer.release()
+                                if (audioPlayer.value === completedPlayer) audioPlayer.value = null
                                 audioFile.delete()
                                 finishSpeechSegment()
                             }
@@ -1320,12 +1322,25 @@ internal fun TutorScreen(
                                 speakWithDeviceTts(text, onStarted, onFinished)
                                 true
                             }
-                            player.prepare()
-                            player.start()
-                            status = "Speaking with Gemini natural voice."
-                            val startedCallback = speechStartCallback
-                            speechStartCallback = null
-                            startedCallback?.invoke()
+                            // Never call prepare() on the main thread: decoding can block
+                            // Compose and leave the lesson stuck on "Preparing segment…".
+                            // prepareAsync keeps the UI responsive; start/highlighting only
+                            // begin once Android confirms that the audio is prepared.
+                            player.setOnPreparedListener { preparedPlayer ->
+                                runCatching {
+                                    preparedPlayer.start()
+                                    status = "Speaking with Gemini natural voice."
+                                    val startedCallback = speechStartCallback
+                                    speechStartCallback = null
+                                    startedCallback?.invoke()
+                                }.onFailure {
+                                    preparedPlayer.release()
+                                    if (audioPlayer.value === preparedPlayer) audioPlayer.value = null
+                                    audioFile.delete()
+                                    speakWithDeviceTts(text, onStarted, onFinished)
+                                }
+                            }
+                            player.prepareAsync()
                         }.onFailure {
                             audioFile.delete()
                             speakWithDeviceTts(text, onStarted, onFinished)

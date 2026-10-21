@@ -1771,7 +1771,15 @@ internal fun TutorScreen(
                                 )
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                            if (liveCaption.isNotBlank() && liveLessonActive && !speechActive && !awaitingUnderstanding) InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
+                            if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
+                                val scene = if (topic.contains("shape", ignoreCase = true) || topic.contains("repeating", ignoreCase = true)) "shape_pattern" else "number_pattern"
+                                ChapterOneMathAnimation(
+                                    scene = scene,
+                                    title = topic.ifBlank { "Patterns in Mathematics" },
+                                    topic = topic,
+                                    caption = "Watch the pattern change automatically as your teacher explains."
+                                )
+                            }
                         }
                     }
                 }
@@ -1797,9 +1805,7 @@ internal fun TutorScreen(
                             }
                             if (message.role == "assistant") {
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
-                                if (message.content == latestAssistant?.content && message.interactiveLesson != null) {
-                                    DatabaseInteractiveLessonLab(message.interactiveLesson, sessionPrefs, sessionKey, todayKey)
-                                } else if (message.content == latestAssistant?.content && message.visualLesson != null) {
+                                if (message.content == latestAssistant?.content && message.visualLesson != null) {
                                     DatabaseLessonVisual(message.visualLesson)
                                 }
                                 if (message.content == latestAssistant?.content && !liveLessonActive && !loading) {

@@ -149,9 +149,49 @@ python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPO
 
 log "Loading the real Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
-sleep 10
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
-"${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml
+# The app retries the curriculum endpoint up to five times. Align the UI test's
+# deadline with that retry budget instead of failing after a fixed 10-second sleep.
+chapter_deadline=$((SECONDS + 105))
+chapter_ready=false
+rm -f chapter-options.xml ui-screenshots/chapter-options-pending.xml
+timeout 5s "${ADB[@]}" shell rm -f /data/local/tmp/chapter-options.xml >/dev/null 2>&1 || true
+while [ "$SECONDS" -lt "$chapter_deadline" ]; do
+  if timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml >/dev/null 2>&1; then
+    if timeout 5s "${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml >/dev/null 2>&1; then
+      if python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml >> "$REPORT" 2>&1; then
+        chapter_ready=true
+        break
+      fi
+      if grep -Eiq "couldn't load curriculum|no approved chapters are configured" chapter-options.xml; then
+        python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml | tee -a "$REPORT" || true
+        echo "FAIL: curriculum request finished with a visible terminal error; not retrying an app failure" | tee -a "$REPORT"
+        exit 1
+      fi
+    else
+      rm -f chapter-options.xml
+    fi
+  else
+    rm -f chapter-options.xml
+  fi
+  sleep 2
+done
+if [ "$chapter_ready" != true ]; then
+  timeout 5s "${ADB[@]}" exec-out screencap -p > ui-screenshots/chapter-options-timeout.png 2>/dev/null || true
+  echo "FAIL: no fresh, ready Mathematics chapter list appeared within 105 seconds" | tee -a "$REPORT"
+  if [ -f chapter-options.xml ]; then
+    python3 - chapter-options.xml <<'PY' | tee -a "$REPORT"
+import sys
+import xml.etree.ElementTree as ET
+try:
+    root = ET.parse(sys.argv[1]).getroot()
+    labels = [n.attrib.get("text", "").strip() for n in root.iter("node")]
+    print("CHAPTER WAIT FINAL UI: " + " | ".join(label for label in labels if label)[:5000])
+except Exception as exc:
+    print("CHAPTER WAIT FINAL UI: unable to parse hierarchy: " + str(exc))
+PY
+  fi
+  exit 1
+fi
 python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py tap chapter-options.xml "Choose chapter"
 sleep 2

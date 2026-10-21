@@ -176,9 +176,9 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xm
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
 python3 .github/scripts/ui_smoke.py tap ready-to-teach.xml "Teach"
 
-log "Waiting for confirmed playback and testing Pause/Resume"
+log "Waiting up to 90 seconds for confirmed playback (lesson-plan request can take 50s and hosted voice fallback 15s)"
 pause_ready=false
-for attempt in $(seq 1 25); do
+for attempt in $(seq 1 45); do
   timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-pause-control.xml ui-screenshots/live-pause-control.xml >/dev/null 2>&1 || true
   if [ -f ui-screenshots/live-pause-control.xml ] && python3 .github/scripts/ui_smoke.py has-pause-control ui-screenshots/live-pause-control.xml >/dev/null 2>&1; then

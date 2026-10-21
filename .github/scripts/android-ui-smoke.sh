@@ -4,6 +4,7 @@ set -Eeuo pipefail
 mkdir -p ui-screenshots
 REPORT="ui-screenshots/test-report.txt"
 : > "$REPORT"
+FAILURE_CLASS="ENVIRONMENT_FAILURE"
 ADB=(adb -s emulator-5554)
 log() { printf '%s\n' "$*" | tee -a "$REPORT"; }
 capture_diagnostics() {
@@ -13,7 +14,7 @@ capture_diagnostics() {
     adb -s emulator-5554 shell dumpsys activity activities > ui-screenshots/activities.txt 2>&1 || true
     adb -s emulator-5554 shell dumpsys window > ui-screenshots/windows.txt 2>&1 || true
   fi
-  if [ "$rc" -ne 0 ]; then log "RESULT: FAIL (exit $rc)"; else log "RESULT: PASS"; fi
+  if [ "$rc" -ne 0 ]; then log "RESULT: $FAILURE_CLASS (exit $rc)"; else log "RESULT: PASS"; fi
   exit "$rc"
 }
 trap capture_diagnostics EXIT
@@ -41,6 +42,7 @@ for attempt in $(seq 1 36); do
   sleep 5
 done
 if [ "$ready" -ne 1 ]; then
+  FAILURE_CLASS="ENVIRONMENT_FAILURE"
   log "FAIL: Android framework/PackageManager did not become responsive within 180 seconds"
   "${ADB[@]}" shell getprop > ui-screenshots/getprop.txt 2>&1 || true
   "${ADB[@]}" shell service list > ui-screenshots/services.txt 2>&1 || true
@@ -79,6 +81,7 @@ for attempt in $(seq 1 30); do
   sleep 2
 done
 if [ "$started" -ne 1 ]; then
+  FAILURE_CLASS="APP_FAILURE"
   log "FAIL: app process did not start within 60 seconds"
   exit 1
 fi
@@ -87,6 +90,7 @@ sleep 15
 # UIAutomator can hang when Android accessibility/SystemUI is unhealthy. Bound
 # each attempt so the test produces diagnostics instead of burning several minutes.
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
+  FAILURE_CLASS="ENVIRONMENT_FAILURE"
   log "First home accessibility dump failed; checking framework health before one retry"
   "${ADB[@]}" shell service check accessibility >> "$REPORT" 2>&1 || true
   "${ADB[@]}" shell dumpsys activity activities > ui-screenshots/activities-before-retry.txt 2>&1 || true
@@ -95,6 +99,7 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
 }
 "${ADB[@]}" pull /data/local/tmp/home.xml home.xml
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
+FAILURE_CLASS="APP_FAILURE"
 
 log "Opening tutor using accessibility bounds"
 python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"

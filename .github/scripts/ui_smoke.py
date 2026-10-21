@@ -203,12 +203,18 @@ def main():
         assert_home(path)
     elif action == "assert-tutor":
         assert_tutor(path)
+    elif action == "assert-profile":
+        assert_profile(path)
     elif action == "assert-feedback":
         assert_feedback(path)
     elif action == "assert-settings":
         assert_settings(path)
     elif action == "assert-chapter-button":
         assert_chapter_button(path)
+    elif action == "assert-chapter-one":
+        assert_chapter_one(path)
+    elif action == "assert-selected-chapter":
+        assert_selected_chapter(path)
     elif action == "tap-numbered" and len(sys.argv) >= 4:
         tap_numbered(path, sys.argv[3])
     elif action == "tap-first-concept":

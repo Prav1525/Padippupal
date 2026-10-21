@@ -61,14 +61,21 @@ def assert_settings(path):
 def assert_chapter_button(path):
     nodes, texts = load(path)
     print("CHAPTER OPTIONS TEXT:", " | ".join(texts[:120]))
+    lowered = [text.lower() for text in texts]
+    if any("loading approved curriculum" in text or "curriculum service is waking up; retrying" in text
+           for text in lowered):
+        raise SystemExit("Curriculum outline is still loading; wait for the bounded retry window")
+    if any("couldn't load curriculum" in text or "no approved chapters are configured" in text
+           for text in lowered):
+        raise SystemExit("Curriculum request finished with a visible terminal error")
     node = next((n for n in nodes if "choose chapter" in n.attrib.get("text", "").lower()), None)
     if node is None:
         raise SystemExit("Choose chapter control was not found after selecting Mathematics")
     if node.attrib.get("enabled") != "true":
         raise SystemExit("Choose chapter control is disabled")
-    if any("no chapter list is available" in text.lower() for text in texts):
-        raise SystemExit("Chapter options are empty for the selected board/class/subject. This is a curriculum/API-data failure, not a successful load.")
-    print("PASS: chapter picker is enabled and the UI does not report an empty chapter list")
+    if any("no chapter list is available" in text for text in lowered):
+        raise SystemExit("Chapter options are empty while curriculum data is unavailable")
+    print("PASS: chapter picker is enabled and curriculum loading has completed")
 
 def assert_chapter_selected(path):
     _, texts = load(path)

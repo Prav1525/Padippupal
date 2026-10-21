@@ -157,7 +157,6 @@ if [ -z "$SCREEN_WIDTH" ]; then
   exit 1
 fi
 PROFILE_X=$((SCREEN_WIDTH * 7 / 8))
-PROFILE_Y=$("$ADB" shell wm size >/dev/null 2>&1; echo 0)
 # The bottom bar's accessible bounds are captured in home.xml; use its vertical
 # midpoint while targeting the fourth (You) tab horizontally.
 PROFILE_Y=$(python3 - <<'PY'

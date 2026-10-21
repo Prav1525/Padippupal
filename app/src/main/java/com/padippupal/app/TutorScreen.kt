@@ -946,6 +946,7 @@ internal fun TutorScreen(
     medium: String,
     appLanguage: String,
     studentName: String,
+    initialSubject: String = "Mathematics",
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -985,7 +986,7 @@ internal fun TutorScreen(
         restored
     }
     var input by remember { mutableStateOf("") }
-    var subject by remember { mutableStateOf(savedSession.optString("subject", "General")) }
+    var subject by remember { mutableStateOf(initialSubject.ifBlank { savedSession.optString("subject", "Mathematics") }) }
     var chapter by remember { mutableStateOf(savedSession.optString("chapter", "")) }
     var topic by remember { mutableStateOf(savedSession.optString("topic", "")) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }

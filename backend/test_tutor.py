@@ -387,6 +387,24 @@ def test_lesson_plan_normalizes_numeric_segment_id_without_weakening_citations()
     assert segment["spoken_text"] == "Look at the repeating ones."
     assert segment["source_chunk_ids"] == [chunk_id]
 
+def test_lesson_plan_normalizes_malformed_presentation_metadata_but_keeps_grounding_strict():
+    chunk_id = "chunk-verified"
+    raw = json.dumps({"segments": [{
+        "id": 7,
+        "spoken_text": "Look at the repeating ones.",
+        "caption_text": 42,
+        "source_chunk_ids": [chunk_id],
+        "visual_action": {"type": "teleport", "target": 3, "value": ["bad"]},
+        "checkpoint": 17,
+    }]})
+    result = curriculum._validate_lesson_plan(raw, {chunk_id}, 5)
+    segment = result["segments"][0]
+    assert segment["id"] == "segment-1"
+    assert segment["caption_text"] == "Look at the repeating ones."
+    assert segment["visual_action"] == {"type": "none", "target": "", "value": ""}
+    assert segment["checkpoint"] is None
+    assert segment["source_chunk_ids"] == [chunk_id]
+
 def test_lesson_plan_validation_reports_missing_required_field_without_model_input():
     import pytest
     with pytest.raises(curriculum.HTTPException) as captured:

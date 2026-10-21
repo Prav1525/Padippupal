@@ -78,7 +78,7 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -cores 2 -memory 3072
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -cores 4 -memory 4096
           # Keep system/app animations off to reduce focus and UI synchronization flakiness.
           disable-animations: true
           emulator-boot-timeout: 900

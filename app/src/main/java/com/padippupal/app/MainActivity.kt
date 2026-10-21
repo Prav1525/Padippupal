@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,7 +43,7 @@ class MainActivity:ComponentActivity(){
  setContent{PadippuPalApp()}
  }
 }
-private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESSON,QUESTIONS,PDF,EXAM_MASTER,SETUP}
+private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR_SUBJECT,TUTOR,SCAN,LESSON,QUESTIONS,PDF,EXAM_MASTER,SETUP}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun PadippuPalApp(){
@@ -63,13 +64,15 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
      .putString("board", board).putString("medium", medium).putString("language", language).apply()
  }
  var lesson by remember{mutableStateOf("Crop Production and Management")}
+ var tutorSubject by remember{mutableStateOf(prefs.getString("tutor_subject", "Mathematics") ?: "Mathematics")}
+ LaunchedEffect(tutorSubject) { prefs.edit().putString("tutor_subject", tutorSubject).apply() }
  var done by remember{mutableStateOf(setOf<String>())}
  val tamil=language=="தமிழ்"
  MaterialTheme(colorScheme = lightColorScheme(primary = Green, onPrimary = Color.White, secondary = Color(0xFFD8C08A), onSecondary = Deep, background = Paper, surface = Color(0xFFFFFDF8), onSurface = Deep, surfaceVariant = Color(0xFFECE8DE), onSurfaceVariant = Grey, outline = Color(0xFFD9D3C6))) {
   Scaffold(
     containerColor = Paper,
     topBar = {
-      if (page !in listOf(Page.TUTOR, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.EXAM_MASTER, Page.SETUP)) {
+      if (page !in listOf(Page.TUTOR_SUBJECT, Page.TUTOR, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.EXAM_MASTER, Page.SETUP)) {
         TopAppBar(
           title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -134,7 +137,8 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
       Page.PLANNER -> PlannerScreen(profileId = profileId, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.PROFILE -> Profile(name, grade, board, medium, language, { page = Page.SETUP }, Modifier.padding(padding))
       Page.CURRICULUM -> CurriculumConnectionScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
-      Page.TUTOR -> TutorScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, appLanguage = language, studentName = name, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
+      Page.TUTOR_SUBJECT -> TutorSubjectScreen(grade = grade.toIntOrNull() ?: 6, board = board, selectedSubject = tutorSubject, onSelect = { tutorSubject = it; page = Page.TUTOR }, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
+      Page.TUTOR -> TutorScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, appLanguage = language, studentName = name, initialSubject = tutorSubject, onBack = { page = Page.TUTOR_SUBJECT }, modifier = Modifier.padding(padding))
       Page.SCAN -> DiaryScanScreen(profileId = profileId, grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, language = language, onBack = { page = Page.HOME }, onSaved = { page = Page.PLANNER })
       Page.LESSON -> Lesson(lesson, { page = Page.QUESTIONS }, { page = Page.SUBJECTS })
       Page.QUESTIONS -> Questions(lesson, { page = Page.LESSON }, { page = Page.PDF })
@@ -144,6 +148,60 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
     }
   }
  }
+}
+
+@Composable
+private fun TutorSubjectScreen(
+    grade: Int,
+    board: String,
+    selectedSubject: String,
+    onSelect: (String) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val subjects = listOf(
+        Triple("Mathematics", "Patterns, numbers and problem-solving", Icons.Default.Calculate),
+        Triple("Science", "Explore how the world works", Icons.Default.Science),
+        Triple("English", "Reading, writing and language", Icons.Default.MenuBook),
+        Triple("Tamil", "தமிழ் மொழியும் இலக்கியமும்", Icons.Default.Translate),
+        Triple("Social Science", "People, places and the past", Icons.Default.Public),
+        Triple("Computer Science", "Computing and digital thinking", Icons.Default.Computer)
+    )
+    Column(modifier = modifier.fillMaxSize().background(Paper).imePadding()) {
+        Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Deep) }
+            Column {
+                Text("Choose a subject", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Deep)
+                Text("Class $grade · $board", fontSize = 12.sp, color = Grey)
+            }
+        }
+        Text("Your teaching space starts with one subject.", Modifier.padding(horizontal = 20.dp, vertical = 4.dp), color = Grey, fontSize = 14.sp)
+        Column(
+            modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            subjects.forEach { (name, description, icon) ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { onSelect(name) },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = if (selectedSubject == name) Mint else Color.White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedSubject == name) Green else Color(0xFFE2EAE3)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Box(Modifier.size(46.dp).background(if (selectedSubject == name) Color.White else Paper, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                            Icon(icon, contentDescription = null, tint = Green, modifier = Modifier.size(24.dp))
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Deep)
+                            Text(description, fontSize = 12.sp, color = Grey)
+                        }
+                        Icon(Icons.Default.ArrowForward, contentDescription = "Choose $name", tint = Green)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable private fun Logo(size:Int){Box(Modifier.size(size.dp).background(Deep,RoundedCornerShape((size/3).dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.MenuBook,null,tint=Color(0xFFF6F2E9),modifier=Modifier.size((size*.62f).dp));Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size((size*.25f).dp).background(Color(0xFFD8C08A),CircleShape),contentAlignment=Alignment.Center){Icon(Icons.Default.AutoAwesome,null,tint=Deep,modifier=Modifier.size((size*.15f).dp))}}}
@@ -167,7 +225,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
    }
    item {
      Card(
-       Modifier.fillMaxWidth().clickable { go(Page.TUTOR) },
+       Modifier.fillMaxWidth().clickable { go(Page.TUTOR_SUBJECT) },
        shape=RoundedCornerShape(24.dp),
        colors=CardDefaults.cardColors(containerColor=Deep),
        elevation=CardDefaults.cardElevation(defaultElevation=0.dp)

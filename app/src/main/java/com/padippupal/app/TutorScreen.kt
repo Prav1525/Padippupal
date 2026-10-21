@@ -103,6 +103,47 @@ private fun cleanTutorDisplayText(raw: String): String {
         .trim()
 }
 
+internal fun groundedAnswerFallbackSegments(answer: String): List<JSONObject> {
+    val normalized = cleanTutorDisplayText(answer)
+        .replace(Regex("(?m)^\\s*[-•*]\\s+"), "")
+        .take(4000)
+    if (normalized.isBlank()) return emptyList()
+
+    // Keep sentence boundaries where possible, then split long sentences into
+    // short speakable modules. This fallback is allowed only for an answer that
+    // the chat endpoint has already marked grounded and supplied with sources.
+    val chunks = mutableListOf<String>()
+    val sentences = normalized.split(Regex("(?<=[.!?])\\s+|\\n+"))
+        .map { it.trim() }.filter { it.isNotBlank() }
+    for (sentence in sentences) {
+        val words = sentence.split(Regex("\\s+")).filter { it.isNotBlank() }
+        var start = 0
+        while (start < words.size) {
+            val end = (start + 20).coerceAtMost(words.size)
+            val chunk = words.subList(start, end).joinToString(" ").trim()
+            if (chunk.isNotBlank()) chunks += chunk
+            start = end
+        }
+    }
+    if (chunks.size > 8) {
+        val firstSeven = chunks.take(7).toMutableList()
+        firstSeven += chunks.drop(7).joinToString(" ").take(500)
+        chunks.clear()
+        chunks.addAll(firstSeven)
+    }
+    return chunks.take(8).mapIndexed { index, text ->
+        val segment = JSONObject()
+            .put("id", "grounded-fallback-${index + 1}")
+            .put("spoken_text", text)
+            .put("caption_text", text)
+            .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+        if ((index + 1) % 2 == 0 && index < chunks.lastIndex) {
+            segment.put("checkpoint", "Does that make sense so far?")
+        }
+        segment
+    }
+}
+
 private data class MoveItem(val icon: String, val name: String, val x: Float, val y: Float)
 
 @Composable
@@ -131,7 +172,7 @@ private fun WordByWordCaption(
         buildAnnotatedString {
             words.forEachIndexed { index, pair ->
                 val word = pair
-                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\n\n" else " ")
+                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\n" else " ")
                 val start = length
                 append(word)
                 val end = length
@@ -183,6 +224,16 @@ private fun InteractiveLessonLab(
     val hint: String
     val items: List<MoveItem>
     when {
+        listOf("pattern", "sequence", "repeating", "growing pattern").any { it in key } -> {
+            title = "Spot the repeating pattern"
+            hint = "Look at what repeats, then predict what comes next."
+            items = listOf(
+                MoveItem("🔵", "A", .06f, .24f),
+                MoveItem("🟢", "B", .27f, .24f),
+                MoveItem("🔵", "A", .48f, .24f),
+                MoveItem("🟢", "B", .69f, .24f)
+            )
+        }
         listOf("fraction", "numerator", "denominator", "half", "quarter").any { it in key } -> {
             title = "Build a fraction"; hint = "Drag equal pieces together to make one whole."
             items = listOf(MoveItem("🟩","1/4",.08f,.25f),MoveItem("🟩","1/4",.30f,.25f),MoveItem("🟩","1/4",.52f,.25f),MoveItem("⬜","1/4",.74f,.25f))
@@ -296,6 +347,43 @@ private fun InteractiveLessonLab(
 }
 
 
+@Composable
+private fun LivePatternVisual(topic: String, segmentIndex: Int) {
+    val isAllOnes = topic.contains("1") || topic.contains("ones", ignoreCase = true)
+    val values = if (isAllOnes) listOf("1", "11", "111", "1111", "11111") else listOf("2", "4", "6", "8", "10")
+    val activeIndex = Math.floorMod(segmentIndex, values.size)
+    Surface(
+        Modifier.fillMaxWidth().padding(top = 4.dp),
+        color = Color(0xFFEAF5EE),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+    ) {
+        Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("WATCH THE PATTERN", color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(
+                if (isAllOnes) "Each step adds one more 1" else "Notice the rule between each number",
+                color = TutorDeep, fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                values.forEachIndexed { index, value ->
+                    Column(
+                        Modifier.weight(1f)
+                            .background(if (index == activeIndex) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(7.dp))
+                            .padding(vertical = 4.dp, horizontal = 1.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(value, color = TutorDeep, fontSize = if (index == activeIndex) 13.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text("${index + 1}", color = TutorGreen, fontSize = 8.sp, lineHeight = 9.sp)
+                    }
+                }
+            }
+            Text(
+                if (isAllOnes) "One digit is added at each step." else "Read the numbers in order and look for what changes.",
+                color = TutorGrey, fontSize = 9.sp, lineHeight = 11.sp, maxLines = 1
+            )
+        }
+    }
+}
 @Composable
 private fun ChapterOneMathAnimation(scene: String, title: String, topic: String, caption: String) {
     var stage by remember(scene, title) { mutableIntStateOf(0) }
@@ -895,6 +983,7 @@ internal fun TutorScreen(
     medium: String,
     appLanguage: String,
     studentName: String,
+    initialSubject: String = "Mathematics",
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -934,7 +1023,7 @@ internal fun TutorScreen(
         restored
     }
     var input by remember { mutableStateOf("") }
-    var subject by remember { mutableStateOf(savedSession.optString("subject", "General")) }
+    var subject by remember { mutableStateOf(initialSubject.ifBlank { savedSession.optString("subject", "Mathematics") }) }
     var chapter by remember { mutableStateOf(savedSession.optString("chapter", "")) }
     var topic by remember { mutableStateOf(savedSession.optString("topic", "")) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
@@ -948,6 +1037,11 @@ internal fun TutorScreen(
         mutableStateOf(context.getSharedPreferences("padippupal_settings", 0).getBoolean("prefer_on_device_voice", false))
     }
     var speechActive by remember { mutableStateOf(false) }
+    // Invalidates asynchronous TTS/network callbacks when the user switches modes or stops playback.
+    var speechGeneration by remember { mutableIntStateOf(0) }
+    var speechPlaybackStarted by remember { mutableStateOf(false) }
+    var speechPaused by remember { mutableStateOf(false) }
+    var pausedHostedAudio by remember { mutableStateOf(false) }
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
@@ -1044,54 +1138,83 @@ internal fun TutorScreen(
             return
         }
         outlineLoading = true
+        status = "Loading approved curriculum…"
         tutorExecutor.execute {
-            val result = runCatching {
-                val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
-                val query = "board=" + URLEncoder.encode(board, "UTF-8") +
-                    "&class_level=$grade&subject=" + URLEncoder.encode(forSubject, "UTF-8") +
-                    "&medium=" + URLEncoder.encode(medium, "UTF-8")
-                val connection = URL("$base/curriculum/outline?$query").openConnection() as HttpURLConnection
-                connection.connectTimeout = 7000
-                connection.readTimeout = 10000
-                try {
-                    val code = connection.responseCode
-                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                    val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
-                    if (code !in 200..299) throw IllegalStateException("Curriculum outline unavailable")
-                    val chaptersJson = JSONObject(body).optJSONArray("chapters") ?: JSONArray()
-                    (0 until chaptersJson.length()).mapNotNull { index ->
-                        val item = chaptersJson.optJSONObject(index) ?: return@mapNotNull null
-                        val title = item.optString("title").trim()
-                        if (title.isBlank()) return@mapNotNull null
-                        val topicsJson = item.optJSONArray("topics") ?: JSONArray()
-                        val topics = (0 until topicsJson.length()).mapNotNull { topicIndex ->
-                            val rawTopic = topicsJson.opt(topicIndex)
-                            val topicTitle = when (rawTopic) {
-                                is JSONObject -> rawTopic.optString("title").ifBlank {
-                                    rawTopic.optString("name")
-                                }
-                                is String -> {
-                                    val trimmed = rawTopic.trim()
-                                    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-                                        runCatching {
-                                            val parsed = JSONObject(trimmed)
-                                            parsed.optString("title").ifBlank { parsed.optString("name") }
-                                        }.getOrDefault(trimmed)
-                                    } else trimmed
-                                }
-                                else -> ""
-                            }.trim()
-                            topicTitle.takeIf { it.isNotBlank() }
-                        }.distinct().take(30)
-                        title to topics
+            var lastFailure: Throwable? = null
+            var loaded: List<Pair<String, List<String>>>? = null
+            // Render's free service can restart or wake from idle while the student
+            // opens the tutor. Retry transient failures instead of freezing an empty list.
+            for (attempt in 0..4) {
+                val result = runCatching {
+                    val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+                    val query = "board=" + URLEncoder.encode(board, "UTF-8") +
+                        "&class_level=$grade&subject=" + URLEncoder.encode(forSubject, "UTF-8") +
+                        "&medium=" + URLEncoder.encode(medium, "UTF-8")
+                    val connection = URL("$base/curriculum/outline?$query").openConnection() as HttpURLConnection
+                    connection.connectTimeout = 7000
+                    connection.readTimeout = 10000
+                    try {
+                        val code = connection.responseCode
+                        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                        val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+                        if (code !in 200..299) throw java.io.IOException("Curriculum service returned HTTP $code")
+                        val chaptersJson = JSONObject(body).optJSONArray("chapters")
+                            ?: throw IllegalStateException("Curriculum response is missing its chapters list")
+                        val chapters = (0 until chaptersJson.length()).mapNotNull { index ->
+                            val item = chaptersJson.optJSONObject(index) ?: return@mapNotNull null
+                            val title = item.optString("title").trim()
+                            if (title.isBlank()) return@mapNotNull null
+                            val topicsJson = item.optJSONArray("topics") ?: JSONArray()
+                            val topics = (0 until topicsJson.length()).mapNotNull { topicIndex ->
+                                val rawTopic = topicsJson.opt(topicIndex)
+                                val topicTitle = when (rawTopic) {
+                                    is JSONObject -> rawTopic.optString("title").ifBlank { rawTopic.optString("name") }
+                                    is String -> {
+                                        val trimmed = rawTopic.trim()
+                                        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                                            runCatching {
+                                                val parsed = JSONObject(trimmed)
+                                                parsed.optString("title").ifBlank { parsed.optString("name") }
+                                            }.getOrDefault(trimmed)
+                                        } else trimmed
+                                    }
+                                    else -> ""
+                                }.trim()
+                                topicTitle.takeIf { it.isNotBlank() }
+                            }.distinct().take(30)
+                            title to topics
+                        }
+                        if (board.equals("CBSE", ignoreCase = true) && grade == 6 &&
+                            forSubject.equals("Mathematics", ignoreCase = true) && chapters.isEmpty()
+                        ) throw IllegalStateException("CBSE Class 6 Mathematics outline was unexpectedly empty")
+                        chapters
+                    } finally {
+                        connection.disconnect()
                     }
-                } finally {
-                    connection.disconnect()
+                }
+                result.fold(
+                    onSuccess = { chapters -> loaded = chapters; lastFailure = null },
+                    onFailure = { error -> lastFailure = error }
+                )
+                if (loaded != null) break
+                if (attempt < 4) {
+                    tutorMainHandler.post { status = "Curriculum service is waking up; retrying (${attempt + 1}/4)…" }
+                    try {
+                        Thread.sleep(1000L * (attempt + 1))
+                    } catch (_: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        break
+                    }
                 }
             }
             tutorMainHandler.post {
-                chapterOptions = result.getOrDefault(emptyList())
+                chapterOptions = loaded.orEmpty()
                 outlineLoading = false
+                status = when {
+                    loaded != null && loaded.isNotEmpty() -> ""
+                    lastFailure != null -> "Couldn't load curriculum (${lastFailure?.message ?: "temporary service error"}). Select the subject again to retry."
+                    else -> "No approved chapters are configured for this subject and class."
+                }
             }
         }
     }
@@ -1151,6 +1274,9 @@ internal fun TutorScreen(
 
     fun finishSpeechSegment() {
         speechActive = false
+        speechPlaybackStarted = false
+        speechPaused = false
+        pausedHostedAudio = false
         val callback = speechCompletion
         speechCompletion = null
         callback?.invoke()
@@ -1162,14 +1288,20 @@ internal fun TutorScreen(
         }
         engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                tutorMainHandler.post { val callback = speechStartCallback; speechStartCallback = null; callback?.invoke() }
+                tutorMainHandler.post {
+                    if (utteranceId != "padippupal-tutor-$speechGeneration") return@post
+                    val callback = speechStartCallback; speechStartCallback = null; callback?.invoke()
+                }
             }
             override fun onDone(utteranceId: String?) {
-                tutorMainHandler.post { finishSpeechSegment() }
+                tutorMainHandler.post {
+                    if (utteranceId == "padippupal-tutor-$speechGeneration") finishSpeechSegment()
+                }
             }
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                 if (Build.VERSION.SDK_INT >= 26) {
                     tutorMainHandler.post {
+                        if (utteranceId != "padippupal-tutor-$speechGeneration") return@post
                         val index = speechWordStarts.indexOfLast { it <= start }.coerceAtLeast(0)
                         liveWordIndex = index
                         nativeWordTiming = true
@@ -1178,7 +1310,9 @@ internal fun TutorScreen(
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                tutorMainHandler.post { speechActive = false }
+                tutorMainHandler.post {
+                    if (utteranceId == "padippupal-tutor-$speechGeneration") speechActive = false
+                }
             }
         })
         ttsState.value = engine
@@ -1218,13 +1352,15 @@ internal fun TutorScreen(
         engine.language = locale
         engine.setSpeechRate(0.76f)
         engine.setPitch(1.02f)
-        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
+        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor-$speechGeneration")
     }
 
     fun speak(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
         // Auto-read and the manual speaker button must not launch overlapping
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
+        speechGeneration += 1
+        val requestGeneration = speechGeneration
         speechActive = true
         speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
         liveWordIndex = 0
@@ -1253,7 +1389,9 @@ internal fun TutorScreen(
                 val connection = URL("$base/tutor/speech").openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.connectTimeout = 8000
-                connection.readTimeout = 50000
+                // Voice is an enhancement, not a reason to leave the lesson frozen.
+                // Fall back to Android TTS promptly if hosted synthesis stalls.
+                connection.readTimeout = 15000
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 connection.doOutput = true
@@ -1283,6 +1421,10 @@ internal fun TutorScreen(
                 require(audioFile.length() > 44) { "Empty audio response" }
             }
             tutorMainHandler.post {
+                if (requestGeneration != speechGeneration) {
+                    audioFile.delete()
+                    return@post
+                }
                 outcome.fold(
                     onSuccess = {
                         hostedWordTimings = audioWordTimings.toList()
@@ -1291,25 +1433,53 @@ internal fun TutorScreen(
                             val player = MediaPlayer()
                             audioPlayer.value = player
                             player.setDataSource(audioFile.absolutePath)
-                            player.setOnCompletionListener {
-                                it.release()
-                                if (audioPlayer.value === it) audioPlayer.value = null
+                            player.setOnCompletionListener { completedPlayer ->
+                                if (requestGeneration != speechGeneration) {
+                                    runCatching { completedPlayer.release() }
+                                    audioFile.delete()
+                                    return@setOnCompletionListener
+                                }
+                                completedPlayer.release()
+                                if (audioPlayer.value === completedPlayer) audioPlayer.value = null
                                 audioFile.delete()
                                 finishSpeechSegment()
                             }
                             player.setOnErrorListener { failedPlayer, _, _ ->
+                                if (requestGeneration != speechGeneration) {
+                                    runCatching { failedPlayer.release() }
+                                    audioFile.delete()
+                                    return@setOnErrorListener true
+                                }
                                 failedPlayer.release()
                                 if (audioPlayer.value === failedPlayer) audioPlayer.value = null
                                 audioFile.delete()
                                 speakWithDeviceTts(text, onStarted, onFinished)
                                 true
                             }
-                            player.prepare()
-                            player.start()
-                            val startedCallback = speechStartCallback
-                            speechStartCallback = null
-                            startedCallback?.invoke()
-                            status = "Speaking with Gemini natural voice."
+                            // Never call prepare() on the main thread: decoding can block
+                            // Compose and leave the lesson stuck on "Preparing segment…".
+                            // prepareAsync keeps the UI responsive; start/highlighting only
+                            // begin once Android confirms that the audio is prepared.
+                            player.setOnPreparedListener { preparedPlayer ->
+                                if (requestGeneration != speechGeneration) {
+                                    runCatching { preparedPlayer.release() }
+                                    audioFile.delete()
+                                    return@setOnPreparedListener
+                                }
+                                runCatching {
+                                    preparedPlayer.start()
+                                    status = "Speaking with Gemini natural voice."
+                                    val startedCallback = speechStartCallback
+                                    speechStartCallback = null
+                                    startedCallback?.invoke()
+                                }.onFailure {
+                                    preparedPlayer.release()
+                                    if (audioPlayer.value === preparedPlayer) audioPlayer.value = null
+                                    audioFile.delete()
+                                    speakWithDeviceTts(text, onStarted, onFinished)
+                                }
+                            }
+                            player.prepareAsync()
                         }.onFailure {
                             audioFile.delete()
                             speakWithDeviceTts(text, onStarted, onFinished)
@@ -1327,25 +1497,49 @@ internal fun TutorScreen(
 
     fun playLiveSegment(index: Int) {
         if (!liveLessonActive) return
-        if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
+        if (index >= liveSegments.size) { liveLessonActive = false; speechPlaybackStarted = false; status = "Live lesson complete."; return }
+        speechPlaybackStarted = false
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        currentCheckpoint = if ((index + 1) % 2 == 0) segment.optString("checkpoint").trim().ifBlank { "Does that make sense so far?" } else ""
+        currentCheckpoint = if ((index + 1) % 2 == 0) segment.optString("checkpoint").trim().takeUnless { it.isBlank() || it.equals("null", ignoreCase = true) } ?: "Does that make sense so far?" else ""
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
-        val action = segment.optJSONObject("visual_action")
-        val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
-        status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
-        if (words.isBlank()) { playLiveSegment(index + 1); return }
-        // Some hosted voice paths do not invoke onStarted; do not leave loading text over audio.
-        status = "Playing segment ${index + 1} of ${liveSegments.size}…"
+        // Defensive guard: malformed curriculum segments must never enter the speech
+        // state machine or leave the lesson waiting forever for a start callback.
+        if (words.isBlank()) {
+            val nextValid = (index + 1 until liveSegments.size).firstOrNull {
+                liveSegments[it].optString("spoken_text").isNotBlank()
+            }
+            if (nextValid != null) playLiveSegment(nextValid) else {
+                liveLessonActive = false
+                speechPlaybackStarted = false
+                speechActive = false
+                status = "This lesson has no playable teaching segments. Please try this topic again."
+            }
+            return
+        }
+        val action = segment.optJSONObject("visual_action")
+        val requestedTopic = (topic + " " + chapter).lowercase()
+        // Keep visuals semantically tied to the selected concept. The generic square-
+        // number fallback is incorrect for an all-ones/repeating-ones lesson.
+        val topicIsAllOnes = requestedTopic.contains("all 1s") ||
+            requestedTopic.contains("all ones") || requestedTopic.contains("repeating one")
+        val effectiveAction = if (topicIsAllOnes) JSONObject()
+            .put("type", "none").put("target", "").put("value", "") else action
+        val visualCue = if (effectiveAction == null || effectiveAction.optString("type") == "none") "" else
+            listOf(effectiveAction.optString("type"), effectiveAction.optString("target"), effectiveAction.optString("value"))
+                .filter { it.isNotBlank() }.joinToString(" · ")
+        status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
+        // Stay in Preparing until the audio engine confirms playback has actually started.
+        // The start callback is shared by hosted audio and the device TTS fallback.
         speak(words, onStarted = {
             // Display the exact text being spoken so word highlighting matches the audio.
+            speechPlaybackStarted = true
             liveCaption = words
             liveWordIndex = 0
             liveVisualAction = visualCue
-            liveVisualActionType = action?.optString("type", "none") ?: "none"
-            liveVisualTarget = action?.optString("target", "").orEmpty()
+            liveVisualActionType = effectiveAction?.optString("type", "none") ?: "none"
+            liveVisualTarget = effectiveAction?.optString("target", "").orEmpty()
             liveSegmentIndex = index
             status = "Live lesson · segment ${index + 1} of ${liveSegments.size}"
         }) {
@@ -1359,9 +1553,67 @@ internal fun TutorScreen(
         }
     }
 
+    fun pauseLiveLesson() {
+        if (!liveLessonActive || !speechPlaybackStarted || speechPaused) return
+        val player = audioPlayer.value
+        if (player != null) {
+            val paused = runCatching { player.pause() }
+            if (paused.isFailure) {
+                status = "Couldn't pause audio safely. Stop the lesson and try again."
+                return
+            }
+            pausedHostedAudio = true
+            status = "Lesson paused."
+        } else {
+            pausedHostedAudio = false
+            speechCompletion = null
+            speechStartCallback = null
+            ttsState.value?.stop()
+            status = "Lesson paused. Resume will replay this short segment from the beginning."
+        }
+        speechPaused = true
+        speechPlaybackStarted = false
+        speechActive = false
+    }
+
+    fun resumeLiveLesson() {
+        if (!liveLessonActive || !speechPaused) return
+        if (pausedHostedAudio) {
+            val player = audioPlayer.value
+            if (player != null && runCatching { player.start() }.isSuccess) {
+                speechPaused = false
+                speechActive = true
+                speechPlaybackStarted = true
+                status = "Live lesson · segment ${liveSegmentIndex + 1} of ${liveSegments.size}"
+                return
+            }
+            runCatching { player?.release() }
+            audioPlayer.value = null
+        }
+        speechPaused = false
+        pausedHostedAudio = false
+        playLiveSegment(liveSegmentIndex)
+    }
+
     fun startLiveLesson() {
         if (loading || liveLessonActive) return
+        speechPaused = false
+        pausedHostedAudio = false
         if (chapter.isBlank() && topic.isBlank()) { status = "Choose a chapter or concept first."; return }
+        // Teach is an explicit switch from chat mode to live mode. Invalidate
+        // pending chat TTS/network callbacks as well as stopping active playback;
+        // otherwise an old auto-read response can overwrite live lesson state.
+        speechGeneration += 1
+        audioPlayer.value?.let { player ->
+            runCatching { player.stop() }
+            runCatching { player.release() }
+        }
+        audioPlayer.value = null
+        runCatching { ttsState.value?.stop() }
+        speechCompletion = null
+        speechStartCallback = null
+        speechActive = false
+        speechPlaybackStarted = false
         loading = true
         status = "Preparing a textbook-grounded live lesson…"
         tutorExecutor.execute {
@@ -1396,18 +1648,43 @@ internal fun TutorScreen(
             }
             tutorMainHandler.post {
                 loading = false
-                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; playLiveSegment(0) },
-                    onFailure = { error -> status = error.message ?: "Could not prepare the live lesson." })
+                outcome.fold(
+                    onSuccess = { segments ->
+                        liveSegments = segments
+                        liveLessonActive = true
+                        playLiveSegment(0)
+                    },
+                    onFailure = { error ->
+                        // The live planner can reject a model segment when its
+                        // citation/schema is malformed. Do not abandon a child
+                        // when the chat endpoint already returned a grounded,
+                        // sourced explanation for this exact selected topic.
+                        val groundedAnswer = messages.lastOrNull { it.role == "assistant" }?.content.orEmpty()
+                        val fallbackSegments = if (lastSources.isNotEmpty()) groundedAnswerFallbackSegments(groundedAnswer) else emptyList()
+                        if (fallbackSegments.isNotEmpty()) {
+                            liveSegments = fallbackSegments
+                            liveLessonActive = true
+                            status = "Using the textbook-checked explanation; detailed lesson plan unavailable."
+                            playLiveSegment(0)
+                        } else {
+                            status = error.message ?: "Could not prepare the live lesson."
+                        }
+                    }
+                )
             }
         }
     }
 
     fun stopLiveLesson() {
+        speechGeneration += 1
         liveLessonActive = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
         audioPlayer.value = null; ttsState.value?.stop(); speechCompletion = null; speechActive = false
+        speechPlaybackStarted = false
+        speechPaused = false
+        pausedHostedAudio = false
         status = "Live lesson stopped."
     }
 
@@ -1481,26 +1758,27 @@ internal fun TutorScreen(
                         val interactiveLesson = result[3] as JSONObject?
                         messages.add(TutorMessage("assistant", answer, visualLesson, interactiveLesson))
                         lastSources = sources
-                        status = if (sources.isEmpty()) "General explanation · no matching textbook passage was found yet." else "Answer checked against ${sources.size} curriculum source(s)."
-                        if (speakReplies) speak(answer, onStarted = { liveCaption = answer })
+                        // A chat request may finish after the learner has explicitly
+                        // started a live lesson. Keep its sourced answer for fallback,
+                        // but never let that late result replace live playback status
+                        // or start a competing read-aloud.
+                        if (!liveLessonActive) {
+                            status = if (sources.isEmpty()) "General explanation · no matching textbook passage was found yet." else "Answer checked against ${sources.size} curriculum source(s)."
+                            if (speakReplies) speak(answer, onStarted = { liveCaption = answer })
+                        }
                     },
                     onFailure = { error ->
-                        status = error.message ?: "Couldn't reach the tutor. Please try again."
+                        if (!liveLessonActive) status = error.message ?: "Couldn't reach the tutor. Please try again."
                     }
                 )
             }
         }
     }
 
-    // Starting a selected concept should teach first, not ask the child what to learn.
-    // Only auto-start before the conversation has moved beyond the initial greeting.
-    LaunchedEffect(chapter, topic) {
-        if (topic.isNotBlank() && messages.size == 1 && !loading) {
-            sendMessage(
-                 "START LESSON as a warm, patient teacher. Begin by naming the chapter $chapter and topic $topic in the opening sentence. Say what we are going to learn, then preview 2-3 key ideas. Teach the first concept in small steps with a familiar everyday example, explain why it works, and ask one easy check question at the end. Do not jump straight into a question or write one dense paragraph. Use simple child-friendly spoken language in $selectedLanguage."
-            )
-        }
-    }
+    // Selecting a concept only updates the selection. Do not send an internal
+    // lesson instruction through chat: it leaks into the transcript and starts a
+    // competing request that can keep loading=true and block the Teach action.
+    // The explicit Teach button owns the live-lesson request and playback lifecycle.
 
     var showLessonSettings by remember { mutableStateOf(false) }
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -1514,9 +1792,9 @@ internal fun TutorScreen(
     // Hosted audio has no word timestamps, so align to its real playback position
     // with word-length and punctuation weighting. Android TTS uses exact onRangeStart
     // character offsets and must not be overwritten by this fallback loop.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value, nativeWordTiming) {
-        if (!speechActive || !liveLessonActive || liveCaption.isBlank() || nativeWordTiming) {
-            if (!speechActive) liveWordIndex = 0
+    LaunchedEffect(speechActive, speechPaused, liveCaption, liveLessonActive, audioPlayer.value, nativeWordTiming) {
+        if (!speechActive || speechPaused || !liveLessonActive || liveCaption.isBlank() || nativeWordTiming) {
+            if (!speechActive && !speechPaused) liveWordIndex = 0
             return@LaunchedEffect
         }
         val tokens = Regex("\\S+").findAll(liveCaption).map { it.value }.toList()
@@ -1528,7 +1806,7 @@ internal fun TutorScreen(
         }
         val totalWeight = weights.sum().coerceAtLeast(1f)
         var elapsedMs = 0L
-        while (speechActive && liveLessonActive && !nativeWordTiming) {
+        while (speechActive && !speechPaused && liveLessonActive && !nativeWordTiming) {
             val player = audioPlayer.value
             val duration = if (player != null) runCatching { player.duration }.getOrDefault(0).coerceAtLeast(0) else 0
             val position = if (player != null) runCatching { player.currentPosition }.getOrDefault(0).coerceAtLeast(0).toLong() else elapsedMs
@@ -1615,6 +1893,14 @@ internal fun TutorScreen(
                     ) {
                         Text(if (liveLessonActive) "Stop" else "▶ Teach", fontSize = 12.sp)
                     }
+                    if (liveLessonActive && !awaitingUnderstanding && (speechPlaybackStarted || speechPaused)) {
+                        TextButton(
+                            onClick = { if (speechPaused) resumeLiveLesson() else pauseLiveLesson() },
+                            contentPadding = PaddingValues(horizontal = 7.dp, vertical = 8.dp)
+                        ) {
+                            Text(if (speechPaused) "Resume" else "Pause", color = TutorGreen, fontSize = 12.sp)
+                        }
+                    }
                 }
                 if (showLessonSettings) {
                     Divider(color = Color(0xFFE7EEE8))
@@ -1699,7 +1985,7 @@ internal fun TutorScreen(
         // The chat owns the flexible space and scrolls independently of the fixed composer.
         LazyColumn(
             state = chatListState,
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
+            modifier = Modifier.weight(1f, fill = true).fillMaxWidth().padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp),
             contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp)
         ) {
@@ -1710,11 +1996,23 @@ internal fun TutorScreen(
                         color = Color(0xFFEAF5EE), shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, Color(0xFFD1E7D8))
                     ) {
-                        Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LAST SPOKEN SEGMENT", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    when {
+                                        speechPaused -> "LESSON PAUSED"
+                                        speechPlaybackStarted -> "TEACHER IS SPEAKING"
+                                        awaitingUnderstanding -> "PAUSE FOR CHECK-IN"
+                                        speechActive -> "PREPARING LESSON AUDIO"
+                                        else -> "LESSON SEGMENT"
+                                    },
+                                    color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold
+                                )
                                 Spacer(Modifier.weight(1f))
                                 if (liveLessonActive) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                             }
@@ -1722,7 +2020,14 @@ internal fun TutorScreen(
                                 WordByWordCaption(liveCaption, speechActive, liveWordIndex)
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                            if (liveCaption.isNotBlank() && liveLessonActive && !speechActive && !awaitingUnderstanding) InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
+                            if (liveCaption.isNotBlank() && liveLessonActive) {
+                                if (chapter.equals("Patterns in Mathematics", ignoreCase = true)) {
+                                    // Keep the mapped visual visible during speech and check-ins.
+                                    LivePatternVisual(topic, liveSegmentIndex)
+                                } else if (!speechActive && !awaitingUnderstanding) {
+                                    InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
+                                }
+                            }
                         }
                     }
                 }
@@ -1795,24 +2100,24 @@ internal fun TutorScreen(
             }
         }
 
-        // Fixed checkpoint: never hidden below the scrollable passage.
+        // Keep the understanding prompt anchored above the composer, not buried in lesson history.
         if (awaitingUnderstanding && liveLessonActive) {
             Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 3.dp),
                 color = Color.White,
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, Color(0xFFD1E7D8)),
                 shadowElevation = 2.dp
             ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("Quick check", color = TutorGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 17.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
                             awaitingUnderstanding = false
                             status = "Great! Let’s take the next small step."
                             tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 350L)
-                        }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand") }
+                        }, modifier = Modifier.weight(1f).heightIn(min = 40.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand", fontSize = 13.sp) }
                         OutlinedButton(onClick = {
                             awaitingUnderstanding = false
                             val segment = liveSegments.getOrNull(liveSegmentIndex)
@@ -1829,7 +2134,7 @@ internal fun TutorScreen(
                             } else {
                                 awaitingUnderstanding = true
                             }
-                        }, modifier = Modifier.weight(1f)) { Text("Explain again") }
+                        }, modifier = Modifier.weight(1f).heightIn(min = 40.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)) { Text("Explain again", fontSize = 13.sp) }
                     }
                     TextButton(
                         onClick = {
@@ -1837,13 +2142,14 @@ internal fun TutorScreen(
                             stopLiveLesson()
                             status = "Your question is ready below. Send it and I’ll explain this part."
                         },
-                        modifier = Modifier.align(Alignment.End)
-                    ) { Text("I have a question", color = TutorGreen) }
+                        modifier = Modifier.align(Alignment.End),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                    ) { Text("I have a question", color = TutorGreen, fontSize = 12.sp) }
                 }
             }
         }
 
-        if (status.isNotBlank()) {
+        if (status.isNotBlank() && !(awaitingUnderstanding && liveLessonActive)) {
             Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)
         }
         if (lastSources.isNotEmpty()) {

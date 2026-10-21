@@ -23,6 +23,18 @@ def assert_home(path):
         raise SystemExit("Home screen is missing expected accessible labels: " + ", ".join(missing))
     print("PASS: expected home-screen labels are accessible")
 
+def assert_subject_selection(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("SUBJECT SELECTION TEXT:", " | ".join(texts[:100]))
+    if "choose a subject" not in joined:
+        raise SystemExit("Subject-first route did not open the Choose a subject screen")
+    if not any(subject in joined for subject in ("mathematics", "science")):
+        raise SystemExit("Subject selection screen has no accessible subject options")
+    if "i understand" in joined or "explain again" in joined:
+        raise SystemExit("Teaching feedback controls appeared before entering the tutor")
+    print("PASS: subject selection appears before the dedicated tutor screen")
+
 def assert_tutor(path):
     _, texts = load(path)
     joined = "\n".join(texts)
@@ -61,18 +73,25 @@ def assert_settings(path):
 def assert_chapter_button(path):
     nodes, texts = load(path)
     print("CHAPTER OPTIONS TEXT:", " | ".join(texts[:120]))
+    lowered = [text.lower() for text in texts]
+    if any("loading approved curriculum" in text or "curriculum service is waking up; retrying" in text
+           for text in lowered):
+        raise SystemExit("Curriculum outline is still loading; wait for the bounded retry window")
+    if any("couldn't load curriculum" in text or "no approved chapters are configured" in text
+           for text in lowered):
+        raise SystemExit("Curriculum request finished with a visible terminal error")
     node = next((n for n in nodes if "choose chapter" in n.attrib.get("text", "").lower()), None)
     if node is None:
         raise SystemExit("Choose chapter control was not found after selecting Mathematics")
     if node.attrib.get("enabled") != "true":
         raise SystemExit("Choose chapter control is disabled")
-    if any("no chapter list is available" in text.lower() for text in texts):
-        raise SystemExit("Chapter options are empty for the selected board/class/subject. This is a curriculum/API-data failure, not a successful load.")
-    print("PASS: chapter picker is enabled and the UI does not report an empty chapter list")
+    if any("no chapter list is available" in text for text in lowered):
+        raise SystemExit("Chapter options are empty while curriculum data is unavailable")
+    print("PASS: chapter picker is enabled and curriculum loading has completed")
 
 def assert_chapter_selected(path):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     print("SELECTED CHAPTER TEXT:", " | ".join(texts[:100]))
     if "patterns in mathematics" not in joined:
         raise SystemExit("Smoke test did not select Class 6 Mathematics Chapter 1: Patterns in Mathematics")
@@ -144,9 +163,59 @@ def assert_live(path):
     lesson_words = ("one", "all 1s", "pattern", "number")
     if not any(term in joined for term in lesson_words):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
+    # Class 6 Chapter 1 must keep its mapped visual in the same teaching viewport,
+    # including during the student understanding check.
+    if "patterns in mathematics" in joined or "all 1s" in joined:
+        for visual_label in ("watch the pattern", "111", "1111", "one digit is added at each step"):
+            if visual_label not in joined:
+                raise SystemExit("Live Chapter 1 lesson is missing its in-viewport pattern visual: " + visual_label)
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
-    print("PASS: live lesson panel and actual inline teaching caption text are accessible")
+    if "playing segment" in joined:
+        raise SystemExit("A segment is reported as playing before playback-start confirmation")
+    nodes, _ = load(path)
+    accessible = "\n".join(
+        texts + [
+            value.strip()
+            for node in nodes
+            for value in (node.attrib.get("content-desc", ""), node.attrib.get("hint", ""))
+            if value.strip()
+        ]
+    ).lower()
+    for control in ("stop", "ask your teacher"):
+        if control not in accessible:
+            raise SystemExit("Live lesson is hiding a required control: " + control)
+    print("PASS: inline lesson caption, truthful playback status, Stop, and student question input are accessible")
+
+def has_pause_control(path):
+    nodes, _ = load(path)
+    return any(
+        n.attrib.get("text", "").strip().lower() in ("pause", "resume")
+        and re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", n.attrib.get("bounds", ""))
+        and n.attrib.get("enabled") != "false"
+        for n in nodes
+    )
+
+def assert_pause_control(path):
+    if not has_pause_control(path):
+        raise SystemExit("Pause/Resume control is not visible during active live audio")
+    print("PASS: Pause/Resume control is visible during active playback")
+
+def assert_paused(path):
+    nodes, texts = load(path)
+    joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    if "lesson paused" not in joined or not any(
+        n.attrib.get("text", "").strip().lower() == "resume" for n in nodes
+    ):
+        raise SystemExit("Pause did not enter the paused state or expose Resume")
+    print("PASS: pause state is visible and Resume is available")
+
+def assert_resumed(path):
+    _, texts = load(path)
+    joined = "\n".join(texts).lower()
+    if "teacher is speaking" not in joined:
+        raise SystemExit("Resume did not return to confirmed speaking state")
+    print("PASS: Resume returned to confirmed speaking state")
 
 def assert_highlight_frames(directory):
     try:
@@ -195,12 +264,14 @@ def tap(path, target):
 
 def main():
     if len(sys.argv) < 3:
-        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
+        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-subject-selection|assert-tutor|assert-feedback|assert-settings|assert-live|assert-pause-control|assert-paused|assert-resumed|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]
     if not Path(path).is_file():
         raise SystemExit("UI XML file does not exist: " + path)
     if action == "assert-home":
         assert_home(path)
+    elif action == "assert-subject-selection":
+        assert_subject_selection(path)
     elif action == "assert-tutor":
         assert_tutor(path)
     elif action == "assert-feedback":
@@ -217,6 +288,15 @@ def main():
         tap_first_concept(path)
     elif action == "assert-live":
         assert_live(path)
+    elif action == "has-pause-control":
+        if not has_pause_control(path):
+            raise SystemExit("Pause/Resume control is not visible yet")
+    elif action == "assert-pause-control":
+        assert_pause_control(path)
+    elif action == "assert-paused":
+        assert_paused(path)
+    elif action == "assert-resumed":
+        assert_resumed(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:
         assert_highlight_frames(sys.argv[3])
     elif action == "tap" and len(sys.argv) >= 4:

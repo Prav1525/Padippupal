@@ -29,8 +29,14 @@ for attempt in 1 2; do
     echo "UI smoke test passed on attempt $attempt"
     exit 0
   fi
+  # A retry must not turn a reproducible product failure into a green workflow.
+  # Retry only failures explicitly classified as emulator/ADB/test-environment issues.
+  if grep -q "RESULT: APP_FAILURE" ui-screenshots/test-report.txt 2>/dev/null; then
+    echo "Application/UI failure detected. Evidence preserved; refusing to mask it with a retry."
+    exit "$result"
+  fi
   if [ "$attempt" -lt 2 ]; then
-    echo "Attempt failed; evidence preserved. Retrying once in the same booted emulator."
+    echo "Environment/harness failure; evidence preserved. Retrying once in the same booted emulator."
     adb -s emulator-5554 shell am force-stop com.padippupal.app || true
     sleep 5
   fi

@@ -72,8 +72,18 @@ fi
 # The normal app default is Tamil Nadu State Board, which has no matching CBSE-only
 # lesson records. Use an isolated CBSE profile so this test checks the supported
 # Patterns in Mathematics lesson rather than silently testing the wrong curriculum.
-log "Resetting smoke-test profile so every retry starts from the same settings"
-"${ADB[@]}" shell "run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml"
+# A profile-only reset is insufficient: Room/database state, saved lesson progress,
+# and persisted UI state can survive attempt 1 and contaminate attempt 2. Clear all
+# app user data before seeding the deterministic smoke profile on every attempt.
+log "Resetting all app user data so this attempt starts from a clean install state"
+clear_result=$("${ADB[@]}" shell pm clear com.padippupal.app 2>&1)
+log "pm clear result: $clear_result"
+if ! echo "$clear_result" | grep -q "Success"; then
+  FAILURE_CLASS="ENVIRONMENT_FAILURE"
+  log "FAIL: unable to clear app data; refusing to run a potentially contaminated smoke test"
+  exit 1
+fi
+"${ADB[@]}" shell am force-stop com.padippupal.app
 log "Configuring smoke-test profile: CBSE, Class 6, English"
 ${ADB[@]} shell "run-as com.padippupal.app sh -c 'mkdir -p shared_prefs && echo PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9InllcyIgPz48bWFwPjxzdHJpbmcgbmFtZT0iZ3JhZGUiPjY8L3N0cmluZz48c3RyaW5nIG5hbWU9ImJvYXJkIj5DQlNFPC9zdHJpbmc+PHN0cmluZyBuYW1lPSJtZWRpdW0iPkVuZ2xpc2g8L3N0cmluZz48c3RyaW5nIG5hbWU9Imxhbmd1YWdlIj5FbmdsaXNoPC9zdHJpbmc+PC9tYXA+ | base64 -d > shared_prefs/padippupal_profile.xml && test -s shared_prefs/padippupal_profile.xml'"
 "${ADB[@]}" shell am force-stop com.padippupal.app
@@ -110,8 +120,14 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 FAILURE_CLASS="APP_FAILURE"
 
-log "Opening tutor using accessibility bounds"
+log "Opening tutor using the new subject-first navigation"
 python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
+sleep 3
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/subject-selection.png
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/subject-selection.xml
+"${ADB[@]}" pull /data/local/tmp/subject-selection.xml subject-selection.xml
+python3 .github/scripts/ui_smoke.py assert-subject-selection subject-selection.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap subject-selection.xml "Mathematics"
 sleep 8
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/tutor.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
@@ -121,27 +137,62 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
 
-log "Testing the I understand feedback action"
-python3 .github/scripts/ui_smoke.py tap tutor.xml "I understand"
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/feedback.xml
-"${ADB[@]}" pull /data/local/tmp/feedback.xml feedback.xml
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/feedback.png
-python3 .github/scripts/ui_smoke.py assert-feedback feedback.xml | tee -a "$REPORT"
-
 log "Testing tutor settings and voice controls"
-python3 .github/scripts/ui_smoke.py tap feedback.xml "Change"
+python3 .github/scripts/ui_smoke.py tap tutor.xml "Change"
 sleep 2
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
 
+# The understanding check-in only appears after a real live lesson segment finishes.
+# Do not tap it before playback is confirmed; the later playback assertions verify it.
+
 log "Loading the real Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
-sleep 10
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
-"${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml
+# The app retries the curriculum endpoint up to five times. Align the UI test's
+# deadline with that retry budget instead of failing after a fixed 10-second sleep.
+chapter_deadline=$((SECONDS + 105))
+chapter_ready=false
+rm -f chapter-options.xml ui-screenshots/chapter-options-pending.xml
+timeout 5s "${ADB[@]}" shell rm -f /data/local/tmp/chapter-options.xml >/dev/null 2>&1 || true
+while [ "$SECONDS" -lt "$chapter_deadline" ]; do
+  if timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml >/dev/null 2>&1; then
+    if timeout 5s "${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml >/dev/null 2>&1; then
+      if python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml >> "$REPORT" 2>&1; then
+        chapter_ready=true
+        break
+      fi
+      if grep -Eiq "couldn't load curriculum|no approved chapters are configured" chapter-options.xml; then
+        python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml | tee -a "$REPORT" || true
+        echo "FAIL: curriculum request finished with a visible terminal error; not retrying an app failure" | tee -a "$REPORT"
+        exit 1
+      fi
+    else
+      rm -f chapter-options.xml
+    fi
+  else
+    rm -f chapter-options.xml
+  fi
+  sleep 2
+done
+if [ "$chapter_ready" != true ]; then
+  timeout 5s "${ADB[@]}" exec-out screencap -p > ui-screenshots/chapter-options-timeout.png 2>/dev/null || true
+  echo "FAIL: no fresh, ready Mathematics chapter list appeared within 105 seconds" | tee -a "$REPORT"
+  if [ -f chapter-options.xml ]; then
+    python3 - chapter-options.xml <<'PY' | tee -a "$REPORT"
+import sys
+import xml.etree.ElementTree as ET
+try:
+    root = ET.parse(sys.argv[1]).getroot()
+    labels = [n.attrib.get("text", "").strip() for n in root.iter("node")]
+    print("CHAPTER WAIT FINAL UI: " + " | ".join(label for label in labels if label)[:5000])
+except Exception as exc:
+    print("CHAPTER WAIT FINAL UI: unable to parse hierarchy: " + str(exc))
+PY
+  fi
+  exit 1
+fi
 python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py tap chapter-options.xml "Choose chapter"
 sleep 2
@@ -165,6 +216,68 @@ sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
 python3 .github/scripts/ui_smoke.py tap ready-to-teach.xml "Teach"
+
+log "Waiting up to 90 seconds for confirmed playback (one hard deadline; bounded UI dumps)"
+pause_ready=false
+playback_deadline=$((SECONDS + 90))
+rm -f ui-screenshots/live-pause-control.xml
+timeout 5s "${ADB[@]}" shell rm -f /data/local/tmp/live-pause-control.xml >/dev/null 2>&1 || true
+while [ "$SECONDS" -lt "$playback_deadline" ]; do
+  if timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml >/dev/null 2>&1; then
+    timeout 5s "${ADB[@]}" pull /data/local/tmp/live-pause-control.xml ui-screenshots/live-pause-control.xml >/dev/null 2>&1 || rm -f ui-screenshots/live-pause-control.xml
+  else
+    rm -f ui-screenshots/live-pause-control.xml
+  fi
+  if [ -f ui-screenshots/live-pause-control.xml ] && python3 .github/scripts/ui_smoke.py has-pause-control ui-screenshots/live-pause-control.xml >/dev/null 2>&1; then
+    pause_ready=true
+    break
+  fi
+  sleep 2
+done
+if [ "$pause_ready" != true ]; then
+  # Capture the last visible state so an app-state failure is diagnosable from
+  # CI artifacts rather than reported only as a missing button.
+  timeout 5s "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-playback-timeout.png 2>/dev/null || true
+  timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-playback-timeout.xml >/dev/null 2>&1 || true
+  timeout 5s "${ADB[@]}" pull /data/local/tmp/live-playback-timeout.xml ui-screenshots/live-playback-timeout.xml >/dev/null 2>&1 || true
+  if [ -f ui-screenshots/live-playback-timeout.xml ]; then
+    python3 - "ui-screenshots/live-playback-timeout.xml" <<'PY' | tee -a "$REPORT"
+import sys
+import xml.etree.ElementTree as ET
+try:
+    root = ET.parse(sys.argv[1]).getroot()
+    labels = [n.attrib.get("text", "").strip() for n in root.iter("node")]
+    labels = [label for label in labels if label]
+    print("PLAYBACK TIMEOUT UI STATE: " + " | ".join(labels[:100]))
+except Exception as exc:
+    print("PLAYBACK TIMEOUT UI STATE: unable to parse last hierarchy: " + str(exc))
+PY
+  fi
+  echo "FAIL: live audio never exposed a usable Pause/Resume control before the 90-second deadline" | tee -a "$REPORT"
+  exit 1
+fi
+python3 .github/scripts/ui_smoke.py assert-pause-control ui-screenshots/live-pause-control.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap ui-screenshots/live-pause-control.xml "Pause"
+sleep 2
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-paused.xml
+"${ADB[@]}" pull /data/local/tmp/live-paused.xml ui-screenshots/live-paused.xml
+python3 .github/scripts/ui_smoke.py assert-paused ui-screenshots/live-paused.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap ui-screenshots/live-paused.xml "Resume"
+resume_ready=false
+for attempt in $(seq 1 15); do
+  sleep 1
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-resumed.xml ui-screenshots/live-resumed.xml >/dev/null 2>&1 || true
+  if [ -f ui-screenshots/live-resumed.xml ] && python3 .github/scripts/ui_smoke.py assert-resumed ui-screenshots/live-resumed.xml >/dev/null 2>&1; then
+    resume_ready=true
+    break
+  fi
+done
+if [ "$resume_ready" != true ]; then
+  echo "FAIL: Resume did not return to confirmed speaking state" | tee -a "$REPORT"
+  exit 1
+fi
+python3 .github/scripts/ui_smoke.py assert-resumed ui-screenshots/live-resumed.xml | tee -a "$REPORT"
 
 log "Recording live lesson frames to verify inline spoken-word highlighting"
 "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames

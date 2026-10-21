@@ -205,7 +205,7 @@ def validate_dispatch():
                 if isinstance(comparator, ast.Constant) and isinstance(comparator.value, str):
                     actions.add(comparator.value)
     script = Path(__file__).with_name("android-ui-smoke.sh").read_text(encoding="utf-8")
-    called = set(re.findall(r"ui_smoke\\.py\\s+([a-z][a-z-]+)", script))
+    called = set(re.findall(r"ui_smoke\.py\s+([a-z][a-z-]+)", script))
     missing = sorted(called - actions)
     if missing:
         raise SystemExit("Smoke-test actions missing from ui_smoke.py dispatcher: " + ", ".join(missing))

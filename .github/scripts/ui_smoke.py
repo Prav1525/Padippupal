@@ -98,24 +98,39 @@ def tap_numbered(path, number):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
                    check=True, timeout=45)
 
-def tap_first_concept(path):
-    nodes, texts = load(path)
-    candidates = []
+def concept_candidates(nodes):
+    """Return visible numbered topic rows; Compose may omit clickable/enabled flags."""
+    numbered = []
+    pattern = r"^\d+[.)]\s*\S"
     for node in nodes:
         label = node.attrib.get("text", "").strip()
-        if not label or label.lower() in ("choose concept", "choose chapter", "done", "cancel"):
+        bounds = node.attrib.get("bounds", "")
+        if not re.match(pattern, label):
             continue
-        if node.attrib.get("clickable") == "true" and node.attrib.get("enabled") == "true":
-            candidates.append(node)
+        if not re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", bounds):
+            continue
+        if node.attrib.get("enabled") == "false":
+            continue
+        numbered.append(node)
+    # Prefer explicit accessibility clickability, but do not require it:
+    # Compose dialog rows can be tappable even when the XML node says clickable=false.
+    return sorted(numbered, key=lambda n: n.attrib.get("clickable") != "true")
+
+
+def tap_first_concept(path):
+    nodes, texts = load(path)
+    candidates = concept_candidates(nodes)
     if not candidates:
-        raise SystemExit("No selectable concept was shown. Visible labels: " + " | ".join(texts[:120]))
+        raise SystemExit("No visible numbered concept row with valid tap bounds. Visible labels: " + " | ".join(texts[:120]))
     node = candidates[0]
-    bounds = node.attrib.get("bounds", "")
+    bounds = node.attrib["bounds"]
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-    if not match:
-        raise SystemExit("First concept has invalid bounds: " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
-    print("Selecting first real concept option:", node.attrib.get("text"), bounds)
+    if x2 <= x1 or y2 <= y1:
+        raise SystemExit("Concept row has zero-area bounds: " + bounds)
+    print("Selecting first visible concept row:", node.attrib.get("text"), bounds,
+          "clickable=", node.attrib.get("clickable", "unspecified"),
+          "enabled=", node.attrib.get("enabled", "unspecified"))
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
                    check=True, timeout=45)
 

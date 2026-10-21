@@ -63,7 +63,9 @@ jobs:
           arch: x86_64
           profile: pixel_2
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -cores 4 -memory 4096
-          disable-animations: true
+          # The runner's post-boot settings command hit ADB Broken pipe (32)
+          # on this slow boot; leave animation settings untouched for the smoke test.
+          disable-animations: false
           emulator-boot-timeout: 900
           script: bash .github/scripts/android-ui-smoke.sh
 

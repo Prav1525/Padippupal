@@ -173,6 +173,28 @@ def assert_highlight_frames(directory):
         raise SystemExit("No clear inline word-highlight background was detected in the captured live lesson frames")
     print("PASS: at least one emulator frame contains the inline spoken-word highlight")
 
+def assert_live_layout(path):
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise SystemExit("Pillow is required to inspect live lesson layout") from exc
+    image = Image.open(path).convert("RGB")
+    width, height = image.size
+    # The live teaching panel uses #EAF5EE. Check its central area near the
+    # bottom of the teaching viewport, above the fixed message composer.
+    x1, x2 = int(width * 0.15), int(width * 0.85)
+    y1, y2 = int(height * 0.58), int(height * 0.70)
+    count = 0
+    for y in range(y1, y2):
+        for x in range(x1, x2):
+            if image.getpixel((x, y)) == (234, 245, 238):
+                count += 1
+    print(f"Live panel lower-viewport background pixels: {count}")
+    if count < 500:
+        raise SystemExit("Live teaching panel does not fill the available vertical space; a large unused blank area remains below the lesson")
+    print("PASS: live teaching panel occupies the available teaching viewport")
+
+
 def tap(path, target):
     nodes, texts = load(path)
     candidates = []
@@ -219,6 +241,8 @@ def main():
         assert_live(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:
         assert_highlight_frames(sys.argv[3])
+    elif action == "assert-live-layout":
+        assert_live_layout(path)
     elif action == "tap" and len(sys.argv) >= 4:
         tap(path, sys.argv[3])
     else:

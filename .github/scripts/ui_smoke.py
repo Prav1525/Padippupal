@@ -65,8 +65,10 @@ def assert_chapter_button(path):
     if node is None:
         raise SystemExit("Choose chapter control was not found after selecting Mathematics")
     if node.attrib.get("enabled") != "true":
-        raise SystemExit("Chapter list did not load or the Choose chapter control is disabled")
-    print("PASS: Mathematics chapter list loaded and can be opened")
+        raise SystemExit("Choose chapter control is disabled")
+    if any("no chapter list is available" in text.lower() for text in texts):
+        raise SystemExit("Chapter options are empty for the selected board/class/subject. This is a curriculum/API-data failure, not a successful load.")
+    print("PASS: chapter picker is enabled and the UI does not report an empty chapter list")
 
 def tap_numbered(path, number):
     nodes, texts = load(path)

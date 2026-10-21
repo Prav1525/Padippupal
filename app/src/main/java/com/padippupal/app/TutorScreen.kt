@@ -109,7 +109,9 @@ private data class MoveItem(val icon: String, val name: String, val x: Float, va
 private fun WordByWordCaption(
     text: String,
     active: Boolean,
-    currentWordIndex: Int
+    currentWordIndex: Int,
+    modifier: Modifier = Modifier,
+    expandToAvailableHeight: Boolean = false
 ) {
     val words = remember(text) { Regex("\\S+").findAll(text).map { it.value }.toList() }
     val wordStarts = remember(text) {
@@ -152,9 +154,12 @@ private fun WordByWordCaption(
             runCatching { scrollState.animateScrollTo(target) }
         }
     }
-    Box(
-        Modifier.fillMaxWidth().heightIn(max = 150.dp).verticalScroll(scrollState)
-    ) {
+    val captionModifier = if (expandToAvailableHeight) {
+        modifier.fillMaxWidth().verticalScroll(scrollState)
+    } else {
+        modifier.fillMaxWidth().heightIn(max = 150.dp).verticalScroll(scrollState)
+    }
+    Box(captionModifier) {
         Text(
             text = caption,
             modifier = Modifier.fillMaxWidth(),
@@ -1706,11 +1711,11 @@ internal fun TutorScreen(
             if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
                 item(key = "live-teaching-passage") {
                     Surface(
-                        Modifier.fillMaxWidth(),
+                        Modifier.fillMaxWidth().fillParentMaxHeight(),
                         color = Color(0xFFEAF5EE), shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, Color(0xFFD1E7D8))
                     ) {
-                        Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
                                 Spacer(Modifier.width(6.dp))
@@ -1719,7 +1724,11 @@ internal fun TutorScreen(
                                 if (liveLessonActive) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                             }
                             if (liveCaption.isNotBlank()) {
-                                WordByWordCaption(liveCaption, speechActive, liveWordIndex)
+                                WordByWordCaption(
+                                    liveCaption, speechActive, liveWordIndex,
+                                    modifier = Modifier.weight(1f),
+                                    expandToAvailableHeight = true
+                                )
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                             if (liveCaption.isNotBlank() && liveLessonActive && !speechActive && !awaitingUnderstanding) InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)

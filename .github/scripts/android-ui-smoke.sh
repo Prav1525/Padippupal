@@ -19,9 +19,52 @@ capture_diagnostics() {
 trap capture_diagnostics EXIT
 
 adb devices -l | tee ui-screenshots/adb-devices.txt
+
+# Emulator boot_completed can become 1 while Android's package/activity services
+# are still restarting. Do not race PackageManager with APK installation.
+log "Waiting for Android framework and PackageManager readiness (max 180s)"
+timeout 30s adb -s emulator-5554 wait-for-device
+ready=0
+for attempt in $(seq 1 36); do
+  booted=$("${ADB[@]}" shell getprop sys.boot_completed 2>/dev/null | tr -d '\\r' || true)
+  package_service=$("${ADB[@]}" shell service check package 2>/dev/null || true)
+  activity_service=$("${ADB[@]}" shell service check activity 2>/dev/null || true)
+  if [ "$booted" = "1" ] && echo "$package_service" | grep -q "found" && echo "$activity_service" | grep -q "found"; then
+    # A service can be registered before it is responsive; prove PackageManager
+    # can answer a real query before attempting install.
+    if timeout 10s "${ADB[@]}" shell cmd package list packages >/dev/null 2>&1; then
+      ready=1
+      break
+    fi
+  fi
+  log "Android services not ready yet (attempt $attempt/36; boot=$booted; package=$package_service; activity=$activity_service)"
+  sleep 5
+done
+if [ "$ready" -ne 1 ]; then
+  log "FAIL: Android framework/PackageManager did not become responsive within 180 seconds"
+  "${ADB[@]}" shell getprop > ui-screenshots/getprop.txt 2>&1 || true
+  "${ADB[@]}" shell service list > ui-screenshots/services.txt 2>&1 || true
+  exit 1
+fi
 "${ADB[@]}" shell getprop sys.boot_completed | tee -a "$REPORT"
-log "Installing debug APK"
-timeout 120s "${ADB[@]}" install -r app/build/outputs/apk/debug/app-debug.apk
+log "Installing debug APK (up to 3 attempts after framework readiness)"
+installed=0
+for attempt in 1 2 3; do
+  if timeout 60s "${ADB[@]}" install -r app/build/outputs/apk/debug/app-debug.apk; then
+    installed=1
+    break
+  fi
+  log "APK install attempt $attempt failed; collecting package-service state and reconnecting ADB"
+  "${ADB[@]}" shell service check package >> "$REPORT" 2>&1 || true
+  "${ADB[@]}" shell cmd package list packages > "ui-screenshots/packages-attempt-$attempt.txt" 2>&1 || true
+  adb reconnect offline >/dev/null 2>&1 || true
+  timeout 20s adb -s emulator-5554 wait-for-device || true
+  sleep 5
+done
+if [ "$installed" -ne 1 ]; then
+  log "FAIL: APK install failed after 3 bounded attempts"
+  exit 1
+fi
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity
 

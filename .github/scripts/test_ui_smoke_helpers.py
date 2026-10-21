@@ -78,8 +78,9 @@ class RetryIsolationTests(unittest.TestCase):
 
     def test_smoke_attempt_resets_profile_before_writing_cbse_profile(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        reset = 'run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml'
+        reset = 'pm clear com.padippupal.app'
         self.assertIn(reset, script)
+        self.assertIn('grep -q "Success"', script)
         self.assertLess(script.index(reset), script.index("Configuring smoke-test profile"))
 
 

@@ -76,6 +76,13 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn("rm -f home.xml tutor.xml", script)
         self.assertLess(script.index("rm -rf ui-screenshots"), script.index("bash .github/scripts/android-ui-smoke.sh"))
 
+    def test_playback_wait_covers_lesson_plan_and_hosted_voice_deadlines(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn("readTimeout = 50000", (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text())
+        self.assertIn("readTimeout = 15000", (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text())
+        self.assertIn("for attempt in $(seq 1 45); do", script)
+        self.assertIn("up to 90 seconds", script)
+
     def test_smoke_attempt_resets_profile_before_writing_cbse_profile(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         reset = 'pm clear com.padippupal.app'

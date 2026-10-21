@@ -356,6 +356,35 @@ def test_lesson_plan_rejects_unretrieved_chunk_ids():
             "source_chunk_ids": ["unknown"], "visual_action": {"type": "none", "target": "", "value": ""},
             "checkpoint": None}]}), {"known"}, 5)
 
+
+def test_lesson_plan_normalizes_optional_presentation_fields_without_inventing_citations():
+    chunk_id = "chunk-verified"
+    raw = json.dumps({"segments": [{
+        "spoken_text": "Look at this number pattern.",
+        "source_chunk_ids": [chunk_id],
+    }]})
+    result = curriculum._validate_lesson_plan(raw, {chunk_id}, 5)
+    segment = result["segments"][0]
+    assert segment["id"] == "segment-1"
+    assert segment["caption_text"] == segment["spoken_text"]
+    assert segment["visual_action"] == {"type": "none", "target": "", "value": ""}
+    assert segment["checkpoint"] is None
+    assert segment["source_chunk_ids"] == [chunk_id]
+
+
+def test_lesson_plan_validation_reports_missing_required_field_without_model_input():
+    import pytest
+    with pytest.raises(curriculum.HTTPException) as captured:
+        curriculum._validate_lesson_plan(json.dumps({"segments": [{
+            "id": "s1", "spoken_text": "A sourced explanation.",
+            "caption_text": "A sourced explanation.",
+            "visual_action": {"type": "none", "target": "", "value": ""},
+        }]}), {"known"}, 5)
+    assert captured.value.status_code == 502
+    assert "source_chunk_ids" in captured.value.detail
+    assert "fields:" in captured.value.detail
+
+
 def test_lesson_plan_does_not_generate_when_retrieval_is_empty(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": []})

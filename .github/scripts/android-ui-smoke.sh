@@ -166,6 +166,44 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xm
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
 python3 .github/scripts/ui_smoke.py tap ready-to-teach.xml "Teach"
 
+log "Waiting for confirmed playback and testing Pause/Resume"
+pause_ready=false
+for attempt in $(seq 1 25); do
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-pause-control.xml ui-screenshots/live-pause-control.xml >/dev/null 2>&1 || true
+  if [ -f ui-screenshots/live-pause-control.xml ] && python3 .github/scripts/ui_smoke.py has-pause-control ui-screenshots/live-pause-control.xml >/dev/null 2>&1; then
+    pause_ready=true
+    break
+  fi
+  sleep 2
+done
+if [ "$pause_ready" != true ]; then
+  echo "FAIL: live audio never exposed a usable Pause/Resume control" | tee -a "$REPORT"
+  exit 1
+fi
+python3 .github/scripts/ui_smoke.py assert-pause-control ui-screenshots/live-pause-control.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap ui-screenshots/live-pause-control.xml "Pause"
+sleep 2
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-paused.xml
+"${ADB[@]}" pull /data/local/tmp/live-paused.xml ui-screenshots/live-paused.xml
+python3 .github/scripts/ui_smoke.py assert-paused ui-screenshots/live-paused.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap ui-screenshots/live-paused.xml "Resume"
+resume_ready=false
+for attempt in $(seq 1 15); do
+  sleep 1
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-resumed.xml ui-screenshots/live-resumed.xml >/dev/null 2>&1 || true
+  if [ -f ui-screenshots/live-resumed.xml ] && python3 .github/scripts/ui_smoke.py assert-resumed ui-screenshots/live-resumed.xml >/dev/null 2>&1; then
+    resume_ready=true
+    break
+  fi
+done
+if [ "$resume_ready" != true ]; then
+  echo "FAIL: Resume did not return to confirmed speaking state" | tee -a "$REPORT"
+  exit 1
+fi
+python3 .github/scripts/ui_smoke.py assert-resumed ui-screenshots/live-resumed.xml | tee -a "$REPORT"
+
 log "Recording live lesson frames to verify inline spoken-word highlighting"
 "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
 "${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames

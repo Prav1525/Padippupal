@@ -6,6 +6,9 @@ mkdir -p attempt-artifacts
 result=1
 for attempt in 1 2; do
   echo "===== UI smoke attempt $attempt/2 ====="
+  # Never let a retry consume XML/screenshots left by the previous attempt.
+  rm -rf ui-screenshots
+  rm -f home.xml tutor.xml home-return.xml feedback.xml settings.xml chapter-options.xml chapter-menu.xml chapter-selected.xml concept-menu.xml concept-selected.xml ready-to-teach.xml live-lesson.xml
   set +e
   bash .github/scripts/android-ui-smoke.sh
   result=$?

@@ -7,14 +7,21 @@ REPORT="ui-screenshots/test-report.txt"
 ADB=(adb -s emulator-5554)
 log() { printf '%s\n' "$*" | tee -a "$REPORT"; }
 capture_diagnostics() {
+  # Preserve the original failure code. Diagnostics must never turn a quick
+  # failure into a multi-minute hang on an unhealthy emulator/ADB transport.
   rc=$?
+  set +e
+  log "Collecting bounded diagnostics (each ADB call max 5 seconds)"
   if command -v adb >/dev/null 2>&1; then
-    adb -s emulator-5554 logcat -d > ui-screenshots/logcat.txt 2>&1 || true
-    adb -s emulator-5554 shell dumpsys activity activities > ui-screenshots/activities.txt 2>&1 || true
-    adb -s emulator-5554 shell dumpsys window > ui-screenshots/windows.txt 2>&1 || true
-    adb -s emulator-5554 shell dumpsys connectivity > ui-screenshots/connectivity.txt 2>&1 || true
-    adb -s emulator-5554 logcat -d -s System.err AndroidRuntime OkHttp OkHttpClient TrafficStats NetworkSecurityConfig > ui-screenshots/network-errors.txt 2>&1 || true
+    timeout -k 1s 5s adb devices -l > ui-screenshots/adb-devices-on-exit.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 get-state > ui-screenshots/adb-state-on-exit.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 logcat -d > ui-screenshots/logcat.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 shell dumpsys activity activities > ui-screenshots/activities.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 shell dumpsys window > ui-screenshots/windows.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 shell dumpsys connectivity > ui-screenshots/connectivity.txt 2>&1
+    timeout -k 1s 5s adb -s emulator-5554 logcat -d -s System.err AndroidRuntime OkHttp OkHttpClient TrafficStats NetworkSecurityConfig > ui-screenshots/network-errors.txt 2>&1
   fi
+  log "Diagnostics collection finished (some files may contain timeout/offline errors)"
   if [ "$rc" -ne 0 ]; then log "RESULT: FAIL (exit $rc)"; else log "RESULT: PASS"; fi
   exit "$rc"
 }
@@ -27,12 +34,34 @@ timeout -k 2s 8s "${ADB[@]}" shell getprop sys.boot_completed || {
   log "FAIL: emulator did not respond to ADB health check before install"
   exit 1
 }
-log "Installing debug APK (hard timeout 25 seconds)"
-timeout -k 3s 25s "${ADB[@]}" install -r app/build/outputs/apk/debug/app-debug.apk || {
-  rc=$?
-  log "FAIL: APK installation did not complete (exit $rc); collecting diagnostics"
-  exit "$rc"
+APK="app/build/outputs/apk/debug/app-debug.apk"
+if [ ! -s "$APK" ]; then
+  log "FAIL: APK missing or empty at $APK"
+  exit 1
+fi
+log "APK size: $(stat -c '%s' "$APK") bytes"
+log "Checking ADB transport and package manager before install"
+timeout -k 1s 5s "${ADB[@]}" get-state | tee -a "$REPORT" || {
+  log "FAIL_CLASS=EMULATOR_ADB_TRANSPORT"
+  log "FAIL: emulator ADB transport is not in device state; refusing install"
+  exit 1
 }
+timeout -k 1s 8s "${ADB[@]}" shell pm path android | tee -a "$REPORT" || {
+  log "FAIL_CLASS=EMULATOR_PACKAGE_MANAGER"
+  log "FAIL: Android package manager did not answer health probe"
+  exit 1
+}
+log "Installing debug APK (hard timeout 45 seconds; output captured)"
+set +e
+timeout -k 2s 45s "${ADB[@]}" install -r "$APK" > ui-screenshots/install-output.txt 2>&1
+install_rc=$?
+set -e
+cat ui-screenshots/install-output.txt | tee -a "$REPORT"
+if [ "$install_rc" -ne 0 ]; then
+  log "FAIL_CLASS=APK_INSTALL_OR_EMULATOR"
+  log "FAIL: APK installation failed/timed out (exit $install_rc)"
+  exit "$install_rc"
+fi
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity
 

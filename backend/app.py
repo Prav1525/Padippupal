@@ -1533,7 +1533,42 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         with urllib.request.urlopen(req, timeout=45) as response:
             result = json.loads(response.read().decode("utf-8"))
         raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
-        validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+        try:
+            validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+        except HTTPException as validation_error:
+            # A model can return malformed JSON-shaped segments or citations even when
+            # retrieval succeeded. Keep the lesson grounded and usable by falling back
+            # to short verbatim excerpts from the already-retrieved textbook chunks.
+            # Never fabricate source IDs or paraphrase facts in this recovery path.
+            fallback_segments = []
+            for index, item in enumerate(matches[:payload.max_segments]):
+                source = item.get("source", {})
+                chunk_id = str(source.get("chunk_id", "")).strip()
+                passage = re.sub(r"\\s+", " ", str(item.get("text", ""))).strip()
+                if not chunk_id or chunk_id not in allowed_ids or not passage:
+                    continue
+                # Prefer the first complete sentence; if the PDF chunk has no sentence
+                # punctuation, use a short exact excerpt rather than failing the lesson.
+                sentence = re.split(r"(?<=[.!?])\\s+", passage, maxsplit=1)[0].strip()
+                words = sentence.split()
+                excerpt = " ".join(words[:22]).strip()
+                if not excerpt:
+                    continue
+                if len(words) > 22:
+                    excerpt = excerpt.rstrip(".,;:") + "…"
+                fallback_segments.append({
+                    "id": "textbook-excerpt-" + str(index + 1),
+                    "spoken_text": excerpt[:500],
+                    "caption_text": excerpt[:500],
+                    "source_chunk_ids": [chunk_id],
+                    "visual_action": {"type": "none", "target": "", "value": ""},
+                    "checkpoint": None,
+                })
+            if not fallback_segments:
+                raise validation_error
+            logger.warning("Lesson planner output invalid; recovered with %d verbatim textbook excerpt segment(s)",
+                           len(fallback_segments))
+            validated = {"segments": fallback_segments}
     except urllib.error.HTTPError as exc:
         logger.warning("Gemini lesson planner rejected: status=%s model=%s", exc.code, model)
         raise HTTPException(status_code=503 if exc.code == 429 else 502, detail="The lesson planner could not answer right now.") from exc

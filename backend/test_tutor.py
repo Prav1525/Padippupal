@@ -183,8 +183,8 @@ def test_interactive_lesson_catalog_covers_all_class_six_chapters(monkeypatch, t
     monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "interactive-lessons.sqlite3")
     curriculum.init_db()
     client = TestClient(curriculum.app)
-    science = client.get("/interactive-lessons", params={"board": "CBSE", "class_level": 6, "subject": "Science", "limit": 100})
-    maths = client.get("/interactive-lessons", params={"board": "CBSE", "class_level": 6, "subject": "Mathematics", "limit": 100})
+    science = client.get("/interactive-lessons", params={"board": "CBSE", "class_level": 6, "subject": "Science", "limit": 200})
+    maths = client.get("/interactive-lessons", params={"board": "CBSE", "class_level": 6, "subject": "Mathematics", "limit": 200})
     assert science.status_code == 200
     assert maths.status_code == 200
     assert science.json()["count"] == 36

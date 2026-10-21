@@ -120,8 +120,14 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home.xml || {
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 FAILURE_CLASS="APP_FAILURE"
 
-log "Opening tutor using accessibility bounds"
+log "Opening tutor using the new subject-first navigation"
 python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
+sleep 3
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/subject-selection.png
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/subject-selection.xml
+"${ADB[@]}" pull /data/local/tmp/subject-selection.xml subject-selection.xml
+python3 .github/scripts/ui_smoke.py assert-subject-selection subject-selection.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap subject-selection.xml "Mathematics"
 sleep 8
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/tutor.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
@@ -131,21 +137,16 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
 
-log "Testing the I understand feedback action"
-python3 .github/scripts/ui_smoke.py tap tutor.xml "I understand"
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/feedback.xml
-"${ADB[@]}" pull /data/local/tmp/feedback.xml feedback.xml
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/feedback.png
-python3 .github/scripts/ui_smoke.py assert-feedback feedback.xml | tee -a "$REPORT"
-
 log "Testing tutor settings and voice controls"
-python3 .github/scripts/ui_smoke.py tap feedback.xml "Change"
+python3 .github/scripts/ui_smoke.py tap tutor.xml "Change"
 sleep 2
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
+
+# The understanding check-in only appears after a real live lesson segment finishes.
+# Do not tap it before playback is confirmed; the later playback assertions verify it.
 
 log "Loading the real Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"

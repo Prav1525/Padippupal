@@ -264,7 +264,9 @@ def main():
         assert_chapter_one(path)
     elif action == "assert-selected-chapter":
         assert_selected_chapter(path)
-    elif action == "tap-bottom-tab" and len(sys.argv) >= 4:\n        tap_bottom_tab(path, sys.argv[3])\n    elif action == "tap-numbered" and len(sys.argv) >= 4:
+    elif action == "tap-bottom-tab" and len(sys.argv) >= 4:
+        tap_bottom_tab(path, sys.argv[3])
+    elif action == "tap-numbered" and len(sys.argv) >= 4:
         tap_numbered(path, sys.argv[3])
     elif action == "tap-first-concept":
         tap_first_concept(path)

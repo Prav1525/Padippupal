@@ -180,9 +180,13 @@ log "Waiting up to 90 seconds for confirmed playback (one hard deadline; bounded
 pause_ready=false
 playback_deadline=$((SECONDS + 90))
 rm -f ui-screenshots/live-pause-control.xml
+timeout 5s "${ADB[@]}" shell rm -f /data/local/tmp/live-pause-control.xml >/dev/null 2>&1 || true
 while [ "$SECONDS" -lt "$playback_deadline" ]; do
-  timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml >/dev/null 2>&1 || true
-  timeout 5s "${ADB[@]}" pull /data/local/tmp/live-pause-control.xml ui-screenshots/live-pause-control.xml >/dev/null 2>&1 || true
+  if timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml >/dev/null 2>&1; then
+    timeout 5s "${ADB[@]}" pull /data/local/tmp/live-pause-control.xml ui-screenshots/live-pause-control.xml >/dev/null 2>&1 || rm -f ui-screenshots/live-pause-control.xml
+  else
+    rm -f ui-screenshots/live-pause-control.xml
+  fi
   if [ -f ui-screenshots/live-pause-control.xml ] && python3 .github/scripts/ui_smoke.py has-pause-control ui-screenshots/live-pause-control.xml >/dev/null 2>&1; then
     pause_ready=true
     break

@@ -76,12 +76,28 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn("rm -f home.xml tutor.xml", script)
         self.assertLess(script.index("rm -rf ui-screenshots"), script.index("bash .github/scripts/android-ui-smoke.sh"))
 
-    def test_playback_wait_covers_lesson_plan_and_hosted_voice_deadlines(self):
+    def test_playback_wait_has_one_real_deadline_and_bounded_ui_operations(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("readTimeout = 50000", (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text())
         self.assertIn("readTimeout = 15000", (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text())
-        self.assertIn("for attempt in $(seq 1 45); do", script)
-        self.assertIn("up to 90 seconds", script)
+        self.assertIn('playback_deadline=$((SECONDS + 90))', script)
+        self.assertIn('while [ "$SECONDS" -lt "$playback_deadline" ]', script)
+        self.assertIn('timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml', script)
+        self.assertIn("live-playback-timeout.png", script)
+        self.assertNotIn("for attempt in $(seq 1 45); do", script)
+
+    def test_live_lesson_invalidates_stale_chat_speech_callbacks(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn("var speechGeneration by remember { mutableIntStateOf(0) }", tutor)
+        self.assertIn('if (requestGeneration != speechGeneration)', tutor)
+        self.assertIn('utteranceId != "padippupal-tutor-$speechGeneration"', tutor)
+        self.assertIn("speechGeneration += 1\n        audioPlayer.value?.let", tutor)
+        self.assertIn("fun stopLiveLesson() {\n        speechGeneration += 1", tutor)
+
+    def test_application_failure_is_not_hidden_by_retry(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke-retry.sh").read_text()
+        self.assertIn('grep -q "RESULT: APP_FAILURE" ui-screenshots/test-report.txt', script)
+        self.assertIn("refusing to mask it with a retry", script)
 
     def test_smoke_attempt_resets_profile_before_writing_cbse_profile(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()

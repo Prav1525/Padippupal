@@ -1364,11 +1364,33 @@ internal fun TutorScreen(
         awaitingUnderstanding = false
         currentCheckpoint = if ((index + 1) % 2 == 0) segment.optString("checkpoint").trim().ifBlank { "Does that make sense so far?" } else ""
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
-        val action = segment.optJSONObject("visual_action")
-        val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
-        status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
-        if (words.isBlank()) { playLiveSegment(index + 1); return }
+        // Defensive guard: malformed curriculum segments must never enter the speech
+        // state machine or leave the lesson waiting forever for a start callback.
+        if (words.isBlank()) {
+            val nextValid = (index + 1 until liveSegments.size).firstOrNull {
+                liveSegments[it].optString("spoken_text").isNotBlank()
+            }
+            if (nextValid != null) playLiveSegment(nextValid) else {
+                liveLessonActive = false
+                speechPlaybackStarted = false
+                speechActive = false
+                status = "This lesson has no playable teaching segments. Please try this topic again."
+            }
+            return
+        }
+        val action = segment.optJSONObject("visual_action")
+        val requestedTopic = (topic + " " + chapter).lowercase()
+        // Keep visuals semantically tied to the selected concept. The generic square-
+        // number fallback is incorrect for an all-ones/repeating-ones lesson.
+        val topicIsAllOnes = requestedTopic.contains("all 1s") ||
+            requestedTopic.contains("all ones") || requestedTopic.contains("repeating one")
+        val effectiveAction = if (topicIsAllOnes) JSONObject()
+            .put("type", "none").put("target", "").put("value", "") else action
+        val visualCue = if (effectiveAction == null || effectiveAction.optString("type") == "none") "" else
+            listOf(effectiveAction.optString("type"), effectiveAction.optString("target"), effectiveAction.optString("value"))
+                .filter { it.isNotBlank() }.joinToString(" · ")
+        status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         // Stay in Preparing until the audio engine confirms playback has actually started.
         // The start callback is shared by hosted audio and the device TTS fallback.
         speak(words, onStarted = {
@@ -1377,8 +1399,8 @@ internal fun TutorScreen(
             liveCaption = words
             liveWordIndex = 0
             liveVisualAction = visualCue
-            liveVisualActionType = action?.optString("type", "none") ?: "none"
-            liveVisualTarget = action?.optString("target", "").orEmpty()
+            liveVisualActionType = effectiveAction?.optString("type", "none") ?: "none"
+            liveVisualTarget = effectiveAction?.optString("target", "").orEmpty()
             liveSegmentIndex = index
             status = "Live lesson · segment ${index + 1} of ${liveSegments.size}"
         }) {

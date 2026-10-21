@@ -7021,7 +7021,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Numbers",
+      "topic": "Odd and Even Numbers",
       "title": "Spot the Odd-Number Pattern",
       "scene_type": "number_pattern",
       "caption": "Odd numbers go 1, 3, 5, 7, 9. Each next number is two more.",
@@ -7113,7 +7113,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
+      "topic": "Triangular Numbers",
       "title": "Build Triangular Numbers",
       "scene_type": "number_pattern",
       "caption": "Triangular numbers can be shown as dots arranged in rows: 1, then 1+2, then 1+2+3.",
@@ -7196,7 +7196,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
+      "topic": "Square Numbers",
       "title": "Make Square Numbers",
       "scene_type": "shape_pattern",
       "caption": "Square numbers can be arranged in equal rows and columns: 1, 4, 9, 16.",
@@ -7279,7 +7279,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
+      "topic": "Cube Numbers",
       "title": "Explore Cube Numbers",
       "scene_type": "number_pattern",
       "caption": "Cube numbers count equal layers in a cube: 1, 8, 27, 64 for 1³, 2³, 3³, 4³.",
@@ -7362,7 +7362,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Numbers",
+      "topic": "Virahanka Numbers",
       "title": "Discover the Virahanka Sequence",
       "scene_type": "number_pattern",
       "caption": "The Virahanka sequence shown in this chapter is 1, 2, 3, 5, 8, 13, ... Each new term is the sum of the previous two.",
@@ -7463,10 +7463,10 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Numbers",
-      "title": "Double to Make Powers of 2",
+      "topic": "Powers of 2 and 3",
+      "title": "Explore Powers of 2 and 3",
       "scene_type": "number_pattern",
-      "caption": "Starting at 1, double each term to get 1, 2, 4, 8, 16, 32.",
+      "caption": "Compare two multiplication patterns: powers of 2 double each time (1, 2, 4, 8, 16), while powers of 3 triple each time (1, 3, 9, 27).",
       "objects": [
         {
           "id": "item1",
@@ -7516,16 +7516,16 @@
       ],
       "steps": [
         {
-          "title": "Begin at 1",
-          "text": "The first number is 1."
+          "title": "Notice",
+          "text": "Powers of 2 double each time: 1, 2, 4, 8, 16."
         },
         {
-          "title": "Double each time",
-          "text": "1 becomes 2, 2 becomes 4, and 4 becomes 8."
+          "title": "Compare",
+          "text": "Powers of 3 triple each time: 1, 3, 9, 27."
         },
         {
-          "title": "Predict the next term",
-          "text": "Multiplying by 2 continues the sequence."
+          "title": "Explain",
+          "text": "The rule is repeated multiplication by 2 or by 3, not adding the same amount."
         }
       ],
       "challenge": {
@@ -7647,7 +7647,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Relations among Number Sequences",
+      "topic": "Odd Numbers Make Squares",
       "title": "Compare Odd Numbers and Squares",
       "scene_type": "number_machine",
       "caption": "Adding consecutive odd numbers makes square numbers: 1; 1+3=4; 1+3+5=9; 1+3+5+7=16.",
@@ -7905,7 +7905,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Shapes",
+      "topic": "Koch Snowflake",
       "title": "Explore a Snowflake Pattern",
       "scene_type": "pattern_builder",
       "caption": "A Koch snowflake starts with a triangle. Repeating a small construction on each side makes a more detailed edge.",
@@ -8316,7 +8316,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums",
-      "topic": "Relations among Number Sequences",
+      "topic": "Two Triangles Make a Square",
       "title": "Two Triangular Numbers Make a Square",
       "scene_type": "number_machine",
       "caption": "Adding consecutive triangular numbers makes square numbers: 1+3=4, 3+6=9, 6+10=16.",
@@ -8390,7 +8390,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-regular-polygons",
-      "topic": "Patterns in Shapes",
+      "topic": "Regular Polygons",
       "title": "Count the Sides of Regular Polygons",
       "scene_type": "shape_pattern",
       "caption": "Regular polygons follow a side-count pattern: triangle 3, square 4, pentagon 5, hexagon 6, and so on.",
@@ -8464,7 +8464,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-complete-graphs",
-      "topic": "Relation to Number Sequences",
+      "topic": "Complete Graphs",
       "title": "Connect Complete Graphs to Triangular Numbers",
       "scene_type": "shape_pattern",
       "caption": "In a complete graph, every point connects to every other point. The edge counts for 2, 3, 4, 5 points are 1, 3, 6, 10.",
@@ -8538,10 +8538,10 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-stacked-shapes",
-      "topic": "Patterns in Shapes",
+      "topic": "Stacked Shapes",
       "title": "Count Stacked Squares and Triangles",
       "scene_type": "shape_pattern",
-      "caption": "The textbook's stacked-square and stacked-triangle sequences contain 1, 4, 9, 16, 25, ... small pieces.",
+      "caption": "The textbook's stacked-square and stacked-triangle sequences contain 1, 4, 9, 16, 25, ... small pieces. The textbook labels this construction as stacked triangles as well as stacked squares.",
       "objects": [
         {
           "id": "s1",
@@ -8574,7 +8574,7 @@
       "steps": [
         {
           "title": "Count the pieces",
-          "text": "Count the little squares in each stacked-square picture, or the little triangles in each stacked-triangle picture."
+          "text": "Count the little squares in each stacked-square picture, or the little triangles in each stacked-triangle picture. Compare both the stacked squares and stacked triangles."
         },
         {
           "title": "Compare the totals",
@@ -8690,10 +8690,10 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
+      "topic": "Hexagonal Numbers and Cubes",
       "title": "Discover Hexagonal Numbers",
       "scene_type": "number_pattern",
-      "caption": "The textbook shows the sequence 1, 7, 19, 37, ... as hexagonal numbers.",
+      "caption": "Hexagonal numbers form one number pattern, while cube numbers are 1, 8, 27, 64. Compare the visual arrangements and the multiplication rules.",
       "objects": [
         {
           "id": "h1",

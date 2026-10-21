@@ -7021,7 +7021,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Odd and Even Numbers",
+      "topic": "Patterns in Numbers",
       "title": "Spot the Odd-Number Pattern",
       "scene_type": "number_pattern",
       "caption": "Odd numbers go 1, 3, 5, 7, 9. Each next number is two more.",
@@ -7113,7 +7113,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Triangular Numbers",
+      "topic": "Visualising Number Sequences",
       "title": "Build Triangular Numbers",
       "scene_type": "number_pattern",
       "caption": "Triangular numbers can be shown as dots arranged in rows: 1, then 1+2, then 1+2+3.",
@@ -7196,7 +7196,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Square Numbers",
+      "topic": "Visualising Number Sequences",
       "title": "Make Square Numbers",
       "scene_type": "shape_pattern",
       "caption": "Square numbers can be arranged in equal rows and columns: 1, 4, 9, 16.",
@@ -7279,7 +7279,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Cube Numbers",
+      "topic": "Visualising Number Sequences",
       "title": "Explore Cube Numbers",
       "scene_type": "number_pattern",
       "caption": "Cube numbers count equal layers in a cube: 1, 8, 27, 64 for 1³, 2³, 3³, 4³.",
@@ -7362,7 +7362,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Virahanka Numbers",
+      "topic": "Patterns in Numbers",
       "title": "Discover the Virahanka Sequence",
       "scene_type": "number_pattern",
       "caption": "The Virahanka sequence shown in this chapter is 1, 2, 3, 5, 8, 13, ... Each new term is the sum of the previous two.",
@@ -7463,7 +7463,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Powers of 2 and 3",
+      "topic": "Patterns in Numbers",
       "title": "Explore Powers of 2 and 3",
       "scene_type": "number_pattern",
       "caption": "Compare two multiplication patterns: powers of 2 double each time (1, 2, 4, 8, 16), while powers of 3 triple each time (1, 3, 9, 27).",
@@ -7647,7 +7647,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Odd Numbers Make Squares",
+      "topic": "Relations among Number Sequences",
       "title": "Compare Odd Numbers and Squares",
       "scene_type": "number_machine",
       "caption": "Adding consecutive odd numbers makes square numbers: 1; 1+3=4; 1+3+5=9; 1+3+5+7=16.",
@@ -7905,7 +7905,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Koch Snowflake",
+      "topic": "Patterns in Shapes",
       "title": "Explore a Snowflake Pattern",
       "scene_type": "pattern_builder",
       "caption": "A Koch snowflake starts with a triangle. Repeating a small construction on each side makes a more detailed edge.",
@@ -8316,7 +8316,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums",
-      "topic": "Two Triangles Make a Square",
+      "topic": "Relations among Number Sequences",
       "title": "Two Triangular Numbers Make a Square",
       "scene_type": "number_machine",
       "caption": "Adding consecutive triangular numbers makes square numbers: 1+3=4, 3+6=9, 6+10=16.",
@@ -8390,7 +8390,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-regular-polygons",
-      "topic": "Regular Polygons",
+      "topic": "Patterns in Shapes",
       "title": "Count the Sides of Regular Polygons",
       "scene_type": "shape_pattern",
       "caption": "Regular polygons follow a side-count pattern: triangle 3, square 4, pentagon 5, hexagon 6, and so on.",
@@ -8464,7 +8464,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-complete-graphs",
-      "topic": "Complete Graphs",
+      "topic": "Relation to Number Sequences",
       "title": "Connect Complete Graphs to Triangular Numbers",
       "scene_type": "shape_pattern",
       "caption": "In a complete graph, every point connects to every other point. The edge counts for 2, 3, 4, 5 points are 1, 3, 6, 10.",
@@ -8538,7 +8538,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-stacked-shapes",
-      "topic": "Stacked Shapes",
+      "topic": "Patterns in Shapes",
       "title": "Count Stacked Squares and Triangles",
       "scene_type": "shape_pattern",
       "caption": "The textbook's stacked-square and stacked-triangle sequences contain 1, 4, 9, 16, 25, ... small pieces. The textbook labels this construction as stacked triangles as well as stacked squares.",
@@ -8690,7 +8690,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Hexagonal Numbers and Cubes",
+      "topic": "Visualising Number Sequences",
       "title": "Discover Hexagonal Numbers",
       "scene_type": "number_pattern",
       "caption": "Hexagonal numbers form one number pattern, while cube numbers are 1, 8, 27, 64. Compare the visual arrangements and the multiplication rules.",
@@ -8763,6 +8763,1076 @@
           "chapter": "Patterns in Mathematics",
           "page_start": 5,
           "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-odd-numbers-topic-odd-and-even-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Odd and Even Numbers",
+      "title": "Odd and Even Numbers",
+      "scene_type": "number_pattern",
+      "caption": "Odd numbers are 1, 3, 5, 7, ... and even numbers are 2, 4, 6, 8, ... Both patterns increase by 2.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "3",
+          "kind": "number",
+          "position": [
+            0.30000000000000004,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "5",
+          "kind": "number",
+          "position": [
+            0.5,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "7",
+          "kind": "number",
+          "position": [
+            0.7000000000000001,
+            0.3
+          ]
+        },
+        {
+          "id": "item5",
+          "label": "9",
+          "kind": "number",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Odd numbers: 1, 3, 5, 7. Even numbers: 2, 4, 6, 8."
+        },
+        {
+          "title": "Compare",
+          "text": "Each list increases by 2, but the lists begin with different parity."
+        },
+        {
+          "title": "Explain",
+          "text": "A whole number is even if it can be paired with no one left over; otherwise it is odd."
+        }
+      ],
+      "challenge": {
+        "question": "What comes next: 1, 3, 5, 7?",
+        "options": [
+          "8",
+          "9",
+          "11"
+        ],
+        "answer": "9",
+        "hint": "Add 2 to 7.",
+        "success_feedback": "Right. The next odd number is 9."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 4,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-triangular-numbers-topic-triangular-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Triangular Numbers",
+      "title": "Triangular Numbers",
+      "scene_type": "number_pattern",
+      "caption": "Triangular numbers can be shown as dots arranged in rows: 1, then 1+2, then 1+2+3.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "3",
+          "kind": "number",
+          "position": [
+            0.3666666666666667,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "6",
+          "kind": "number",
+          "position": [
+            0.6333333333333333,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "10",
+          "kind": "number",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Start with one dot",
+          "text": "The first triangular number is 1."
+        },
+        {
+          "title": "Add a new row",
+          "text": "Add 2 dots to make 3, then 3 more to make 6."
+        },
+        {
+          "title": "Notice the growth",
+          "text": "The added amounts are 2, 3, 4, and so on."
+        }
+      ],
+      "challenge": {
+        "question": "After 1, 3, 6, how many dots make the next triangular number?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "10",
+        "hint": "Add the next row of 4 dots to 6.",
+        "success_feedback": "Correct. Six plus four makes 10."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 3,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-square-numbers-topic-square-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Square Numbers",
+      "title": "Square Numbers",
+      "scene_type": "shape_pattern",
+      "caption": "Square numbers can be arranged in equal rows and columns: 1, 4, 9, 16.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "shape",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "2×2",
+          "kind": "shape",
+          "position": [
+            0.3666666666666667,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "3×3",
+          "kind": "shape",
+          "position": [
+            0.6333333333333333,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "4×4",
+          "kind": "shape",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "One square",
+          "text": "A 1 by 1 arrangement has 1 dot."
+        },
+        {
+          "title": "Make a larger square",
+          "text": "A 2 by 2 arrangement has 4 dots; 3 by 3 has 9."
+        },
+        {
+          "title": "Find the rule",
+          "text": "Multiply the side count by itself to get the square number."
+        }
+      ],
+      "challenge": {
+        "question": "How many dots are in a 3 by 3 square?",
+        "options": [
+          "6",
+          "8",
+          "9"
+        ],
+        "answer": "9",
+        "hint": "There are 3 rows with 3 dots in each row.",
+        "success_feedback": "Exactly. 3 times 3 is 9."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 3,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-cube-numbers-topic-cube-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Cube Numbers",
+      "title": "Cube Numbers",
+      "scene_type": "number_pattern",
+      "caption": "Cube numbers count equal layers in a cube: 1, 8, 27, 64 for 1³, 2³, 3³, 4³.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "8",
+          "kind": "number",
+          "position": [
+            0.3666666666666667,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "27",
+          "kind": "number",
+          "position": [
+            0.6333333333333333,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "64",
+          "kind": "number",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Imagine layers",
+          "text": "A cube has the same number of unit cubes along length, width and height."
+        },
+        {
+          "title": "Count a small cube",
+          "text": "A 2 by 2 by 2 cube contains 8 small cubes."
+        },
+        {
+          "title": "Connect to numbers",
+          "text": "Cube numbers multiply a whole number by itself three times."
+        }
+      ],
+      "challenge": {
+        "question": "Which is 2 × 2 × 2?",
+        "options": [
+          "4",
+          "6",
+          "8"
+        ],
+        "answer": "8",
+        "hint": "First 2 times 2 is 4; then multiply by 2 again.",
+        "success_feedback": "Correct. 2 cubed is 8."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 3,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-virahanka-sequence-topic-virahanka-numbers",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Virahanka Numbers",
+      "title": "Virahanka Numbers",
+      "scene_type": "number_pattern",
+      "caption": "The Virahanka sequence shown in this chapter is 1, 2, 3, 5, 8, 13, ... Each new term is the sum of the previous two.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.26,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "2",
+          "kind": "number",
+          "position": [
+            0.42000000000000004,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "3",
+          "kind": "number",
+          "position": [
+            0.58,
+            0.3
+          ]
+        },
+        {
+          "id": "item5",
+          "label": "5",
+          "kind": "number",
+          "position": [
+            0.74,
+            0.3
+          ]
+        },
+        {
+          "id": "item6",
+          "label": "8",
+          "kind": "number",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "The book's sequence begins 1, 2, 3, 5, 8, 13."
+        },
+        {
+          "title": "Find the rule",
+          "text": "After the first two terms, add the previous two numbers: 2+3=5, 3+5=8."
+        },
+        {
+          "title": "Try it",
+          "text": "Add 5 and 8 to find the next term, 13."
+        }
+      ],
+      "challenge": {
+        "question": "What comes after 3, 5, 8 in the Virahanka sequence?",
+        "options": [
+          "11",
+          "13",
+          "15"
+        ],
+        "answer": "13",
+        "hint": "Add the previous two terms: 5 + 8.",
+        "success_feedback": "Correct. The next term is 13."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 3,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-powers-of-two-topic-powers-of-2-and-3",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Powers of 2 and 3",
+      "title": "Powers of 2 and 3",
+      "scene_type": "number_pattern",
+      "caption": "Compare powers of 2 (1, 2, 4, 8, 16) and powers of 3 (1, 3, 9, 27).",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "2",
+          "kind": "number",
+          "position": [
+            0.30000000000000004,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "4",
+          "kind": "number",
+          "position": [
+            0.5,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "8",
+          "kind": "number",
+          "position": [
+            0.7000000000000001,
+            0.3
+          ]
+        },
+        {
+          "id": "item5",
+          "label": "16",
+          "kind": "number",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Powers of 2 double each time: 1, 2, 4, 8, 16."
+        },
+        {
+          "title": "Compare",
+          "text": "Powers of 3 triple each time: 1, 3, 9, 27."
+        },
+        {
+          "title": "Explain",
+          "text": "The rule is repeated multiplication by 2 or by 3."
+        }
+      ],
+      "challenge": {
+        "question": "What comes after 1, 2, 4, 8?",
+        "options": [
+          "10",
+          "12",
+          "16"
+        ],
+        "answer": "16",
+        "hint": "Double 8.",
+        "success_feedback": "Correct. Double 8 is 16."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 2,
+          "page_end": 6,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-relations-between-sequences-topic-odd-numbers-make-squares",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Odd Numbers Make Squares",
+      "title": "Odd Numbers Make Squares",
+      "scene_type": "number_machine",
+      "caption": "Adding consecutive odd numbers makes square numbers: 1; 1+3=4; 1+3+5=9; 1+3+5+7=16.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "4",
+          "kind": "number",
+          "position": [
+            0.3666666666666667,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "9",
+          "kind": "number",
+          "position": [
+            0.6333333333333333,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "16",
+          "kind": "number",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Add the first odd number",
+          "text": "The total starts at 1."
+        },
+        {
+          "title": "Add the next odd number",
+          "text": "1+3 makes 4, a square number."
+        },
+        {
+          "title": "Keep adding odd numbers",
+          "text": "The totals 1, 4, 9, 16 are square numbers."
+        }
+      ],
+      "challenge": {
+        "question": "What is 1+3+5?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "9",
+        "hint": "Add 1+3 first, then add 5.",
+        "success_feedback": "Correct. The total is 9, which is 3×3."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 6,
+          "page_end": 7,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums-topic-two-triangles-make-a-square",
+      "topic": "Two Triangles Make a Square",
+      "title": "Two Triangles Make a Square",
+      "scene_type": "number_machine",
+      "caption": "Two consecutive triangular dot patterns fit together to make a square number: 1+3=4, 3+6=9, 6+10=16.",
+      "objects": [
+        {
+          "id": "t1",
+          "label": "1 + 3",
+          "kind": "number_machine",
+          "position": [
+            0.15,
+            0.3
+          ]
+        },
+        {
+          "id": "t2",
+          "label": "= 4",
+          "kind": "number_machine",
+          "position": [
+            0.48,
+            0.3
+          ]
+        },
+        {
+          "id": "t3",
+          "label": "2 × 2",
+          "kind": "number_machine",
+          "position": [
+            0.78,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Notice",
+          "text": "Triangular numbers begin 1, 3, 6, 10, ... ."
+        },
+        {
+          "title": "Combine",
+          "text": "Add consecutive triangular numbers: 1+3=4 and 3+6=9."
+        },
+        {
+          "title": "Explain",
+          "text": "The totals 4, 9, 16 are square numbers."
+        }
+      ],
+      "challenge": {
+        "question": "What is 3 + 6, the sum of two consecutive triangular numbers?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "9",
+        "hint": "Add 3 and 6, then recognise the square number.",
+        "success_feedback": "Correct. 3 + 6 = 9 = 3 × 3."
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 8,
+          "page_end": 16,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-hexagonal-numbers-topic-hexagonal-numbers-and-cubes",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Hexagonal Numbers and Cubes",
+      "title": "Hexagonal Numbers and Cubes",
+      "scene_type": "number_pattern",
+      "caption": "Hexagonal numbers form one number pattern, while cube numbers are 1, 8, 27, 64. Compare the visual arrangements and the multiplication rules.",
+      "objects": [
+        {
+          "id": "h1",
+          "label": "1",
+          "kind": "number_pattern",
+          "position": [
+            0.15,
+            0.35
+          ]
+        },
+        {
+          "id": "h2",
+          "label": "7",
+          "kind": "number_pattern",
+          "position": [
+            0.4,
+            0.35
+          ]
+        },
+        {
+          "id": "h3",
+          "label": "19",
+          "kind": "number_pattern",
+          "position": [
+            0.65,
+            0.35
+          ]
+        },
+        {
+          "id": "h4",
+          "label": "37",
+          "kind": "number_pattern",
+          "position": [
+            0.85,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Look at the sequence",
+          "text": "The book gives 1, 7, 19, 37, ... and names these hexagonal numbers."
+        },
+        {
+          "title": "Visualise the dots",
+          "text": "Draw each stage as a growing hexagon-like arrangement of dots, following the picture in the textbook."
+        },
+        {
+          "title": "Use the source picture",
+          "text": "Compare the stages and draw the next picture using the same construction shown in the book."
+        }
+      ],
+      "challenge": {
+        "question": "Which sequence does the textbook identify as hexagonal numbers?",
+        "options": [
+          "1, 3, 6, 10, ...",
+          "1, 4, 9, 16, ...",
+          "1, 7, 19, 37, ..."
+        ],
+        "answer": "1, 7, 19, 37, ...",
+        "hint": "Look at the special sequence introduced on page 5.",
+        "success_feedback": "Correct. The textbook calls 1, 7, 19, 37, ... hexagonal numbers."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 5,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-regular-polygons-topic-regular-polygons",
+      "topic": "Regular Polygons",
+      "title": "Regular Polygons",
+      "scene_type": "shape_pattern",
+      "caption": "Regular polygons follow a side-count pattern: triangle 3, square 4, pentagon 5, hexagon 6, and so on.",
+      "objects": [
+        {
+          "id": "p1",
+          "label": "Triangle · 3 sides",
+          "kind": "shape_pattern",
+          "position": [
+            0.16,
+            0.35
+          ]
+        },
+        {
+          "id": "p2",
+          "label": "Square · 4 sides",
+          "kind": "shape_pattern",
+          "position": [
+            0.42,
+            0.35
+          ]
+        },
+        {
+          "id": "p3",
+          "label": "Pentagon · 5 sides",
+          "kind": "shape_pattern",
+          "position": [
+            0.68,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Look at the shapes",
+          "text": "A triangle has 3 sides, a square has 4, and a pentagon has 5."
+        },
+        {
+          "title": "Find the pattern",
+          "text": "Each next regular polygon has one more side."
+        },
+        {
+          "title": "Predict",
+          "text": "After a pentagon with 5 sides comes a hexagon with 6 sides."
+        }
+      ],
+      "challenge": {
+        "question": "How many sides does the next polygon have after a regular pentagon?",
+        "options": [
+          "4",
+          "6",
+          "8"
+        ],
+        "answer": "6",
+        "hint": "Add one side to 5.",
+        "success_feedback": "Correct. A regular hexagon has 6 sides."
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 11,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-complete-graphs-topic-complete-graphs",
+      "topic": "Complete Graphs",
+      "title": "Complete Graphs",
+      "scene_type": "shape_pattern",
+      "caption": "In a complete graph, every point connects to every other point. The edge counts for 2, 3, 4, 5 points are 1, 3, 6, 10.",
+      "objects": [
+        {
+          "id": "g1",
+          "label": "2 points · 1 line",
+          "kind": "shape_pattern",
+          "position": [
+            0.16,
+            0.35
+          ]
+        },
+        {
+          "id": "g2",
+          "label": "3 points · 3 lines",
+          "kind": "shape_pattern",
+          "position": [
+            0.42,
+            0.35
+          ]
+        },
+        {
+          "id": "g3",
+          "label": "4 points · 6 lines",
+          "kind": "shape_pattern",
+          "position": [
+            0.68,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Connect every pair",
+          "text": "Start with two points and draw the one line joining them."
+        },
+        {
+          "title": "Add a point",
+          "text": "With three points, connect every pair; there are 3 lines."
+        },
+        {
+          "title": "Notice the number pattern",
+          "text": "The edge counts 1, 3, 6, 10 match triangular numbers."
+        }
+      ],
+      "challenge": {
+        "question": "How many edges are in a complete graph with 4 points?",
+        "options": [
+          "4",
+          "5",
+          "6"
+        ],
+        "answer": "6",
+        "hint": "Connect each of the four points to all the others, counting each line once.",
+        "success_feedback": "Yes. Four fully connected points have 6 edges."
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 17,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-stacked-shapes-topic-stacked-shapes",
+      "topic": "Stacked Shapes",
+      "title": "Stacked Shapes",
+      "scene_type": "shape_pattern",
+      "caption": "Compare stacked squares and stacked triangles. The arrangements reveal count patterns, including stacked triangles.",
+      "objects": [
+        {
+          "id": "s1",
+          "label": "1 row",
+          "kind": "shape_pattern",
+          "position": [
+            0.16,
+            0.35
+          ]
+        },
+        {
+          "id": "s2",
+          "label": "2 rows",
+          "kind": "shape_pattern",
+          "position": [
+            0.42,
+            0.35
+          ]
+        },
+        {
+          "id": "s3",
+          "label": "3 rows",
+          "kind": "shape_pattern",
+          "position": [
+            0.68,
+            0.35
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Count the pieces",
+          "text": "Count the small pieces in each stacked-square and stacked-triangle picture."
+        },
+        {
+          "title": "Compare the totals",
+          "text": "Compare the totals at each stage and describe how the shape grows."
+        },
+        {
+          "title": "Connect the pattern",
+          "text": "Explain the rule that connects each stacked shape to the next."
+        }
+      ],
+      "challenge": {
+        "question": "Which number sequence is shown by the number of small squares in the stacked-square sequence?",
+        "options": [
+          "1, 2, 3, 4, ...",
+          "1, 4, 9, 16, ...",
+          "2, 4, 6, 8, ..."
+        ],
+        "answer": "1, 4, 9, 16, ...",
+        "hint": "Count the little squares in each stage.",
+        "success_feedback": "Correct. The totals are square numbers."
+      },
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 17,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-koch-snowflake-topic-koch-snowflake",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Koch Snowflake",
+      "title": "Koch Snowflake",
+      "scene_type": "pattern_builder",
+      "caption": "A Koch snowflake starts with a triangle. Repeating a small construction on each side makes a more detailed edge.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "Triangle",
+          "kind": "shape",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "More sides",
+          "kind": "shape",
+          "position": [
+            0.5,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "Snowflake",
+          "kind": "shape",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Start with a triangle",
+          "text": "The first outline has three straight sides."
+        },
+        {
+          "title": "Repeat a small change",
+          "text": "Each side is divided and a small triangular bump is added."
+        },
+        {
+          "title": "See the pattern",
+          "text": "Repeating the same construction creates a more detailed snowflake outline."
+        }
+      ],
+      "challenge": {
+        "question": "What makes the snowflake outline more detailed?",
+        "options": [
+          "Repeating the same construction",
+          "Removing every side",
+          "Changing the rule each time"
+        ],
+        "answer": "Repeating the same construction",
+        "hint": "The rule is applied again to each side.",
+        "success_feedback": "Yes. Repeating the construction creates the pattern."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 10,
+          "page_end": 12,
           "edition": "Reprint 2026-27"
         }
       ]

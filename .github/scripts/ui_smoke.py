@@ -166,7 +166,7 @@ def assert_live(path):
     # Class 6 Chapter 1 must keep its mapped visual in the same teaching viewport,
     # including during the student understanding check.
     if "patterns in mathematics" in joined or "all 1s" in joined:
-        for visual_label in ("watch the pattern", "111", "1111"):
+        for visual_label in ("watch the pattern", "111", "1111", "one digit is added at each step"):
             if visual_label not in joined:
                 raise SystemExit("Live Chapter 1 lesson is missing its in-viewport pattern visual: " + visual_label)
     if "tap any word to hear its pronunciation again." in joined:

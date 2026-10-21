@@ -540,3 +540,16 @@ def test_lesson_plan_rejects_all_segments_without_retrieved_source_ids():
         }]}), {"known"}, 5)
     assert exc.value.status_code == 502
     assert "textbook-grounded" in exc.value.detail
+
+
+
+def test_lesson_plan_does_not_partially_repair_mixed_valid_and_fabricated_citations():
+    import pytest
+    with pytest.raises(curriculum.HTTPException) as exc:
+        curriculum._validate_lesson_plan(json.dumps({"segments": [{
+            "id": "s1", "spoken_text": "A claim with mixed citations.",
+            "caption_text": "A claim with mixed citations.",
+            "source_chunk_ids": ["known", "fabricated"],
+            "visual_action": {"type": "none"},
+        }]}), {"known"}, 5)
+    assert exc.value.status_code == 502

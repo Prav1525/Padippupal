@@ -1210,26 +1210,80 @@ class LessonPlanRequest(TutorChatRequest):
     max_segments: int = Field(default=5, ge=2, le=8)
 
 def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: int) -> dict[str, Any]:
+    """Validate planner output segment-by-segment; never let one malformed segment kill a grounded lesson.
+
+    Recovery is deliberately conservative: source IDs must still match retrieved chunks. We may
+    normalize common JSON-shape mistakes, but never invent citations or silently keep uncited text.
+    """
     candidate = raw.strip()
     if candidate.startswith("```"):
         candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate, flags=re.IGNORECASE)
     try:
         data = json.loads(candidate)
     except json.JSONDecodeError as exc:
+        logger.warning("Lesson plan validation failed: invalid_json")
         raise HTTPException(status_code=502, detail="The lesson planner returned invalid JSON.") from exc
     if not isinstance(data, dict) or not isinstance(data.get("segments"), list):
+        logger.warning("Lesson plan validation failed: missing_segments_array")
         raise HTTPException(status_code=502, detail="The lesson planner returned an incomplete lesson plan.")
+
     segments = []
-    for item in data["segments"][:max_segments]:
+    rejected = []
+    for index, item in enumerate(data["segments"][:max_segments]):
+        if not isinstance(item, dict):
+            rejected.append((index, "not_object"))
+            continue
+        normalized = dict(item)
+        # Models sometimes emit one citation as a scalar or omit optional visual/checkpoint fields.
+        source_ids = normalized.get("source_chunk_ids")
+        if isinstance(source_ids, str):
+            source_ids = [source_ids]
+        if not isinstance(source_ids, list):
+            rejected.append((index, "invalid_source_ids"))
+            continue
+        source_ids = [str(value).strip() for value in source_ids if isinstance(value, (str, int)) and str(value).strip()]
+        # Retain only actual retrieved IDs; an unsupported citation must never authorize a claim.
+        source_ids = list(dict.fromkeys(value for value in source_ids if value in allowed_chunk_ids))
+        if not source_ids:
+            rejected.append((index, "no_valid_source_ids"))
+            continue
+        normalized["source_chunk_ids"] = source_ids[:5]
+        spoken = normalized.get("spoken_text")
+        caption = normalized.get("caption_text")
+        if not isinstance(spoken, str) or not spoken.strip():
+            rejected.append((index, "missing_spoken_text"))
+            continue
+        normalized["spoken_text"] = spoken.strip()[:500]
+        normalized["caption_text"] = (caption.strip() if isinstance(caption, str) and caption.strip() else spoken.strip())[:500]
+        normalized["id"] = re.sub(r"[^a-zA-Z0-9_-]", "-", str(normalized.get("id") or f"segment-{index + 1}"))[:40].strip("-")
+        if not normalized["id"]:
+            normalized["id"] = f"segment-{index + 1}"
+        action = normalized.get("visual_action")
+        if not isinstance(action, dict):
+            action = {}
+        action_type = str(action.get("type", "none")).strip()
+        if action_type not in {"highlight", "reveal", "move", "compare", "label", "draw-line", "show-result", "none"}:
+            action_type = "none"
+        normalized["visual_action"] = {
+            "type": action_type,
+            "target": str(action.get("target") or "")[:100],
+            "value": str(action.get("value") or "")[:160],
+        }
+        checkpoint = normalized.get("checkpoint")
+        normalized["checkpoint"] = checkpoint.strip()[:240] if isinstance(checkpoint, str) and checkpoint.strip() else None
         try:
-            segment = LessonSegment.model_validate(item)
+            segment = LessonSegment.model_validate(normalized)
         except Exception as exc:
-            raise HTTPException(status_code=502, detail="The lesson planner returned an invalid segment.") from exc
-        if not set(segment.source_chunk_ids).issubset(allowed_chunk_ids):
-            raise HTTPException(status_code=502, detail="The lesson planner referenced a passage outside the retrieved textbook context.")
+            # Log only structural error types, never student text or generated lesson content.
+            rejected.append((index, "schema_" + type(exc).__name__))
+            continue
         segments.append(segment.model_dump())
+    if rejected:
+        logger.warning("Lesson planner dropped %d malformed/ungrounded segment(s): %s",
+                       len(rejected), ",".join(f"{index}:{reason}" for index, reason in rejected))
     if not segments:
-        raise HTTPException(status_code=502, detail="The lesson planner returned no teachable segments.")
+        logger.warning("Lesson plan validation failed: no_valid_grounded_segments")
+        raise HTTPException(status_code=502, detail="The lesson planner could not produce a valid textbook-grounded segment. Please retry.")
     return {"segments": segments}
 
 

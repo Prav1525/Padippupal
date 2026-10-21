@@ -966,6 +966,7 @@ internal fun TutorScreen(
     var liveVisualTarget by remember { mutableStateOf("") }
     var liveSegmentIndex by remember { mutableIntStateOf(0) }
     var liveLessonActive by remember { mutableStateOf(false) }
+    var livePaused by remember { mutableStateOf(false) }
     var awaitingUnderstanding by remember { mutableStateOf(false) }
     var currentCheckpoint by remember { mutableStateOf("") }
     var voiceReady by remember { mutableStateOf(false) }
@@ -1331,7 +1332,7 @@ internal fun TutorScreen(
     }
 
     fun playLiveSegment(index: Int) {
-        if (!liveLessonActive) return
+        if (!liveLessonActive || livePaused) return
         if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
@@ -1401,19 +1402,53 @@ internal fun TutorScreen(
             }
             tutorMainHandler.post {
                 loading = false
-                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; playLiveSegment(0) },
+                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; livePaused = false; playLiveSegment(0) },
                     onFailure = { error -> status = error.message ?: "Could not prepare the live lesson." })
             }
         }
     }
 
     fun stopLiveLesson() {
-        liveLessonActive = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
+        liveLessonActive = false; livePaused = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
         audioPlayer.value = null; ttsState.value?.stop(); speechCompletion = null; speechActive = false
         status = "Live lesson stopped."
+    }
+
+    fun pauseLiveLesson() {
+        if (!liveLessonActive || livePaused) return
+        livePaused = true
+        val player = audioPlayer.value
+        if (player != null) {
+            runCatching { player.pause() }
+        } else {
+            // Android TextToSpeech has no native pause API. Stop its current utterance;
+            // Resume restarts this short teaching segment from its beginning.
+            speechStartCallback = null
+            speechCompletion = null
+            ttsState.value?.stop()
+            speechActive = false
+        }
+        status = "Lesson paused. Resume when you are ready."
+    }
+
+    fun resumeLiveLesson() {
+        if (!liveLessonActive || !livePaused) return
+        livePaused = false
+        val player = audioPlayer.value
+        if (player != null) {
+            runCatching {
+                player.start()
+                speechActive = true
+                status = "Lesson resumed."
+            }.onFailure {
+                playLiveSegment(liveSegmentIndex)
+            }
+        } else {
+            playLiveSegment(liveSegmentIndex)
+        }
     }
 
     fun sendMessage(startingMessage: String? = null) {
@@ -1610,6 +1645,11 @@ internal fun TutorScreen(
                     }
                     TextButton(onClick = { showLessonSettings = !showLessonSettings }) {
                         Text(if (showLessonSettings) "Done" else "Change", color = TutorGreen, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (liveLessonActive) {
+                        TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }) {
+                            Text(if (livePaused) "Resume" else "Pause", color = TutorGreen, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                     Button(
                         onClick = { if (liveLessonActive) stopLiveLesson() else startLiveLesson() },

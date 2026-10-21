@@ -148,7 +148,7 @@ def assert_live(path):
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
     if "playing segment" in joined:
         raise SystemExit("A segment is reported as playing before playback-start confirmation")
-    accessible = "\\n".join(
+    accessible = "\n".join(
         texts + [n.attrib.get("content-desc", "").strip() for n in load(path)[0]]
     ).lower()
     for control in ("stop", "ask your teacher"):

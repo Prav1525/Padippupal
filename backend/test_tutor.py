@@ -526,3 +526,34 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "reveal"
     assert body["segments"][0]["checkpoint"] == "What does the plant need?"
+
+
+def test_lesson_plan_parser_accepts_json_framing_without_weakening_grounding():
+    allowed = {"chunk-1"}
+    payload = {
+        "segments": [{
+            "id": "one", "spoken_text": "Look at these ones.",
+            "caption_text": "Look at these ones.", "source_chunk_ids": ["chunk-1"],
+            "visual_action": {"type": "none", "target": "", "value": ""}
+        }]
+    }
+    encoded = json.dumps(payload)
+    for raw in (encoded, "```json\\n" + encoded + "\\n```", "Here is the plan:\\n" + encoded + "\\nDone."):
+        result = curriculum._validate_lesson_plan(raw, allowed, 5)
+        assert result["segments"][0]["source_chunk_ids"] == ["chunk-1"]
+
+
+def test_lesson_plan_parser_still_rejects_unknown_textbook_citations():
+    payload = {
+        "segments": [{
+            "id": "one", "spoken_text": "Look at these ones.",
+            "caption_text": "Look at these ones.", "source_chunk_ids": ["not-in-context"],
+            "visual_action": {"type": "none", "target": "", "value": ""}
+        }]
+    }
+    from fastapi import HTTPException
+    try:
+        curriculum._validate_lesson_plan(json.dumps(payload), {"chunk-1"}, 5)
+        assert False, "unknown source chunk must be rejected"
+    except HTTPException as exc:
+        assert "outside the retrieved textbook context" in exc.detail

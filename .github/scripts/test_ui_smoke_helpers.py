@@ -88,6 +88,17 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn("else\n    rm -f ui-screenshots/live-pause-control.xml", script)
         self.assertNotIn("for attempt in $(seq 1 45); do", script)
 
+    def test_chapter_wait_matches_app_retry_window_and_rejects_stale_trees(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        helper = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        self.assertIn('chapter_deadline=$((SECONDS + 105))', script)
+        self.assertIn('rm -f chapter-options.xml', script)
+        self.assertIn('timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml', script)
+        self.assertIn('loading approved curriculum', helper)
+        self.assertIn('curriculum service is waking up; retrying', helper)
+        self.assertIn("couldn't load curriculum", helper)
+        self.assertIn('chapter-options-timeout.png', script)
+
     def test_live_lesson_invalidates_stale_chat_speech_callbacks(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
         self.assertIn("var speechGeneration by remember { mutableIntStateOf(0) }", tutor)

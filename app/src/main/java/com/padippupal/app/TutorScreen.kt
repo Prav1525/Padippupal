@@ -1947,7 +1947,7 @@ internal fun TutorScreen(
         // The chat owns the flexible space and scrolls independently of the fixed composer.
         LazyColumn(
             state = chatListState,
-            modifier = Modifier.weight(1f, fill = false).fillMaxWidth().heightIn(max = 520.dp).padding(horizontal = 12.dp),
+            modifier = Modifier.weight(1f, fill = true).fillMaxWidth().padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp),
             contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp)
         ) {

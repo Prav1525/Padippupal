@@ -105,7 +105,7 @@ class RetryIsolationTests(unittest.TestCase):
         end = tutor.index('item(key = "live-teaching-passage")', start)
         end = tutor.index('if (liveCaption.isNotBlank() && liveLessonActive', end)
         live_panel = tutor[start:end]
-        self.assertIn('Surface(\\n                        Modifier.fillMaxWidth(),', live_panel)
+        self.assertIn("Surface(\n                        Modifier.fillMaxWidth(),", live_panel)
         self.assertIn('Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 9.dp)', live_panel)
         self.assertNotIn('fillParentMaxHeight()', live_panel)
         self.assertNotIn('Arrangement.Center', live_panel)

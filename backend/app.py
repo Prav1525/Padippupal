@@ -1544,12 +1544,12 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             for index, item in enumerate(matches[:payload.max_segments]):
                 source = item.get("source", {})
                 chunk_id = str(source.get("chunk_id", "")).strip()
-                passage = re.sub(r"\\s+", " ", str(item.get("text", ""))).strip()
+                passage = re.sub(r"\s+", " ", str(item.get("text", ""))).strip()
                 if not chunk_id or chunk_id not in allowed_ids or not passage:
                     continue
                 # Prefer the first complete sentence; if the PDF chunk has no sentence
                 # punctuation, use a short exact excerpt rather than failing the lesson.
-                sentence = re.split(r"(?<=[.!?])\\s+", passage, maxsplit=1)[0].strip()
+                sentence = re.split(r"(?<=[.!?])\s+", passage, maxsplit=1)[0].strip()
                 words = sentence.split()
                 excerpt = " ".join(words[:22]).strip()
                 if not excerpt:

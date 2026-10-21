@@ -348,6 +348,44 @@ def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
     assert body["word_timestamps_available"] is False
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
 
+def test_lesson_plan_retries_once_after_malformed_json(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "chunk-retry-verified"
+    lesson_json = json.dumps({"segments": [{
+        "id": "segment-1",
+        "spoken_text": "A magnet has two poles.",
+        "caption_text": "A magnet has two poles.",
+        "source_chunk_ids": [chunk_id],
+        "visual_action": {"type": "none", "target": "", "value": ""},
+        "checkpoint": None,
+    }]})
+    outputs = ["this is not JSON", lesson_json]
+    requests = []
+    class FakeResponse:
+        def __init__(self, text): self.text = text
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self):
+            return json.dumps({"candidates": [{"content": {"parts": [{"text": self.text}]}}]}).encode()
+    def fake_urlopen(request, timeout):
+        body = json.loads(request.data.decode())
+        requests.append(body)
+        return FakeResponse(outputs.pop(0))
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": "A magnet has two poles.", "source": {"chunk_id": chunk_id, "source_id": "source-1",
+        "title": "Class 6 Science", "board": "CBSE", "class_level": 6, "subject": "Science",
+        "medium": "English", "page_start": 10, "page_end": 10}}]})
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+        "chapter": "Exploring Magnets", "topic": "Magnet poles", "message": "Teach me magnet poles",
+        "app_language": "English"})
+    assert response.status_code == 200, response.text
+    assert len(requests) == 2
+    assert requests[0]["generationConfig"]["responseMimeType"] == "application/json"
+    assert "previous response failed" in requests[1]["contents"][0]["parts"][0]["text"].lower()
+    assert response.json()["segments"][0]["source_chunk_ids"] == [chunk_id]
+
 def test_lesson_plan_rejects_unretrieved_chunk_ids():
     import pytest
     with pytest.raises(curriculum.HTTPException):

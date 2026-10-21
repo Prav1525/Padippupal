@@ -1242,9 +1242,10 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
             rejected.append((index, "invalid_source_ids"))
             continue
         source_ids = [str(value).strip() for value in source_ids if isinstance(value, (str, int)) and str(value).strip()]
-        # Retain only actual retrieved IDs; an unsupported citation must never authorize a claim.
-        source_ids = list(dict.fromkeys(value for value in source_ids if value in allowed_chunk_ids))
-        if not source_ids:
+        source_ids = list(dict.fromkeys(source_ids))
+        # Reject the entire segment if any citation is fabricated; partial citation repair
+        # could make unsupported claims appear grounded.
+        if not source_ids or not set(source_ids).issubset(allowed_chunk_ids):
             rejected.append((index, "no_valid_source_ids"))
             continue
         normalized["source_chunk_ids"] = source_ids[:5]

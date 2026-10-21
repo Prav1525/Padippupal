@@ -538,7 +538,7 @@ def test_lesson_plan_parser_accepts_json_framing_without_weakening_grounding():
         }]
     }
     encoded = json.dumps(payload)
-    for raw in (encoded, "```json\\n" + encoded + "\\n```", "Here is the plan:\\n" + encoded + "\\nDone."):
+    for raw in (encoded, "```json\n" + encoded + "\n```", "Here is the plan:\n" + encoded + "\nDone."):
         result = curriculum._validate_lesson_plan(raw, allowed, 5)
         assert result["segments"][0]["source_chunk_ids"] == ["chunk-1"]
 

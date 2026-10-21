@@ -719,7 +719,7 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
     # Accept the labels used by student-facing UI as well as canonical database names.
     # The app may send "Maths" or "Math" while stored source metadata uses "Mathematics";
     # exact SQL equality then returns no sources and the chapter picker appears empty.
-    raw_subject_key = re.sub(r"\\s+", " ", subject.strip().casefold())
+    raw_subject_key = re.sub(r"\s+", " ", subject.strip().casefold())
     subject_aliases = {
         "math": "mathematics", "maths": "mathematics", "mathematics": "mathematics",
         "sci": "science", "science": "science",

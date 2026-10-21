@@ -1100,54 +1100,83 @@ internal fun TutorScreen(
             return
         }
         outlineLoading = true
+        status = "Loading approved curriculum…"
         tutorExecutor.execute {
-            val result = runCatching {
-                val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
-                val query = "board=" + URLEncoder.encode(board, "UTF-8") +
-                    "&class_level=$grade&subject=" + URLEncoder.encode(forSubject, "UTF-8") +
-                    "&medium=" + URLEncoder.encode(medium, "UTF-8")
-                val connection = URL("$base/curriculum/outline?$query").openConnection() as HttpURLConnection
-                connection.connectTimeout = 7000
-                connection.readTimeout = 10000
-                try {
-                    val code = connection.responseCode
-                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                    val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
-                    if (code !in 200..299) throw IllegalStateException("Curriculum outline unavailable")
-                    val chaptersJson = JSONObject(body).optJSONArray("chapters") ?: JSONArray()
-                    (0 until chaptersJson.length()).mapNotNull { index ->
-                        val item = chaptersJson.optJSONObject(index) ?: return@mapNotNull null
-                        val title = item.optString("title").trim()
-                        if (title.isBlank()) return@mapNotNull null
-                        val topicsJson = item.optJSONArray("topics") ?: JSONArray()
-                        val topics = (0 until topicsJson.length()).mapNotNull { topicIndex ->
-                            val rawTopic = topicsJson.opt(topicIndex)
-                            val topicTitle = when (rawTopic) {
-                                is JSONObject -> rawTopic.optString("title").ifBlank {
-                                    rawTopic.optString("name")
-                                }
-                                is String -> {
-                                    val trimmed = rawTopic.trim()
-                                    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-                                        runCatching {
-                                            val parsed = JSONObject(trimmed)
-                                            parsed.optString("title").ifBlank { parsed.optString("name") }
-                                        }.getOrDefault(trimmed)
-                                    } else trimmed
-                                }
-                                else -> ""
-                            }.trim()
-                            topicTitle.takeIf { it.isNotBlank() }
-                        }.distinct().take(30)
-                        title to topics
+            var lastFailure: Throwable? = null
+            var loaded: List<Pair<String, List<String>>>? = null
+            // Render's free service can restart or wake from idle while the student
+            // opens the tutor. Retry transient failures instead of freezing an empty list.
+            for (attempt in 0..4) {
+                val result = runCatching {
+                    val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+                    val query = "board=" + URLEncoder.encode(board, "UTF-8") +
+                        "&class_level=$grade&subject=" + URLEncoder.encode(forSubject, "UTF-8") +
+                        "&medium=" + URLEncoder.encode(medium, "UTF-8")
+                    val connection = URL("$base/curriculum/outline?$query").openConnection() as HttpURLConnection
+                    connection.connectTimeout = 7000
+                    connection.readTimeout = 10000
+                    try {
+                        val code = connection.responseCode
+                        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                        val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+                        if (code !in 200..299) throw java.io.IOException("Curriculum service returned HTTP $code")
+                        val chaptersJson = JSONObject(body).optJSONArray("chapters")
+                            ?: throw IllegalStateException("Curriculum response is missing its chapters list")
+                        val chapters = (0 until chaptersJson.length()).mapNotNull { index ->
+                            val item = chaptersJson.optJSONObject(index) ?: return@mapNotNull null
+                            val title = item.optString("title").trim()
+                            if (title.isBlank()) return@mapNotNull null
+                            val topicsJson = item.optJSONArray("topics") ?: JSONArray()
+                            val topics = (0 until topicsJson.length()).mapNotNull { topicIndex ->
+                                val rawTopic = topicsJson.opt(topicIndex)
+                                val topicTitle = when (rawTopic) {
+                                    is JSONObject -> rawTopic.optString("title").ifBlank { rawTopic.optString("name") }
+                                    is String -> {
+                                        val trimmed = rawTopic.trim()
+                                        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                                            runCatching {
+                                                val parsed = JSONObject(trimmed)
+                                                parsed.optString("title").ifBlank { parsed.optString("name") }
+                                            }.getOrDefault(trimmed)
+                                        } else trimmed
+                                    }
+                                    else -> ""
+                                }.trim()
+                                topicTitle.takeIf { it.isNotBlank() }
+                            }.distinct().take(30)
+                            title to topics
+                        }
+                        if (board.equals("CBSE", ignoreCase = true) && grade == 6 &&
+                            forSubject.equals("Mathematics", ignoreCase = true) && chapters.isEmpty()
+                        ) throw IllegalStateException("CBSE Class 6 Mathematics outline was unexpectedly empty")
+                        chapters
+                    } finally {
+                        connection.disconnect()
                     }
-                } finally {
-                    connection.disconnect()
+                }
+                result.fold(
+                    onSuccess = { chapters -> loaded = chapters; lastFailure = null },
+                    onFailure = { error -> lastFailure = error }
+                )
+                if (loaded != null) break
+                if (attempt < 4) {
+                    tutorMainHandler.post { status = "Curriculum service is waking up; retrying (${attempt + 1}/4)…" }
+                    try {
+                        Thread.sleep(1000L * (attempt + 1))
+                    } catch (_: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        break
+                    }
                 }
             }
             tutorMainHandler.post {
-                chapterOptions = result.getOrDefault(emptyList())
+                chapterOptions = loaded.orEmpty()
                 outlineLoading = false
+                status = when {
+                    loaded != null && loaded.isNotEmpty() -> ""
+                    lastFailure != null -> "Couldn't load curriculum (${lastFailure?.message ?: "temporary service error"}). Select the subject again to retry."
+                    else -> "No approved chapters are configured for this subject and class."
+                }
             }
         }
     }

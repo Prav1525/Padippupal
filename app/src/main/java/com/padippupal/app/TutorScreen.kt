@@ -109,8 +109,7 @@ private data class MoveItem(val icon: String, val name: String, val x: Float, va
 private fun WordByWordCaption(
     text: String,
     active: Boolean,
-    currentWordIndex: Int,
-    onWordClick: (String) -> Unit
+    currentWordIndex: Int
 ) {
     val words = remember(text) { Regex("\\S+").findAll(text).map { it.value }.toList() }
     val wordStarts = remember(text) {
@@ -138,8 +137,6 @@ private fun WordByWordCaption(
                 val end = length
                 if (active && index == currentWordIndex.coerceIn(0, (words.size - 1).coerceAtLeast(0))) {
                     addStyle(SpanStyle(background = Color(0xFFD8E8B7), fontWeight = FontWeight.ExtraBold), start, end)
-                } else if (active && index > currentWordIndex) {
-                    addStyle(SpanStyle(color = TutorGrey.copy(alpha = 0.78f)), start, end)
                 }
                 addStringAnnotation("word", word.trimEnd(',', '.', ';', ':', '?', '!'), start, end)
             }
@@ -158,7 +155,7 @@ private fun WordByWordCaption(
     Box(
         Modifier.fillMaxWidth().heightIn(max = 150.dp).verticalScroll(scrollState)
     ) {
-        ClickableText(
+        Text(
             text = caption,
             modifier = Modifier.fillMaxWidth(),
             style = androidx.compose.ui.text.TextStyle(
@@ -167,12 +164,7 @@ private fun WordByWordCaption(
                 lineHeight = 25.sp,
                 fontWeight = FontWeight.Medium
             ),
-            onTextLayout = { layoutResult = it },
-            onClick = { offset ->
-                caption.getStringAnnotations("word", offset, offset).firstOrNull()?.item?.let { word ->
-                    if (word.isNotBlank()) onWordClick(word)
-                }
-            }
+            onTextLayout = { layoutResult = it }
         )
     }
 }
@@ -1725,26 +1717,7 @@ internal fun TutorScreen(
                                 if (liveLessonActive) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                             }
                             if (liveCaption.isNotBlank()) {
-                                Text("Tap any word to hear its pronunciation again.", color = TutorGrey, fontSize = 10.sp)
-                                WordByWordCaption(liveCaption, speechActive, liveWordIndex) { word ->
-                                    if (word.isNotBlank()) {
-                                        audioPlayer.value?.let { player ->
-                                            runCatching { player.stop() }; runCatching { player.release() }
-                                            audioPlayer.value = null
-                                        }
-                                        ttsState.value?.stop()
-                                        speechActive = false
-                                        speechCompletion = null
-                                        speechStartCallback = null
-                                        val fullCaption = liveCaption
-                                        speak(word, onStarted = {
-                                            liveCaption = word
-                                            status = "Pronunciation practice · $word"
-                                        }) {
-                                            liveCaption = fullCaption
-                                        }
-                                    }
-                                }
+                                WordByWordCaption(liveCaption, speechActive, liveWordIndex)
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                             if (liveCaption.isNotBlank() && liveLessonActive && !speechActive && !awaitingUnderstanding) InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
@@ -1767,7 +1740,7 @@ internal fun TutorScreen(
                     ) {
                         Column(Modifier.padding(14.dp)) {
                             if (message.role == "assistant" && message.content == liveCaption && speechActive && !liveLessonActive) {
-                                WordByWordCaption(liveCaption, true, liveWordIndex) { }
+                                WordByWordCaption(liveCaption, true, liveWordIndex)
                             } else {
                                 Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
                             }

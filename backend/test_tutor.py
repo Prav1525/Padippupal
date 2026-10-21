@@ -348,6 +348,36 @@ def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
     assert body["word_timestamps_available"] is False
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
 
+def test_lesson_plan_recovers_from_invalid_model_segments_with_verbatim_grounded_excerpt(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "chapter-one-chunk"
+    class FakeResponse:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self):
+            invalid = {"segments": [{
+                "id": "bad", "spoken_text": "Unsupported claim.", "caption_text": "Unsupported claim.",
+                "source_chunk_ids": ["fabricated-id"],
+                "visual_action": {"type": "none", "target": "", "value": ""},
+            }]}
+            return json.dumps({"candidates": [{"content": {"parts": [{"text": json.dumps(invalid)}]}}]}).encode()
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": "Patterns can repeat in numbers and shapes. Look for what changes each time.",
+        "source": {"chunk_id": chunk_id, "title": "NCERT Class 6 Mathematics",
+                   "page_start": 1, "page_end": 2}}]})
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics", "medium": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach this textbook topic", "app_language": "English"})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["grounded"] is True
+    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
+    assert body["segments"][0]["spoken_text"] == "Patterns can repeat in numbers and shapes."
+    assert body["segments"][0]["visual_action"]["type"] == "none"
+
+
 def test_lesson_plan_rejects_unretrieved_chunk_ids():
     import pytest
     with pytest.raises(curriculum.HTTPException):
@@ -497,3 +527,59 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "reveal"
     assert body["segments"][0]["checkpoint"] == "What does the plant need?"
+
+
+
+def test_lesson_plan_drops_one_malformed_segment_and_keeps_grounded_segments():
+    valid = {
+        "id": "s1", "spoken_text": "Look at the numbers.",
+        "caption_text": "Look at the numbers.", "source_chunk_ids": ["known"],
+        "visual_action": {"type": "highlight", "target": "numbers", "value": ""},
+        "checkpoint": "What do you notice?",
+    }
+    malformed = {"id": "bad segment", "spoken_text": "", "source_chunk_ids": ["unknown"]}
+    result = curriculum._validate_lesson_plan(
+        json.dumps({"segments": [malformed, valid]}), {"known"}, 5
+    )
+    assert len(result["segments"]) == 1
+    assert result["segments"][0]["id"] == "s1"
+    assert result["segments"][0]["source_chunk_ids"] == ["known"]
+    assert result["segments"][0]["checkpoint"] == "What do you notice?"
+
+
+def test_lesson_plan_normalizes_common_shape_errors_without_inventing_sources():
+    result = curriculum._validate_lesson_plan(json.dumps({"segments": [{
+        "id": "segment one", "spoken_text": "Notice this pattern.",
+        "source_chunk_ids": "known",
+        "visual_action": {"type": "unsupported-action", "target": "pattern"},
+    }]}), {"known"}, 5)
+    segment = result["segments"][0]
+    assert segment["id"] == "segment-one"
+    assert segment["caption_text"] == "Notice this pattern."
+    assert segment["source_chunk_ids"] == ["known"]
+    assert segment["visual_action"]["type"] == "none"
+
+
+def test_lesson_plan_rejects_all_segments_without_retrieved_source_ids():
+    import pytest
+    with pytest.raises(curriculum.HTTPException) as exc:
+        curriculum._validate_lesson_plan(json.dumps({"segments": [{
+            "id": "s1", "spoken_text": "Unverified claim.",
+            "caption_text": "Unverified claim.", "source_chunk_ids": ["invented"],
+            "visual_action": {"type": "none"},
+        }]}), {"known"}, 5)
+    assert exc.value.status_code == 502
+    assert "textbook-grounded" in exc.value.detail
+
+
+
+def test_lesson_plan_does_not_partially_repair_mixed_valid_and_fabricated_citations():
+    import pytest
+    with pytest.raises(curriculum.HTTPException) as exc:
+        curriculum._validate_lesson_plan(json.dumps({"segments": [{
+            "id": "s1", "spoken_text": "A claim with mixed citations.",
+            "caption_text": "A claim with mixed citations.",
+            "source_chunk_ids": ["known", "fabricated"],
+            "visual_action": {"type": "none"},
+        }]}), {"known"}, 5)
+    assert exc.value.status_code == 502

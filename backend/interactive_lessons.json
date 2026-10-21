@@ -7021,7 +7021,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Numbers",
+      "topic": "Odd and Even Numbers",
       "title": "Spot the Odd-Number Pattern",
       "scene_type": "number_pattern",
       "caption": "Odd numbers go 1, 3, 5, 7, 9. Each next number is two more.",
@@ -7113,7 +7113,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
+      "topic": "Triangular Numbers",
       "title": "Build Triangular Numbers",
       "scene_type": "number_pattern",
       "caption": "Triangular numbers can be shown as dots arranged in rows: 1, then 1+2, then 1+2+3.",
@@ -7196,7 +7196,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
+      "topic": "Square Numbers",
       "title": "Make Square Numbers",
       "scene_type": "shape_pattern",
       "caption": "Square numbers can be arranged in equal rows and columns: 1, 4, 9, 16.",
@@ -7279,7 +7279,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
+      "topic": "Cube Numbers",
       "title": "Explore Cube Numbers",
       "scene_type": "number_pattern",
       "caption": "Cube numbers count equal layers in a cube: 1, 8, 27, 64 for 1³, 2³, 3³, 4³.",
@@ -7362,7 +7362,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Numbers",
+      "topic": "Virahanka Numbers",
       "title": "Discover the Virahanka Sequence",
       "scene_type": "number_pattern",
       "caption": "The Virahanka sequence shown in this chapter is 1, 2, 3, 5, 8, 13, ... Each new term is the sum of the previous two.",
@@ -7463,7 +7463,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Numbers",
+      "topic": "Powers of 2 and 3",
       "title": "Double to Make Powers of 2",
       "scene_type": "number_pattern",
       "caption": "Starting at 1, double each term to get 1, 2, 4, 8, 16, 32.",
@@ -7555,7 +7555,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Patterns in Numbers",
+      "topic": "Powers of 2 and 3",
       "title": "Triple to Make Powers of 3",
       "scene_type": "number_pattern",
       "caption": "Starting at 1, multiply by 3 each time: 1, 3, 9, 27, 81.",
@@ -7647,10 +7647,10 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Relations among Number Sequences",
+      "topic": "Odd Numbers Make Squares",
       "title": "Compare Odd Numbers and Squares",
       "scene_type": "number_machine",
-      "caption": "Adding consecutive odd numbers makes square numbers: 1; 1+3=4; 1+3+5=9; 1+3+5+7=16.",
+      "caption": "Adding consecutive odd numbers makes square numbers: 1; 1+3=4; 1+3+5=9; 1+3+5+7=16. Odd numbers make squares when consecutive odd numbers are added.",
       "objects": [
         {
           "id": "item1",
@@ -8316,7 +8316,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums",
-      "topic": "Relations among Number Sequences",
+      "topic": "Two Triangles Make a Square",
       "title": "Two Triangular Numbers Make a Square",
       "scene_type": "number_machine",
       "caption": "Adding consecutive triangular numbers makes square numbers: 1+3=4, 3+6=9, 6+10=16.",
@@ -8390,7 +8390,7 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-regular-polygons",
-      "topic": "Patterns in Shapes",
+      "topic": "Regular Polygons",
       "title": "Count the Sides of Regular Polygons",
       "scene_type": "shape_pattern",
       "caption": "Regular polygons follow a side-count pattern: triangle 3, square 4, pentagon 5, hexagon 6, and so on.",
@@ -8464,10 +8464,10 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-complete-graphs",
-      "topic": "Relation to Number Sequences",
+      "topic": "Complete Graphs",
       "title": "Connect Complete Graphs to Triangular Numbers",
       "scene_type": "shape_pattern",
-      "caption": "In a complete graph, every point connects to every other point. The edge counts for 2, 3, 4, 5 points are 1, 3, 6, 10.",
+      "caption": "In a complete graph, every point connects to every other point. The edge counts for 2, 3, 4, 5 points are 1, 3, 6, 10. Complete graphs connect every pair of points; their edge counts follow triangular numbers.",
       "objects": [
         {
           "id": "g1",
@@ -8538,10 +8538,10 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-stacked-shapes",
-      "topic": "Patterns in Shapes",
+      "topic": "Stacked Shapes",
       "title": "Count Stacked Squares and Triangles",
       "scene_type": "shape_pattern",
-      "caption": "The textbook's stacked-square and stacked-triangle sequences contain 1, 4, 9, 16, 25, ... small pieces.",
+      "caption": "The textbook's stacked-square and stacked-triangle sequences contain 1, 4, 9, 16, 25, ... small pieces. The two textbook pictures are called stacked squares and stacked triangles.",
       "objects": [
         {
           "id": "s1",
@@ -8574,7 +8574,7 @@
       "steps": [
         {
           "title": "Count the pieces",
-          "text": "Count the little squares in each stacked-square picture, or the little triangles in each stacked-triangle picture."
+          "text": "Count the little squares in each stacked-square picture, and the little triangles in each stacked-triangle picture."
         },
         {
           "title": "Compare the totals",
@@ -8612,10 +8612,10 @@
     },
     {
       "id": "mathematics-patterns-in-mathematics-koch-snowflake-sequence",
-      "topic": "Patterns in Shapes",
+      "topic": "Koch Snowflake",
       "title": "Count the Koch Snowflake Edges",
       "scene_type": "pattern_builder",
-      "caption": "Each Koch snowflake step replaces every edge with four smaller edges, so the edge counts go 3, 12, 48, 192, ...",
+      "caption": "Each Koch snowflake step replaces every edge with four smaller edges, so the edge counts go 3, 12, 48, 192, ... The sequence of edge counts is 3, 12, 48, 192.",
       "objects": [
         {
           "id": "k1",
@@ -8690,7 +8690,7 @@
       "class_level": 6,
       "subject": "Mathematics",
       "chapter": "Patterns in Mathematics",
-      "topic": "Visualising Number Sequences",
+      "topic": "Hexagonal Numbers and Cubes",
       "title": "Discover Hexagonal Numbers",
       "scene_type": "number_pattern",
       "caption": "The textbook shows the sequence 1, 7, 19, 37, ... as hexagonal numbers.",
@@ -8763,6 +8763,172 @@
           "chapter": "Patterns in Mathematics",
           "page_start": 5,
           "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-visualising-sequences-overview",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Visualising Number Sequences",
+      "title": "Visualising Number Sequences",
+      "scene_type": "number_pattern",
+      "caption": "Visualise counting, odd, even, triangular and square number sequences to compare how each pattern grows.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "3",
+          "kind": "number",
+          "position": [
+            0.3666666666666667,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "6",
+          "kind": "number",
+          "position": [
+            0.6333333333333333,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "10",
+          "kind": "number",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "Look",
+          "text": "Counting numbers go 1, 2, 3, 4. Odd numbers go 1, 3, 5, 7, while even numbers go 2, 4, 6, 8."
+        },
+        {
+          "title": "Compare",
+          "text": "Triangular numbers are 1, 3, 6, 10. Square numbers are 1, 4, 9, 16."
+        },
+        {
+          "title": "Predict",
+          "text": "Notice how each sequence changes, then use its rule to predict the next term."
+        }
+      ],
+      "challenge": {
+        "question": "After 1, 3, 6, how many dots make the next triangular number?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "10",
+        "hint": "Add the next row of 4 dots to 6.",
+        "success_feedback": "Correct. Six plus four makes 10."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 3,
+          "page_end": 5,
+          "edition": "Reprint 2026-27"
+        }
+      ]
+    },
+    {
+      "id": "mathematics-patterns-in-mathematics-relations-overview",
+      "board": "CBSE",
+      "class_level": 6,
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topic": "Relations among Number Sequences",
+      "title": "Relations among Number Sequences",
+      "scene_type": "number_machine",
+      "caption": "Compare related sequences: consecutive odd numbers build square numbers, and consecutive triangular numbers can combine to make squares.",
+      "objects": [
+        {
+          "id": "item1",
+          "label": "1",
+          "kind": "number",
+          "position": [
+            0.1,
+            0.3
+          ]
+        },
+        {
+          "id": "item2",
+          "label": "4",
+          "kind": "number",
+          "position": [
+            0.3666666666666667,
+            0.3
+          ]
+        },
+        {
+          "id": "item3",
+          "label": "9",
+          "kind": "number",
+          "position": [
+            0.6333333333333333,
+            0.3
+          ]
+        },
+        {
+          "id": "item4",
+          "label": "16",
+          "kind": "number",
+          "position": [
+            0.9,
+            0.3
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "title": "First pattern",
+          "text": "Adding consecutive odd numbers makes square numbers: 1, 1+3=4, 1+3+5=9."
+        },
+        {
+          "title": "Second pattern",
+          "text": "Two consecutive triangular numbers can add to a square: 1+3=4 and 3+6=9."
+        },
+        {
+          "title": "Explain",
+          "text": "Compare the sequences and describe the rule that connects them."
+        }
+      ],
+      "challenge": {
+        "question": "What is 1+3+5?",
+        "options": [
+          "8",
+          "9",
+          "10"
+        ],
+        "answer": "9",
+        "hint": "Add 1+3 first, then add 5.",
+        "success_feedback": "Correct. The total is 9, which is 3×3."
+      },
+      "source_refs": [
+        {
+          "source_id": "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+          "chapter": "Patterns in Mathematics",
+          "page_start": 6,
+          "page_end": 7,
           "edition": "Reprint 2026-27"
         }
       ]

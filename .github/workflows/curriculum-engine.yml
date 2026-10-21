@@ -2,7 +2,7 @@ name: Curriculum Engine Tests
 
 on:
   push:
-    branches: [ "main", "feature/gentle-ai-tutor" ]
+    branches: [ "main", "feature/gentle-ai-tutor", "fix/all-test-failures" ]
     paths:
       - "backend/**"
       - ".github/workflows/curriculum-engine.yml"

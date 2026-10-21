@@ -131,6 +131,19 @@ def test_class_six_concept_outline_has_complete_chapter_lists():
         assert all(item["title"].strip() for item in chapter["topics"])
 
 
+def test_curriculum_outline_accepts_math_and_maths_ui_aliases():
+    client = TestClient(curriculum.app)
+    for subject_alias in ("Maths", "Math", "Mathematics"):
+        response = client.get("/curriculum/outline", params={
+            "board": "CBSE", "class_level": 6, "subject": subject_alias, "medium": "English",
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["chapter_count"] == 10, subject_alias
+        assert data["chapters"][0]["title"] == "Patterns in Mathematics", subject_alias
+        assert len(data["chapters"][0]["topics"]) >= 5, subject_alias
+
+
 def test_lines_and_angles_blueprints_are_specific_and_interactive():
     client = TestClient(curriculum.app)
     response = client.get("/interactive-lessons", params={

@@ -68,6 +68,35 @@ def assert_chapter_button(path):
         raise SystemExit("Chapter list did not load or the Choose chapter control is disabled")
     print("PASS: Mathematics chapter list loaded and can be opened")
 
+def assert_profile(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    print("PROFILE / SUBJECT TEXT:", " | ".join(texts[:140]))
+    if "cbse" not in joined:
+        raise SystemExit("Expected test profile to be CBSE, but CBSE is not visible in the tutor/settings UI")
+    if not any(term in joined for term in ("class 6", "class: 6", "standard 6", "grade 6")):
+        raise SystemExit("Expected Class 6 profile is not visible in the tutor/settings UI")
+    print("PASS: test is running against Class 6 CBSE")
+
+def assert_chapter_one(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts)
+    print("CHAPTER MENU TEXT:", " | ".join(texts[:160]))
+    if not any("pattern" in term.lower() for term in texts):
+        raise SystemExit("CBSE Class 6 Mathematics chapter list does not contain Chapter 1 'Patterns in Mathematics'. Visible labels: " + " | ".join(texts[:100]))
+    candidates = [n.attrib.get("text", "").strip() for n in nodes if re.match(r"^1[.)]\s*\S", n.attrib.get("text", "").strip())]
+    if not candidates or not any("pattern" in label.lower() for label in candidates):
+        raise SystemExit("The first chapter option is not 'Patterns in Mathematics'. Numbered Chapter 1 labels: " + " | ".join(candidates))
+    print("PASS: Chapter 1 is explicitly verified as Patterns in Mathematics")
+
+def assert_selected_chapter(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("SELECTED CHAPTER TEXT:", " | ".join(texts[:140]))
+    if "pattern" not in joined:
+        raise SystemExit("Selecting Chapter 1 did not leave 'Patterns in Mathematics' selected")
+    print("PASS: Patterns in Mathematics remains selected")
+
 def tap_numbered(path, number):
     nodes, texts = load(path)
     candidates = []
@@ -112,12 +141,26 @@ def tap_first_concept(path):
 def assert_live(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
-    print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
+    print("LIVE LESSON TEXT:", " | ".join(texts[:160]))
+    known_failures = (
+        "lesson planner returned an invalid segment",
+        "lesson planner returned invalid json",
+        "lesson planner could not produce a valid textbook-grounded segment",
+        "lesson planner connection failed",
+        "tutor could not answer",
+    )
+    found = next((message for message in known_failures if message in joined), None)
+    if found:
+        raise SystemExit("Live lesson surfaced a backend/planner failure instead of teaching: " + found)
     if "teacher is speaking" not in joined and "quick check" not in joined:
-        raise SystemExit("Live lesson did not reach the speaking/checkpoint UI")
+        raise SystemExit("Live lesson did not reach the speaking/checkpoint UI; captured UI: " + " | ".join(texts[:80]))
     if "tap any word to hear its pronunciation again." not in joined:
         raise SystemExit("Live lesson is active but the single inline teaching caption is missing")
-    print("PASS: live lesson panel and spoken teaching text are visible")
+    if not re.search(r"\b\d+\s*/\s*\d+\b", joined):
+        raise SystemExit("Live lesson did not expose segment progress; playback may be stuck before the first segment")
+    if "today, we are going to learn" not in joined and "let's look" not in joined and "let us look" not in joined:
+        raise SystemExit("Live lesson is missing its expected teacher-led opening")
+    print("PASS: live lesson, teacher opening, segment progress, and inline spoken caption are visible")
 
 def assert_highlight_frames(directory):
     try:
@@ -164,7 +207,91 @@ def tap(path, target):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
+
+def tap_bottom_tab(path, side):
+    # Bottom-nav labels are exposed as merged Compose semantics nodes whose
+    # bounds span the entire bar and are marked non-clickable. Target the tab's
+    # horizontal slot rather than tapping the center of that merged node.
+    nodes, texts = load(path)
+    label = "You" if side == "right" else "Home"
+    node = next((n for n in nodes if n.attrib.get("text", "").strip().lower() == label.lower()), None)
+    if node is None:
+        raise SystemExit(f"Bottom navigation label {label!r} was not found. Visible labels: " + " | ".join(texts[:100]))
+    bounds = node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit(f"Bottom navigation bounds are invalid for {label}: {bounds!r}")
+    x1, y1, x2, y2 = map(int, match.groups())
+    width_result = subprocess.run(["adb", "-s", "emulator-5554", "shell", "wm", "size"],
+                                  check=True, capture_output=True, text=True, timeout=10)
+    width_match = re.search(r"(?:Physical|Override) size: (\d+)x(\d+)", width_result.stdout)
+    if not width_match:
+        raise SystemExit("Could not determine emulator dimensions: " + width_result.stdout.strip())
+    width = int(width_match.group(1))
+    # Four equal-width tabs; keep the tap comfortably inside the first/last tab.
+    x = width // 5 if side == "left" else (width * 4) // 5
+    y = (y1 + y2) // 2
+    print(f"Tapping bottom tab {label!r} at ({x}, {y}); merged accessibility bounds={bounds}, screen width={width}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+                   check=True, timeout=45)
+
+
+def assert_checkpoint(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes])
+    print("LIVE CHECKPOINT TEXT:", " | ".join(texts[:120]))
+    required = ("Quick check", "I understand", "Explain again", "I have a question")
+    missing = [label for label in required if label.lower() not in joined.lower()]
+    if missing:
+        raise SystemExit("Live checkpoint is missing required learner controls: " + ", ".join(missing))
+    if not any(any(word in t.lower() for word in ("next", "what", "which", "how", "why", "pattern", "does that make sense")) for t in texts):
+        raise SystemExit("Checkpoint is visible but no meaningful question or understanding prompt is accessible")
+    print("PASS: live lesson pauses at a checkpoint with continue, re-explain, and question controls")
+
+
+def assert_simpler_checkpoint(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes])
+    print("SIMPLER CHECKPOINT TEXT:", " | ".join(texts[:120]))
+    if "was that explanation clearer?" not in joined.lower():
+        raise SystemExit("Explain again did not return to a comprehension check")
+    if "i understand" not in joined.lower():
+        raise SystemExit("Simpler explanation checkpoint has no I understand continuation control")
+    print("PASS: re-explanation returns to a second comprehension check")
+
+
+def assert_continued(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    print("CONTINUED LESSON TEXT:", " | ".join(texts[:120]))
+    if "next small step" not in joined:
+        raise SystemExit("Confirming understanding did not acknowledge the learner and advance the lesson")
+    if "quick check" in joined:
+        raise SystemExit("Lesson appears to remain at the same checkpoint instead of advancing")
+    print("PASS: learner confirmation advances beyond the checkpoint")
+
+def validate_dispatch():
+    # Ensure every action called by the shell journey is implemented in this helper.
+    import ast
+    source = Path(__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    actions = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Compare) and isinstance(node.left, ast.Name) and node.left.id == "action":
+            for comparator in node.comparators:
+                if isinstance(comparator, ast.Constant) and isinstance(comparator.value, str):
+                    actions.add(comparator.value)
+    script = Path(__file__).with_name("android-ui-smoke.sh").read_text(encoding="utf-8")
+    called = set(re.findall(r"ui_smoke\.py\s+([a-z][a-z-]+)", script))
+    missing = sorted(called - actions)
+    if missing:
+        raise SystemExit("Smoke-test actions missing from ui_smoke.py dispatcher: " + ", ".join(missing))
+    print("PASS: all shell-invoked smoke-test actions are registered:", ", ".join(sorted(called)))
+
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] == "--validate-dispatch":
+        validate_dispatch()
+        return
     if len(sys.argv) < 3:
         raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]
@@ -174,16 +301,30 @@ def main():
         assert_home(path)
     elif action == "assert-tutor":
         assert_tutor(path)
+    elif action == "assert-profile":
+        assert_profile(path)
     elif action == "assert-feedback":
         assert_feedback(path)
     elif action == "assert-settings":
         assert_settings(path)
     elif action == "assert-chapter-button":
         assert_chapter_button(path)
+    elif action == "assert-chapter-one":
+        assert_chapter_one(path)
+    elif action == "assert-selected-chapter":
+        assert_selected_chapter(path)
+    elif action == "tap-bottom-tab" and len(sys.argv) >= 4:
+        tap_bottom_tab(path, sys.argv[3])
     elif action == "tap-numbered" and len(sys.argv) >= 4:
         tap_numbered(path, sys.argv[3])
     elif action == "tap-first-concept":
         tap_first_concept(path)
+    elif action == "assert-checkpoint":
+        assert_checkpoint(path)
+    elif action == "assert-simpler-checkpoint":
+        assert_simpler_checkpoint(path)
+    elif action == "assert-continued":
+        assert_continued(path)
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:

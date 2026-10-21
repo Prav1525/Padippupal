@@ -716,7 +716,16 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
             "Fractions", "Playing with Constructions", "Symmetry", "The Other Side of Zero",
         ],
     }
-    subject_key = subject.strip().casefold()
+    # Accept the labels used by student-facing UI as well as canonical database names.
+    # The app may send "Maths" or "Math" while stored source metadata uses "Mathematics";
+    # exact SQL equality then returns no sources and the chapter picker appears empty.
+    raw_subject_key = re.sub(r"\\s+", " ", subject.strip().casefold())
+    subject_aliases = {
+        "math": "mathematics", "maths": "mathematics", "mathematics": "mathematics",
+        "sci": "science", "science": "science",
+    }
+    subject_key = subject_aliases.get(raw_subject_key, raw_subject_key)
+    db_subject = {"mathematics": "Mathematics", "science": "Science"}.get(subject_key, subject.strip())
     ordered_titles = chapter_orders.get(subject_key, [])
     # Explicit concept maps keep the app's chapter/topic picker useful even when
     # the interactive-lesson database has only a first-pass set of lesson blueprints.
@@ -754,7 +763,7 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
                WHERE active=1 AND LOWER(board)=LOWER(?) AND class_level=?
                  AND LOWER(subject)=LOWER(?)
                ORDER BY chapter, topic""",
-            (board, class_level, subject),
+            (board, class_level, db_subject),
         ).fetchall()
         grouped: dict[str, list[str]] = {}
         for row in rows:
@@ -775,7 +784,7 @@ def curriculum_outline(board: str, class_level: int, subject: str, medium: str) 
                    WHERE LOWER(board)=LOWER(?) AND class_level=?
                      AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?) AND status='ready'
                    ORDER BY academic_year DESC, title""",
-                (board, class_level, subject, medium),
+                (board, class_level, db_subject, medium),
             ).fetchall()
             for source in sources:
                 topics: list[str] = []
@@ -1201,26 +1210,81 @@ class LessonPlanRequest(TutorChatRequest):
     max_segments: int = Field(default=5, ge=2, le=8)
 
 def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: int) -> dict[str, Any]:
+    """Validate planner output segment-by-segment; never let one malformed segment kill a grounded lesson.
+
+    Recovery is deliberately conservative: source IDs must still match retrieved chunks. We may
+    normalize common JSON-shape mistakes, but never invent citations or silently keep uncited text.
+    """
     candidate = raw.strip()
     if candidate.startswith("```"):
         candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate, flags=re.IGNORECASE)
     try:
         data = json.loads(candidate)
     except json.JSONDecodeError as exc:
+        logger.warning("Lesson plan validation failed: invalid_json")
         raise HTTPException(status_code=502, detail="The lesson planner returned invalid JSON.") from exc
     if not isinstance(data, dict) or not isinstance(data.get("segments"), list):
+        logger.warning("Lesson plan validation failed: missing_segments_array")
         raise HTTPException(status_code=502, detail="The lesson planner returned an incomplete lesson plan.")
+
     segments = []
-    for item in data["segments"][:max_segments]:
+    rejected = []
+    for index, item in enumerate(data["segments"][:max_segments]):
+        if not isinstance(item, dict):
+            rejected.append((index, "not_object"))
+            continue
+        normalized = dict(item)
+        # Models sometimes emit one citation as a scalar or omit optional visual/checkpoint fields.
+        source_ids = normalized.get("source_chunk_ids")
+        if isinstance(source_ids, str):
+            source_ids = [source_ids]
+        if not isinstance(source_ids, list):
+            rejected.append((index, "invalid_source_ids"))
+            continue
+        source_ids = [str(value).strip() for value in source_ids if isinstance(value, (str, int)) and str(value).strip()]
+        source_ids = list(dict.fromkeys(source_ids))
+        # Reject the entire segment if any citation is fabricated; partial citation repair
+        # could make unsupported claims appear grounded.
+        if not source_ids or not set(source_ids).issubset(allowed_chunk_ids):
+            rejected.append((index, "no_valid_source_ids"))
+            continue
+        normalized["source_chunk_ids"] = source_ids[:5]
+        spoken = normalized.get("spoken_text")
+        caption = normalized.get("caption_text")
+        if not isinstance(spoken, str) or not spoken.strip():
+            rejected.append((index, "missing_spoken_text"))
+            continue
+        normalized["spoken_text"] = spoken.strip()[:500]
+        normalized["caption_text"] = (caption.strip() if isinstance(caption, str) and caption.strip() else spoken.strip())[:500]
+        normalized["id"] = re.sub(r"[^a-zA-Z0-9_-]", "-", str(normalized.get("id") or f"segment-{index + 1}"))[:40].strip("-")
+        if not normalized["id"]:
+            normalized["id"] = f"segment-{index + 1}"
+        action = normalized.get("visual_action")
+        if not isinstance(action, dict):
+            action = {}
+        action_type = str(action.get("type", "none")).strip()
+        if action_type not in {"highlight", "reveal", "move", "compare", "label", "draw-line", "show-result", "none"}:
+            action_type = "none"
+        normalized["visual_action"] = {
+            "type": action_type,
+            "target": str(action.get("target") or "")[:100],
+            "value": str(action.get("value") or "")[:160],
+        }
+        checkpoint = normalized.get("checkpoint")
+        normalized["checkpoint"] = checkpoint.strip()[:240] if isinstance(checkpoint, str) and checkpoint.strip() else None
         try:
-            segment = LessonSegment.model_validate(item)
+            segment = LessonSegment.model_validate(normalized)
         except Exception as exc:
-            raise HTTPException(status_code=502, detail="The lesson planner returned an invalid segment.") from exc
-        if not set(segment.source_chunk_ids).issubset(allowed_chunk_ids):
-            raise HTTPException(status_code=502, detail="The lesson planner referenced a passage outside the retrieved textbook context.")
+            # Log only structural error types, never student text or generated lesson content.
+            rejected.append((index, "schema_" + type(exc).__name__))
+            continue
         segments.append(segment.model_dump())
+    if rejected:
+        logger.warning("Lesson planner dropped %d malformed/ungrounded segment(s): %s",
+                       len(rejected), ",".join(f"{index}:{reason}" for index, reason in rejected))
     if not segments:
-        raise HTTPException(status_code=502, detail="The lesson planner returned no teachable segments.")
+        logger.warning("Lesson plan validation failed: no_valid_grounded_segments")
+        raise HTTPException(status_code=502, detail="The lesson planner could not produce a valid textbook-grounded segment. Please retry.")
     return {"segments": segments}
 
 
@@ -1452,11 +1516,12 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         if entry not in sources: sources.append(entry)
     system_prompt = ("You are PadippuPal lesson planner for class " + str(payload.class_level) + ", subject " + subject + ", chapter " + (payload.chapter or "not selected") + ", topic " + (payload.topic or payload.message) + ", language " + payload.app_language + ".\n"
         + "Use ONLY retrieved PadippuPal database passages for factual claims. Return JSON only: {segments:[{id,spoken_text,caption_text,source_chunk_ids,visual_action:{type,target,value},checkpoint}]}. "
-        + "Teach like a patient, kind primary-school teacher sitting beside one child. Use very simple everyday words, one idea at a time, and explain any new term before using it. "
-        + "Create at most " + str(payload.max_segments) + " short sequential spoken segments, usually one sentence and no more than 18 spoken words each. "
-        + "Use natural spoken punctuation: short sentences, commas for gentle breaths, and occasional ellipses only where a real pause helps. Avoid robotic lists, rushed phrasing, repeated filler, and exaggerated baby talk. "
-        + "After explaining a key idea or worked example, set checkpoint to a warm, short understanding question such as Does that make sense so far? or Would you like me to show that another way? Set checkpoint on at least every second segment, especially after examples. Do not put the checkpoint question inside spoken_text; the app will pause and ask it separately. "
-        + "When explaining an example, make visual_action point to the exact number, shape, or step being spoken about; reveal or compare one step at a time. "
+        + "Teach like a patient, kind primary-school teacher sitting beside one child. First connect the idea to something familiar, then show one concrete example, invite the child to notice what changes or repeats, and only then name the rule. Do not start with an abstract definition if an example can come first. "
+        + "Keep each segment to one small teaching move: orient the child, show or describe the example, think aloud about one observation, invite a prediction, explain the answer, or recap. Use age-appropriate words and explain a new term before relying on it. "
+        + "Create at most " + str(payload.max_segments) + " short sequential spoken segments, usually one or two short sentences and no more than 18 spoken words each. Do not cram multiple concepts into one segment. "
+        + "Use natural teacher pacing: short sentences, commas for gentle breaths, and a question-like rise when inviting a prediction. Avoid robotic lists, rushing, repeated filler, exaggerated baby talk, or claiming the child understands without evidence. "
+        + "At a meaningful pause after an example or key idea, provide one specific, answerable understanding question in checkpoint (for example, Which number do you think comes next, and why?). Set checkpoints at least every second segment. Do not put the checkpoint question inside spoken_text; the app will pause and ask it separately. "
+        + "Make visual_action point to the exact number, shape, or step being spoken about; reveal or compare one step at a time. Never show a visual that contradicts the spoken example. "
         + "Each segment must cite exact chunk_id values shown in the passages. visual_action type must be one of highlight,reveal,move,compare,label,draw-line,show-result,none. Never return code or invent unsupported visuals. Use none if no matching visual is supported.")
     body = json.dumps({"systemInstruction": {"parts": [{"text": system_prompt}]},
         "contents": [{"role": "user", "parts": [{"text": "Student request: " + payload.message + "\nRetrieved passages:\n" + "\n\n---\n\n".join(context)}]}],
@@ -1468,7 +1533,42 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         with urllib.request.urlopen(req, timeout=45) as response:
             result = json.loads(response.read().decode("utf-8"))
         raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
-        validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+        try:
+            validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+        except HTTPException as validation_error:
+            # A model can return malformed JSON-shaped segments or citations even when
+            # retrieval succeeded. Keep the lesson grounded and usable by falling back
+            # to short verbatim excerpts from the already-retrieved textbook chunks.
+            # Never fabricate source IDs or paraphrase facts in this recovery path.
+            fallback_segments = []
+            for index, item in enumerate(matches[:payload.max_segments]):
+                source = item.get("source", {})
+                chunk_id = str(source.get("chunk_id", "")).strip()
+                passage = re.sub(r"\s+", " ", str(item.get("text", ""))).strip()
+                if not chunk_id or chunk_id not in allowed_ids or not passage:
+                    continue
+                # Prefer the first complete sentence; if the PDF chunk has no sentence
+                # punctuation, use a short exact excerpt rather than failing the lesson.
+                sentence = re.split(r"(?<=[.!?])\s+", passage, maxsplit=1)[0].strip()
+                words = sentence.split()
+                excerpt = " ".join(words[:22]).strip()
+                if not excerpt:
+                    continue
+                if len(words) > 22:
+                    excerpt = excerpt.rstrip(".,;:") + "…"
+                fallback_segments.append({
+                    "id": "textbook-excerpt-" + str(index + 1),
+                    "spoken_text": excerpt[:500],
+                    "caption_text": excerpt[:500],
+                    "source_chunk_ids": [chunk_id],
+                    "visual_action": {"type": "none", "target": "", "value": ""},
+                    "checkpoint": None,
+                })
+            if not fallback_segments:
+                raise validation_error
+            logger.warning("Lesson planner output invalid; recovered with %d verbatim textbook excerpt segment(s)",
+                           len(fallback_segments))
+            validated = {"segments": fallback_segments}
     except urllib.error.HTTPError as exc:
         logger.warning("Gemini lesson planner rejected: status=%s model=%s", exc.code, model)
         raise HTTPException(status_code=503 if exc.code == 429 else 502, detail="The lesson planner could not answer right now.") from exc

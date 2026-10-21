@@ -84,6 +84,8 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn('while [ "$SECONDS" -lt "$playback_deadline" ]', script)
         self.assertIn('timeout 5s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-pause-control.xml', script)
         self.assertIn("live-playback-timeout.png", script)
+        self.assertIn("shell rm -f /data/local/tmp/live-pause-control.xml", script)
+        self.assertIn("else\n    rm -f ui-screenshots/live-pause-control.xml", script)
         self.assertNotIn("for attempt in $(seq 1 45); do", script)
 
     def test_live_lesson_invalidates_stale_chat_speech_callbacks(self):

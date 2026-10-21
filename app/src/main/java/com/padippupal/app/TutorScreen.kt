@@ -959,6 +959,8 @@ internal fun TutorScreen(
     }
     var speechActive by remember { mutableStateOf(false) }
     var speechPlaybackStarted by remember { mutableStateOf(false) }
+    var speechPaused by remember { mutableStateOf(false) }
+    var pausedHostedAudio by remember { mutableStateOf(false) }
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
@@ -1163,6 +1165,8 @@ internal fun TutorScreen(
     fun finishSpeechSegment() {
         speechActive = false
         speechPlaybackStarted = false
+        speechPaused = false
+        pausedHostedAudio = false
         val callback = speechCompletion
         speechCompletion = null
         callback?.invoke()
@@ -1373,8 +1377,52 @@ internal fun TutorScreen(
         }
     }
 
+    fun pauseLiveLesson() {
+        if (!liveLessonActive || !speechPlaybackStarted || speechPaused) return
+        val player = audioPlayer.value
+        if (player != null) {
+            val paused = runCatching { player.pause() }
+            if (paused.isFailure) {
+                status = "Couldn't pause audio safely. Stop the lesson and try again."
+                return
+            }
+            pausedHostedAudio = true
+            status = "Lesson paused."
+        } else {
+            pausedHostedAudio = false
+            speechCompletion = null
+            speechStartCallback = null
+            ttsState.value?.stop()
+            status = "Lesson paused. Resume will replay this short segment from the beginning."
+        }
+        speechPaused = true
+        speechPlaybackStarted = false
+        speechActive = false
+    }
+
+    fun resumeLiveLesson() {
+        if (!liveLessonActive || !speechPaused) return
+        if (pausedHostedAudio) {
+            val player = audioPlayer.value
+            if (player != null && runCatching { player.start() }.isSuccess) {
+                speechPaused = false
+                speechActive = true
+                speechPlaybackStarted = true
+                status = "Live lesson · segment ${liveSegmentIndex + 1} of ${liveSegments.size}"
+                return
+            }
+            runCatching { player?.release() }
+            audioPlayer.value = null
+        }
+        speechPaused = false
+        pausedHostedAudio = false
+        playLiveSegment(liveSegmentIndex)
+    }
+
     fun startLiveLesson() {
         if (loading || liveLessonActive) return
+        speechPaused = false
+        pausedHostedAudio = false
         if (chapter.isBlank() && topic.isBlank()) { status = "Choose a chapter or concept first."; return }
         loading = true
         status = "Preparing a textbook-grounded live lesson…"
@@ -1423,6 +1471,8 @@ internal fun TutorScreen(
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
         audioPlayer.value = null; ttsState.value?.stop(); speechCompletion = null; speechActive = false
         speechPlaybackStarted = false
+        speechPaused = false
+        pausedHostedAudio = false
         status = "Live lesson stopped."
     }
 
@@ -1529,9 +1579,9 @@ internal fun TutorScreen(
     // Hosted audio has no word timestamps, so align to its real playback position
     // with word-length and punctuation weighting. Android TTS uses exact onRangeStart
     // character offsets and must not be overwritten by this fallback loop.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value, nativeWordTiming) {
-        if (!speechActive || !liveLessonActive || liveCaption.isBlank() || nativeWordTiming) {
-            if (!speechActive) liveWordIndex = 0
+    LaunchedEffect(speechActive, speechPaused, liveCaption, liveLessonActive, audioPlayer.value, nativeWordTiming) {
+        if (!speechActive || speechPaused || !liveLessonActive || liveCaption.isBlank() || nativeWordTiming) {
+            if (!speechActive && !speechPaused) liveWordIndex = 0
             return@LaunchedEffect
         }
         val tokens = Regex("\\S+").findAll(liveCaption).map { it.value }.toList()
@@ -1543,7 +1593,7 @@ internal fun TutorScreen(
         }
         val totalWeight = weights.sum().coerceAtLeast(1f)
         var elapsedMs = 0L
-        while (speechActive && liveLessonActive && !nativeWordTiming) {
+        while (speechActive && !speechPaused && liveLessonActive && !nativeWordTiming) {
             val player = audioPlayer.value
             val duration = if (player != null) runCatching { player.duration }.getOrDefault(0).coerceAtLeast(0) else 0
             val position = if (player != null) runCatching { player.currentPosition }.getOrDefault(0).coerceAtLeast(0).toLong() else elapsedMs
@@ -1629,6 +1679,14 @@ internal fun TutorScreen(
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(if (liveLessonActive) "Stop" else "▶ Teach", fontSize = 12.sp)
+                    }
+                    if (liveLessonActive && !awaitingUnderstanding && (speechPlaybackStarted || speechPaused)) {
+                        TextButton(
+                            onClick = { if (speechPaused) resumeLiveLesson() else pauseLiveLesson() },
+                            contentPadding = PaddingValues(horizontal = 7.dp, vertical = 8.dp)
+                        ) {
+                            Text(if (speechPaused) "Resume" else "Pause", color = TutorGreen, fontSize = 12.sp)
+                        }
                     }
                 }
                 if (showLessonSettings) {
@@ -1736,6 +1794,7 @@ internal fun TutorScreen(
                                 Spacer(Modifier.width(6.dp))
                                 Text(
                                     when {
+                                        speechPaused -> "LESSON PAUSED"
                                         speechPlaybackStarted -> "TEACHER IS SPEAKING"
                                         awaitingUnderstanding -> "PAUSE FOR CHECK-IN"
                                         speechActive -> "PREPARING LESSON AUDIO"

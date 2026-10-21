@@ -34,6 +34,9 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Run fast JVM tests before emulator allocation
+        run: gradle --no-daemon testDebugUnitTest
+
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
 
@@ -48,12 +51,12 @@ jobs:
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 30
           arch: x86_64
           profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 4096 -cores 2
           disable-animations: true
-          emulator-boot-timeout: 600
+          emulator-boot-timeout: 420
           script: bash .github/scripts/android-ui-smoke.sh
 
       - name: Upload emulator screenshots, UI trees, and diagnostics

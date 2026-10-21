@@ -247,7 +247,11 @@ python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Choose concept"
 sleep 2
 timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
 "${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
-python3 .github/scripts/ui_smoke.py tap-first-concept concept-menu.xml
+# Compose DropdownMenu rows can be visually selectable while uiautomator marks
+# their merged semantics nodes clickable=false. Select the first numbered row
+# by its bounds, as we already do for chapter rows, rather than filtering on
+# the unreliable clickable attribute.
+python3 .github/scripts/ui_smoke.py tap-numbered concept-menu.xml 1
 sleep 2
 timeout -k 3s 25s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
 "${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml

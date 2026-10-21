@@ -140,9 +140,13 @@ def assert_live(path):
     print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
     if "teacher is speaking" not in joined and "quick check" not in joined:
         raise SystemExit("Live lesson did not reach the speaking/checkpoint UI")
-    if "tap any word to hear its pronunciation again." not in joined:
-        raise SystemExit("Live lesson is active but the single inline teaching caption is missing")
-    print("PASS: live lesson panel and spoken teaching text are visible")
+    # The inline caption is ordinary Text now; verify lesson words, not the removed prompt.
+    lesson_words = ("one", "all 1s", "pattern", "number")
+    if not any(term in joined for term in lesson_words):
+        raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
+    if "tap any word to hear its pronunciation again." in joined:
+        raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
+    print("PASS: live lesson panel and actual inline teaching caption text are accessible")
 
 def assert_highlight_frames(directory):
     try:

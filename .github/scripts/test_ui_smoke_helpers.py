@@ -32,5 +32,19 @@ class ConceptCandidateTests(unittest.TestCase):
         self.assertEqual([n.attrib["text"] for n in candidates], ["3. Valid row"])
 
 
+class RetryIsolationTests(unittest.TestCase):
+    def test_each_retry_clears_old_xml_and_screenshot_evidence(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke-retry.sh").read_text()
+        self.assertIn("rm -rf ui-screenshots", script)
+        self.assertIn("rm -f home.xml tutor.xml", script)
+        self.assertLess(script.index("rm -rf ui-screenshots"), script.index("bash .github/scripts/android-ui-smoke.sh"))
+
+    def test_smoke_attempt_resets_profile_before_writing_cbse_profile(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        reset = 'run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml'
+        self.assertIn(reset, script)
+        self.assertLess(script.index(reset), script.index("Configuring smoke-test profile"))
+
+
 if __name__ == "__main__":
     unittest.main()

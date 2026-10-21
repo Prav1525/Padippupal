@@ -166,7 +166,8 @@ def has_pause_control(path):
     nodes, _ = load(path)
     return any(
         n.attrib.get("text", "").strip().lower() in ("pause", "resume")
-        and n.attrib.get("clickable") == "true"
+        and re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", n.attrib.get("bounds", ""))
+        and n.attrib.get("enabled") != "false"
         for n in nodes
     )
 

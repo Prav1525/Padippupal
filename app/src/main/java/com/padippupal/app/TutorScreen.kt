@@ -1195,7 +1195,19 @@ internal fun TutorScreen(
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                tutorMainHandler.post { speechActive = false }
+                tutorMainHandler.post {
+                    // A failed utterance must not be treated as completed speech:
+                    // doing so auto-advances the live lesson and skips its teaching.
+                    speechActive = false
+                    speechStartCallback = null
+                    speechCompletion = null
+                    if (liveLessonActive) {
+                        livePaused = true
+                        status = "Voice playback failed. Check the selected speech engine, then tap Resume to retry this step."
+                    } else {
+                        status = "Voice playback failed. Check the selected speech engine and try again."
+                    }
+                }
             }
         })
         ttsState.value = engine
@@ -1227,9 +1239,14 @@ internal fun TutorScreen(
             status = if (selectedLanguage == "தமிழ்") {
                 "This selected voice engine has no Tamil voice. Choose Tanglish or install a Tamil-capable engine."
             } else {
-                "No compatible English voice is available in the selected phone TTS engine."
+                "No compatible English voice is available in the selected phone TTS engine. Install an English voice, then tap Resume to retry this step."
             }
-            finishSpeechSegment()
+            // Do not call finishSpeechSegment here: its completion callback would
+            // skip every segment without audio and can make the whole lesson vanish.
+            speechStartCallback = null
+            speechCompletion = null
+            speechActive = false
+            if (liveLessonActive) livePaused = true
             return
         }
         engine.language = locale

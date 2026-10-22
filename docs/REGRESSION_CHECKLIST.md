@@ -116,3 +116,11 @@ Add ID, severity, observed failure, expected behavior, evidence, confirmed cause
 
 
 - **Follow-up test harness change (2026-10-22):** latest PR #13 head `8fe4a4b35cef0acaca18c1d6fa1c7cc83bcd9ca1` switches the UI emulator to `google_apis_playstore` and detects explicit no-voice errors during checkpoint polling. This improves the test environment and shortens known failure diagnosis without skipping the speech/checkpoint assertions. Latest curriculum tests passed; APK/UI smoke were pending at handoff.
+
+
+### PP-TUTOR-007 — Screenshot regression checks must remain performant
+
+- **Expected:** screenshot assertions detect exact highlight colors and movement without spending minutes on Python-level full-screen pixel scans.
+- **Checks:** synthetic-image test verifies exact RGB mask count/bounds; the UI smoke must still detect at least two distinct highlight positions and verify the teaching panel layout.
+- **Correction:** PR #13 head `01cbd5185a531c7c0ce220438d4603f0be8a3a92` uses Pillow masks/bounding boxes and adds a synthetic mask regression test.
+- **Status:** Code/build and curriculum tests PASS; UI smoke `39737297301` was still running at last check.

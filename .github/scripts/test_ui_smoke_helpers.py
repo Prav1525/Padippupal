@@ -33,6 +33,22 @@ class AndroidManifestContractTests(unittest.TestCase):
         )
 
 
+class TtsFailureRegressionTests(unittest.TestCase):
+    def test_tutor_handles_tts_binding_security_exception_without_crashing(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn("catch (error: SecurityException)", tutor)
+        self.assertIn("Voice engine could not initialize.", tutor)
+        self.assertIn("runCatching { engine?.shutdown() }", tutor)
+
+    def test_smoke_workflow_does_not_force_the_incompatible_hayai_engine(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows" /
+                    "android-ui-smoke.yml").read_text()
+        self.assertIn("system-image: google_apis", workflow)
+        self.assertNotIn("dev.ahmedmohamed.hayaitts", workflow)
+        self.assertNotIn("hayaitts-x86_64", workflow)
+
+
 class ConceptCandidateTests(unittest.TestCase):
     def test_compose_row_without_clickable_flag_is_still_selectable(self):
         root = ET.fromstring("""<hierarchy>

@@ -183,3 +183,14 @@ Update this section at the end of each work session:
 - The smoke checkpoint poll now stops early and records the explicit voice error if neither hosted speech nor device TTS can start; it no longer waits the full 150-second checkpoint timeout in that known failure state. This is diagnostic-only and does not relax acceptance assertions.
 - Fresh runs for the latest head: curriculum engine tests `39736614807` PASS; Android APK `39736614748` and Android UI smoke `39736614754` were still running at the time of this update. Re-fetch before reporting final status.
 - Cloud TTS remains externally blocked at last observed backend logs: Gemini 429 and Sarvam 402. Do not modify billing/secrets or imply provider quota has been repaired. Next action: inspect latest build and emulator results; if speech still cannot start, capture the explicit reason and leave voice/checkpoint acceptance open rather than weakening tests.
+
+
+## Screenshot-check performance correction — 2026-10-22
+
+- Latest code head on PR #13: `01cbd5185a531c7c0ce220438d4603f0be8a3a92`.
+- **PASS:** Android APK build `39737297227` — https://github.com/Prav1525/Padippupal/actions/runs/39737297227
+- **PASS:** Curriculum engine tests `39737297178` — https://github.com/Prav1525/Padippupal/actions/runs/39737297178
+- **IN PROGRESS at last check:** Android UI smoke `39737297301` — https://github.com/Prav1525/Padippupal/actions/runs/39737297301
+- Screenshot inspection no longer scans every image pixel in Python; exact RGB masks and bounding boxes use Pillow operations. A synthetic-image regression test checks exact-color pixel count and bounds. The app's inline-highlight movement assertion remains required.
+- Render logs still show cloud TTS failures (Gemini 429 and Sarvam 402) on the latest emulator attempt. The Play Store emulator fallback test has not yet provided a final checkpoint result. Keep speech/highlight/pause-resume/checkpoint acceptance open until the UI run finishes and its artifact is inspected.
+- Next single action: fetch the final UI smoke result and inspect its failure artifact if it fails; do not claim the checkpoint fix passed without observing the 2/5 → 3/5 transition.

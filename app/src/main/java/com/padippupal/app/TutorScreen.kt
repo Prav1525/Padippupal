@@ -257,8 +257,7 @@ private fun InteractiveLessonLab(
     var positions by remember(key) { mutableStateOf(items.map { Offset(it.x,it.y) }) }
     val motion = rememberInfiniteTransition(label = "lab-motion")
     val moving by motion.animateFloat(0f,1f,infiniteRepeatable(tween(2200),RepeatMode.Reverse),label="moving-particle")
-    Surface(Modifier.fillMaxWidth().padding(top=8.dp), color=Color(0xFFEAF5EE), shape=RoundedCornerShape(18.dp), border=BorderStroke(1.dp,Color(0xFFD1E7D8))) {
-        Column(Modifier.padding(12.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("TOUCH & EXPLORE",color=TutorGreen,fontSize=10.sp,fontWeight=FontWeight.Bold)
@@ -307,7 +306,6 @@ private fun InteractiveLessonLab(
             Text(hint,color=TutorGrey,fontSize=12.sp,lineHeight=16.sp)
             Text("Touch and hold an object, then drag it. Use Reset to start again.",color=TutorGreen,fontSize=10.sp)
         }
-    }
 }
 
 

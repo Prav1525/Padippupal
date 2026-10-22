@@ -194,3 +194,13 @@ Update this section at the end of each work session:
 - Screenshot inspection no longer scans every image pixel in Python; exact RGB masks and bounding boxes use Pillow operations. A synthetic-image regression test checks exact-color pixel count and bounds. The app's inline-highlight movement assertion remains required.
 - Render logs still show cloud TTS failures (Gemini 429 and Sarvam 402) on the latest emulator attempt. The Play Store emulator fallback test has not yet provided a final checkpoint result. Keep speech/highlight/pause-resume/checkpoint acceptance open until the UI run finishes and its artifact is inspected.
 - Next single action: fetch the final UI smoke result and inspect its failure artifact if it fails; do not claim the checkpoint fix passed without observing the 2/5 → 3/5 transition.
+
+
+## Speech completion recovery follow-up — 2026-10-22
+
+- Active objective remains the Class 6 CBSE Mathematics → Patterns in Mathematics → All 1s live tutor journey; PR #13 remains open/unmerged.
+- Latest verified failing run for prior head `01cbd5185a531c7c0ce220438d4603f0be8a3a92`: Android APK PASS (`39737297227`), curriculum tests PASS (`39737297178`), UI smoke FAIL (`39737297301`).
+- UI evidence: lesson content and repeated-ones animation PASS; inline spoken-word highlight moved through 13 distinct positions; pause/resume controls PASS. After resume the lesson remained at 1/5 and did not reach the understanding checkpoint within 150 seconds. Artifact: https://github.com/Prav1525/Padippupal/actions/runs/39737297301/artifacts/12408052680
+- Logcat shows a MediaPlayer/NuPlayer playback session was paused/resumed and later reset, but the UI remained on segment 1. The precise missing callback was not directly logged; treat the callback failure as a strong hypothesis, not a proven underlying Android engine defect.
+- Implemented on PR #13 head `73a930a6a4be661c6413690dd387380774c67f0c`: per-utterance watchdog detects playback that was observed and then stopped without delivering the completion callback. It respects pause state, checks MediaPlayer end position to avoid treating a temporary stall as completion, and fails safely if playback never starts. Fresh curriculum tests PASS; APK build and UI smoke are pending.
+- **Next single action:** inspect fresh build and full emulator results for `73a930a6a4be661c6413690dd387380774c67f0c`; require the explicit checkpoint and 2/5 → 3/5 assertion before closing the issue.

@@ -1,0 +1,184 @@
+name: Bounded CI auto-repair
+
+on:
+  workflow_run:
+    workflows:
+      - Android APK
+      - Android UI smoke test
+      - Curriculum Engine Tests
+      - Project process guard
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  prepare:
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      !startsWith(github.event.workflow_run.head_branch, 'autofix-2/')
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+      branch: ${{ steps.meta.outputs.branch }}
+      run_id: ${{ steps.meta.outputs.run_id }}
+      run_url: ${{ steps.meta.outputs.run_url }}
+      workflow: ${{ steps.meta.outputs.workflow }}
+      repair_branch: ${{ steps.meta.outputs.repair_branch }}
+    steps:
+      - id: meta
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          WORKFLOW: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$BRANCH" == autofix-1/* ]]; then
+            repair_branch="autofix-2/$RUN_ID"
+          else
+            repair_branch="autofix-1/$RUN_ID"
+          fi
+          {
+            echo "sha=$SHA"
+            echo "branch=$BRANCH"
+            echo "run_id=$RUN_ID"
+            echo "run_url=$RUN_URL"
+            echo "workflow=$WORKFLOW"
+            echo "repair_branch=$repair_branch"
+          } >> "$GITHUB_OUTPUT"
+
+  check-key:
+    needs: prepare
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [[ -n "$KEY" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Set repository Actions secret OPENAI_API_KEY to enable automatic code repair. Failure triage remains separate."
+          fi
+
+  repair:
+    needs: [prepare, check-key]
+    if: needs.check-key.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Capture failure logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ needs.prepare.outputs.run_id }}
+        run: |
+          mkdir -p auto-repair-evidence
+          gh run view "$RUN_ID" --log-failed > auto-repair-evidence/failed-logs.txt 2>&1 || true
+      - name: Diagnose and attempt one focused repair
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          safety-strategy: drop-sudo
+          output-file: auto-repair-evidence/repair-summary.md
+          prompt: |
+            Read the failure logs in auto-repair-evidence/failed-logs.txt and inspect the exact failing code path.
+            Follow DEVELOPMENT_PROTOCOL.md, PROJECT_STATE.md, docs/ENGINEERING_BEHAVIOR_CHECKLIST.md,
+            docs/REGRESSION_CHECKLIST.md and docs/DECISION_LOG.md when present.
+            Diagnose the first real failure. Make at most one small root-cause fix supported by evidence.
+            Never weaken assertions, skip tests, hide errors, change product requirements, touch secrets/workflow permissions,
+            merge, or deploy. If an emulator-only issue cannot be diagnosed safely from evidence, do not guess or patch.
+            Run relevant feasible tests and update PROJECT_STATE.md and docs/REGRESSION_CHECKLIST.md if present.
+            Summarize evidence, confidence, changed files, and test results in auto-repair-evidence/repair-summary.md.
+      - name: Verify proposed patch
+        id: verify
+        run: |
+          set -euo pipefail
+          git diff --check
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gradle --no-daemon testDebugUnitTest
+          gradle --no-daemon assembleDebug
+          if [[ -d backend ]]; then (cd backend && python -m pip install -r requirements.txt && pytest -q); fi
+          git diff --binary > /tmp/auto-repair.patch
+          test -s /tmp/auto-repair.patch
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - name: Upload proposed patch and evidence
+        if: steps.verify.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-repair-${{ needs.prepare.outputs.run_id }}
+          path: |
+            /tmp/auto-repair.patch
+            auto-repair-evidence/
+          retention-days: 7
+
+  open-pr:
+    needs: [prepare, check-key, repair]
+    if: needs.check-key.outputs.enabled == 'true' && needs.repair.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: auto-repair-${{ needs.prepare.outputs.run_id }}
+          path: repair-artifact
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.branch }}
+          fetch-depth: 0
+      - name: Apply patch
+        run: |
+          set -euo pipefail
+          patch_file="$(find repair-artifact -name auto-repair.patch -type f -print -quit)"
+          test -n "$patch_file"
+          git apply --3way "$patch_file"
+          git diff --check
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ needs.prepare.outputs.repair_branch }}
+          base: ${{ needs.prepare.outputs.branch }}
+          commit-message: "fix: propose bounded CI auto-repair"
+          title: "Automated repair proposal for ${{ needs.prepare.outputs.workflow }} failure"
+          body: |
+            Automated repair proposal from failed commit ${{ needs.prepare.outputs.sha }}.
+            Source run: ${{ needs.prepare.outputs.run_url }}.
+            The patch was reviewed by Codex and Android unit tests/build were rerun before opening this PR.
+            No automatic merge or deployment occurs. Review the evidence artifact and confirm end-to-end behavior.
+      - name: Request retests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPAIR_BRANCH: ${{ needs.prepare.outputs.repair_branch }}
+        run: |
+          gh workflow run "Android APK" --ref "$REPAIR_BRANCH"
+          gh workflow run "Android UI smoke test" --ref "$REPAIR_BRANCH"
+          gh workflow run "Curriculum Engine Tests" --ref "$REPAIR_BRANCH"

@@ -104,9 +104,9 @@ def test_tutor_speech_requires_cloud_tts_configuration(monkeypatch):
 
 
 
-def test_tutor_speech_prefers_sarvam_before_gemini(monkeypatch):
+def test_tutor_speech_falls_back_to_sarvam_when_gemini_is_not_configured(monkeypatch):
     monkeypatch.setenv("SARVAM_API_KEY", "test-sarvam-key")
-    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "")
     captured = {}
 
     def fake_sarvam(text, language):

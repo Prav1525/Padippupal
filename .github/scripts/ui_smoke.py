@@ -117,6 +117,26 @@ def concept_candidates(nodes):
     return sorted(numbered, key=lambda n: n.attrib.get("clickable") != "true")
 
 
+def tap_topic_picker(path):
+    nodes, texts = load(path)
+    # Chapter selection may preselect the first curriculum topic. In that case
+    # the button displays its selected title instead of the placeholder label.
+    candidates = []
+    for node in nodes:
+        label = node.attrib.get("text", "").strip()
+        if label.lower() == "choose concept" or label.lower() == "all 1s":
+            if re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", node.attrib.get("bounds", "")):
+                candidates.append(node)
+    if not candidates:
+        raise SystemExit("No concept-picker control found (expected placeholder or currently selected topic). Visible labels: " + " | ".join(texts[:120]))
+    node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
+    bounds = node.attrib["bounds"]
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    print("Opening concept picker:", node.attrib.get("text"), bounds)
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
+                   check=True, timeout=45)
+
 def tap_first_concept(path):
     nodes, texts = load(path)
     candidates = concept_candidates(nodes)
@@ -146,7 +166,8 @@ def assert_live(path):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
-    if "choose chapter" in joined or "choose concept" in joined or "subject" in joined:
+    visible_labels = {text.strip().lower() for text in texts}
+    if visible_labels.intersection({"choose chapter", "choose concept", "subject", "change"}):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
@@ -286,6 +307,8 @@ def main():
         assert_chapter_selected(path)
     elif action == "tap-numbered" and len(sys.argv) >= 4:
         tap_numbered(path, sys.argv[3])
+    elif action == "tap-topic-picker":
+        tap_topic_picker(path)
     elif action == "tap-first-concept":
         tap_first_concept(path)
     elif action == "assert-live":

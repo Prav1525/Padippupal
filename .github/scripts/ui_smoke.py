@@ -366,16 +366,19 @@ def assert_live_layout(path):
         raise SystemExit("Pillow is required to inspect live lesson layout") from exc
     image = Image.open(path).convert("RGB")
     width, height = image.size
-    # The live teaching panel uses #EAF5EE. Check its central area near the
-    # bottom of the teaching viewport, above the fixed message composer.
-    x1, x2 = int(width * 0.15), int(width * 0.85)
-    y1, y2 = int(height * 0.58), int(height * 0.70)
+    # The tutor is intentionally a continuous canvas, not a large inset green card.
+    # The old card's exact pale-green fill (#EAF5EE) should no longer dominate the
+    # lower teaching viewport; small inline animation highlights remain acceptable.
+    x1, x2 = int(width * 0.10), int(width * 0.90)
+    y1, y2 = int(height * 0.48), int(height * 0.76)
     region = image.crop((x1, y1, x2, y2))
     count = exact_color_mask(region, (234, 245, 238)).histogram()[255]
-    print(f"Live panel lower-viewport background pixels: {count}")
-    if count < 500:
-        raise SystemExit("Live teaching panel does not fill the available vertical space; a large unused blank area remains below the lesson")
-    print("PASS: live teaching panel occupies the available teaching viewport")
+    area = max(1, region.width * region.height)
+    ratio = count / area
+    print(f"Separate-card background coverage in teaching viewport: {ratio:.1%}")
+    if ratio > 0.35:
+        raise SystemExit("A large pale-green lesson card still occupies the teaching viewport")
+    print("PASS: live lesson uses a continuous canvas without a dominant green card")
 
 
 def exact_text_candidates(nodes, target):

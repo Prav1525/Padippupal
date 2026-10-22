@@ -1651,8 +1651,59 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             validated = candidate
             break
         except urllib.error.HTTPError as exc:
-            logger.warning("Gemini lesson planner rejected: status=%s model=%s", exc.code, model)
-            raise HTTPException(status_code=503 if exc.code == 429 else 502, detail="The lesson planner could not answer right now.") from exc
+            provider_detail = exc.read(1000).decode("utf-8", errors="replace")
+            logger.warning(
+                "Gemini lesson planner rejected: status=%s model=%s detail=%s",
+                exc.code, model, provider_detail[:240],
+            )
+            # A live lesson must not be blocked by a transient/provider-side
+            # generation failure when we already retrieved and topic-filtered
+            # approved textbook passages. Fall back to an exact source excerpt;
+            # never invent replacement teaching content or citations.
+            excerpt = next(
+                (str(item.get("text", "")).strip() for item in matches
+                 if str(item.get("text", "")).strip()),
+                "",
+            )
+            if excerpt:
+                sentence_match = re.search(r"[^.!?]+[.!?]?(?:\\s|$)", excerpt)
+                spoken = sentence_match.group(0).strip() if sentence_match else excerpt
+                spoken = spoken[:500].rsplit(" ", 1)[0] if len(spoken) > 500 else spoken
+                source_ids = [
+                    str(item.get("source", {}).get("chunk_id", ""))
+                    for item in matches
+                    if str(item.get("source", {}).get("chunk_id", ""))
+                    and str(item.get("text", "")).strip() == excerpt
+                ]
+                if spoken and source_ids:
+                    logger.warning(
+                        "Starting source-extract lesson fallback after Gemini failure status=%s topic=%s",
+                        exc.code, payload.topic,
+                    )
+                    return {
+                        "lesson_id": str(uuid.uuid4()),
+                        "segments": [{
+                            "id": "textbook-extract-1",
+                            "spoken_text": spoken,
+                            "caption_text": spoken,
+                            "source_chunk_ids": source_ids[:5],
+                            "visual_action": {"type": "none", "target": "", "value": ""},
+                            "checkpoint": None,
+                        }],
+                        "grounded": True,
+                        "sources": sources,
+                        "warning": "Gemini lesson generation was unavailable; this segment is quoted from the matched textbook passage.",
+                        "language": payload.app_language,
+                        "subject": subject,
+                        "provider": "textbook_extract_fallback",
+                        "model": "retrieved-textbook",
+                        "timing_mode": "segment",
+                        "word_timestamps_available": False,
+                    }
+            raise HTTPException(
+                status_code=503 if exc.code == 429 else 502,
+                detail="The lesson planner could not answer right now and no safe textbook fallback was available.",
+            ) from exc
         except HTTPException as exc:
             if attempt == 0 and exc.status_code == 502:
                 logger.warning("Gemini lesson planner output validation failed; retrying once detail=%s", exc.detail[:180])

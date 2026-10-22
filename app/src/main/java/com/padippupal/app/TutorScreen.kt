@@ -328,38 +328,34 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
             Text("WATCH THE PATTERN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Text(title, color = TutorDeep, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             when (scene) {
-                "number_pattern" -> {
-                    Text("Square numbers grow in a pattern", color = TutorGrey, fontSize = 12.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        val nums = listOf("1", "4", "9", "16", "25")
-                        nums.forEachIndexed { index, number ->
-                            if (index > 0) Text("→", color = TutorGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Column(
-                                Modifier.weight(1f).background(
-                                    if (index < stage + 1) Color(0xFFDDF4A8) else Color.White,
-                                    RoundedCornerShape(10.dp)
-                                ).padding(vertical = 10.dp, horizontal = 2.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                "repeated_ones" -> {
+                    Text("The number stays the same each time", color = TutorGrey, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { index ->
+                            Box(
+                                Modifier.weight(1f).aspectRatio(1f).background(
+                                    if (index <= stage) Color(0xFFDDF4A8) else Color.White,
+                                    RoundedCornerShape(12.dp)
+                                ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(number, color = TutorDeep, fontSize = if (index == stage) (18 * pulse).sp else 17.sp, fontWeight = FontWeight.ExtraBold)
-                                Text(listOf("1²", "2²", "3²", "4²", "5²")[index], color = TutorGreen, fontSize = 10.sp)
+                                Text("1", color = TutorDeep, fontSize = (22 * if (index == stage) pulse else 1f).sp, fontWeight = FontWeight.ExtraBold)
                             }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        listOf("+3", "+5", "+7", "+9").forEachIndexed { index, gap ->
-                            Text(gap, color = if (index < stage) TutorGreen else TutorGrey, fontSize = 12.sp, fontWeight = if (index < stage) FontWeight.Bold else FontWeight.Normal)
+                    Text("1, 1, 1, 1, 1 …", color = TutorGreen, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    Text("Each term is 1. The pattern repeats the same number; it does not grow.", color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
+                }
+                "number_pattern" -> {
+                    Text("Numbers can follow a rule", color = TutorGrey, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf("1", "2", "3", "4", "5").forEachIndexed { index, number ->
+                            Column(Modifier.weight(1f).background(if (index <= stage) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(number, color = TutorDeep, fontSize = if (index == stage) (18 * pulse).sp else 17.sp, fontWeight = FontWeight.ExtraBold)
+                            }
                         }
                     }
-                    Text(
-                        when (stage) {
-                            0 -> "1 = 1 × 1. Watch the first square number appear."
-                            1 -> "4 − 1 = 3, then 9 − 4 = 5. The gaps are growing."
-                            2 -> "16 − 9 = 7. Each new gap increases by 2."
-                            else -> "Next gap is +9, so 16 + 9 = 25. Five times five is 25!"
-                        },
-                        color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp
-                    )
+                    Text("Look for the rule that connects each number to the next.", color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
                 }
                 "shape_pattern" -> {
                     Text("A repeating unit makes a shape pattern", color = TutorGrey, fontSize = 12.sp)
@@ -1757,7 +1753,7 @@ internal fun TutorScreen(
             if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
                 item(key = "live-teaching-passage") {
                     Surface(
-                        Modifier.fillMaxWidth().fillParentMaxHeight(),
+                        Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 390.dp),
                         color = Color(0xFFEAF5EE), shape = RoundedCornerShape(16.dp),
                         border = BorderStroke(1.dp, Color(0xFFD1E7D8))
                     ) {
@@ -1772,13 +1768,18 @@ internal fun TutorScreen(
                             if (liveCaption.isNotBlank()) {
                                 WordByWordCaption(
                                     liveCaption, speechActive, liveWordIndex,
-                                    modifier = Modifier.weight(1f),
-                                    expandToAvailableHeight = true
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp, max = 170.dp),
+                                    expandToAvailableHeight = false
                                 )
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                             if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
-                                val scene = if (topic.contains("shape", ignoreCase = true) || topic.contains("repeating", ignoreCase = true)) "shape_pattern" else "number_pattern"
+                                val topicKey = topic.lowercase(Locale.ROOT)
+                                val scene = when {
+                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                                    else -> "number_pattern"
+                                }
                                 ChapterOneMathAnimation(
                                     scene = scene,
                                     title = topic.ifBlank { "Patterns in Mathematics" },

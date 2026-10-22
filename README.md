@@ -79,7 +79,7 @@ A successful GitHub Actions run uploads an artifact named **PadippuPal-debug-apk
 
 ## Gemini-first AI tutor implementation
 
-The tutor screen supports English, Tanglish and Tamil response preferences, a student-friendly teaching prompt, and short conversation context. Gemini is the tutor's reasoning provider (`POST /tutor/chat`, server-side `GEMINI_API_KEY`) and the primary natural speech provider (`POST /tutor/speech`). Keep API keys only in the backend/Render environment. The app must not silently switch its reasoning engine to Groq. Gemini quota and billing depend on the Google AI account; do not assume unlimited free usage.
+The tutor screen supports English, Tanglish and Tamil response preferences, a student-friendly teaching prompt, and short conversation context. Gemini is the tutor's reasoning provider (`POST /tutor/chat`, server-side `GEMINI_API_KEY`). Tutor speech (`POST /tutor/speech`) tries Sarvam first, Gemini TTS second when configured, and Android TTS on the device as the final fallback. Keep API keys only in the backend/Render environment. The app must not silently switch its reasoning engine to Groq. Gemini quota and billing depend on the Google AI account; do not assume unlimited free usage.
 
 
 ## Curriculum trust boundary

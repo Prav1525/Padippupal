@@ -1434,8 +1434,9 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 ).fetchall()
             approved = next((dict(row) for row in rows
                 if normalize(str(row["chapter"])).casefold() == normalize(payload.chapter).casefold()
-                and (not payload.topic.strip() or not str(row["topic"] or "").strip()
-                     or normalize(str(row["topic"])).casefold() == normalize(payload.topic).casefold())), None)
+                and (not payload.topic.strip()
+                     or (str(row["topic"] or "").strip()
+                         and normalize(str(row["topic"])).casefold() == normalize(payload.topic).casefold())), None)
         except Exception:
             logger.exception("Approved chapter lesson lookup failed; using textbook retrieval fallback")
             approved = None

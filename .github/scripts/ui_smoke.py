@@ -244,8 +244,16 @@ def exact_color_mask(image, target):
     """Return a fast Pillow mask for pixels exactly matching an RGB color."""
     from PIL import Image, ImageChops
     rgb = image.convert("RGB")
-    difference = ImageChops.difference(rgb, Image.new("RGB", rgb.size, target))
-    return difference.convert("L").point(lambda value: 255 if value == 0 else 0)
+    channels = rgb.split()
+    channel_masks = [
+        channel.point(lambda value, expected=expected: 255 if value == expected else 0)
+        for channel, expected in zip(channels, target)
+    ]
+    # Intersect channel masks so near-matches never count as exact target pixels.
+    return ImageChops.multiply(
+        ImageChops.multiply(channel_masks[0], channel_masks[1]),
+        channel_masks[2],
+    )
 
 
 def assert_highlight_frames(directory):

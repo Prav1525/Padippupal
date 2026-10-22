@@ -1057,7 +1057,7 @@ internal fun TutorScreen(
             speechRecognizer?.destroy()
         }
     }
-    fun loadCurriculumOutline(forSubject: String) {
+    fun loadCurriculumOutline(forSubject: String, attempt: Int = 1) {
         if (forSubject == "General") {
             chapterOptions = emptyList()
             outlineLoading = false
@@ -1110,8 +1110,26 @@ internal fun TutorScreen(
                 }
             }
             tutorMainHandler.post {
-                chapterOptions = result.getOrDefault(emptyList())
-                outlineLoading = false
+                // A cold backend can briefly return an error/empty body while waking.
+                // Retry boundedly instead of presenting a transient network failure as
+                // a valid curriculum with no chapters. Ignore stale results if the
+                // learner has changed subjects while the request was in flight.
+                if (subject != forSubject) return@post
+                val loaded = result.getOrNull().orEmpty()
+                if (loaded.isNotEmpty()) {
+                    chapterOptions = loaded
+                    outlineLoading = false
+                } else if (attempt < 3) {
+                    outlineLoading = true
+                    status = "Reconnecting to the curriculum…"
+                    tutorMainHandler.postDelayed({
+                        if (subject == forSubject) loadCurriculumOutline(forSubject, attempt + 1)
+                    }, 700L * attempt)
+                } else {
+                    chapterOptions = emptyList()
+                    outlineLoading = false
+                    status = "Couldn't load the chapter list. Check your connection and tap Change to try again."
+                }
             }
         }
     }

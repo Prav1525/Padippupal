@@ -1901,8 +1901,14 @@ internal fun TutorScreen(
                         if (liveCaption.isNotBlank()) {
                             WordByWordCaption(
                                 liveCaption, speechActive, liveWordIndex,
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                expandToAvailableHeight = true
+                                // At checkpoints, don't let the caption consume all remaining height:
+                                // the compact concept animation and fixed answer card must stay visible.
+                                modifier = if (awaitingUnderstanding) {
+                                    Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
+                                } else {
+                                    Modifier.weight(1f).fillMaxWidth()
+                                },
+                                expandToAvailableHeight = !awaitingUnderstanding
                             )
                         } else {
                             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {

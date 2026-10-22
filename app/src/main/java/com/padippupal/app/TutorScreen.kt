@@ -2187,8 +2187,8 @@ internal fun TutorScreen(
         }
 
         // Keep setup focused; show the question composer only after selection.
-        if (!showLessonSettings) {
-        // Always-visible learner input, including during spoken lessons.
+        if (!showLessonSettings && !liveLessonActive) {
+        // Keep the question composer for regular tutor chat, not setup or full-screen teaching.
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,

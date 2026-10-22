@@ -1969,9 +1969,15 @@ internal fun TutorScreen(
                     Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
+                            // Consume the checkpoint before scheduling progression. A delayed
+                            // callback can race with speech completion/pause state and leave the
+                            // checkpoint visible even after the learner has answered.
+                            val nextIndex = liveSegmentIndex + 1
                             awaitingUnderstanding = false
+                            currentCheckpoint = ""
+                            livePaused = false
                             status = "Great! Let’s take the next small step."
-                            tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 350L)
+                            tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
                         }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand") }
                         OutlinedButton(onClick = {
                             awaitingUnderstanding = false

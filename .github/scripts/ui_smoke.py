@@ -106,6 +106,21 @@ def assert_settings(path):
         raise SystemExit("Change did not open the dedicated lesson-selection screen")
     if "done" not in joined:
         raise SystemExit("Lesson-selection screen has no Done action to return to the tutor")
+    # Done must remain in the visible, fixed footer even when the setup fields
+    # need scrolling; a label somewhere in off-screen content is not sufficient.
+    done_nodes = [n for n in nodes if n.attrib.get("text", "").strip().lower() == "done"]
+    if not done_nodes:
+        raise SystemExit("Lesson-selection Done action is not exposed as a visible accessibility node")
+    done_node = next((n for n in done_nodes if n.attrib.get("enabled") == "true"), done_nodes[0])
+    bounds = done_node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("Lesson-selection Done action has no visible screen bounds")
+    x1, y1, x2, y2 = map(int, match.groups())
+    if x2 <= x1 or y2 <= y1:
+        raise SystemExit("Lesson-selection Done action has zero-area bounds")
+    if done_node.attrib.get("enabled") == "false":
+        raise SystemExit("Lesson-selection Done action is disabled")
     expected = ("Mathematics", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
     missing = [term for term in expected if term.lower() not in joined]
     # When a saved session already has Chapter 1 selected, the control shows the

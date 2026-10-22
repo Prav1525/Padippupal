@@ -40,6 +40,16 @@ def assert_tutor(path):
         raise SystemExit("Tutor feedback controls are missing: " + ", ".join(missing))
     print("PASS: tutor screen and all three explanation-feedback controls are accessible")
 
+def assert_checkpoint(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("CHECKPOINT TEXT:", " | ".join(texts[:120]))
+    required = ("quick check", "i understand", "explain again", "i have a question")
+    missing = [label for label in required if label not in joined]
+    if missing:
+        raise SystemExit("Live lesson did not pause at the complete understanding checkpoint: " + ", ".join(missing))
+    print("PASS: lesson pauses at the understanding checkpoint with all response choices")
+
 def assert_feedback(path):
     _, texts = load(path)
     joined = "\n".join(texts)
@@ -171,6 +181,8 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
+    if "ask your teacher" in joined or "send question" in joined:
+        raise SystemExit("Chat composer is still visible during the dedicated live teaching experience")
     forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")
     found_activity = [label for label in forbidden_activity_labels if label in joined]
     if found_activity:
@@ -299,6 +311,8 @@ def main():
         assert_tutor(path)
     elif action == "assert-feedback":
         assert_feedback(path)
+    elif action == "assert-checkpoint":
+        assert_checkpoint(path)
     elif action == "assert-settings":
         assert_settings(path)
     elif action == "has-label" and len(sys.argv) >= 4:

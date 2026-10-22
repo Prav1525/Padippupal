@@ -6,8 +6,33 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import concept_candidates, exact_color_mask
+from ui_smoke import concept_candidates, exact_color_mask, tap_exact
 
+
+
+class ExactSelectorTests(unittest.TestCase):
+    def test_teach_selector_does_not_match_chat_text_containing_teach(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="Teach this as a patient primary-school teacher." bounds="[0,0][300,80]" clickable="true"/>
+          <node text="▶ Teach" bounds="[200,0][300,80]" clickable="false"/>
+          <node text="▶ Teach" bounds="[190,0][310,90]" clickable="true"/>
+        </hierarchy>""")
+        nodes, texts = [], []
+        # The exact selector only considers nodes whose normalized label is Teach.
+        candidates = [n for n in root.iter("node")
+                      if n.attrib.get("text", "").strip().lower().lstrip("▶").strip() == "teach"]
+        self.assertEqual(len(candidates), 2)
+        selected = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
+        self.assertEqual(selected.attrib["bounds"], "[190,0][310,90]")
+
+    def test_live_lesson_client_timeout_exceeds_two_backend_generation_attempts(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        lesson_plan = tutor[tutor.index('URL("$base/tutor/lesson-plan")'):]
+        self.assertIn("connection.readTimeout = 120000", lesson_plan[:900])
+        smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
+        self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
 class ScreenshotMaskTests(unittest.TestCase):

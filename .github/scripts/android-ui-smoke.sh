@@ -191,6 +191,12 @@ checkpoint_seen=0
 for attempt in $(seq 1 50); do
   timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-checkpoint.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-checkpoint.xml live-checkpoint.xml >/dev/null 2>&1 || true
+  if [ -s live-checkpoint.xml ] && grep -Eqi "No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed" live-checkpoint.xml; then
+    FAILURE_CLASS="APP_FAILURE"
+    log "FAIL: speech could not start, so checkpoint progression cannot be tested; captured the explicit voice error instead of waiting for the full timeout"
+    cat live-checkpoint.xml | tee -a "$REPORT"
+    exit 1
+  fi
   if [ -s live-checkpoint.xml ] && grep -qi "Quick check" live-checkpoint.xml; then
     checkpoint_seen=1
     break

@@ -1,0 +1,104 @@
+name: Failure triage report
+
+on:
+  workflow_run:
+    workflows:
+      - Android APK
+      - Android UI smoke test
+      - Curriculum Engine Tests
+      - Project process guard
+    types: [completed]
+
+# Read-only evidence collection. Never execute code from the triggering branch.
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  triage:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Collect failed-run evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SOURCE_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SOURCE_WORKFLOW: ${{ github.event.workflow_run.name }}
+          SOURCE_URL: ${{ github.event.workflow_run.html_url }}
+          SOURCE_EVENT: ${{ github.event.workflow_run.event }}
+        run: |
+          set -euo pipefail
+          mkdir -p triage
+          {
+            echo "# Automated failure triage"
+            echo
+            echo "- Workflow: ${SOURCE_WORKFLOW}"
+            echo "- Run: ${SOURCE_URL}"
+            echo "- Branch: ${SOURCE_BRANCH}"
+            echo "- Tested commit: ${SOURCE_SHA}"
+            echo "- Trigger event: ${SOURCE_EVENT}"
+            echo
+            echo "## Failed log excerpt"
+            echo
+          } > triage/report.md
+
+          # Treat logs as evidence only; never evaluate or execute their contents.
+          if ! gh run view "${SOURCE_RUN_ID}" --log-failed > triage/failed-logs.txt 2>triage/log-fetch-error.txt; then
+            echo "Could not download failed logs; inspect the source run directly." >> triage/report.md
+            cat triage/log-fetch-error.txt >> triage/report.md
+            : > triage/failed-logs.txt
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path("triage/failed-logs.txt").read_text(errors="replace")
+          lines = text.splitlines()
+          keywords = re.compile(
+              r"(error:|exception|traceback|assertion|failed|failure|timed out|"
+              r"timeout|out of memory|oom|sdkmanager|emulator|gradle|pytest|"
+              r"no space left|connection reset|rate limit)", re.I)
+          evidence = [line[:700] for line in lines if keywords.search(line)][-100:]
+          infra = re.compile(
+              r"(runner.*lost|connection reset|502 bad gateway|503 service|"
+              r"rate limit|no space left|emulator.*boot.*timeout|"
+              r"timed out waiting for.*emulator|download.*timed out)", re.I)
+          product = re.compile(
+              r"(assertionerror|assertion failed|expected.*but was|"
+              r"instrumentation.*failed|tests? failed|pytest.*failed|"
+              r"exception in thread|unresolved reference|compilation error)", re.I)
+          if infra.search(text):
+              classification = "POSSIBLE_ENVIRONMENT_OR_INFRA_FAILURE"
+          elif product.search(text):
+              classification = "POSSIBLE_CODE_OR_TEST_FAILURE"
+          else:
+              classification = "UNCLASSIFIED_REQUIRES_LOG_REVIEW"
+          with Path("triage/report.md").open("a") as f:
+              f.write("## Initial classification\n\n**" + classification + "**\n\n")
+              f.write("Keyword-based hint only; not a confirmed root cause.\n\n")
+              f.write("## Candidate evidence lines\n\n")
+              f.write("\n".join(evidence) if evidence else
+                      "No matching error lines extracted. Inspect the failed job in the source run.")
+              f.write("\n\n## Required next steps\n\n")
+              f.write("1. Identify the first failing step/assertion in the source run.\n")
+              f.write("2. Compare tested SHA with the last passing SHA.\n")
+              f.write("3. Reproduce and confirm product, test, or environment cause before patching.\n")
+              f.write("4. Never weaken assertions or automatically merge/release.\n")
+          print(Path("triage/report.md").read_text())
+          PY
+
+      - name: Publish triage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-triage-${{ github.event.workflow_run.id }}
+          path: triage/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Add report to workflow summary
+        if: always()
+        run: cat triage/report.md >> "$GITHUB_STEP_SUMMARY"

@@ -209,6 +209,13 @@ def test_interactive_lesson_catalog_covers_all_class_six_chapters(monkeypatch, t
         "Relation to Number Sequences"
     }.issubset(topics)
     assert all(item["objects"] and len(item["steps"]) >= 3 and item["challenge"]["question"] for item in chapter_lessons)
+    # Chapter 1's All 1s visual must teach repetition, not unrelated arithmetic.
+    all_ones = next(item for item in chapter_lessons if item["topic"] == "All 1s")
+    assert all(obj["label"] == "1" for obj in all_ones["objects"])
+    assert "1, 1, 1" in all_ones["steps"][0]["text"]
+    assert "repeat" in all_ones["steps"][1]["text"].lower()
+    assert all_ones["challenge"]["answer"] == "1"
+    assert all(option in {"1", "2", "3"} for option in all_ones["challenge"]["options"])
     assert all(item["objects"] and item["steps"] and item["challenge"]["question"] for item in science.json()["lessons"] + maths.json()["lessons"])
     assert len({item["chapter"] for item in science.json()["lessons"]}) == 12
     assert len({item["chapter"] for item in maths.json()["lessons"]}) == 10

@@ -41,6 +41,11 @@ def assert_tutor(path):
         raise SystemExit("Tutor ready screen is missing the Teach action")
     if any("set up your lesson" in text.lower() for text in texts):
         raise SystemExit("Lesson setup must open only after the learner chooses Change")
+    source_path = Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt"
+    source = source_path.read_text(encoding="utf-8")
+    if "color=Color(0xFFEAF5EE)" in source and "InteractiveLessonLab" in source:
+        raise SystemExit("Concept lab still uses the detached pale-green panel styling")
+    print("PASS: concept lab does not use the detached pale-green panel styling")
     print("PASS: tutor ready screen exposes Change and Teach without showing setup or starting a chat lesson")
 
 def assert_checkpoint(path, screenshot_path=None):

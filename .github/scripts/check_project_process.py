@@ -10,11 +10,18 @@ required = {
         "New-chat / handoff startup checklist",
         "Definition of done",
         "Status report format",
+        "docs/ENGINEERING_BEHAVIOR_CHECKLIST.md",
     ],
     "PROJECT_STATE.md": [
         "Current objective",
         "Next task after protocol is established",
         "Session handoff template",
+    ],
+    "docs/ENGINEERING_BEHAVIOR_CHECKLIST.md": [
+        "Before changing code",
+        "Fix the underlying cause",
+        "Before calling it complete",
+        "Status communication",
     ],
     "docs/REGRESSION_CHECKLIST.md": [
         "PP-TUTOR-001",
@@ -27,6 +34,7 @@ required = {
     ],
     ".github/NEW_CHAT_STARTER.md": [
         "Required startup actions",
+        "ENGINEERING_BEHAVIOR_CHECKLIST.md",
         "PROJECT_STATE.md",
     ],
     ".github/pull_request_template.md": [
@@ -63,5 +71,5 @@ if errors:
     sys.exit(1)
 
 print("PROJECT PROCESS GUARD: PASS")
-print("Required durable process records, handoff prompt, PR template, and review metadata are present.")
+print("Required durable process records, behavior checklist, handoff prompt, PR template, and review metadata are present.")
 print("This guard does not prove a developer read the protocol or that product behavior is correct.")

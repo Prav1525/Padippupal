@@ -1448,6 +1448,11 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
         return True
 
     spoken = " ".join(str(segment.get("spoken_text", "")) for segment in segments).casefold()
+    presentation = " ".join(
+        " ".join(str(segment.get(key, "")) for key in ("caption_text", "visual_action"))
+        for segment in segments
+    ).casefold()
+    combined = spoken + " " + presentation
     forbidden = (
         r"count(?:ing)? numbers? up and then down",
         r"square numbers?",
@@ -1455,7 +1460,7 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
         r"1\s*²",
         r"\+\s*3\b",
     )
-    if any(re.search(pattern, spoken) for pattern in forbidden):
+    if any(re.search(pattern, combined) for pattern in forbidden):
         return False
 
     relevant = (

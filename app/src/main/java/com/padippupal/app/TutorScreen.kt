@@ -14,6 +14,7 @@ import java.io.File
 import android.os.Handler
 import android.os.Build
 import android.os.Looper
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -962,6 +963,8 @@ internal fun TutorScreen(
         mutableStateOf(context.getSharedPreferences("padippupal_settings", 0).getBoolean("prefer_on_device_voice", false))
     }
     var speechActive by remember { mutableStateOf(false) }
+    var speechGeneration by remember { mutableIntStateOf(0) }
+    var speechPlaybackObserved by remember { mutableStateOf(false) }
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
@@ -1167,6 +1170,8 @@ internal fun TutorScreen(
     val audioPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
 
     fun finishSpeechSegment() {
+        // Invalidate the per-utterance watchdog before invoking progression.
+        speechGeneration += 1
         speechActive = false
         val callback = speechCompletion
         speechCompletion = null
@@ -1179,7 +1184,12 @@ internal fun TutorScreen(
         }
         engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                tutorMainHandler.post { val callback = speechStartCallback; speechStartCallback = null; callback?.invoke() }
+                tutorMainHandler.post {
+                    speechPlaybackObserved = true
+                    val callback = speechStartCallback
+                    speechStartCallback = null
+                    callback?.invoke()
+                }
             }
             override fun onDone(utteranceId: String?) {
                 tutorMainHandler.post { finishSpeechSegment() }
@@ -1188,6 +1198,7 @@ internal fun TutorScreen(
                 if (Build.VERSION.SDK_INT >= 26) {
                     tutorMainHandler.post {
                         val index = speechWordStarts.indexOfLast { it <= start }.coerceAtLeast(0)
+                        speechPlaybackObserved = true
                         liveWordIndex = index
                         lastNativeRangeAt = System.currentTimeMillis()
                     }
@@ -1274,11 +1285,53 @@ internal fun TutorScreen(
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
     }
 
+    fun scheduleSpeechCompletionWatchdog(generation: Int, text: String) {
+        val startedAt = SystemClock.elapsedRealtime()
+        val estimatedSpeechMs = (Regex("\\S+").findAll(text).count() * 280L).coerceIn(4000L, 30000L)
+        val hardDeadlineMs = (estimatedSpeechMs + 25000L).coerceAtMost(55000L)
+        val check = object : Runnable {
+            override fun run() {
+                if (generation != speechGeneration || !speechActive) return
+                // A paused MediaPlayer is intentionally not completion. Re-check
+                // after the learner resumes instead of advancing while paused.
+                if (liveLessonActive && livePaused) {
+                    tutorMainHandler.postDelayed(this, 750L)
+                    return
+                }
+                val playerPlaying = runCatching { audioPlayer.value?.isPlaying == true }.getOrDefault(false)
+                val ttsSpeaking = runCatching { ttsState.value?.isSpeaking == true }.getOrDefault(false)
+                if (playerPlaying || ttsSpeaking) speechPlaybackObserved = true
+                val elapsed = SystemClock.elapsedRealtime() - startedAt
+                if (speechPlaybackObserved && !playerPlaying && !ttsSpeaking && elapsed >= estimatedSpeechMs) {
+                    // Recover only after playback was observed and the engine now
+                    // reports it stopped; never skip merely because start was delayed.
+                    finishSpeechSegment()
+                    return
+                }
+                if (elapsed >= hardDeadlineMs && !speechPlaybackObserved) {
+                    speechActive = false
+                    speechStartCallback = null
+                    speechCompletion = null
+                    if (liveLessonActive) livePaused = true
+                    status = "Voice playback did not start. Tap Resume to retry this step."
+                    speechGeneration += 1
+                    return
+                }
+                tutorMainHandler.postDelayed(this, 750L)
+            }
+        }
+        tutorMainHandler.postDelayed(check, 1000L)
+    }
+
     fun speak(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
         // Auto-read and the manual speaker button must not launch overlapping
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
         speechActive = true
+        speechGeneration += 1
+        speechPlaybackObserved = false
+        val generation = speechGeneration
+        scheduleSpeechCompletionWatchdog(generation, text)
         speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
         liveWordIndex = 0
         lastNativeRangeAt = 0L
@@ -1359,6 +1412,7 @@ internal fun TutorScreen(
                             }
                             player.prepare()
                             player.start()
+                            speechPlaybackObserved = true
                             val startedCallback = speechStartCallback
                             speechStartCallback = null
                             startedCallback?.invoke()

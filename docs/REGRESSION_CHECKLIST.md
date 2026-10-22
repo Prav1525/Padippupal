@@ -24,7 +24,9 @@ This is a living record. Add a named regression case for every confirmed recurri
 - **Negative assertions:** while All 1s is selected, reject unrelated content such as counting-up/down explanation, `1 + 2 + 1 = 4`, or square-number progression unless the approved All 1s source explicitly requires it.
 - **Positive assertions:** the explanation accurately describes `1, 1, 1, 1, 1`, the value remaining the same, and the rule of repeating 1, consistent with the approved lesson data.
 - **Required coverage:** backend/unit contract and Android end-to-end UI smoke; inspect the actual rendered lesson and accessibility text, not just the topic label.
-- **Status:** OPEN / must be revalidated against current PR and fresh test results.
+- **Confirmed cause (2026-10-22):** the live lesson-plan retrieval query included the long teacher-instruction message and considered only the top five keyword-scored chunks. The approved source database has the All 1s sequence in the page-3 chunk, while page 7 contains the unrelated “adding the counting numbers up and then down” explanation. No reviewed topic-specific `chapter_lessons` row exists for this exact profile/topic, so the Gemini retrieval fallback was allowed to mix neighbouring chapter concepts.
+- **Code correction in PR #13:** query using the selected topic/chapter rather than the long instruction prompt; consider up to ten candidate chunks; retain only passages matching the selected topic; retry one semantically off-topic All 1s generation; reject and fail closed if it remains off-topic. The implementation is committed but end-to-end acceptance is still pending.
+- **Status:** OPEN until fresh tests on the latest code head pass and the full live teaching flow is verified against the corrected backend.
 
 ### PP-TUTOR-002 — Animation and narration must stay synchronized
 

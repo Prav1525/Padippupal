@@ -97,8 +97,12 @@ def assert_settings(path):
     nodes, texts = load(path)
     joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
     print("SETTINGS TEXT:", " | ".join(texts[:140]))
-    expected = ("Mathematics", "Choose chapter", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
+    expected = ("Mathematics", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
     missing = [term for term in expected if term.lower() not in joined]
+    # When a saved session already has Chapter 1 selected, the control shows the
+    # selected chapter name rather than the empty-state "Choose chapter" prompt.
+    if "choose chapter" not in joined and "patterns in mathematics" not in joined:
+        missing.append("Choose chapter or selected chapter (Patterns in Mathematics)")
     # The topic picker intentionally shows its selected database topic (for this
     # smoke test, "All 1s") instead of the "Choose concept" placeholder. Accept
     # either state, but never accept a settings screen with no topic selection.

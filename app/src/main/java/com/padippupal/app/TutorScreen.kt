@@ -971,6 +971,9 @@ internal fun TutorScreen(
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
+    // A stopped/replaced TTS utterance may still deliver a late callback. Only the
+    // currently active utterance is allowed to move highlights or advance a lesson.
+    var activeTtsUtteranceId by remember { mutableStateOf("") }
     // Some Android TTS engines emit only an initial onRangeStart callback.
     // Keep a timestamp so elapsed-time highlighting can take over if callbacks stall.
     var lastNativeRangeAt by remember { mutableLongStateOf(0L) }
@@ -1189,6 +1192,7 @@ internal fun TutorScreen(
 
     fun finishSpeechSegment() {
         // Invalidate the per-utterance watchdog before invoking progression.
+        activeTtsUtteranceId = ""
         speechGeneration += 1
         speechActive = false
         val callback = speechCompletion
@@ -1221,6 +1225,7 @@ internal fun TutorScreen(
         if (engine != null) engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 tutorMainHandler.post {
+                    if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
                     speechPlaybackObserved = true
                     val callback = speechStartCallback
                     speechStartCallback = null
@@ -1228,11 +1233,16 @@ internal fun TutorScreen(
                 }
             }
             override fun onDone(utteranceId: String?) {
-                tutorMainHandler.post { finishSpeechSegment() }
+                tutorMainHandler.post {
+                    if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
+                    activeTtsUtteranceId = ""
+                    finishSpeechSegment()
+                }
             }
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                 if (Build.VERSION.SDK_INT >= 26) {
                     tutorMainHandler.post {
+                        if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
                         val index = speechWordStarts.indexOfLast { it <= start }.coerceAtLeast(0)
                         speechPlaybackObserved = true
                         liveWordIndex = index
@@ -1243,11 +1253,14 @@ internal fun TutorScreen(
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
                 tutorMainHandler.post {
+                    if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
+                    activeTtsUtteranceId = ""
                     // A failed utterance must not be treated as completed speech:
                     // doing so auto-advances the live lesson and skips its teaching.
                     speechActive = false
                     speechStartCallback = null
                     speechCompletion = null
+                    speechGeneration += 1
                     if (liveLessonActive) {
                         livePaused = true
                         status = "Voice playback failed. Check the selected speech engine, then tap Resume to retry this step."
@@ -1276,6 +1289,7 @@ internal fun TutorScreen(
         // Reset observations from a failed hosted-audio attempt before observing
         // the device engine's own start/completion lifecycle.
         speechPlaybackObserved = false
+        activeTtsUtteranceId = ""
         speechStartCallback = onStarted
         speechCompletion = onFinished
         status = if (preferOnDeviceVoice) {
@@ -1353,7 +1367,18 @@ internal fun TutorScreen(
         engine.language = locale
         engine.setSpeechRate(0.76f)
         engine.setPitch(1.02f)
-        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
+        val utteranceId = "padippupal-tutor-$speechGeneration"
+        activeTtsUtteranceId = utteranceId
+        val result = engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+        if (result == TextToSpeech.ERROR) {
+            activeTtsUtteranceId = ""
+            speechActive = false
+            speechStartCallback = null
+            speechCompletion = null
+            speechGeneration += 1
+            if (liveLessonActive) livePaused = true
+            status = "The phone's speech engine rejected this step. Check Android text-to-speech settings, then tap Resume to retry."
+        }
     }
 
     fun scheduleSpeechCompletionWatchdog(generation: Int, text: String) {

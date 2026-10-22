@@ -13,9 +13,15 @@
 - User expects the assistant to perform repository/build/test work without requiring the user to code locally.
 - Follow `DEVELOPMENT_PROTOCOL.md` and `docs/ENGINEERING_BEHAVIOR_CHECKLIST.md` for every change.
 
-## Current objective at the time this file was created
+## Current active objective
 
-**Do not resume feature coding until the development protocol and handoff process are established.** The immediate process task is to make the protocol and regression records durable in the repository. After this process task, resume the existing open tutor-flow task rather than starting unrelated features.
+**Finish the existing Class 6 CBSE Mathematics live-tutor flow for Patterns in Mathematics → All 1s.** Do not start unrelated features.
+
+The development protocol and handoff documents now exist on branch `process/development-protocol` in open PR #14, but that PR is not merged. The tutor-flow fix remains in open PR #13. Keep both PRs unmerged unless the user explicitly approves a merge.
+
+Current investigation found a confirmed content-coordination failure: the emulator reached the selected All 1s topic and displayed the repeated-ones animation and moving inline highlight, but a later segment spoke about counting numbers up and then down and exposed `1 + 2 + 1 = 4`. The database contains the approved textbook chapter chunks, including the All 1s sequence on page 3, but has no approved `chapter_lessons` row for Class 6 CBSE Mathematics → Patterns in Mathematics at the time checked. Retrieval can therefore mix adjacent chapter concepts.
+
+The fix is being made on `fix/live-lesson-coordinated-flow`: filter retrieved passages for the selected topic, reject known All 1s cross-topic speech/visual output, retry one semantically off-topic Gemini response once, and fail closed if the second response is still unrelated. Do not treat fail-closed behavior alone as full completion; the end-to-end flow must still teach the correct concept when matching approved source passages exist.
 
 ## Known active engineering work — revalidate before acting
 
@@ -78,3 +84,15 @@ Update this section at the end of each work session:
 - Process PR: https://github.com/Prav1525/Padippupal/pull/14.
 - The guard validates required documents/sections and PR description headings. It does **not** prove that an assistant read them, does not guarantee perfect compliance, and does not replace product tests. New chats still need the starter prompt or explicit startup instruction.
 - Older head SHAs and workflow results in prior snapshots are historical; always fetch the current PR head and CI before relying on them.
+
+## Latest session handoff — 2026-10-22
+
+- Active objective: repair topic-to-lesson grounding for Class 6 CBSE Mathematics → Patterns in Mathematics → All 1s.
+- Active code branch: `fix/live-lesson-coordinated-flow`.
+- Latest code head at this handoff: `c46f24faf759727f86d0e09db89b85c99d547dcd`.
+- Changes: topic-relevance filtering for retrieved passages; All 1s semantic guard against the known counting-up/down and square-number drift; one retry for semantically off-topic generated segments; regression coverage for unrelated retrieval and generated drift.
+- Fresh verification at this point: Curriculum Engine Tests **PASS** on the latest head (workflow run [39724140252](https://github.com/Prav1525/Padippupal/actions/runs/39724140252)); Android APK build **IN PROGRESS** (run [39724140247](https://github.com/Prav1525/Padippupal/actions/runs/39724140247)); Android UI smoke **IN PROGRESS** (run [39724140297](https://github.com/Prav1525/Padippupal/actions/runs/39724140297)).
+- Historical baseline: UI smoke run [39716143925](https://github.com/Prav1525/Padippupal/actions/runs/39716143925) failed because All 1s narration/visual action drifted to counting-up/down content. Do not report it as a current run.
+- Remaining acceptance: review fresh APK/UI smoke results and screenshots; verify correct All 1s lesson reaches the checkpoint and advances only after student response; review final diff; update this handoff with final exact-SHA results.
+- Blockers: no local repository clone is possible in the current execution environment because outbound DNS/network access to GitHub is unavailable; GitHub Actions is the available build/emulator test environment.
+- Next single action: inspect the running APK and emulator workflows, then diagnose any new failure before another patch.

@@ -96,6 +96,7 @@ jobs:
             chapter-selected.xml
             ready-to-teach.xml
             live-lesson.xml
+            live-resumed.xml
             live-checkpoint.xml
             live-continued.xml
             ui-screenshots/live-checkpoint.png

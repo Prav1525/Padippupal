@@ -88,6 +88,14 @@ class TtsFailureRegressionTests(unittest.TestCase):
         self.assertIn("Voice engine could not initialize", smoke)
         self.assertIn("speech engine did not finish starting", smoke)
 
+    def test_tts_callbacks_are_bound_to_the_current_utterance_generation(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn('val utteranceId = "padippupal-tutor-$speechGeneration"', tutor)
+        self.assertGreaterEqual(tutor.count("utteranceId != activeTtsUtteranceId || !speechActive"), 4)
+        self.assertIn("activeTtsUtteranceId = \"\"", tutor)
+        self.assertIn("if (result == TextToSpeech.ERROR)", tutor)
+
     def test_smoke_workflow_does_not_force_the_incompatible_hayai_engine(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows" /
                     "android-ui-smoke.yml").read_text()

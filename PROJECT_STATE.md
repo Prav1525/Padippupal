@@ -11,7 +11,7 @@
 - Learning content must be grounded in the app's approved curriculum/library. Do not silently substitute web content or unrelated chapter content when a matching approved source is missing.
 - Tutor experience: short teacher-like segments; topic overview and key concepts first; relevant live concept animation; inline spoken-word highlighting; natural pacing; a clear understand/re-explain/question pause loop.
 - User expects the assistant to perform repository/build/test work without requiring the user to code locally.
-- Follow `DEVELOPMENT_PROTOCOL.md` for every change.
+- Follow `DEVELOPMENT_PROTOCOL.md` and `docs/ENGINEERING_BEHAVIOR_CHECKLIST.md` for every change.
 
 ## Current objective at the time this file was created
 
@@ -66,16 +66,15 @@ Update this section at the end of each work session:
 
 - Protocol documents created on branch `process/development-protocol`.
 - Pull request: https://github.com/Prav1525/Padippupal/pull/14
-- PR state at handoff: OPEN, not merged. Do not assume the protocol is on `main` until merge is verified.
-- This process-only PR changes no app code and does not resolve the open tutor-flow defect in PR #13.
-- Next process action: review and merge PR #14; then confirm the four documents are present on `main`. In each future chat, read the protocol/state files and fetch fresh CI before any feature changes.
-
+- PR state at last refresh: OPEN, not merged. Do not assume the protocol is on `main` until merge is verified.
+- The process-only PR changes no app code and does not resolve the open tutor-flow defect in PR #13.
+- The engineering behavior checklist is now included in this PR as `docs/ENGINEERING_BEHAVIOR_CHECKLIST.md`; the protocol and CI guard reference it.
+- Next process action: refresh CI on the latest PR head and review PR #14. Do not merge without explicit user approval. After merge, confirm the files are present on `main` and resume PR #13.
 
 ## Persistent-context safeguards
 
 - New-chat recovery prompt: `.github/NEW_CHAT_STARTER.md`.
 - Automated record/PR-metadata check: `.github/scripts/check_project_process.py`, run by `.github/workflows/project-process-guard.yml`.
-- Process PR: https://github.com/Prav1525/Padippupal/pull/14 (open, not merged at last check).
-- Process guard run on commit `7798959c2ec5ade0a5128fe46bd3068f4d7edf44`: PASS, https://github.com/Prav1525/Padippupal/actions/runs/39719327287.
+- Process PR: https://github.com/Prav1525/Padippupal/pull/14.
 - The guard validates required documents/sections and PR description headings. It does **not** prove that an assistant read them, does not guarantee perfect compliance, and does not replace product tests. New chats still need the starter prompt or explicit startup instruction.
-- Latest recorded branch head when this note was drafted: `7798959c2ec5ade0a5128fe46bd3068f4d7edf44`; verify current head/CI before relying on this note.
+- Older head SHAs and workflow results in prior snapshots are historical; always fetch the current PR head and CI before relying on them.

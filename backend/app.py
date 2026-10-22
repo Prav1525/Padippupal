@@ -2176,14 +2176,24 @@ def _sarvam_tutor_speech(speech_text: str, language: str) -> dict[str, Any] | No
 
 @app.get("/health/voice")
 def voice_health() -> dict[str, Any]:
-    """Report voice provider status without exposing credentials."""
+    """Report the real provider order without exposing credentials."""
     gemini_configured = bool(os.getenv("GEMINI_API_KEY", "").strip())
     sarvam_configured = bool(os.getenv("SARVAM_API_KEY", "").strip())
+    primary = "sarvam" if sarvam_configured else "gemini" if gemini_configured else "android-tts"
+    model = (
+        os.getenv("PADIPPUPAL_SARVAM_TTS_MODEL", "bulbul:v3").strip()
+        if primary == "sarvam"
+        else os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
+        if primary == "gemini"
+        else "system-default"
+    )
+    fallback = "gemini" if primary == "sarvam" and gemini_configured else "android-tts"
     return {
-        "provider": "gemini",
+        "provider": primary,
         "configured": gemini_configured or sarvam_configured,
-        "model": os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip(),
-        "fallback": "sarvam" if sarvam_configured else "android-tts",
+        "model": model,
+        "fallback": fallback,
+        "fallback_chain": ["sarvam", "gemini", "android-tts"],
         "gemini_configured": gemini_configured,
         "sarvam_configured": sarvam_configured,
     }

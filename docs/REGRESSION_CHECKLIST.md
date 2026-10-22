@@ -131,4 +131,4 @@ Add ID, severity, observed failure, expected behavior, evidence, confirmed cause
 - **Expected:** after a spoken segment actually ends, the tutor advances to the next segment or presents its understanding checkpoint; pause must not be mistaken for completion.
 - **Regression evidence:** UI smoke `39737297301` showed the correct All 1s lesson, 13 distinct inline highlight positions, and pause/resume passing, but the lesson remained at 1/5 for 150 seconds after resume.
 - **Correction under test:** PR #13 head `73a930a6a4be661c6413690dd387380774c67f0c` adds a per-utterance completion watchdog that recovers only after playback has been observed and then stopped, respects paused state, and checks MediaPlayer position before recovery.
-- **Status:** OPEN / UNVERIFIED pending fresh Android build and emulator smoke. Do not mark passed unless the checkpoint appears and “I understand” advances 2/5 → 3/5.
+- **Status:** OPEN / UNVERIFIED. Android APK build PASS (run `39739236650`); curriculum tests PASS (`39739236589`); UI smoke `39739236756` was still running at last poll. Do not mark passed unless the checkpoint appears and “I understand” advances 2/5 → 3/5.

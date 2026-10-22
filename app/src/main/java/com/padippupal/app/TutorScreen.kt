@@ -1887,7 +1887,8 @@ internal fun TutorScreen(
 
         if (showLessonSettings && !liveLessonActive) {
             Surface(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 6.dp), color = Color.White, shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, Color(0xFFE1E9E2))) {
-                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Set up your lesson", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TutorDeep)
                     Text("Choose what you want to learn. Your tutor will start when you tap Teach.", fontSize = 12.sp, color = TutorGrey)
                     Text("Subject", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
@@ -1938,7 +1939,8 @@ internal fun TutorScreen(
                             context.getSharedPreferences("padippupal_settings", 0).edit().putBoolean("prefer_on_device_voice", it).apply()
                         })
                     }
-                    Button(onClick = { showLessonSettings = false }, modifier = Modifier.fillMaxWidth(), enabled = subject.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("Done") }
+                    }
+                    Button(onClick = { showLessonSettings = false }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = subject.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("Done") }
                 }
             }
         }

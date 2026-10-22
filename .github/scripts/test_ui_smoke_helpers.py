@@ -77,6 +77,8 @@ class RetryIsolationTests(unittest.TestCase):
         script = (Path(__file__).resolve().parent / "android-ui-smoke-retry.sh").read_text()
         self.assertIn("rm -rf ui-screenshots", script)
         self.assertIn("rm -f home.xml tutor.xml", script)
+        for evidence_file in ("live-resumed.xml", "live-checkpoint.xml", "live-continued.xml"):
+            self.assertIn(evidence_file, script)
         self.assertLess(script.index("rm -rf ui-screenshots"), script.index("bash .github/scripts/android-ui-smoke.sh"))
 
     def test_smoke_attempt_resets_profile_and_saved_tutor_session_before_writing_cbse_profile(self):

@@ -8,6 +8,9 @@ on:
       - Curriculum Engine Tests
       - Project process guard
     types: [completed]
+  # Parse/validate the workflow in PR CI; repair jobs only run for workflow_run failures.
+  pull_request:
+    branches: [main]
 
 permissions:
   actions: read
@@ -16,6 +19,7 @@ permissions:
 jobs:
   prepare:
     if: >-
+      github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'failure' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       !startsWith(github.event.workflow_run.head_branch, 'autofix-2/')

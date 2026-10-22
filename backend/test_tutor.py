@@ -992,3 +992,14 @@ def test_approved_topic_lesson_rejects_off_topic_steps_before_returning(monkeypa
     assert body["grounded"] is False
     assert body["segments"] == []
     assert "no lesson was generated" in body["warning"].lower()
+
+
+
+def test_all_ones_visual_label_cannot_mask_generic_spoken_segment():
+    """Topic labels in visuals must not make unrelated spoken teaching pass validation."""
+    generic = {
+        "spoken_text": "Mathematics is the search for patterns and explanations.",
+        "caption_text": "Mathematics is the search for patterns and explanations.",
+        "visual_action": {"type": "highlight", "target": "All 1s", "value": ""},
+    }
+    assert curriculum._lesson_segments_match_topic("All 1s", [generic]) is False

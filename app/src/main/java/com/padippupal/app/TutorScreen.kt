@@ -1179,10 +1179,28 @@ internal fun TutorScreen(
     }
 
     DisposableEffect(context) {
-        val engine = TextToSpeech(context) { result ->
-            tutorMainHandler.post { voiceReady = result == TextToSpeech.SUCCESS }
+        // A third-party or misconfigured TTS service can throw synchronously while
+        // TextToSpeech binds to it. Never let an optional voice engine crash the
+        // entire tutor screen; report the failure and keep the lesson UI usable.
+        val engine = try {
+            TextToSpeech(context) { result ->
+                tutorMainHandler.post {
+                    voiceReady = result == TextToSpeech.SUCCESS
+                    if (result != TextToSpeech.SUCCESS) {
+                        status = "Voice engine could not initialize. Check Android text-to-speech settings and try again."
+                    }
+                }
+            }
+        } catch (error: SecurityException) {
+            voiceReady = false
+            status = "Voice engine could not initialize. Check Android text-to-speech settings and try again."
+            null
+        } catch (error: RuntimeException) {
+            voiceReady = false
+            status = "Voice engine could not initialize. Check Android text-to-speech settings and try again."
+            null
         }
-        engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+        if (engine != null) engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 tutorMainHandler.post {
                     speechPlaybackObserved = true
@@ -1223,8 +1241,8 @@ internal fun TutorScreen(
         })
         ttsState.value = engine
         onDispose {
-            engine.stop()
-            engine.shutdown()
+            runCatching { engine?.stop() }
+            runCatching { engine?.shutdown() }
             ttsState.value = null
             audioPlayer.value?.release()
             audioPlayer.value = null

@@ -250,3 +250,15 @@ Update this section at the end of each work session:
 - **Merge decision:** do not merge yet. Required UI end-to-end check is FAIL; do not weaken the assertion or claim speech/checkpoint/highlight acceptance on this head. The earlier successful smoke at SHA `8d6e9304ed459a4efeb29b434dd72cf6eeef06b1` is historical and does not override this fresh failure.
 - **External/runtime limitation:** Render service `padippupal-curriculum-api` auto-deploys from `main`, not the PR branch. Therefore the emulator smoke did not exercise the new backend validator before merge. Backend unit tests cover the validator change; deployed end-to-end verification is still required after an approved merge.
 - **Next single action:** resolve or explicitly classify the CI voice dependency (cloud TTS quota exhaustion plus missing English voice in the emulator), then rerun the full smoke on the latest PR #13 head. Keep PR #13 unmerged until the required UI check passes; do not merge PR #14 or #15.
+
+
+## Follow-up diagnosis — Android TTS fallback (2026-10-22)
+
+- New PR #13 head: `a67c135dde7ba4807f7bb0e2d99177c4b5a35bad`.
+- Inspection of artifact `12411502837` logcat confirmed the fallback failure was not just a missing language pack: Android logged `TextToSpeech: getAvailableLanguages failed: not bound to TTS engine` and `isLanguageAvailable failed: not bound to TTS engine` at 2026-10-22 08:15:32Z.
+- **Confirmed manifest defect:** `app/src/main/AndroidManifest.xml` did not declare the Android 11+ package-visibility query for `android.intent.action.TTS_SERVICE`. The TextToSpeech API requires this query for apps targeting Android 11+ to discover the system engine. The declaration is now added.
+- The device fallback now waits up to 8 seconds for the asynchronous TextToSpeech engine to bind before querying available languages. On timeout it pauses safely and invalidates the speech watchdog rather than advancing without speech. Added a regression test requiring the manifest query.
+- **PASS:** Curriculum Engine Tests on `a67c135dde7ba4807f7bb0e2d99177c4b5a35bad`: https://github.com/Prav1525/Padippupal/actions/runs/39747425162.
+- **PASS:** Android APK build on the same SHA: https://github.com/Prav1525/Padippupal/actions/runs/39747425181.
+- **IN PROGRESS:** Android UI smoke on the same SHA: https://github.com/Prav1525/Padippupal/actions/runs/39747425136.
+- PR #13 remains unmerged pending the fresh smoke result. PR #14 and PR #15 remain open and must not be merged without a separate approval.

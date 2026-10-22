@@ -141,9 +141,14 @@ def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
     import io
     import wave
 
-    monkeypatch.setenv("SARVAM_API_KEY", "")
+    monkeypatch.setenv("SARVAM_API_KEY", "test-sarvam-key")
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     captured = {}
+
+    def unexpected_sarvam_fallback(text, language):
+        raise AssertionError("Gemini must be attempted before Sarvam when both providers are configured")
+
+    monkeypatch.setattr(curriculum, "_sarvam_tutor_speech", unexpected_sarvam_fallback)
 
     class FakeResponse:
         def __enter__(self):

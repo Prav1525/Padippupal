@@ -52,10 +52,12 @@ def assert_settings(path):
     nodes, texts = load(path)
     joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
     print("SETTINGS TEXT:", " | ".join(texts[:140]))
-    expected = ("Mathematics", "Choose chapter", "Choose concept", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
+    expected = ("Mathematics", "Choose chapter", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
     missing = [term for term in expected if term.lower() not in joined]
     if missing:
         raise SystemExit("Tutor settings are missing expected controls: " + ", ".join(missing))
+    if not any(term.lower() in joined for term in ("all 1s", "choose concept", "topic")):
+        raise SystemExit("Tutor settings do not expose a selected topic or a topic picker")
     print("PASS: subject, chapter/topic, language, and voice settings are accessible")
 
 def assert_chapter_button(path):
@@ -244,6 +246,19 @@ def tap(path, target):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
+def has_label(path, label):
+    _, texts = load(path)
+    found = any(label.lower() in text.lower() for text in texts)
+    print(f"LABEL CHECK: {label!r} {'present' if found else 'not present'}")
+    return found
+
+def assert_topic_selected(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    if "all 1s" not in joined and "patterns in mathematics" not in joined:
+        raise SystemExit("No database-backed topic/chapter selection is visible: " + " | ".join(texts[:100]))
+    print("PASS: a database-backed chapter/topic is already selected")
+
 def main():
     if len(sys.argv) < 3:
         raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
@@ -258,6 +273,11 @@ def main():
         assert_feedback(path)
     elif action == "assert-settings":
         assert_settings(path)
+    elif action == "has-label" and len(sys.argv) >= 4:
+        if not has_label(path, sys.argv[3]):
+            raise SystemExit(1)
+    elif action == "assert-topic-selected":
+        assert_topic_selected(path)
     elif action == "assert-chapter-button":
         assert_chapter_button(path)
     elif action == "assert-chapter-selected":

@@ -974,6 +974,9 @@ internal fun TutorScreen(
     // A stopped/replaced TTS utterance may still deliver a late callback. Only the
     // currently active utterance is allowed to move highlights or advance a lesson.
     var activeTtsUtteranceId by remember { mutableStateOf("") }
+    // Index in the original displayed segment when device TTS resumes from a cloud
+    // audio failure. Native TTS range offsets are relative to the resumed suffix.
+    var speechWordIndexOffset by remember { mutableIntStateOf(0) }
     // Some Android TTS engines emit only an initial onRangeStart callback.
     // Keep a timestamp so elapsed-time highlighting can take over if callbacks stall.
     var lastNativeRangeAt by remember { mutableLongStateOf(0L) }
@@ -1245,7 +1248,7 @@ internal fun TutorScreen(
                         if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
                         val index = speechWordStarts.indexOfLast { it <= start }.coerceAtLeast(0)
                         speechPlaybackObserved = true
-                        liveWordIndex = index
+                        liveWordIndex = speechWordIndexOffset + index
                         lastNativeRangeAt = System.currentTimeMillis()
                     }
                 }
@@ -1433,6 +1436,7 @@ internal fun TutorScreen(
         speechPlaybackObserved = false
         val generation = speechGeneration
         scheduleSpeechCompletionWatchdog(generation, text)
+        speechWordIndexOffset = 0
         speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
         liveWordIndex = 0
         lastNativeRangeAt = 0L
@@ -1505,10 +1509,46 @@ internal fun TutorScreen(
                                 finishSpeechSegment()
                             }
                             player.setOnErrorListener { failedPlayer, _, _ ->
+                                // Continue at the current spoken word instead of replaying
+                                // the entire segment after a mid-playback decoder/audio error.
+                                val positionMs = runCatching { failedPlayer.currentPosition }.getOrDefault(0).toLong()
+                                val durationMs = runCatching { failedPlayer.duration }.getOrDefault(0).toLong()
+                                val words = Regex("\\S+").findAll(text).map { it.value }.toList()
+                                val nextWordIndex = if (words.isEmpty() || positionMs <= 0L) {
+                                    0
+                                } else if (hostedWordTimings.isNotEmpty()) {
+                                    hostedWordTimings.indexOfLast { it.first <= positionMs }
+                                        .coerceIn(0, words.lastIndex)
+                                } else if (durationMs > 0L) {
+                                    val weights = words.map { word ->
+                                        word.trimEnd(',', '.', ';', ':', '?', '!').length.coerceAtLeast(1).toFloat() +
+                                            if (word.endsWith(",") || word.endsWith(";") || word.endsWith(":")) 1.8f
+                                            else if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) 3.2f else 0f
+                                    }
+                                    val targetWeight = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) * weights.sum().coerceAtLeast(1f)
+                                    var accumulated = 0f
+                                    var index = 0
+                                    while (index < weights.lastIndex && accumulated + weights[index] < targetWeight) {
+                                        accumulated += weights[index]
+                                        index++
+                                    }
+                                    index
+                                } else {
+                                    0
+                                }
                                 failedPlayer.release()
                                 if (audioPlayer.value === failedPlayer) audioPlayer.value = null
                                 audioFile.delete()
-                                speakWithDeviceTts(text, onStarted, onFinished)
+                                val remainingText = words.drop(nextWordIndex).joinToString(" ")
+                                if (remainingText.isBlank()) {
+                                    finishSpeechSegment()
+                                } else {
+                                    speechWordIndexOffset = nextWordIndex
+                                    speechWordStarts = Regex("\\S+").findAll(remainingText).map { it.range.first }.toList()
+                                    hostedWordTimings = emptyList()
+                                    liveWordIndex = nextWordIndex
+                                    speakWithDeviceTts(remainingText, onStarted, onFinished)
+                                }
                                 true
                             }
                             player.prepare()
@@ -1772,13 +1812,15 @@ internal fun TutorScreen(
     // character offsets. Some engines emit only one range callback, however, so
     // keep a weighted elapsed-time fallback ready and use it whenever native ranges
     // stop arriving. This prevents a single callback freezing the inline highlight.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value) {
+    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value, speechWordIndexOffset) {
         if (!speechActive || !liveLessonActive || liveCaption.isBlank()) {
             if (!speechActive) liveWordIndex = 0
             return@LaunchedEffect
         }
-        val tokens = Regex("\\S+").findAll(liveCaption).map { it.value }.toList()
-        if (tokens.isEmpty()) return@LaunchedEffect
+        val allTokens = Regex("\\S+").findAll(liveCaption).map { it.value }.toList()
+        if (allTokens.isEmpty()) return@LaunchedEffect
+        val offset = speechWordIndexOffset.coerceIn(0, allTokens.lastIndex)
+        val tokens = allTokens.drop(offset)
         val weights = tokens.map { word ->
             word.trimEnd(',', '.', ';', ':', '?', '!').length.coerceAtLeast(1).toFloat() +
                 if (word.endsWith(",") || word.endsWith(";") || word.endsWith(":")) 1.8f
@@ -1805,7 +1847,7 @@ internal fun TutorScreen(
                     sum += weights[weightedIndex]
                     weightedIndex++
                 }
-                weightedIndex
+                weightedIndex + offset
             }
             val nativeRangeIsFresh = lastNativeRangeAt > 0L &&
                 System.currentTimeMillis() - lastNativeRangeAt < 900L

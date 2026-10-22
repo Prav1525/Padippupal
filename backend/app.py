@@ -1549,9 +1549,14 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "learning_objectives": lesson.get("learning_objectives", []),
                         "chapter_title": lesson.get("chapter_title", approved["chapter"])}
 
+    # Retrieval relevance must come from the selected curriculum target, not the
+    # student's long teacher-style instruction prompt. The prompt is for generation.
+    retrieval_query = " ".join(part for part in (payload.topic, payload.chapter) if part).strip()
+    if not retrieval_query:
+        retrieval_query = payload.message
     retrieved = retrieve(SearchRequest(board=payload.board, class_level=payload.class_level, subject=subject,
-        medium=payload.medium, query=" ".join(part for part in (payload.chapter, payload.topic, payload.message) if part),
-        chapter=payload.chapter or None, limit=5))
+        medium=payload.medium, query=retrieval_query,
+        chapter=payload.chapter or None, limit=10))
     matches = retrieved.get("matches", [])
     if payload.topic.strip():
         # Retrieval is chapter/profile-scoped, but can still return a neighbouring

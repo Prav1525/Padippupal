@@ -488,6 +488,73 @@ def test_lesson_plan_rejects_gemini_segments_that_drift_from_all_ones(monkeypatc
     assert "did not match the selected topic" in body["warning"].lower()
 
 
+
+
+def test_lesson_plan_retries_when_a_later_segment_is_generic_not_all_ones(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "all-ones-source"
+    outputs = [
+        {"segments": [
+            {"id": "intro", "spoken_text": "Today we will learn All 1s: 1, 1, 1.",
+             "caption_text": "All 1s: 1, 1, 1.", "source_chunk_ids": [chunk_id],
+             "visual_action": {"type": "highlight", "target": "ones", "value": ""},
+             "checkpoint": None},
+            {"id": "generic", "spoken_text": "Mathematics is the search for patterns and explanations.",
+             "caption_text": "Mathematics is the search for patterns and explanations.",
+             "source_chunk_ids": [chunk_id],
+             "visual_action": {"type": "none", "target": "", "value": ""},
+             "checkpoint": "Does that make sense so far?"},
+        ]},
+        {"segments": [
+            {"id": "intro", "spoken_text": "Today we will learn All 1s: 1, 1, 1.",
+             "caption_text": "All 1s: 1, 1, 1.", "source_chunk_ids": [chunk_id],
+             "visual_action": {"type": "highlight", "target": "ones", "value": ""},
+             "checkpoint": None},
+            {"id": "repeat", "spoken_text": "The number 1 repeats, so each term stays the same.",
+             "caption_text": "The number 1 repeats, so each term stays the same.",
+             "source_chunk_ids": [chunk_id],
+             "visual_action": {"type": "highlight", "target": "repeated-ones", "value": ""},
+             "checkpoint": "Does that make sense so far?"},
+        ]},
+    ]
+    requests = []
+
+    class FakeResponse:
+        def __init__(self, payload):
+            self.payload = payload
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self):
+            return json.dumps({"candidates": [{"content": {"parts": [{"text": json.dumps(self.payload)}]}}]}).encode()
+
+    def fake_urlopen(request, timeout):
+        requests.append(json.loads(request.data.decode()))
+        return FakeResponse(outputs[min(len(requests) - 1, len(outputs) - 1)])
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": "The All 1s pattern repeats the number 1: 1, 1, 1, 1.",
+        "source": {"chunk_id": chunk_id, "source_id": "source-1",
+                   "title": "Class 6 Mathematics", "board": "CBSE", "class_level": 6,
+                   "subject": "Mathematics", "medium": "English", "page_start": 3, "page_end": 3},
+    }]})
+
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "medium": "English", "app_language": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach me All 1s",
+    })
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert len(requests) == 2, "generic later segment must trigger the one allowed retry"
+    assert body["grounded"] is True
+    assert [segment["id"] for segment in body["segments"]] == ["intro", "repeat"]
+    assert "repeats" in body["segments"][1]["spoken_text"].lower()
+
 def test_lesson_plan_retries_once_after_malformed_json(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     chunk_id = "chunk-retry-verified"

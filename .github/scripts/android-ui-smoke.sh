@@ -200,17 +200,26 @@ if [ "$checkpoint_seen" -ne 1 ]; then
 fi
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-checkpoint.png
 python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml ui-screenshots/live-checkpoint.png | tee -a "$REPORT"
-log "Testing checkpoint continuation"
+log "Testing checkpoint continuation and next-segment progression"
 python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
-sleep 1
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml
-"${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml
-if grep -qi "Quick check" live-continued.xml; then
+continued=0
+for attempt in $(seq 1 15); do
+  sleep 2
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml >/dev/null 2>&1 || true
+  if [ -s live-continued.xml ] && grep -Eqi "3 / 5|segment 3 of 5" live-continued.xml && ! grep -qi "Quick check" live-continued.xml; then
+    continued=1
+    break
+  fi
+done
+if [ "$continued" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: understanding response did not dismiss the checkpoint"
+  log "FAIL: checkpoint closed but next lesson segment did not become active within 30 seconds"
+  [ -s live-continued.xml ] && cat live-continued.xml | tee -a "$REPORT"
   exit 1
 fi
-python3 .github/scripts/ui_smoke.py tap live-resumed.xml "Stop"
+python3 .github/scripts/ui_smoke.py assert-continued live-continued.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-continued.xml "Stop"
 sleep 2
 
 log "Testing Android back navigation to Home"

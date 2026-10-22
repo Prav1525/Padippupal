@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install a reproducible offline TTS engine into the Android emulator.
-# Read the APK name and SHA-256 from F-Droid's signed repository index rather
-# than trusting a floating download URL or an unverified APK mirror.
+# Read the APK name and SHA-256 from F-Droid's repository index over HTTPS
+# rather than trusting a floating download URL or an unverified APK mirror.
 set -euo pipefail
 
 readonly PACKAGE="com.reecedunn.espeak"

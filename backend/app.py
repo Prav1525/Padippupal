@@ -1656,10 +1656,15 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 "Gemini lesson planner rejected: status=%s model=%s detail=%s",
                 exc.code, model, provider_detail[:240],
             )
-            # A live lesson must not be blocked by a transient/provider-side
-            # generation failure when we already retrieved and topic-filtered
-            # approved textbook passages. Fall back to an exact source excerpt;
-            # never invent replacement teaching content or citations.
+            # Retry once for rate limits and server-side failures before
+            # degrading to the already-retrieved textbook source.
+            if attempt == 0 and (exc.code == 429 or exc.code >= 500):
+                logger.warning("Retrying transient Gemini lesson-planner failure status=%s", exc.code)
+                continue
+            # A live lesson must not be blocked by a provider-side generation
+            # failure when we already retrieved and topic-filtered approved
+            # textbook passages. Fall back to an exact source excerpt; never
+            # invent replacement teaching content or citations.
             excerpt = next(
                 (str(item.get("text", "")).strip() for item in matches
                  if str(item.get("text", "")).strip()),

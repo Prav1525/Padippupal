@@ -1332,7 +1332,10 @@ internal fun TutorScreen(
         if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        currentCheckpoint = if ((index + 1) % 2 == 0) segment.optString("checkpoint").trim().ifBlank { "Does that make sense so far?" } else ""
+        val checkpointText = segment.optString("checkpoint").trim()
+        currentCheckpoint = if ((index + 1) % 2 == 0) {
+            if (checkpointText.isBlank() || checkpointText.equals("null", ignoreCase = true)) "Does that make sense so far?" else checkpointText
+        } else ""
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
@@ -1897,7 +1900,7 @@ internal fun TutorScreen(
                         if (liveVisualAction.isNotBlank()) {
                             Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                         }
-                        if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
+                        if (!awaitingUnderstanding && liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
                             val topicKey = topic.lowercase(Locale.ROOT)
                             val scene = when {
                                 topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"

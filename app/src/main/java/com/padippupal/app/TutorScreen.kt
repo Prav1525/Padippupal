@@ -1231,7 +1231,12 @@ internal fun TutorScreen(
         }
     }
 
-    fun speakWithDeviceTts(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
+    fun speakWithDeviceTts(
+        text: String,
+        onStarted: (() -> Unit)? = null,
+        onFinished: (() -> Unit)? = null,
+        initWaitStartedAt: Long = SystemClock.elapsedRealtime()
+    ) {
         // Reset observations from a failed hosted-audio attempt before observing
         // the device engine's own start/completion lifecycle.
         speechPlaybackObserved = false
@@ -1242,7 +1247,33 @@ internal fun TutorScreen(
         } else {
             "Natural voice unavailable; using this phone's TTS engine."
         }
-        val engine = ttsState.value ?: run { finishSpeechSegment(); return }
+        val engine = ttsState.value
+        // TextToSpeech(context) is asynchronous. A hosted-TTS quota failure can
+        // send us to this fallback before Android has bound its TTS service.
+        // Querying availableLanguages before onInit completes returns no locale
+        // and falsely reports that the phone has no voice. Wait briefly for the
+        // engine to become ready; never treat a not-yet-bound engine as a finished
+        // utterance (which would skip the student's lesson segment).
+        if (!voiceReady || engine == null) {
+            val elapsed = SystemClock.elapsedRealtime() - initWaitStartedAt
+            if (elapsed < 8_000L) {
+                val generation = speechGeneration
+                status = "Preparing this phone's voice…"
+                tutorMainHandler.postDelayed({
+                    if (speechActive && speechGeneration == generation) {
+                        speakWithDeviceTts(text, onStarted, onFinished, initWaitStartedAt)
+                    }
+                }, 250L)
+            } else {
+                speechStartCallback = null
+                speechCompletion = null
+                speechActive = false
+                speechGeneration += 1
+                if (liveLessonActive) livePaused = true
+                status = "The phone's speech engine did not finish starting. Check Android text-to-speech settings, then tap Resume to retry this step."
+            }
+            return
+        }
         // Prefer a natural British English voice when installed, then Indian
         // English and US English. Do not assume those three are the only English
         // locales a device engine can provide: Android engines may expose en-AU,
@@ -1280,6 +1311,7 @@ internal fun TutorScreen(
             speechCompletion = null
             speechActive = false
             if (liveLessonActive) livePaused = true
+            speechGeneration += 1
             return
         }
         engine.language = locale

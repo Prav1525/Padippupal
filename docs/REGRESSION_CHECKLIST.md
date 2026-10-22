@@ -87,3 +87,12 @@ Add ID, severity, observed failure, expected behavior, evidence, confirmed cause
 - **Credential/cost:** `OPENAI_API_KEY` is required for the agent stage and can incur separately billed API usage. Without it, the repair stage must skip cleanly.
 - **Verification:** GitHub parsed the new `Bounded CI auto-repair` workflow on PR #15 head `de9f137802123bd62dfe5490acad2656fcdb2550`; its jobs skipped on the pull-request event as intended. A controlled injected-failure test has not run, so the end-to-end automation remains **UNVERIFIED**.
 - **Status:** OPEN until the default-branch workflow is active, credential setup is explicitly accepted/configured, and a controlled failure demonstrates repair proposal plus retesting.
+
+
+### PP-TUTOR-004 — Understanding checkpoint advances the lesson
+
+- **Priority:** P1 live-tutor flow correctness.
+- **Expected:** after a segment ends at a checkpoint, selecting **I understand** hides the checkpoint and starts the next segment; the progress indicator advances (e.g. 2/5 → 3/5). The lesson must remain live and the concept-matched animation/highlighting must continue.
+- **Observed on commit `159dc8c9902e992b53e55388303ab9f8d18d00eb`:** UI smoke found the checkpoint, visible repeated-ones animation, 2 distinct inline-highlight positions across 35 frames, and working pause/resume; after tapping **I understand**, the checkpoint remained visible and segment 3/5 did not appear within 30 seconds. Evidence: [UI run 39731013247](https://github.com/Prav1525/Padippupal/actions/runs/39731013247).
+- **Patch under verification:** commit `5051b68715ea01cd5cea9bef6550fed6aff863ee` clears checkpoint state synchronously and schedules the next segment on the main handler without the previous 350 ms delay.
+- **Status:** UNVERIFIED until fresh emulator CI proves the progress indicator advances and checkpoint controls disappear. Do not infer success from a build-only pass.

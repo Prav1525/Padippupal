@@ -48,7 +48,7 @@ def assert_checkpoint(path):
     missing = [label for label in required if label not in joined]
     if missing:
         raise SystemExit("Live lesson did not pause at the complete understanding checkpoint: " + ", ".join(missing))
-    if re.search(r"quick check\\s+null(?:\\s|$)", joined):
+    if re.search(r"quick check\s+null(?:\s|$)", joined):
         raise SystemExit("Understanding checkpoint rendered the literal null instead of a student-friendly question")
     print("PASS: lesson pauses at the understanding checkpoint with all response choices")
 

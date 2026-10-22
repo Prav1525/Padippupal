@@ -151,3 +151,13 @@ Add ID, severity, observed failure, expected behavior, evidence, confirmed cause
 - **FAIL:** Android UI smoke — [run 39745719279](https://github.com/Prav1525/Padippupal/actions/runs/39745719279), artifact [12411502837](https://github.com/Prav1525/Padippupal/actions/runs/39745719279/artifacts/12411502837). First attempt had a transient empty chapter list. Second attempt selected Patterns in Mathematics → All 1s, but cloud TTS returned 429 and Sarvam returned 402; device TTS then reported no compatible English voice, so the app correctly paused and the test could not verify the speaking/highlight/checkpoint journey.
 - **Confirmed backend validation gap fixed in PR #13:** the previous All 1s validator accepted a generic segment if any other segment matched. The current code checks each segment and a new backend regression test verifies a generic later segment triggers the retry. Backend tests pass on the current head.
 - **Merge gate:** remains closed until the UI smoke passes on the current head. Do not weaken assertions to bypass unavailable speech. Render logs show the TTS provider quota/payment failures; emulator English voice availability remains a test-environment blocker to resolve or document.
+
+
+### PP-TTS-001 — Android TTS service discovery and delayed binding
+
+- **Priority:** P1 for live tutor reliability when hosted speech is unavailable.
+- **Observed:** on PR #13 head `cdd5094c48231cdeeafc788c045691d4d37a730c`, Render's Gemini TTS returned HTTP 429 and Sarvam fallback returned HTTP 402. The app then attempted Android TTS, but logcat showed `getAvailableLanguages failed: not bound to TTS engine`; the smoke test could not reach the live checkpoint.
+- **Confirmed cause:** the Android manifest lacked the Android 11+ package-visibility query for `android.intent.action.TTS_SERVICE`. The code also queried language availability without waiting for the asynchronous TTS engine to bind.
+- **Fix in PR #13:** manifest query added; fallback waits briefly for engine readiness and pauses safely if initialization does not complete; a smoke-helper regression asserts the manifest query exists.
+- **Verification:** curriculum tests and APK build PASS on `a67c135dde7ba4807f7bb0e2d99177c4b5a35bad`. UI smoke is IN PROGRESS at [run 39747425136](https://github.com/Prav1525/Padippupal/actions/runs/39747425136).
+- **Status:** OPEN until the fresh smoke proves speech starts, inline highlighting moves, and the understanding checkpoint advances.

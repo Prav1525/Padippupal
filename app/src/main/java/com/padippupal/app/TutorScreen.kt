@@ -78,10 +78,14 @@ import java.util.Locale
 import java.time.LocalDate
 import java.util.concurrent.Executors
 
-private val TutorGreen = Color(0xFF24734B)
-private val TutorDeep = Color(0xFF173D2A)
-private val TutorGrey = Color(0xFF718075)
-private val TutorPaper = Color(0xFFF7F9F5)
+// Cool, high-contrast palette: midnight navy + electric teal for a modern learning interface.
+private val TutorGreen = Color(0xFF00BFA6)
+private val TutorDeep = Color(0xFF101828)
+private val TutorGrey = Color(0xFF667085)
+private val TutorPaper = Color(0xFFF3F7FC)
+private val TutorNight = Color(0xFF0B1220)
+private val TutorMutedOnNight = Color(0xFFB8C7D9)
+private val TutorAccentSoft = Color(0xFFE1FBF7)
 private val tutorExecutor = Executors.newSingleThreadExecutor()
 private val tutorMainHandler = Handler(Looper.getMainLooper())
 
@@ -1851,37 +1855,47 @@ internal fun TutorScreen(
         modifier = modifier.fillMaxSize().background(TutorPaper).imePadding(),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Compact, persistent header
+        // Midnight command bar: persistent context and clear lesson controls.
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().background(TutorNight)
+                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TutorDeep) }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("PadippuPal Tutor", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep, maxLines = 1)
+            IconButton(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+            Box(
+                modifier = Modifier.size(38.dp).background(TutorAccentSoft, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.GraphicEq, contentDescription = "PadippuPal AI tutor", tint = TutorNight, modifier = Modifier.size(23.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("PadippuPal", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1)
                 Text(
-                    if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "Class $grade · $board",
-                    fontSize = 11.sp, color = TutorGrey, maxLines = 1
+                    if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "CLASS $grade  ·  $board",
+                    fontSize = 10.sp, color = TutorMutedOnNight, maxLines = 1
                 )
             }
             if (liveLessonActive) {
-                TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
-                    Text(if (livePaused) "Resume" else "Pause", color = TutorGreen, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                    Text(if (livePaused) "Resume" else "Pause", color = TutorAccentSoft, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
-                TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
-                    Text("Stop", color = Color(0xFF9E3D35), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                    Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
             } else {
-                TextButton(onClick = { showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)) {
-                    Text("Change", color = TutorGreen, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                TextButton(onClick = { showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)) {
+                    Text("Change", color = TutorAccentSoft, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
                 Button(
                     onClick = { startLiveLesson() },
                     enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),
-                    shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)
-                ) { Text("▶ Teach", fontWeight = FontWeight.Bold) }
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = TutorGreen, contentColor = TutorNight)
+                ) { Text("▶ Teach", fontWeight = FontWeight.ExtraBold, maxLines = 1) }
             }
         }
 

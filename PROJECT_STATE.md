@@ -96,3 +96,12 @@ Update this section at the end of each work session:
 - Remaining acceptance: review fresh APK/UI smoke results and screenshots; verify correct All 1s lesson reaches the checkpoint and advances only after student response; review final diff; update this handoff with final exact-SHA results.
 - Blockers: no local repository clone is possible in the current execution environment because outbound DNS/network access to GitHub is unavailable; GitHub Actions is the available build/emulator test environment. Render service `padippupal-curriculum-api` auto-deploys from `main` only, preview deployments are disabled, and the current live deploy is commit `22270b5333a5c692b0a1d6206eb86f4fc4ed4e48`. Therefore the existing emulator smoke workflow calls the deployed backend, not the backend code on this PR branch. Do not merge or deploy the branch without explicit user approval; report this end-to-end verification gap honestly.
 - Next single action: inspect the running APK and emulator workflows, then diagnose any new failure before another patch.
+
+## Verification refresh — 2026-10-22
+
+- Code head checked: `e64de303148761c57e8be638afdadfa57baf8062` on PR #13.
+- Curriculum Engine Tests: **PASS**, run https://github.com/Prav1525/Padippupal/actions/runs/39724371618.
+- Android APK build: **PASS**, run https://github.com/Prav1525/Padippupal/actions/runs/39724371654.
+- Android UI smoke: **FAIL**, run https://github.com/Prav1525/Padippupal/actions/runs/39724371689. Home, ready screen, chapter/topic selection, teaching viewport and passive All 1s animation assertions passed. Failure: across 35 captured frames, the inline highlight appeared at only one distinct position; the test requires it to move across at least two words. The displayed opening sentence is still generic for All 1s and needs topic-specific content validation.
+- Live backend limitation remains: Render deploys from `main`, not this PR branch, so emulator smoke cannot validate the branch's backend changes end-to-end until an approved deployment path exists.
+- Next single action: trace Android TTS range callbacks, fallback timing, Compose state and frame capture to determine why the highlight stays visually stationary; do not patch the assertion to hide the failure.

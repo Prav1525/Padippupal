@@ -1615,7 +1615,23 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             with urllib.request.urlopen(req, timeout=45) as response:
                 result = json.loads(response.read().decode("utf-8"))
             raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
-            validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+            candidate = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+            if not _lesson_segments_match_topic(payload.topic, candidate["segments"]):
+                if attempt == 0:
+                    logger.warning("Gemini lesson planner drifted from selected topic=%s; retrying once", payload.topic)
+                    retry_instruction += (
+                        "\\nThe previous valid JSON was rejected because its teaching content or visual action "
+                        "did not match the selected topic '" + payload.topic + "'. Rewrite every segment for that topic only. "
+                        "For All 1s, explain the repeated ones; do not discuss counting up/down, square numbers, or "
+                        "the equation 1 + 2 + 1 = 4. Keep the same approved source chunk IDs."
+                    )
+                    continue
+                logger.warning("Gemini lesson planner remained off-topic after retry topic=%s", payload.topic)
+                return {
+                    "lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
+                    "warning": "The generated explanation did not match the selected topic; no lesson was started.",
+                }
+            validated = candidate
             break
         except urllib.error.HTTPError as exc:
             logger.warning("Gemini lesson planner rejected: status=%s model=%s", exc.code, model)

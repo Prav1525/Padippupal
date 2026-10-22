@@ -97,8 +97,13 @@ def assert_settings(path):
     nodes, texts = load(path)
     joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
     print("SETTINGS TEXT:", " | ".join(texts[:140]))
-    expected = ("Mathematics", "Choose chapter", "Choose concept", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
+    expected = ("Mathematics", "Choose chapter", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
     missing = [term for term in expected if term.lower() not in joined]
+    # The topic picker intentionally shows its selected database topic (for this
+    # smoke test, "All 1s") instead of the "Choose concept" placeholder. Accept
+    # either state, but never accept a settings screen with no topic selection.
+    if "choose concept" not in joined and "all 1s" not in joined:
+        missing.append("Choose concept or selected topic (All 1s)")
     if missing:
         raise SystemExit("Tutor settings are missing expected controls: " + ", ".join(missing))
     print("PASS: subject, chapter/topic, language, and voice settings are accessible")

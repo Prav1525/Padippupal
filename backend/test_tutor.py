@@ -194,11 +194,25 @@ def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
 
 def test_voice_health_reports_configuration_without_secret(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "must-not-be-returned")
+    monkeypatch.setenv("SARVAM_API_KEY", "")
     response = TestClient(curriculum.app).get("/health/voice")
     assert response.status_code == 200
     assert response.json()["configured"] is True
     assert response.json()["provider"] == "gemini"
     assert "must-not-be-returned" not in response.text
+
+
+def test_voice_health_reports_sarvam_as_primary_when_configured(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setenv("SARVAM_API_KEY", "test-sarvam-key")
+    response = TestClient(curriculum.app).get("/health/voice")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["provider"] == "sarvam"
+    assert body["model"] == "bulbul:v3"
+    assert body["fallback"] == "gemini"
+    assert body["fallback_chain"] == ["sarvam", "gemini", "android-tts"]
+    assert "test-sarvam-key" not in response.text
 
 
 

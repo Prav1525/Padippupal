@@ -74,3 +74,12 @@ If a regression returns:
 ## How to record a new case
 
 Add ID, severity, observed failure, expected behavior, evidence, confirmed cause, required test layer, current status, and last passing commit. Keep unresolved causes explicitly marked as unknown.
+
+
+### PP-TEST-004 — Bounded CI auto-repair loop
+
+- **Expected:** a failed eligible same-repository CI run produces a triage report with the exact run URL/SHA; when the optional repair credential is configured, one evidence-based repair proposal is tested and opened as a PR; relevant CI is dispatched against the proposal.
+- **Negative checks:** no code changes when no safe patch is supported; no fork-controlled code is passed to the agent; no automatic merge/deploy; no infinite repair loop; no test assertions are weakened.
+- **Credential/cost:** `OPENAI_API_KEY` is required for the agent stage and can incur separately billed API usage. Without it, the repair stage must skip cleanly.
+- **Verification:** GitHub parsed the new `Bounded CI auto-repair` workflow on PR #15 head `de9f137802123bd62dfe5490acad2656fcdb2550`; its jobs skipped on the pull-request event as intended. A controlled injected-failure test has not run, so the end-to-end automation remains **UNVERIFIED**.
+- **Status:** OPEN until the default-branch workflow is active, credential setup is explicitly accepted/configured, and a controlled failure demonstrates repair proposal plus retesting.

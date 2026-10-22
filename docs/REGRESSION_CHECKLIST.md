@@ -44,7 +44,7 @@ This is a living record. Add a named regression case for every confirmed recurri
 
 - **Expected:** spoken words highlight inside the same displayed lesson text, not in a separate duplicate overlay; highlight advances with speech and content scrolls when needed.
 - **Checks:** accessibility/text hierarchy shows one primary lesson text; screenshot/frame evidence confirms the highlight is on that text and moves during playback; longer segments remain readable.
-- **Status:** Revalidate.
+- **Status:** OPEN — code fix committed on PR #13 at `0f648fe9159a9ac856d5b780c29fbb4820b9eb16`; fresh Android UI smoke is pending. Close only after the test proves at least two distinct inline highlight positions during speech.
 
 ### PP-TUTOR-005 — Chapter/topic selection remains deterministic
 

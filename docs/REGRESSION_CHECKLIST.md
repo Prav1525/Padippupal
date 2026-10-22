@@ -124,3 +124,11 @@ Add ID, severity, observed failure, expected behavior, evidence, confirmed cause
 - **Checks:** synthetic-image test verifies exact RGB mask count/bounds; the UI smoke must still detect at least two distinct highlight positions and verify the teaching panel layout.
 - **Correction:** PR #13 head `01cbd5185a531c7c0ce220438d4603f0be8a3a92` uses Pillow masks/bounding boxes and adds a synthetic mask regression test.
 - **Status:** Code/build and curriculum tests PASS; UI smoke `39737297301` was still running at last check.
+
+
+### PP-TUTOR-008 — Speech completion must not strand live lessons
+
+- **Expected:** after a spoken segment actually ends, the tutor advances to the next segment or presents its understanding checkpoint; pause must not be mistaken for completion.
+- **Regression evidence:** UI smoke `39737297301` showed the correct All 1s lesson, 13 distinct inline highlight positions, and pause/resume passing, but the lesson remained at 1/5 for 150 seconds after resume.
+- **Correction under test:** PR #13 head `73a930a6a4be661c6413690dd387380774c67f0c` adds a per-utterance completion watchdog that recovers only after playback has been observed and then stopped, respects paused state, and checks MediaPlayer position before recovery.
+- **Status:** OPEN / UNVERIFIED pending fresh Android build and emulator smoke. Do not mark passed unless the checkpoint appears and “I understand” advances 2/5 → 3/5.

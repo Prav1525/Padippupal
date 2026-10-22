@@ -3,6 +3,8 @@
 **Status:** Mandatory engineering process. Applies to every task, branch, chat, and handoff.
 **Authority:** This file defines how work is performed. `PROJECT_STATE.md` defines the current verified state. The regression checklist defines required repeatable checks. The decision log records durable product/architecture decisions.
 
+**Quick enforcement checklist:** Before each task, use [`docs/ENGINEERING_BEHAVIOR_CHECKLIST.md`](docs/ENGINEERING_BEHAVIOR_CHECKLIST.md). It is a short mandatory checklist, not a replacement for this full protocol.
+
 ## Non-negotiable rules
 
 1. **Read before acting.** At the start of every work session, read this file and `PROJECT_STATE.md`; inspect the actual repository branch/head, open PRs, and latest relevant CI results. Do not rely on chat summaries as proof.
@@ -74,6 +76,7 @@ If no code or test has changed, say so explicitly. Never repeat a prior successf
 Before answering a project-status or development request in a new chat:
 
 - Read `DEVELOPMENT_PROTOCOL.md` and `PROJECT_STATE.md` from the repository.
+- Read `docs/ENGINEERING_BEHAVIOR_CHECKLIST.md`, `docs/REGRESSION_CHECKLIST.md`, and `docs/DECISION_LOG.md`.
 - Inspect the active PR/branch and latest commits; do not assume the last discussed branch is still active.
 - Fetch the latest relevant workflow runs and their commit SHAs.
 - Reconcile chat memory with repository evidence. Repository state wins for code/CI; explicit user decisions in the decision log win for settled product choices unless the user changes them.

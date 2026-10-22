@@ -210,7 +210,7 @@ fi
 python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml | tee -a "$REPORT"
 log "Testing checkpoint continuation"
 python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
-sleep 3
+sleep 1
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml
 "${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml
 if grep -qi "Quick check" live-continued.xml; then

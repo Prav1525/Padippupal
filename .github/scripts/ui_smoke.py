@@ -34,9 +34,14 @@ def assert_tutor(path):
     expected_any = ("chapter", "math", "tutor", "lesson", "ask", "subject", "class", "english", "tamil", "topic")
     if not any(term in joined.lower() for term in expected_any):
         raise SystemExit("Tutor screen has no recognizable tutor/lesson/chapter labels")
-    # Feedback controls belong to a completed chat answer or live checkpoint,
-    # not the READY/settings screen.
-    print("PASS: tutor ready screen is accessible; feedback is tested in its actual UI state")
+    labels = {text.strip().lower() for text in texts}
+    if "change" not in labels:
+        raise SystemExit("Tutor ready screen is missing the Change control for lesson selection")
+    if not any(label.strip().lstrip("▶").strip().lower() == "teach" for label in labels):
+        raise SystemExit("Tutor ready screen is missing the Teach action")
+    if any("set up your lesson" in text.lower() for text in texts):
+        raise SystemExit("Lesson setup must open only after the learner chooses Change")
+    print("PASS: tutor ready screen exposes Change and Teach without showing setup or starting a chat lesson")
 
 def assert_checkpoint(path, screenshot_path=None):
     _, texts = load(path)
@@ -97,6 +102,10 @@ def assert_settings(path):
     nodes, texts = load(path)
     joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
     print("SETTINGS TEXT:", " | ".join(texts[:140]))
+    if "set up your lesson" not in joined:
+        raise SystemExit("Change did not open the dedicated lesson-selection screen")
+    if "done" not in joined:
+        raise SystemExit("Lesson-selection screen has no Done action to return to the tutor")
     expected = ("Mathematics", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
     missing = [term for term in expected if term.lower() not in joined]
     # When a saved session already has Chapter 1 selected, the control shows the

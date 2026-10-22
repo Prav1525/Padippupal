@@ -117,6 +117,26 @@ def concept_candidates(nodes):
     return sorted(numbered, key=lambda n: n.attrib.get("clickable") != "true")
 
 
+def tap_topic_picker(path):
+    nodes, texts = load(path)
+    # Chapter selection may preselect the first curriculum topic. In that case
+    # the button displays its selected title instead of the placeholder label.
+    candidates = []
+    for node in nodes:
+        label = node.attrib.get("text", "").strip()
+        if label.lower() == "choose concept" or label.lower() == "all 1s":
+            if re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", node.attrib.get("bounds", "")):
+                candidates.append(node)
+    if not candidates:
+        raise SystemExit("No concept-picker control found (expected placeholder or currently selected topic). Visible labels: " + " | ".join(texts[:120]))
+    node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
+    bounds = node.attrib["bounds"]
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    print("Opening concept picker:", node.attrib.get("text"), bounds)
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
+                   check=True, timeout=45)
+
 def tap_first_concept(path):
     nodes, texts = load(path)
     candidates = concept_candidates(nodes)
@@ -146,7 +166,18 @@ def assert_live(path):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
-    print("PASS: live lesson panel and actual inline teaching caption text are accessible")
+    visible_labels = {text.strip().lower() for text in texts}
+    if visible_labels.intersection({"choose chapter", "choose concept", "subject", "change"}):
+        raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
+    if "pause" not in joined or "stop" not in joined:
+        raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
+    forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")
+    found_activity = [label for label in forbidden_activity_labels if label in joined]
+    if found_activity:
+        raise SystemExit("Interactive activity UI reappeared in the teaching flow: " + ", ".join(found_activity))
+    if "patterns in mathematics" in joined and "watch the pattern" not in joined:
+        raise SystemExit("Class 6 Patterns in Mathematics live lesson is missing its passive auto-playing concept animation")
+    print("PASS: live lesson has inline teaching text, no interactive activity, and the pilot's passive pattern animation")
 
 def assert_highlight_frames(directory):
     try:
@@ -160,18 +191,41 @@ def assert_highlight_frames(directory):
     target = (216, 232, 183)  # WordByWordCaption highlight: #D8E8B7
     best_count = 0
     best_frame = ""
+    centers = []
     for frame in frames:
         try:
             image = Image.open(frame).convert("RGB")
-            count = sum(1 for pixel in image.getdata() if pixel == target)
+            pixels = image.load()
+            coords = [(x, y) for y in range(image.height) for x in range(image.width) if pixels[x, y] == target]
+            count = len(coords)
             if count > best_count:
                 best_count, best_frame = count, str(frame)
+            # The same lesson text must visibly move its highlight as speech progresses.
+            if count >= 12:
+                centers.append((sum(x for x, _ in coords) / count, sum(y for _, y in coords) / count))
         except Exception as exc:
             print("Skipping unreadable frame", frame, exc)
-    print(f"Highlight pixel scan: {len(frames)} frames; max exact highlight pixels={best_count} in {best_frame}")
+    distinct_centers = []
+    for center in centers:
+        if all(((center[0] - prior[0]) ** 2 + (center[1] - prior[1]) ** 2) ** 0.5 >= 18 for prior in distinct_centers):
+            distinct_centers.append(center)
+    print(f"Highlight pixel scan: {len(frames)} frames; max exact highlight pixels={best_count} in {best_frame}; distinct highlight positions={len(distinct_centers)}")
     if best_count < 12:
         raise SystemExit("No clear inline word-highlight background was detected in the captured live lesson frames")
-    print("PASS: at least one emulator frame contains the inline spoken-word highlight")
+    if len(distinct_centers) < 2:
+        raise SystemExit("Inline highlight was found but did not move across at least two words during speech")
+    print("PASS: inline spoken-word highlight is visible and moves across the lesson text")
+
+def assert_playback_state(path, expected):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("PLAYBACK STATE TEXT:", " | ".join(texts[:100]))
+    required = ("stop", "resume") if expected == "paused" else ("stop", "pause")
+    missing = [label for label in required if label not in joined]
+    if missing:
+        raise SystemExit(f"Live playback {expected} state is missing controls: " + ", ".join(missing))
+    print(f"PASS: live playback {expected} state exposes the expected controls")
+
 
 def assert_live_layout(path):
     try:
@@ -215,6 +269,19 @@ def tap(path, target):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
+def has_label(path, label):
+    _, texts = load(path)
+    found = any(label.lower() in text.lower() for text in texts)
+    print(f"LABEL CHECK: {label!r} {'present' if found else 'not present'}")
+    return found
+
+def assert_topic_selected(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    if "all 1s" not in joined and "patterns in mathematics" not in joined:
+        raise SystemExit("No database-backed topic/chapter selection is visible: " + " | ".join(texts[:100]))
+    print("PASS: a database-backed chapter/topic is already selected")
+
 def main():
     if len(sys.argv) < 3:
         raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
@@ -229,12 +296,19 @@ def main():
         assert_feedback(path)
     elif action == "assert-settings":
         assert_settings(path)
+    elif action == "has-label" and len(sys.argv) >= 4:
+        if not has_label(path, sys.argv[3]):
+            raise SystemExit(1)
+    elif action == "assert-topic-selected":
+        assert_topic_selected(path)
     elif action == "assert-chapter-button":
         assert_chapter_button(path)
     elif action == "assert-chapter-selected":
         assert_chapter_selected(path)
     elif action == "tap-numbered" and len(sys.argv) >= 4:
         tap_numbered(path, sys.argv[3])
+    elif action == "tap-topic-picker":
+        tap_topic_picker(path)
     elif action == "tap-first-concept":
         tap_first_concept(path)
     elif action == "assert-live":
@@ -243,6 +317,8 @@ def main():
         assert_highlight_frames(sys.argv[3])
     elif action == "assert-live-layout":
         assert_live_layout(path)
+    elif action == "assert-playback-state" and len(sys.argv) >= 4:
+        assert_playback_state(path, sys.argv[3])
     elif action == "tap" and len(sys.argv) >= 4:
         tap(path, sys.argv[3])
     else:

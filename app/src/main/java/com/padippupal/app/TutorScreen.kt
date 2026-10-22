@@ -966,6 +966,7 @@ internal fun TutorScreen(
     var liveVisualTarget by remember { mutableStateOf("") }
     var liveSegmentIndex by remember { mutableIntStateOf(0) }
     var liveLessonActive by remember { mutableStateOf(false) }
+    var livePaused by remember { mutableStateOf(false) }
     var awaitingUnderstanding by remember { mutableStateOf(false) }
     var currentCheckpoint by remember { mutableStateOf("") }
     var voiceReady by remember { mutableStateOf(false) }
@@ -1331,7 +1332,7 @@ internal fun TutorScreen(
     }
 
     fun playLiveSegment(index: Int) {
-        if (!liveLessonActive) return
+        if (!liveLessonActive || livePaused) return
         if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
@@ -1401,19 +1402,53 @@ internal fun TutorScreen(
             }
             tutorMainHandler.post {
                 loading = false
-                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; playLiveSegment(0) },
+                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; livePaused = false; playLiveSegment(0) },
                     onFailure = { error -> status = error.message ?: "Could not prepare the live lesson." })
             }
         }
     }
 
     fun stopLiveLesson() {
-        liveLessonActive = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
+        liveLessonActive = false; livePaused = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
         audioPlayer.value = null; ttsState.value?.stop(); speechCompletion = null; speechActive = false
         status = "Live lesson stopped."
+    }
+
+    fun pauseLiveLesson() {
+        if (!liveLessonActive || livePaused) return
+        livePaused = true
+        val player = audioPlayer.value
+        if (player != null) {
+            runCatching { player.pause() }
+        } else {
+            // Android TextToSpeech has no native pause API. Stop its current utterance;
+            // Resume restarts this short teaching segment from its beginning.
+            speechStartCallback = null
+            speechCompletion = null
+            ttsState.value?.stop()
+            speechActive = false
+        }
+        status = "Lesson paused. Resume when you are ready."
+    }
+
+    fun resumeLiveLesson() {
+        if (!liveLessonActive || !livePaused) return
+        livePaused = false
+        val player = audioPlayer.value
+        if (player != null) {
+            runCatching {
+                player.start()
+                speechActive = true
+                status = "Lesson resumed."
+            }.onFailure {
+                playLiveSegment(liveSegmentIndex)
+            }
+        } else {
+            playLiveSegment(liveSegmentIndex)
+        }
     }
 
     fun sendMessage(startingMessage: String? = null) {
@@ -1590,9 +1625,18 @@ internal fun TutorScreen(
                     Text(if (liveLessonActive) "LIVE" else "READY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TutorDeep)
                 }
             }
+            if (liveLessonActive) {
+                TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
+                    Text(if (livePaused) "Resume" else "Pause", color = TutorGreen, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                }
+                TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
+                    Text("Stop", color = Color(0xFF9E3D35), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                }
+            }
         }
 
-        // Keep the lesson controls concise; the full selection panel is expandable.
+        // Selection controls are setup UI, not part of the full-screen live teaching surface.
+        if (!liveLessonActive) {
         Surface(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
             color = Color.White,
@@ -1701,6 +1745,8 @@ internal fun TutorScreen(
             }
         }
 
+        }
+
         // The chat owns the flexible space and scrolls independently of the fixed composer.
         LazyColumn(
             state = chatListState,
@@ -1731,7 +1777,15 @@ internal fun TutorScreen(
                                 )
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                            if (liveCaption.isNotBlank() && liveLessonActive && !speechActive && !awaitingUnderstanding) InteractiveLessonLab(chapter, topic, liveCaption, liveVisualActionType, liveVisualTarget, liveSegmentIndex)
+                            if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
+                                val scene = if (topic.contains("shape", ignoreCase = true) || topic.contains("repeating", ignoreCase = true)) "shape_pattern" else "number_pattern"
+                                ChapterOneMathAnimation(
+                                    scene = scene,
+                                    title = topic.ifBlank { "Patterns in Mathematics" },
+                                    topic = topic,
+                                    caption = "Watch the pattern change automatically as your teacher explains."
+                                )
+                            }
                         }
                     }
                 }
@@ -1757,9 +1811,7 @@ internal fun TutorScreen(
                             }
                             if (message.role == "assistant") {
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
-                                if (message.content == latestAssistant?.content && message.interactiveLesson != null) {
-                                    DatabaseInteractiveLessonLab(message.interactiveLesson, sessionPrefs, sessionKey, todayKey)
-                                } else if (message.content == latestAssistant?.content && message.visualLesson != null) {
+                                if (message.content == latestAssistant?.content && message.visualLesson != null) {
                                     DatabaseLessonVisual(message.visualLesson)
                                 }
                                 if (message.content == latestAssistant?.content && !liveLessonActive && !loading) {

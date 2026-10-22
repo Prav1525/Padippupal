@@ -91,8 +91,9 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     assert "Do not answer from general knowledge, web sources, or memory" in prompt
     assert captured["timeout"] == 45
 
-def test_tutor_speech_requires_server_side_gemini_key(monkeypatch):
+def test_tutor_speech_requires_cloud_tts_configuration(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "")
+    monkeypatch.setenv("SARVAM_API_KEY", "")
     client = TestClient(curriculum.app)
     response = client.post("/tutor/speech", json={
         "text": "Let's learn this one small step at a time.",
@@ -101,6 +102,39 @@ def test_tutor_speech_requires_server_side_gemini_key(monkeypatch):
     assert response.status_code == 503
     assert "not configured" in response.json()["detail"].lower()
 
+
+
+def test_tutor_speech_prefers_sarvam_before_gemini(monkeypatch):
+    monkeypatch.setenv("SARVAM_API_KEY", "test-sarvam-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    captured = {}
+
+    def fake_sarvam(text, language):
+        captured["text"] = text
+        captured["language"] = language
+        return {
+            "audio_base64": "d2F2",
+            "mime_type": "audio/wav",
+            "provider": "sarvam",
+            "word_timings": [],
+        }
+
+    def unexpected_gemini_request(*args, **kwargs):
+        raise AssertionError("Gemini must not be called when Sarvam succeeds")
+
+    monkeypatch.setattr(curriculum, "_sarvam_tutor_speech", fake_sarvam)
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_gemini_request)
+    response = TestClient(curriculum.app).post("/tutor/speech", json={
+        "text": "We learn one small step at a time.",
+        "app_language": "English",
+    })
+
+    assert response.status_code == 200
+    assert response.json()["provider"] == "sarvam"
+    assert captured == {
+        "text": "We learn one small step at a time.",
+        "language": "English",
+    }
 
 def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
     import base64

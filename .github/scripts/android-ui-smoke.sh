@@ -160,7 +160,7 @@ python3 .github/scripts/ui_smoke.py tap concept-selected.xml "Done"
 sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
-python3 .github/scripts/ui_smoke.py tap ready-to-teach.xml "Teach"
+python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
 log "Recording live lesson frames to verify inline spoken-word highlighting"
 "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames

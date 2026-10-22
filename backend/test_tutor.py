@@ -540,9 +540,11 @@ def test_lesson_plan_does_not_use_chapter_wide_approved_lesson_for_specific_topi
     })
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["provider"] != "approved_chapter_lesson"
+    # Fail closed when only a chapter-wide approved lesson exists.
+    assert body.get("provider") != "approved_chapter_lesson"
     assert body["grounded"] is False
     assert body["segments"] == []
+    assert "no lesson was generated" in body["warning"].lower()
 
 
 def test_chapter_lesson_admin_routes_fail_closed_without_token(monkeypatch, tmp_path):

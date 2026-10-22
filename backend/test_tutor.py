@@ -503,6 +503,48 @@ def test_chapter_lesson_draft_schema_and_review_lifecycle(monkeypatch, tmp_path)
     assert approved.json()["lesson"]["overview"] == "Patterns repeat"
 
 
+
+def test_lesson_plan_does_not_use_chapter_wide_approved_lesson_for_specific_topic(monkeypatch):
+    from contextlib import contextmanager
+
+    approved_row = {
+        "id": "chapter-wide-lesson",
+        "chapter": "Patterns in Mathematics",
+        "topic": "",
+        "lesson_json": json.dumps({"chapter_title": "Patterns in Mathematics", "teaching_sequence": []}),
+        "source_refs_json": "[]",
+    }
+
+    class FakeResult:
+        def fetchall(self):
+            return [approved_row]
+
+    class FakeConnection:
+        def execute(self, query, params=()):
+            return FakeResult()
+
+    @contextmanager
+    def fake_db():
+        yield FakeConnection()
+
+    monkeypatch.setattr(curriculum, "db", fake_db)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {
+        "matches": [], "warning": None
+    })
+    client = TestClient(curriculum.app)
+    response = client.post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "medium": "English", "app_language": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach me All 1s",
+    })
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["provider"] != "approved_chapter_lesson"
+    assert body["grounded"] is False
+    assert body["segments"] == []
+
+
 def test_chapter_lesson_admin_routes_fail_closed_without_token(monkeypatch, tmp_path):
     monkeypatch.setattr(curriculum, "DATABASE_URL", "")
     monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "chapter-lessons-auth.sqlite3")

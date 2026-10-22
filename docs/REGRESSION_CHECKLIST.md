@@ -113,3 +113,6 @@ Add ID, severity, observed failure, expected behavior, evidence, confirmed cause
 - **Checks:** hosted TTS 503/provider failures are observable in backend logs; device locale selection includes installed English variants (including British English) and the requested Tamil locale; if no compatible voice exists, the lesson pauses with a recoverable message and does not silently skip content.
 - **Current evidence (2026-10-22):** Render logs show Gemini TTS HTTP 429 followed by Sarvam HTTP 402, producing `POST /tutor/speech` 503. The CI emulator then reported no compatible English TTS voice. This is a confirmed provider-quota/emulator-voice blocker; target-phone voice behavior remains UNVERIFIED.
 - **Status:** OPEN. Latest locale compatibility change is commit `6c711eeed23087d4caa8ab9db6fe882c8e2f4aec`; await its build and emulator results.
+
+
+- **Follow-up test harness change (2026-10-22):** latest PR #13 head `8fe4a4b35cef0acaca18c1d6fa1c7cc83bcd9ca1` switches the UI emulator to `google_apis_playstore` and detects explicit no-voice errors during checkpoint polling. This improves the test environment and shortens known failure diagnosis without skipping the speech/checkpoint assertions. Latest curriculum tests passed; APK/UI smoke were pending at handoff.

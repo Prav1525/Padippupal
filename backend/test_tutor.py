@@ -897,3 +897,38 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "reveal"
     assert body["segments"][0]["checkpoint"] == "What does the plant need?"
+
+
+def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):
+    from urllib.error import HTTPError
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "all-ones-source"
+    passage = "The All 1s pattern repeats the number 1: 1, 1, 1, 1."
+
+    def fail_gemini(request, timeout):
+        raise HTTPError(request.full_url, 503, "temporarily unavailable", {}, None)
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fail_gemini)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": passage,
+        "source": {"chunk_id": chunk_id, "source_id": "source-1",
+                   "title": "Class 6 Mathematics", "board": "CBSE", "class_level": 6,
+                   "subject": "Mathematics", "medium": "English", "page_start": 1, "page_end": 1},
+    }]})
+
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "medium": "English", "app_language": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach me All 1s",
+    })
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["provider"] == "textbook_extract_fallback"
+    assert body["grounded"] is True
+    assert len(body["segments"]) == 1
+    assert body["segments"][0]["spoken_text"] == passage
+    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
+    assert body["segments"][0]["visual_action"]["type"] == "none"

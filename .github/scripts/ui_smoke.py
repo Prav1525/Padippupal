@@ -177,7 +177,12 @@ def assert_live(path):
         raise SystemExit("Interactive activity UI reappeared in the teaching flow: " + ", ".join(found_activity))
     if "patterns in mathematics" in joined and "watch the pattern" not in joined:
         raise SystemExit("Class 6 Patterns in Mathematics live lesson is missing its passive auto-playing concept animation")
-    print("PASS: live lesson has inline teaching text, no interactive activity, and the pilot's passive pattern animation")
+    if "all 1s" in joined:
+        if "1, 1, 1, 1, 1" not in joined:
+            raise SystemExit("All 1s topic is not showing the matching repeated-ones animation")
+        if "square numbers grow" in joined or "1²" in joined or "+3" in joined:
+            raise SystemExit("All 1s topic is incorrectly showing square-number content")
+    print("PASS: live lesson has inline teaching text, no interactive activity, and concept-matched passive animation")
 
 def assert_highlight_frames(directory):
     try:

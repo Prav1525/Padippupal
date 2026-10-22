@@ -127,3 +127,15 @@ Update this section at the end of each work session:
 - Fresh workflow validation: GitHub accepted and ran the new `Bounded CI auto-repair` workflow on PR head `de9f137802123bd62dfe5490acad2656fcdb2550`; the jobs were correctly skipped for the `pull_request` event. Android APK and emulator UI smoke runs for that SHA were still in progress at the last check: https://github.com/Prav1525/Padippupal/actions/runs/39729227102 and https://github.com/Prav1525/Padippupal/actions/runs/39729227046.
 - The controlled injected-failure acceptance test has **not** been run. Do not describe the full loop as complete until a failure produces a focused repair proposal and fresh retest results.
 - Next action: inspect the current PR #15 CI results, then decide whether to request the required API secret/setup and run a controlled failure test. Do not merge any PR without explicit approval.
+
+
+## Latest handoff — 2026-10-22 (resume tutor flow; automation parked)
+
+- User explicitly paused the CI auto-repair automation work. PR #15 remains open/draft and unmerged; do not continue setup or spend time on that objective unless asked.
+- Active objective remains Class 6 CBSE Mathematics → Patterns in Mathematics → All 1s live tutor flow. Keep PR #13 open/unmerged; do not merge or deploy without explicit approval.
+- Latest PR #13 code head: `159dc8c9902e992b53e55388303ab9f8d18d00eb` on `fix/live-lesson-coordinated-flow`.
+- Fresh UI smoke failure evidence: [run 39727230104](https://github.com/Prav1525/Padippupal/actions/runs/39727230104) failed while expecting a “Choose chapter” control, but the hierarchy already showed selected `Patterns in Mathematics` and `All 1s`. A second recent smoke run on PR #14's branch similarly failed settings validation because the topic was already selected.
+- Confirmed cause for this selector failure: `TutorScreen` restores same-day subject/chapter/topic from `padippupal_tutor_sessions.xml`, while the smoke setup deleted only `padippupal_profile.xml`. The test therefore was not starting from a clean tutor-selection state; this is a test-fixture isolation defect, distinct from the still-unverified inline-highlight behavior.
+- Focused change committed to PR #13: smoke setup now clears both the profile and saved tutor-session preferences before seeding the CBSE Class 6 profile; a regression test asserts both files are reset before profile setup. Commits: `1172469ab8551fa72ba1fd9a12a46a8b2402df43` (smoke script), then `159dc8c9902e992b53e55388303ab9f8d18d00eb` (helper regression test).
+- Verification: **UNVERIFIED** for the new commit at handoff time. The GitHub connector had not returned any workflow runs/status checks for `159dc8c9902e992b53e55388303ab9f8d18d00eb` yet. Do not infer a pass from the earlier APK/backend successes. The 35-frame inline-highlight movement requirement remains **OPEN** until fresh emulator evidence shows at least two distinct inline highlight positions during speech.
+- Next single action: fetch fresh CI for `159dc8c9902e992b53e55388303ab9f8d18d00eb`; inspect the next smoke result first, then continue the All 1s live-highlight diagnosis only after the selector flow passes.

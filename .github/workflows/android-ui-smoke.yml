@@ -81,7 +81,7 @@ jobs:
             echo "1f1239a64b9e1392f25395315c77e7883d75af3beb6800fe684018696ed68158  $TTS_APK" | sha256sum --check -
             adb -s emulator-5554 install -r "$TTS_APK"
             adb -s emulator-5554 shell settings put secure tts_default_synth dev.ahmedmohamed.hayaitts
-            test "$(adb -s emulator-5554 shell settings get secure tts_default_synth | tr -d '\\r')" = "dev.ahmedmohamed.hayaitts"
+            test "$(adb -s emulator-5554 shell settings get secure tts_default_synth | tr -d '\r')" = "dev.ahmedmohamed.hayaitts"
             adb -s emulator-5554 shell pm list packages | grep -F "package:dev.ahmedmohamed.hayaitts"
             bash .github/scripts/android-ui-smoke-retry.sh
 

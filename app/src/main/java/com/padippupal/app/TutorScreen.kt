@@ -1797,7 +1797,7 @@ internal fun TutorScreen(
     // character offsets. Some engines emit only one range callback, however, so
     // keep a weighted elapsed-time fallback ready and use it whenever native ranges
     // stop arriving. This prevents a single callback freezing the inline highlight.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value, speechWordIndexOffset) {
+    LaunchedEffect(speechActive, liveCaption, liveLessonActive, livePaused, audioPlayer.value, hostedWordTimings, speechWordIndexOffset) {
         if (!speechActive || !liveLessonActive || liveCaption.isBlank()) {
             if (!speechActive) liveWordIndex = 0
             return@LaunchedEffect
@@ -1814,6 +1814,11 @@ internal fun TutorScreen(
         val totalWeight = weights.sum().coerceAtLeast(1f)
         var elapsedMs = 0L
         while (speechActive && liveLessonActive) {
+            // Keep the active-word highlight frozen while playback is paused.
+            if (livePaused) {
+                delay(45L)
+                continue
+            }
             val player = audioPlayer.value
             val duration = if (player != null) runCatching { player.duration }.getOrDefault(0).coerceAtLeast(0) else 0
             val position = if (player != null) runCatching { player.currentPosition }.getOrDefault(0).coerceAtLeast(0).toLong() else elapsedMs

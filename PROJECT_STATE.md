@@ -226,3 +226,14 @@ Update this section at the end of each work session:
 - **IN PROGRESS at last check:** Android UI smoke run [39741609782](https://github.com/Prav1525/Padippupal/actions/runs/39741609782). The corrected test has not yet provided fresh evidence for speech/highlight completion or the understanding checkpoint.
 - **Status:** The assertion defect is corrected; the live speech/checkpoint acceptance remains UNVERIFIED. Do not mark the tutor-flow issue fixed unless the smoke confirms narration/highlight movement, pause/resume, checkpoint appearance, and the 2/5 → 3/5 transition.
 - Next single action: fetch the final UI smoke result and inspect its artifact/logs; if it fails after the corrected assertion, diagnose the actual playback or checkpoint failure rather than adding more speculative watchdog logic.
+
+
+### Fresh successful end-to-end verification — 2026-10-22
+
+- **Exact tested PR #13 head:** `8d6e9304ed459a4efeb29b434dd72cf6eeef06b1`.
+- **PASS — Android APK:** [run 39741609797](https://github.com/Prav1525/Padippupal/actions/runs/39741609797).
+- **PASS — Curriculum Engine Tests:** [run 39741609927](https://github.com/Prav1525/Padippupal/actions/runs/39741609927).
+- **PASS — Android UI smoke:** [run 39741609782](https://github.com/Prav1525/Padippupal/actions/runs/39741609782), completed successfully on retry attempt 2. Artifact: [emulator screenshots and UI hierarchy](https://github.com/Prav1525/Padippupal/actions/runs/39741609782/artifacts/12409322712).
+- Emulator evidence from the job log: the All 1s topic displayed its repeated-ones passive animation and approved-topic teaching text; 16 distinct inline highlight positions were detected; pause and resume controls changed state correctly; the understanding checkpoint appeared at `2 / 5`; tapping “I understand” dismissed it and advanced to `3 / 5`; Stop and Android Back returned to Home.
+- The checkpoint path that previously remained at `1 / 5` now passes in this run. The original voice/provider availability issue is not fully generalized across all physical devices: this run proves the CI Play Store emulator path, not every phone's installed TTS configuration. Hosted TTS provider quota/billing remains an external concern when that service is unavailable.
+- **Current status:** the targeted All 1s end-to-end acceptance passes on this commit. PR #13 remains open and unmerged. Do not claim all-device voice behavior is verified. Next action: inspect the final diff and captured screenshots for unintended changes before considering PR #13 ready for review; keep unrelated feature work out of scope.

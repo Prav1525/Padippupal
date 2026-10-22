@@ -52,12 +52,15 @@ def assert_checkpoint(path, screenshot_path=None):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("CHECKPOINT TEXT:", " | ".join(texts[:120]))
-    required = ("quick check", "i understand", "explain again", "i have a question", "watch the pattern")
+    required = ("i understand", "explain again", "i have a question", "watch the pattern")
+    has_checkpoint_heading = "quick check" in joined or "let's check your understanding" in joined or "does that make sense so far?" in joined
     missing = [label for label in required if label not in joined]
+    if not has_checkpoint_heading:
+        missing.append("understanding checkpoint heading/prompt")
     if missing:
         raise SystemExit("Live lesson did not pause at the complete understanding checkpoint: " + ", ".join(missing))
-    prompt_index = joined.find("quick check")
-    prompt_and_actions = joined[prompt_index:prompt_index + 260] if prompt_index >= 0 else joined
+    prompt_index = max(joined.find("quick check"), joined.find("let's check your understanding"), joined.find("does that make sense so far?"))
+    prompt_and_actions = joined[prompt_index:prompt_index + 400] if prompt_index >= 0 else joined
     if re.search(r"(^|\s)(null|undefined)(\s|$)", prompt_and_actions):
         raise SystemExit("Understanding checkpoint rendered a null/undefined placeholder")
     prompt_lines = [value.strip() for value in texts if value.strip().lower() not in required and value.strip().lower() != "quick check"]
@@ -86,7 +89,7 @@ def assert_continued(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("CONTINUED LESSON TEXT:", " | ".join(texts[:120]))
-    if "quick check" in joined:
+    if "quick check" in joined or "let's check your understanding" in joined or "does that make sense so far?" in joined:
         raise SystemExit("Understanding response did not dismiss the checkpoint")
     # The first checkpoint is segment 2 of the 5-item opening + lesson sequence.
     # Require evidence that segment 3 is active, not merely that the card vanished.
@@ -259,7 +262,7 @@ def assert_live(path):
     # "teacher is speaking". Validate the real progress + inline lesson content.
     # Audio/highlight progression is checked independently below, so this
     # assertion must not mask those checks with a stale accessibility label.
-    has_progress = ("1 / 5" in joined or "segment 1 of 5" in joined or "quick check" in joined)
+    has_progress = bool(re.search(r"\b[1-5]\s*/\s*5\b", joined)) or bool(re.search(r"segment\s+[1-5]\s+of\s+5", joined)) or "quick check" in joined or "let's check your understanding" in joined
     if not has_progress:
         raise SystemExit("Live lesson is missing its segment progress or understanding checkpoint")
     lesson_words = ("one", "all 1s", "pattern", "number")

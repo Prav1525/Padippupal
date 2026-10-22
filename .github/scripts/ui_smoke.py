@@ -326,7 +326,7 @@ def assert_highlight_frames(directory):
     frames = sorted(root.glob("*.png"))
     if not frames:
         raise SystemExit("No live lesson frames were captured")
-    target = (216, 232, 183)  # WordByWordCaption highlight: #D8E8B7
+    target = (220, 231, 255)  # WordByWordCaption active-word highlight: #DCE7FF
     best_count = 0
     best_frame = ""
     centers = []

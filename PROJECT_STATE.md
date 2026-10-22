@@ -262,3 +262,13 @@ Update this section at the end of each work session:
 - **PASS:** Android APK build on the same SHA: https://github.com/Prav1525/Padippupal/actions/runs/39747425181.
 - **IN PROGRESS:** Android UI smoke on the same SHA: https://github.com/Prav1525/Padippupal/actions/runs/39747425136.
 - PR #13 remains unmerged pending the fresh smoke result. PR #14 and PR #15 remain open and must not be merged without a separate approval.
+
+
+## Follow-up CI investigation — 2026-10-22
+
+- **Current PR #13 head:** `ccf7f18519ef154791ad47f1b356ba5ca378bd0b`, still OPEN and unmerged.
+- **Latest failure root cause confirmed from logs:** the Android UI smoke run at `6322d34f0af37366ec63fa008b41edbe02319182` failed before app navigation because the test-only offline TTS fixture download exited with `curl: (3) URL rejected: Bad hostname`. It was a workflow command/setup failure, not a tutor-flow assertion failure. No screenshot artifacts were uploaded from that attempt.
+- **Correction:** changed the workflow fixture download to a single-line `curl --url "$TTS_URL" --output "$TTS_APK"` command on the PR branch. This is a targeted CI setup fix; checksum validation and package verification remain enabled.
+- **Fresh CI on `ccf7f18519ef154791ad47f1b356ba5ca378bd0b`:** Android APK, Curriculum Engine Tests, and Android UI smoke were all `in_progress` at the last repository poll. Do not treat any as passed until the run completes.
+- **Merge gate:** CLOSED pending fresh UI smoke completion and review of its artifacts/logs. Earlier run on `6322d34` did not test the lesson because setup failed.
+- **Next single action:** inspect the three fresh runs for the exact current head, then diagnose any remaining smoke failure from logs/artifacts. Do not merge PR #13 until required checks pass; do not merge PR #14 or #15.

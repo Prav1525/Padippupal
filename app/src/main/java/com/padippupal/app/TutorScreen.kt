@@ -2120,57 +2120,48 @@ internal fun TutorScreen(
             }
         }
 
-        // Fixed checkpoint: never hidden below the scrollable passage.
+        // Inline learner checkpoint: part of the teaching flow, not a floating card.
         if (awaitingUnderstanding && liveLessonActive) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
-                color = Color.White,
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFFD1E7D8)),
-                shadowElevation = 2.dp
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Quick check", color = TutorGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            // Consume the checkpoint before scheduling progression. A delayed
-                            // callback can race with speech completion/pause state and leave the
-                            // checkpoint visible even after the learner has answered.
-                            val nextIndex = liveSegmentIndex + 1
-                            awaitingUnderstanding = false
-                            currentCheckpoint = ""
-                            livePaused = false
-                            status = "Great! Let’s take the next small step."
-                            tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
-                        }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand") }
-                        OutlinedButton(onClick = {
-                            awaitingUnderstanding = false
-                            val segment = liveSegments.getOrNull(liveSegmentIndex)
-                            if (segment != null) {
-                                val original = segment.optString("spoken_text")
-                                speak("That is okay. Let me explain it more simply. " + original, onStarted = {
-                                    liveCaption = "Let me explain it more simply. " + original
-                                    liveWordIndex = 0
-                                }) {
-                                    awaitingUnderstanding = true
-                                    currentCheckpoint = "Was that explanation clearer?"
-                                    status = "Tell your teacher whether that helped."
-                                }
-                            } else {
+                Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        val nextIndex = liveSegmentIndex + 1
+                        awaitingUnderstanding = false
+                        currentCheckpoint = ""
+                        livePaused = false
+                        status = "Great! Let’s take the next small step."
+                        tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
+                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand", maxLines = 1) }
+                    OutlinedButton(onClick = {
+                        awaitingUnderstanding = false
+                        val segment = liveSegments.getOrNull(liveSegmentIndex)
+                        if (segment != null) {
+                            val original = segment.optString("spoken_text")
+                            speak("That is okay. Let me explain it more simply. " + original, onStarted = {
+                                liveCaption = "Let me explain it more simply. " + original
+                                liveWordIndex = 0
+                            }) {
                                 awaitingUnderstanding = true
+                                currentCheckpoint = "Was that explanation clearer?"
+                                status = "Tell your teacher whether that helped."
                             }
-                        }, modifier = Modifier.weight(1f)) { Text("Explain again") }
-                    }
-                    TextButton(
-                        onClick = {
-                            input = "I have a question about this part: " + currentCheckpoint
-                            stopLiveLesson()
-                            status = "Your question is ready below. Send it and I’ll explain this part."
-                        },
-                        modifier = Modifier.align(Alignment.End)
-                    ) { Text("I have a question", color = TutorGreen) }
+                        } else {
+                            awaitingUnderstanding = true
+                        }
+                    }, modifier = Modifier.weight(1f)) { Text("Explain again", maxLines = 1) }
                 }
+                TextButton(
+                    onClick = {
+                        input = "I have a question about this part: " + currentCheckpoint
+                        stopLiveLesson()
+                        status = "Your question is ready below. Send it and I’ll explain this part."
+                    },
+                    modifier = Modifier.align(Alignment.End)
+                ) { Text("I have a question", color = TutorGreen) }
             }
         }
 

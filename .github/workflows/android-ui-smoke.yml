@@ -74,9 +74,14 @@ jobs:
             # The Play Store emulator image has no usable default TTS engine/voice data.
             # Pin a free offline engine for deterministic speech/highlight smoke coverage;
             # this APK is test-only and is not packaged in PadippuPal.
-            # The emulator action executes script lines in separate shells. Keep all
-            # TTS setup that shares variables inside one explicit shell invocation.
-            bash -euo pipefail -c 'TTS_APK=/tmp/hayaitts-x86_64-v2.5.1.apk; TTS_URL=https://github.com/HayaiApp/HayaiTTS/releases/download/v2.5.1/hayaitts-x86_64-v2.5.1.apk; curl --fail --location --retry 3 --retry-delay 2 --url "$TTS_URL" --output "$TTS_APK"; echo "1f1239a64b9e1392f25395315c77e7883d75af3beb6800fe684018696ed68158  $TTS_APK" | sha256sum --check -; adb -s emulator-5554 install -r "$TTS_APK"; adb -s emulator-5554 shell settings put secure tts_default_synth dev.ahmedmohamed.hayaitts; test "$(adb -s emulator-5554 shell settings get secure tts_default_synth | tr -d "\\r")" = "dev.ahmedmohamed.hayaitts"; adb -s emulator-5554 shell pm list packages | grep -F "package:dev.ahmedmohamed.hayaitts"'
+            # The emulator action executes script lines in separate shells, so do not
+            # rely on shell variables surviving between these commands.
+            curl --fail --location --retry 3 --retry-delay 2 --url "https://github.com/HayaiApp/HayaiTTS/releases/download/v2.5.1/hayaitts-x86_64-v2.5.1.apk" --output "/tmp/hayaitts-x86_64-v2.5.1.apk"
+            echo "1f1239a64b9e1392f25395315c77e7883d75af3beb6800fe684018696ed68158  /tmp/hayaitts-x86_64-v2.5.1.apk" | sha256sum --check -
+            adb -s emulator-5554 install -r "/tmp/hayaitts-x86_64-v2.5.1.apk"
+            adb -s emulator-5554 shell settings put secure tts_default_synth dev.ahmedmohamed.hayaitts
+            test "$(adb -s emulator-5554 shell settings get secure tts_default_synth | tr -d '\r')" = "dev.ahmedmohamed.hayaitts"
+            adb -s emulator-5554 shell pm list packages | grep -F "package:dev.ahmedmohamed.hayaitts"
             bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Upload emulator screenshots, UI trees, and diagnostics

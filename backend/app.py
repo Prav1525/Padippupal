@@ -1551,7 +1551,10 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                     },
                     "checkpoint": str(step.get("checkpoint"))[:240] if step.get("checkpoint") else None,
                 })
-            if segments:
+            # Approval verifies source provenance, not that every step still matches
+            # the learner's selected topic. Treat stored lessons like generated lessons:
+            # validate the actual playable segments before returning them.
+            if segments and _lesson_segments_match_topic(payload.topic, segments):
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",
@@ -1560,6 +1563,9 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "chapter_overview": lesson.get("overview", ""),
                         "learning_objectives": lesson.get("learning_objectives", []),
                         "chapter_title": lesson.get("chapter_title", approved["chapter"])}
+            if segments:
+                logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",
+                               payload.topic, approved["id"])
 
     # Retrieval relevance must come from the selected curriculum target, not the
     # student's long teacher-style instruction prompt. The prompt is for generation.

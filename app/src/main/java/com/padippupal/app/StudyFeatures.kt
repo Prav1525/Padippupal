@@ -41,9 +41,9 @@ import java.nio.charset.StandardCharsets
 import java.util.UUID
 import java.util.concurrent.Executors
 
-private val FeatureGreen = Color(0xFF24734B)
-private val FeatureInk = Color(0xFF173D2A)
-private val FeatureGrey = Color(0xFF718075)
+private val FeatureGreen = Color(0xFF4169E1)
+private val FeatureInk = Color(0xFF172033)
+private val FeatureGrey = Color(0xFF64748B)
 private val featureExecutor = Executors.newSingleThreadExecutor()
 private val featureMain = Handler(Looper.getMainLooper())
 private fun featureBase() = BuildConfig.CURRICULUM_API_BASE_URL.trimEnd('/')

@@ -1232,6 +1232,9 @@ internal fun TutorScreen(
     }
 
     fun speakWithDeviceTts(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
+        // Reset observations from a failed hosted-audio attempt before observing
+        // the device engine's own start/completion lifecycle.
+        speechPlaybackObserved = false
         speechStartCallback = onStarted
         speechCompletion = onFinished
         status = if (preferOnDeviceVoice) {
@@ -1298,11 +1301,16 @@ internal fun TutorScreen(
                     tutorMainHandler.postDelayed(this, 750L)
                     return
                 }
-                val playerPlaying = runCatching { audioPlayer.value?.isPlaying == true }.getOrDefault(false)
+                val player = audioPlayer.value
+                val playerPlaying = runCatching { player?.isPlaying == true }.getOrDefault(false)
+                val playerReachedEnd = player != null && runCatching {
+                    !player.isPlaying && player.duration > 0 && player.currentPosition >= player.duration - 500
+                }.getOrDefault(false)
                 val ttsSpeaking = runCatching { ttsState.value?.isSpeaking == true }.getOrDefault(false)
                 if (playerPlaying || ttsSpeaking) speechPlaybackObserved = true
                 val elapsed = SystemClock.elapsedRealtime() - startedAt
-                if (speechPlaybackObserved && !playerPlaying && !ttsSpeaking && elapsed >= estimatedSpeechMs) {
+                val ttsFinishedWithoutMedia = player == null && !ttsSpeaking
+                if (speechPlaybackObserved && (playerReachedEnd || ttsFinishedWithoutMedia) && elapsed >= estimatedSpeechMs) {
                     // Recover only after playback was observed and the engine now
                     // reports it stopped; never skip merely because start was delayed.
                     finishSpeechSegment()

@@ -324,6 +324,62 @@ def test_chapter_matching_uses_the_stored_book_opening_not_other_chapters():
     )
 
 
+def test_lesson_plan_retries_when_generated_segment_has_empty_speech(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "chunk-empty-segment"
+    responses = [
+        {"segments": [{
+            "id": "empty", "spoken_text": "   ", "caption_text": "",
+            "source_chunk_ids": [chunk_id],
+            "visual_action": {"type": "none", "target": "", "value": ""},
+            "checkpoint": None,
+        }]},
+        {"segments": [{
+            "id": "valid", "spoken_text": "The number one repeats.",
+            "caption_text": "The number one repeats.",
+            "source_chunk_ids": [chunk_id],
+            "visual_action": {"type": "highlight", "target": "one", "value": ""},
+            "checkpoint": "Does that make sense so far?",
+        }]},
+    ]
+    request_count = {"value": 0}
+
+    class FakeResponse:
+        def __init__(self, payload): self.payload = payload
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self):
+            return json.dumps({"candidates": [{"content": {"parts": [{"text": json.dumps(self.payload)}]}}]}).encode()
+
+    def fake_urlopen(request, timeout):
+        payload = json.loads(request.data.decode())
+        assert payload["generationConfig"]["responseMimeType"] == "application/json"
+        result = responses[min(request_count["value"], len(responses) - 1)]
+        request_count["value"] += 1
+        return FakeResponse(result)
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": "The All 1s pattern repeats the number one.",
+        "source": {"chunk_id": chunk_id, "source_id": "source-1",
+                   "title": "Class 6 Mathematics", "board": "CBSE", "class_level": 6,
+                   "subject": "Mathematics", "medium": "English", "page_start": 3, "page_end": 3},
+    }]})
+
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics", "medium": "English",
+        "app_language": "English", "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach me All 1s",
+    })
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["grounded"] is True
+    assert len(body["segments"]) == 1
+    assert body["segments"][0]["spoken_text"] == "The number one repeats."
+    assert request_count["value"] == 2
+
+
 def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     chunk_id = "chunk-123"

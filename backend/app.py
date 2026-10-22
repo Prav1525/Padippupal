@@ -1620,7 +1620,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 if attempt == 0:
                     logger.warning("Gemini lesson planner drifted from selected topic=%s; retrying once", payload.topic)
                     retry_instruction += (
-                        "\\nThe previous valid JSON was rejected because its teaching content or visual action "
+                        "\nThe previous valid JSON was rejected because its teaching content or visual action "
                         "did not match the selected topic '" + payload.topic + "'. Rewrite every segment for that topic only. "
                         "For All 1s, explain the repeated ones; do not discuss counting up/down, square numbers, or "
                         "the equation 1 + 2 + 1 = 4. Keep the same approved source chunk IDs."

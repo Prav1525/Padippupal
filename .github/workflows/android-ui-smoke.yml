@@ -80,7 +80,7 @@ jobs:
         with:
           api-level: 30
           arch: x86_64
-          system-image: google_apis_playstore
+          system-image: google_apis
           profile: pixel_2
           # Keep the guest memory modest so the emulator does not starve the hosted runner.
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
@@ -89,20 +89,10 @@ jobs:
           script: |
             echo "Checking emulator acceleration from the SDK provisioned by android-emulator-runner"
             "$ANDROID_HOME/emulator/emulator" -accel-check
-            # Use the Play Store image so Google Text-to-Speech can be present;
-            # the bare Google APIs image has repeatedly exposed no TTS service.
-            # Never let a missing engine masquerade as a playback-controls failure.
-            adb -s emulator-5554 shell settings delete secure tts_default_synth || true
-            adb -s emulator-5554 shell pm list packages | grep -E 'com\.google\.android\.tts|com\.android\.tts' || true
-            tts_services="$(adb -s emulator-5554 shell cmd package query-services -a android.intent.action.TTS_SERVICE)"
-            printf '%s\n' "$tts_services"
-            if ! printf '%s\n' "$tts_services" | grep -q 'com.google.android.tts'; then
-              echo "::error::No Google Text-to-Speech service is installed in the emulator. Refusing to run a misleading live-lesson smoke test."
-              adb -s emulator-5554 shell pm list packages -s
-              exit 1
-            fi
-            adb -s emulator-5554 shell settings put secure tts_default_synth com.google.android.tts
-            adb -s emulator-5554 shell settings get secure tts_default_synth
+            # Install a checksum-verified, offline TTS engine from F-Droid's
+            # signed repository index. This works even when the emulator image
+            # ships with no TTS service and does not depend on Play Store sign-in.
+            bash .github/scripts/android-tts-preflight.sh
             bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Upload emulator screenshots, UI trees, and diagnostics

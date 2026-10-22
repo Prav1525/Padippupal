@@ -355,6 +355,77 @@ def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
     assert body["word_timestamps_available"] is False
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
 
+def test_lesson_plan_filters_unrelated_topic_passages_before_calling_gemini(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "must-not-be-called")
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": "Let us look at a pattern by adding counting numbers up and then down.",
+        "source": {"chunk_id": "wrong-topic", "title": "Class 6 Mathematics",
+                   "page_start": 1, "page_end": 1},
+    }]})
+
+    def unexpected_urlopen(*args, **kwargs):
+        raise AssertionError("Gemini must not be called with an unrelated passage")
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_urlopen)
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "medium": "English", "app_language": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach me All 1s",
+    })
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["grounded"] is False
+    assert body["segments"] == []
+    assert body["sources"] == []
+    assert "selected topic" in body["warning"].lower()
+
+
+def test_lesson_plan_rejects_gemini_segments_that_drift_from_all_ones(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "all-ones-source"
+    generated = {"segments": [
+        {"id": "s1", "spoken_text": "Welcome to the topic All ones.",
+         "caption_text": "Welcome to the topic All ones.", "source_chunk_ids": [chunk_id],
+         "visual_action": {"type": "label", "target": "ones", "value": ""},
+         "checkpoint": None},
+        {"id": "s2", "spoken_text": "Let us look at a beautiful pattern by adding counting numbers up and then down.",
+         "caption_text": "Let us look at a beautiful pattern by adding counting numbers up and then down.",
+         "source_chunk_ids": [chunk_id],
+         "visual_action": {"type": "reveal", "target": "pattern-sequence", "value": "1 + 2 + 1 = 4"},
+         "checkpoint": "Does that make sense so far?"},
+    ]}
+
+    class FakeResponse:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self):
+            return json.dumps({"candidates": [{"content": {"parts": [{"text": json.dumps(generated)}]}}]}).encode()
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", lambda request, timeout: FakeResponse())
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": "The All 1s pattern repeats the number 1: 1, 1, 1, 1.",
+        "source": {"chunk_id": chunk_id, "source_id": "source-1",
+                   "title": "Class 6 Mathematics", "board": "CBSE", "class_level": 6,
+                   "subject": "Mathematics", "medium": "English", "page_start": 1, "page_end": 1},
+    }]})
+
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "medium": "English", "app_language": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach me All 1s",
+    })
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["grounded"] is False
+    assert body["segments"] == []
+    assert body["sources"] == []
+    assert "did not match the selected topic" in body["warning"].lower()
+
+
 def test_lesson_plan_retries_once_after_malformed_json(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     chunk_id = "chunk-retry-verified"

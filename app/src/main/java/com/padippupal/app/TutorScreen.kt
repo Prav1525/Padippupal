@@ -1567,7 +1567,10 @@ internal fun TutorScreen(
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
                     .put("message", "Teach this as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Split the explanation into small modules, one idea per module. Each module should use only 2-3 short spoken sentences, simple child-friendly language, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages.").put("max_segments", 5)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
-                connection.requestMethod = "POST"; connection.connectTimeout = 8000; connection.readTimeout = 50000
+                // The backend may retry Gemini once after schema validation; its two 45s
+                // upstream attempts can exceed 50s in total. Keep the UI waiting for the
+                // bounded backend response instead of reporting a false client timeout.
+                connection.requestMethod = "POST"; connection.connectTimeout = 8000; connection.readTimeout = 120000
                 connection.setRequestProperty("Accept", "application/json"); connection.setRequestProperty("Content-Type", "application/json; charset=utf-8"); connection.doOutput = true
                 try {
                     connection.outputStream.use { it.write(body.toString().toByteArray(StandardCharsets.UTF_8)) }

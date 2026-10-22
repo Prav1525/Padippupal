@@ -132,3 +132,12 @@ Add ID, severity, observed failure, expected behavior, evidence, confirmed cause
 - **Regression evidence:** UI smoke `39737297301` showed the correct All 1s lesson, 13 distinct inline highlight positions, and pause/resume passing, but the lesson remained at 1/5 for 150 seconds after resume.
 - **Correction under test:** PR #13 head `73a930a6a4be661c6413690dd387380774c67f0c` adds a per-utterance completion watchdog that recovers only after playback has been observed and then stopped, respects paused state, and checks MediaPlayer position before recovery.
 - **Status:** OPEN / UNVERIFIED. Android APK build PASS (run `39739236650`); curriculum tests PASS (`39739236589`); UI smoke `39739236756` was still running at last poll. Do not mark passed unless the checkpoint appears and “I understand” advances 2/5 → 3/5.
+
+
+### PP-TUTOR-009 — Live lesson smoke checks use the real accessible progress labels
+
+- **Expected:** the smoke test identifies the active lesson using progress/content actually rendered by the app; it must not require a nonexistent literal such as `teacher is speaking`.
+- **Guardrail:** correcting a stale label assertion must not bypass the independent inline-highlight movement, playback pause/resume, visible voice-error, concept-animation, understanding-checkpoint, or 2/5 → 3/5 continuation assertions.
+- **Confirmed cause:** at PR #13 head `73a930a6a4be661c6413690dd387380774c67f0c`, the emulator accessibility tree showed `LIVE`, `1 / 5`, the inline lesson caption, and the All 1s animation, but not `teacher is speaking`. The stale assertion aborted the smoke before the later acceptance checks ran.
+- **Correction:** PR #13 head `8d6e9304ed459a4efeb29b434dd72cf6eeef06b1` now validates the real progress label and recognizable lesson text while preserving downstream checks.
+- **Verification:** Android APK PASS (run [39741609797](https://github.com/Prav1525/Padippupal/actions/runs/39741609797)); curriculum tests PASS (run [39741609927](https://github.com/Prav1525/Padippupal/actions/runs/39741609927)); UI smoke [39741609782](https://github.com/Prav1525/Padippupal/actions/runs/39741609782) was still in progress at last check. Speech/checkpoint behavior remains OPEN until fresh emulator evidence passes.

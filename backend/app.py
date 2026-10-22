@@ -1432,11 +1432,18 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                          AND LOWER(medium)=LOWER(?) ORDER BY updated_at DESC""",
                     (payload.board, payload.class_level, subject, payload.medium),
                 ).fetchall()
-            approved = next((dict(row) for row in rows
-                if normalize(str(row["chapter"])).casefold() == normalize(payload.chapter).casefold()
-                and (not payload.topic.strip()
-                     or (str(row["topic"] or "").strip()
-                         and normalize(str(row["topic"])).casefold() == normalize(payload.topic).casefold())), None)
+            approved = None
+            requested_chapter = normalize(payload.chapter).casefold()
+            requested_topic = normalize(payload.topic).casefold()
+            for row in rows:
+                if normalize(str(row["chapter"])).casefold() != requested_chapter:
+                    continue
+                stored_topic = normalize(str(row["topic"] or "")).casefold()
+                # A topic-specific request must never inherit a chapter-wide lesson.
+                if requested_topic and stored_topic != requested_topic:
+                    continue
+                approved = dict(row)
+                break
         except Exception:
             logger.exception("Approved chapter lesson lookup failed; using textbook retrieval fallback")
             approved = None

@@ -62,7 +62,7 @@ jobs:
         with:
           api-level: 30
           arch: x86_64
-          system-image: google_apis_playstore
+          system-image: google_apis
           profile: pixel_2
           # Keep the guest memory modest so the emulator does not starve the hosted runner.
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
@@ -71,17 +71,11 @@ jobs:
           script: |
             echo "Checking emulator acceleration from the SDK provisioned by android-emulator-runner"
             "$ANDROID_HOME/emulator/emulator" -accel-check
-            # The Play Store emulator image has no usable default TTS engine/voice data.
-            # Pin a free offline engine for deterministic speech/highlight smoke coverage;
-            # this APK is test-only and is not packaged in PadippuPal.
-            # The emulator action executes script lines in separate shells, so do not
-            # rely on shell variables surviving between these commands.
-            curl --fail --location --retry 3 --retry-delay 2 --url "https://github.com/HayaiApp/HayaiTTS/releases/download/v2.5.1/hayaitts-x86_64-v2.5.1.apk" --output "/tmp/hayaitts-x86_64-v2.5.1.apk"
-            echo "1f1239a64b9e1392f25395315c77e7883d75af3beb6800fe684018696ed68158  /tmp/hayaitts-x86_64-v2.5.1.apk" | sha256sum --check -
-            adb -s emulator-5554 install -r "/tmp/hayaitts-x86_64-v2.5.1.apk"
-            adb -s emulator-5554 shell settings put secure tts_default_synth dev.ahmedmohamed.hayaitts
-            test "$(adb -s emulator-5554 shell settings get secure tts_default_synth | tr -d '\r')" = "dev.ahmedmohamed.hayaitts"
-            adb -s emulator-5554 shell pm list packages | grep -F "package:dev.ahmedmohamed.hayaitts"
+            # Use the Android Google APIs image's built-in system TTS engine rather
+            # than forcing a third-party engine that can reject app binding with a
+            # BIND_TEXT_SERVICE SecurityException. Exercise the same public API as the app.
+            adb -s emulator-5554 shell settings delete secure tts_default_synth
+            adb -s emulator-5554 shell cmd package query-services -a android.intent.action.TTS_SERVICE
             bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Upload emulator screenshots, UI trees, and diagnostics

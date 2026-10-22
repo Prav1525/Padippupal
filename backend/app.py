@@ -2238,12 +2238,22 @@ def _align_tutor_audio_words(audio_bytes: bytes, language: str) -> list[dict[str
 
 @app.post("/tutor/speech")
 def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
-    """Try Gemini first, then Sarvam, leaving Android TTS as the app's final fallback."""
+    """Prefer Sarvam for lesson narration, try Gemini if unavailable, then Android TTS."""
     request_started = time.monotonic()
     language = payload.app_language.strip()
     speech_text = _clean_tutor_speech_text(payload.text)
     if not speech_text:
         raise HTTPException(status_code=422, detail="There is no text to speak.")
+
+    # Sarvam is the configured primary voice for PadippuPal. Do not burn a
+    # Gemini request or wait through its quota/timeout path before using it.
+    # Both cloud providers receive the same prepared segment text; Android TTS
+    # remains the app-side final fallback if neither provider can return audio.
+    sarvam_result = _sarvam_tutor_speech(speech_text, language)
+    if sarvam_result:
+        sarvam_result["elapsed_ms"] = int((time.monotonic() - request_started) * 1000)
+        logger.info("Tutor speech selected provider=sarvam elapsed_ms=%d", sarvam_result["elapsed_ms"])
+        return sarvam_result
 
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
@@ -2334,13 +2344,9 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         gemini_error = "not_configured"
         logger.info("Gemini TTS is not configured; trying Sarvam fallback")
 
-    fallback = _sarvam_tutor_speech(speech_text, language)
-    if fallback:
-        fallback["fallback_reason"] = gemini_error
-        fallback["elapsed_ms"] = int((time.monotonic() - request_started) * 1000)
-        return fallback
-
-    logger.warning("All cloud TTS providers unavailable; app should use Android TTS")
+    logger.warning(
+        "All cloud TTS providers unavailable; Sarvam was attempted first and the app should use Android TTS"
+    )
     if not api_key and not os.getenv("SARVAM_API_KEY", "").strip():
         raise HTTPException(status_code=503, detail="Natural voice is not configured yet.")
     raise HTTPException(

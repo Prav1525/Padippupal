@@ -174,6 +174,31 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xm
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
 python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
+log "Waiting for the lesson-plan API to return a real segment before collecting playback/highlight evidence (up to 150s)"
+lesson_started=0
+for attempt in $(seq 1 50); do
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
+  if [ -s live-lesson.xml ]; then
+    if grep -Eqi "Live lesson · segment|segment [0-9]+ of [0-9]+|Quick check|N / 5" live-lesson.xml; then
+      lesson_started=1
+      break
+    fi
+    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback" live-lesson.xml; then
+      FAILURE_CLASS="APP_FAILURE"
+      log "FAIL: tutor API returned an explicit lesson-start error"
+      cat live-lesson.xml | tee -a "$REPORT"
+      exit 1
+    fi
+  fi
+  sleep 3
+done
+if [ "$lesson_started" -ne 1 ]; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: tutor did not leave lesson preparation within 150 seconds"
+  [ ! -s live-lesson.xml ] || cat live-lesson.xml | tee -a "$REPORT"
+  exit 1
+fi
 log "Recording live lesson frames to verify inline spoken-word highlighting"
 "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
 "${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames

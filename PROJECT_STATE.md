@@ -105,3 +105,14 @@ Update this section at the end of each work session:
 - Android UI smoke: **FAIL**, run https://github.com/Prav1525/Padippupal/actions/runs/39724371689. Home, ready screen, chapter/topic selection, teaching viewport and passive All 1s animation assertions passed. Failure: across 35 captured frames, the inline highlight appeared at only one distinct position; the test requires it to move across at least two words. The displayed opening sentence is still generic for All 1s and needs topic-specific content validation.
 - Live backend limitation remains: Render deploys from `main`, not this PR branch, so emulator smoke cannot validate the branch's backend changes end-to-end until an approved deployment path exists.
 - Next single action: trace Android TTS range callbacks, fallback timing, Compose state and frame capture to determine why the highlight stays visually stationary; do not patch the assertion to hide the failure.
+
+
+## Latest session handoff — 2026-10-22 (word-highlighting follow-up)
+
+- Active objective: fix inline spoken-word highlighting in Class 6 CBSE Mathematics → Patterns in Mathematics → All 1s; no unrelated scope.
+- Code branch: `fix/live-lesson-coordinated-flow`; latest head `0f648fe9159a9ac856d5b780c29fbb4820b9eb16`.
+- Confirmed failure evidence from prior UI smoke at `e64de303148761c57e8be638afdadfa57baf8062`: 35 captured frames, highlight detected but only one distinct position. The caption is rendered inline; the failure is movement during speech.
+- Code change in commit `0f648fe9159a9ac856d5b780c29fbb4820b9eb16`: replaced the permanent `nativeWordTiming` switch with a last-native-range timestamp. Weighted elapsed/playback fallback continues running and takes over when native range callbacks stop for 900 ms; fresh native range callbacks remain authoritative. This targets Android TTS engines that emit only one initial range callback.
+- Fresh verification for the new commit: Curriculum Engine Tests **PASS** ([run 39727229972](https://github.com/Prav1525/Padippupal/actions/runs/39727229972)). Android APK build **IN PROGRESS** ([run 39727230014](https://github.com/Prav1525/Padippupal/actions/runs/39727230014)). Android UI smoke **IN PROGRESS** ([run 39727230104](https://github.com/Prav1525/Padippupal/actions/runs/39727230104)). Do not claim the highlight defect fixed until the fresh UI smoke reports multiple distinct highlight positions and the remaining tutor-flow assertions pass.
+- PR #13 remains open and unmerged. Do not merge or deploy without explicit approval. Render backend is still deployed from `main`; the PR branch's backend changes are not yet live, so content correctness against the changed backend remains unverified in live E2E.
+- Next single action: inspect the fresh APK and emulator UI smoke results for this exact SHA; if highlighting still fails, use its captured frames/logs to diagnose before another patch.

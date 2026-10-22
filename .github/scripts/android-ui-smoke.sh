@@ -125,42 +125,13 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
 
-log "Testing tutor settings and voice controls"
-python3 .github/scripts/ui_smoke.py tap tutor.xml "Change"
-sleep 2
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
-"${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
-python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
-
-log "Loading the real Mathematics chapter list"
-python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
-sleep 10
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
-"${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml
-python3 .github/scripts/ui_smoke.py assert-chapter-button chapter-options.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap chapter-options.xml "Choose chapter"
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-menu.xml
-"${ADB[@]}" pull /data/local/tmp/chapter-menu.xml chapter-menu.xml
-python3 .github/scripts/ui_smoke.py tap-numbered chapter-menu.xml 1
+# The dedicated tutor screen intentionally contains no setup/settings overlay.
+# Subject/chapter/topic selection belongs before teaching; don't click the removed
+# legacy "Change" control here. Start from the visible Teach action and verify the
+# actual live lesson instead of failing on obsolete UI labels.
+log "Starting the lesson from the dedicated tutor screen"
+python3 .github/scripts/ui_smoke.py tap-exact tutor.xml "▶ Teach"
 sleep 3
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
-"${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
-python3 .github/scripts/ui_smoke.py assert-chapter-selected chapter-selected.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap-topic-picker chapter-selected.xml
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
-"${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
-python3 .github/scripts/ui_smoke.py tap-first-concept concept-menu.xml
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
-"${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml
-python3 .github/scripts/ui_smoke.py tap concept-selected.xml "Done"
-sleep 3
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
-"${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
-python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
 log "Recording live lesson frames to verify inline spoken-word highlighting"
 "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames

@@ -213,3 +213,16 @@ Update this section at the end of each work session:
 - **PASS:** Curriculum Engine Tests — https://github.com/Prav1525/Padippupal/actions/runs/39739236589
 - **IN PROGRESS:** Android UI smoke — https://github.com/Prav1525/Padippupal/actions/runs/39739236756 (runner was still in Gradle setup at last poll).
 - The completion-watchdog change compiles successfully. End-to-end progression remains UNVERIFIED until this UI run reaches and passes the understanding checkpoint assertion.
+
+
+## Live tutor smoke assertion correction — 2026-10-22
+
+- Active objective remains the complete Class 6 CBSE Mathematics → Patterns in Mathematics → All 1s live lesson; PR #13 remains open and unmerged.
+- New PR #13 head: `8d6e9304ed459a4efeb29b434dd72cf6eeef06b1`.
+- Confirmed test-harness defect: `.github/scripts/ui_smoke.py::assert_live` required the literal text `teacher is speaking`, but the app does not render that label. Its real accessible lesson progress is `1 / 5` and the app status values are `Playing segment N of M` / `Live lesson · segment N of M`. The stale assertion caused the smoke to exit before pause/resume and checkpoint checks.
+- Corrected the assertion to require actual segment progress and recognizable inline lesson content, while retaining separate highlight-motion, playback, voice-error, checkpoint, animation, and 2/5 → 3/5 checks. This is not a relaxation of acceptance criteria; it removes an assertion for UI text that does not exist.
+- **PASS:** Android APK build at new head, run [39741609797](https://github.com/Prav1525/Padippupal/actions/runs/39741609797).
+- **PASS:** Curriculum Engine Tests at new head, run [39741609927](https://github.com/Prav1525/Padippupal/actions/runs/39741609927).
+- **IN PROGRESS at last check:** Android UI smoke run [39741609782](https://github.com/Prav1525/Padippupal/actions/runs/39741609782). The corrected test has not yet provided fresh evidence for speech/highlight completion or the understanding checkpoint.
+- **Status:** The assertion defect is corrected; the live speech/checkpoint acceptance remains UNVERIFIED. Do not mark the tutor-flow issue fixed unless the smoke confirms narration/highlight movement, pause/resume, checkpoint appearance, and the 2/5 → 3/5 transition.
+- Next single action: fetch the final UI smoke result and inspect its artifact/logs; if it fails after the corrected assertion, diagnose the actual playback or checkpoint failure rather than adding more speculative watchdog logic.

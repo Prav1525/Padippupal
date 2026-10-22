@@ -48,9 +48,14 @@ def assert_checkpoint(path):
     missing = [label for label in required if label not in joined]
     if missing:
         raise SystemExit("Live lesson did not pause at the complete understanding checkpoint: " + ", ".join(missing))
-    if re.search(r"quick check\s+null(?:\s|$)", joined):
-        raise SystemExit("Understanding checkpoint rendered the literal null instead of a student-friendly question")
-    print("PASS: lesson pauses at the understanding checkpoint with all response choices")
+    prompt_index = joined.find("quick check")
+    prompt_and_actions = joined[prompt_index:prompt_index + 260] if prompt_index >= 0 else joined
+    if re.search(r"(^|\\s)(null|undefined)(\\s|$)", prompt_and_actions):
+        raise SystemExit("Understanding checkpoint rendered a null/undefined placeholder")
+    prompt_lines = [value.strip() for value in texts if value.strip().lower() not in required and value.strip().lower() != "quick check"]
+    if not any("?" in value and len(value) >= 8 for value in prompt_lines):
+        raise SystemExit("Understanding checkpoint has no human-readable question")
+    print("PASS: lesson pauses with a valid student-friendly question and all response choices")
 
 def assert_feedback(path):
     _, texts = load(path)

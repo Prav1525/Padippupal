@@ -141,6 +141,7 @@ def test_tutor_speech_returns_wav_and_uses_gentle_voice(monkeypatch):
     import io
     import wave
 
+    monkeypatch.setenv("SARVAM_API_KEY", "")
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     captured = {}
 

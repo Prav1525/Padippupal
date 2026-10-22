@@ -162,3 +162,15 @@ Update this section at the end of each work session:
 - Fresh CI for code head `4998d55e6f243879a0b7bdbd31b6e1af1175261b`: Curriculum Engine Tests **PASS** (44 passed; [run 39735164521](https://github.com/Prav1525/Padippupal/actions/runs/39735164521)); Android APK build **PASS** ([run 39735164510](https://github.com/Prav1525/Padippupal/actions/runs/39735164510)); Android UI smoke **IN PROGRESS** at handoff update time ([run 39735164537](https://github.com/Prav1525/Padippupal/actions/runs/39735164537)). The UI run has passed script validation and reached the emulator execution step, but its end-to-end result is not yet available.
 - Important environment boundary: the emulator smoke APK defaults to the deployed Render API URL. Backend changes in PR #13 are not live on Render because deployment/merge was not approved. Backend unit tests verify the new validation, but end-to-end against the changed backend remains unverified until the UI run supplies evidence or a separately approved test deployment is used.
 - Next single action: inspect run 39735164537 and its screenshots/logs. If it fails, identify whether the cause is current deployed API/TTS availability, a remaining segment-state bug, or stale smoke evidence before editing again.
+
+
+## Live tutor voice investigation update — 2026-10-22
+
+- Active code branch: `fix/live-lesson-coordinated-flow`; PR #13 remains open and unmerged.
+- Latest code change: commit `6c711eeed23087d4caa8ab9db6fe882c8e2f4aec` broadens Android TTS locale selection to prefer installed British English, then Indian/US English, and to discover other installed locales for the selected language.
+- Fresh baseline on the prior head: Android build PASS, curriculum tests PASS, UI smoke FAIL. The lesson reaches the correct All 1s content but cannot reach speech/checkpoint UI.
+- **Confirmed external TTS failure from Render logs at 2026-10-22 06:43 UTC:** `POST /tutor/speech` returned 503 after Gemini TTS returned HTTP 429 and Sarvam fallback returned HTTP 402. The app then fell back to Android TTS, whose emulator image reported no compatible English voice. This is a provider quota/billing plus CI-emulator voice-availability blocker, not evidence that the checkpoint handler failed.
+- The new locale-selection change is a limited compatibility improvement; it does not resolve provider quotas and must not be described as having fixed the voice failure unless fresh CI/device evidence proves it.
+- CI runs for commit `6c711eeed23087d4caa8ab9db6fe882c8e2f4aec` were started: Android APK run `39736279734`, curriculum tests `39736279835`, UI smoke `39736279720`. Re-fetch final results before updating status.
+- Acceptance still open: prove real speech or a valid installed-device voice, moving inline highlight, pause/resume, and checkpoint progression 2/5 → 3/5. The checkpoint fix remains UNVERIFIED until the UI reaches and passes the checkpoint.
+- Next single action: inspect the three fresh CI results, then address the remaining voice blocker based on the evidence; do not change checkpoint logic again without a checkpoint-specific reproduction.

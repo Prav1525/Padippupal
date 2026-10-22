@@ -2063,21 +2063,15 @@ internal fun TutorScreen(
         }
 
         if (liveLessonActive) {
-            // Dedicated teaching surface: it owns the remaining height, not a LazyColumn item.
+            // One continuous teaching canvas: no inset green card or floating lesson overlay.
             Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Surface(
+                Column(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
-                    color = Color(0xFFEAF5EE),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(
-                        Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(7.dp))
@@ -2123,7 +2117,6 @@ internal fun TutorScreen(
                             )
                         }
                     }
-                }
             }
         }
 

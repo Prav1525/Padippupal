@@ -174,3 +174,12 @@ Update this section at the end of each work session:
 - CI runs for commit `6c711eeed23087d4caa8ab9db6fe882c8e2f4aec` were started: Android APK run `39736279734`, curriculum tests `39736279835`, UI smoke `39736279720`. Re-fetch final results before updating status.
 - Acceptance still open: prove real speech or a valid installed-device voice, moving inline highlight, pause/resume, and checkpoint progression 2/5 → 3/5. The checkpoint fix remains UNVERIFIED until the UI reaches and passes the checkpoint.
 - Next single action: inspect the three fresh CI results, then address the remaining voice blocker based on the evidence; do not change checkpoint logic again without a checkpoint-specific reproduction.
+
+
+## Follow-up CI environment correction — 2026-10-22
+
+- Latest PR #13 head: `8fe4a4b35cef0acaca18c1d6fa1c7cc83bcd9ca1`.
+- In addition to installed-locale discovery, the Android UI smoke workflow now uses the Google Play Store emulator image to provide a better chance of having a usable Android TTS engine when cloud providers are unavailable.
+- The smoke checkpoint poll now stops early and records the explicit voice error if neither hosted speech nor device TTS can start; it no longer waits the full 150-second checkpoint timeout in that known failure state. This is diagnostic-only and does not relax acceptance assertions.
+- Fresh runs for the latest head: curriculum engine tests `39736614807` PASS; Android APK `39736614748` and Android UI smoke `39736614754` were still running at the time of this update. Re-fetch before reporting final status.
+- Cloud TTS remains externally blocked at last observed backend logs: Gemini 429 and Sarvam 402. Do not modify billing/secrets or imply provider quota has been repaired. Next action: inspect latest build and emulator results; if speech still cannot start, capture the explicit reason and leave voice/checkpoint acceptance open rather than weakening tests.

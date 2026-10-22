@@ -33,6 +33,16 @@ class AndroidManifestContractTests(unittest.TestCase):
         )
 
 
+class BackendWarmupRegressionTests(unittest.TestCase):
+    def test_emulator_workflow_waits_for_free_render_backend_readiness(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows" /
+                    "android-ui-smoke.yml").read_text()
+        self.assertIn("Wake curriculum API and wait for readiness", workflow)
+        self.assertIn("https://padippupal-curriculum-api.onrender.com/health", workflow)
+        self.assertIn('test "$ready" -eq 1', workflow)
+        self.assertLess(workflow.index("Wake curriculum API"), workflow.index("Launch app in Android emulator"))
+
+
 class CurriculumRetryRegressionTests(unittest.TestCase):
     def test_transient_outline_failures_retry_and_surface_final_error(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

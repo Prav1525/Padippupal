@@ -1448,17 +1448,13 @@ def _topic_passage_matches(topic: str, passage: str) -> bool:
 
 
 def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> bool:
-    """Reject known cross-topic generation for the All 1s pilot instead of teaching it."""
+    """Require every All 1s segment—not merely one segment—to teach the selected concept."""
     selected = normalize(topic).casefold()
     if selected not in {"all 1s", "all ones", "all one's"}:
         return True
+    if not segments:
+        return False
 
-    spoken = " ".join(str(segment.get("spoken_text", "")) for segment in segments).casefold()
-    presentation = " ".join(
-        " ".join(str(segment.get(key, "")) for key in ("caption_text", "visual_action"))
-        for segment in segments
-    ).casefold()
-    combined = spoken + " " + presentation
     forbidden = (
         r"count(?:ing)? numbers? up and then down",
         r"square numbers?",
@@ -1466,17 +1462,27 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
         r"1\s*²",
         r"\+\s*3\b",
     )
-    if any(re.search(pattern, combined) for pattern in forbidden):
-        return False
-
+    # A topic-matched opening segment must not mask a later generic or unrelated
+    # segment. Validate each segment independently because Android plays them in order.
     relevant = (
+        r"\ball\s+1s?\b",
         r"\ball\s+ones?\b",
         r"\brepeat(?:s|ed|ing)?\b",
         r"\b1\s*[,;]\s*1\b",
         r"\bsame number\b",
         r"\bstays? the same\b",
+        r"\bnumber\s+one\b",
     )
-    return any(re.search(pattern, spoken) for pattern in relevant)
+    for segment in segments:
+        content = " ".join(
+            str(segment.get(key, ""))
+            for key in ("spoken_text", "caption_text", "visual_action")
+        ).casefold()
+        if any(re.search(pattern, content) for pattern in forbidden):
+            return False
+        if not any(re.search(pattern, content) for pattern in relevant):
+            return False
+    return True
 
 
 @app.post("/tutor/lesson-plan")

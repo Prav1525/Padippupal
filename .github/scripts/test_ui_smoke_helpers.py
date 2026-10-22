@@ -39,11 +39,15 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertIn("rm -f home.xml tutor.xml", script)
         self.assertLess(script.index("rm -rf ui-screenshots"), script.index("bash .github/scripts/android-ui-smoke.sh"))
 
-    def test_smoke_attempt_resets_profile_before_writing_cbse_profile(self):
+    def test_smoke_attempt_resets_profile_and_saved_tutor_session_before_writing_cbse_profile(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        reset = 'run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml'
-        self.assertIn(reset, script)
-        self.assertLess(script.index(reset), script.index("Configuring smoke-test profile"))
+        profile_reset = 'run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml'
+        session_reset = 'run-as com.padippupal.app rm -f shared_prefs/padippupal_tutor_sessions.xml'
+        self.assertIn(profile_reset, script)
+        self.assertIn(session_reset, script)
+        setup = script.index("Configuring smoke-test profile")
+        self.assertLess(script.index(profile_reset), setup)
+        self.assertLess(script.index(session_reset), setup)
 
 
 if __name__ == "__main__":

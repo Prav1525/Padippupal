@@ -204,3 +204,12 @@ Update this section at the end of each work session:
 - Logcat shows a MediaPlayer/NuPlayer playback session was paused/resumed and later reset, but the UI remained on segment 1. The precise missing callback was not directly logged; treat the callback failure as a strong hypothesis, not a proven underlying Android engine defect.
 - Implemented on PR #13 head `73a930a6a4be661c6413690dd387380774c67f0c`: per-utterance watchdog detects playback that was observed and then stopped without delivering the completion callback. It respects pause state, checks MediaPlayer end position to avoid treating a temporary stall as completion, and fails safely if playback never starts. Fresh curriculum tests PASS; APK build and UI smoke are pending.
 - **Next single action:** inspect fresh build and full emulator results for `73a930a6a4be661c6413690dd387380774c67f0c`; require the explicit checkpoint and 2/5 → 3/5 assertion before closing the issue.
+
+
+### Fresh CI update — 2026-10-22
+
+- PR #13 head under test: `73a930a6a4be661c6413690dd387380774c67f0c`.
+- **PASS:** Android APK build — https://github.com/Prav1525/Padippupal/actions/runs/39739236650
+- **PASS:** Curriculum Engine Tests — https://github.com/Prav1525/Padippupal/actions/runs/39739236589
+- **IN PROGRESS:** Android UI smoke — https://github.com/Prav1525/Padippupal/actions/runs/39739236756 (runner was still in Gradle setup at last poll).
+- The completion-watchdog change compiles successfully. End-to-end progression remains UNVERIFIED until this UI run reaches and passes the understanding checkpoint assertion.

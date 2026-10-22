@@ -69,3 +69,13 @@ Update this section at the end of each work session:
 - PR state at handoff: OPEN, not merged. Do not assume the protocol is on `main` until merge is verified.
 - This process-only PR changes no app code and does not resolve the open tutor-flow defect in PR #13.
 - Next process action: review and merge PR #14; then confirm the four documents are present on `main`. In each future chat, read the protocol/state files and fetch fresh CI before any feature changes.
+
+
+## Persistent-context safeguards
+
+- New-chat recovery prompt: `.github/NEW_CHAT_STARTER.md`.
+- Automated record/PR-metadata check: `.github/scripts/check_project_process.py`, run by `.github/workflows/project-process-guard.yml`.
+- Process PR: https://github.com/Prav1525/Padippupal/pull/14 (open, not merged at last check).
+- Process guard run on commit `7798959c2ec5ade0a5128fe46bd3068f4d7edf44`: PASS, https://github.com/Prav1525/Padippupal/actions/runs/39719327287.
+- The guard validates required documents/sections and PR description headings. It does **not** prove that an assistant read them, does not guarantee perfect compliance, and does not replace product tests. New chats still need the starter prompt or explicit startup instruction.
+- Latest recorded branch head when this note was drafted: `7798959c2ec5ade0a5128fe46bd3068f4d7edf44`; verify current head/CI before relying on this note.

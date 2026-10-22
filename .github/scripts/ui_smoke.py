@@ -121,7 +121,10 @@ def assert_settings(path):
         raise SystemExit("Lesson-selection Done action has zero-area bounds")
     if done_node.attrib.get("enabled") == "false":
         raise SystemExit("Lesson-selection Done action is disabled")
-    expected = ("Mathematics", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
+    # Voice preferences live lower in the independently scrollable setup form.
+    # Validate the controls in a second accessibility dump after scrolling rather
+    # than falsely treating off-screen Compose children as missing.
+    expected = ("Mathematics", "Language", "English", "Tanglish")
     missing = [term for term in expected if term.lower() not in joined]
     # When a saved session already has Chapter 1 selected, the control shows the
     # selected chapter name rather than the empty-state "Choose chapter" prompt.
@@ -134,7 +137,17 @@ def assert_settings(path):
         missing.append("Choose concept or selected topic (All 1s)")
     if missing:
         raise SystemExit("Tutor settings are missing expected controls: " + ", ".join(missing))
-    print("PASS: subject, chapter/topic, language, and voice settings are accessible")
+    print("PASS: subject, chapter/topic, language, and fixed Done footer are accessible")
+
+def assert_voice_settings(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    print("SCROLLED SETTINGS TEXT:", " | ".join(texts[:140]))
+    expected = ("read replies aloud", "prefer on-device voice")
+    missing = [label for label in expected if label not in joined]
+    if missing:
+        raise SystemExit("Voice controls are missing after scrolling lesson setup: " + ", ".join(missing))
+    print("PASS: both voice preferences are reachable by scrolling the lesson setup")
 
 def assert_chapter_button(path):
     nodes, texts = load(path)

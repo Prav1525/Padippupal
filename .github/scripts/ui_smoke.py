@@ -40,11 +40,10 @@ def assert_tutor(path):
         raise SystemExit("Tutor feedback controls are missing: " + ", ".join(missing))
     print("PASS: tutor screen and all three explanation-feedback controls are accessible")
 
-def assert_checkpoint(path):
+def assert_checkpoint(path, screenshot_path=None):
     _, texts = load(path)
     joined = "\\n".join(texts).lower()
     print("CHECKPOINT TEXT:", " | ".join(texts[:120]))
-    # The concept visual must remain mounted while the checkpoint is shown.
     required = ("quick check", "i understand", "explain again", "i have a question", "watch the pattern")
     missing = [label for label in required if label not in joined]
     if missing:
@@ -56,7 +55,24 @@ def assert_checkpoint(path):
     prompt_lines = [value.strip() for value in texts if value.strip().lower() not in required and value.strip().lower() != "quick check"]
     if not any("?" in value and len(value) >= 8 for value in prompt_lines):
         raise SystemExit("Understanding checkpoint has no human-readable question")
-    print("PASS: lesson pauses with a valid student-friendly question and all response choices")
+    if not screenshot_path:
+        raise SystemExit("Checkpoint screenshot path is required; XML presence alone cannot prove the animation is visible")
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise SystemExit("Pillow is required to inspect checkpoint screenshot") from exc
+    image = Image.open(screenshot_path).convert("RGB")
+    width, height = image.size
+    # The five repeated-one tiles use exact fill #DDF4A8. Exclude the top header
+    # and search only the teaching viewport so the LIVE badge cannot pass this check.
+    pixels = image.load()
+    x1, x2 = int(width * .08), int(width * .92)
+    y1, y2 = int(height * .18), int(height * .76)
+    tile_pixels = sum(1 for y in range(y1, y2) for x in range(x1, x2) if pixels[x, y] == (221, 244, 168))
+    print(f"Checkpoint repeated-ones tile pixels in teaching viewport: {tile_pixels}")
+    if tile_pixels < 350:
+        raise SystemExit("Checkpoint XML exists, but the repeated-ones animation is not visibly rendered in the teaching viewport")
+    print("PASS: checkpoint prompt, response choices, and visible repeated-ones animation are present")
 
 def assert_feedback(path):
     _, texts = load(path)
@@ -319,8 +335,8 @@ def main():
         assert_tutor(path)
     elif action == "assert-feedback":
         assert_feedback(path)
-    elif action == "assert-checkpoint":
-        assert_checkpoint(path)
+    elif action == "assert-checkpoint" and len(sys.argv) >= 4:
+        assert_checkpoint(path, sys.argv[3])
     elif action == "assert-settings":
         assert_settings(path)
     elif action == "has-label" and len(sys.argv) >= 4:

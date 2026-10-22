@@ -459,6 +459,8 @@ def main():
         assert_checkpoint(path, sys.argv[3])
     elif action == "assert-settings":
         assert_settings(path)
+    elif action == "assert-voice-settings":
+        assert_voice_settings(path)
     elif action == "has-label" and len(sys.argv) >= 4:
         if not has_label(path, sys.argv[3]):
             raise SystemExit(1)

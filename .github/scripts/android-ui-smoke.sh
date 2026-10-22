@@ -174,7 +174,18 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xm
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
 python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
-log "Waiting for the lesson-plan API to return a real segment before collecting playback/highlight evidence (up to 150s)"
+# Start frame capture immediately after Teach, not after the polling loop. The
+# lesson may already reach its checkpoint by the time UIAutomator observes it;
+# starting capture only then produces 35 identical checkpoint frames and falsely
+# reports that word highlighting never rendered. Capture across preparation and
+# playback so frames include the moving active word.
+log "Starting early live-lesson frame capture for playback/highlight evidence"
+"${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
+"${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames
+("${ADB[@]}" shell 'i=0; while [ "$i" -lt 100 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done' > ui-screenshots/frame-capture.log 2>&1) &
+FRAME_CAPTURE_PID=$!
+
+log "Waiting for the lesson-plan API to return a real segment (up to 150s)"
 lesson_started=0
 for attempt in $(seq 1 50); do
   timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
@@ -199,10 +210,8 @@ if [ "$lesson_started" -ne 1 ]; then
   [ ! -s live-lesson.xml ] || cat live-lesson.xml | tee -a "$REPORT"
   exit 1
 fi
-log "Recording live lesson frames to verify inline spoken-word highlighting"
-"${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
-"${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames
-"${ADB[@]}" shell 'i=0; while [ "$i" -lt 35 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done'
+log "Lesson UI detected; allowing early frame capture to finish so playback frames are included"
+wait "$FRAME_CAPTURE_PID"
 "${ADB[@]}" pull /data/local/tmp/padippupal-live-frames ui-screenshots/live-frames
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-lesson.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml

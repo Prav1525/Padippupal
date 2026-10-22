@@ -74,7 +74,7 @@ def assert_checkpoint(path, screenshot_path=None):
 
 def assert_continued(path):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     print("CONTINUED LESSON TEXT:", " | ".join(texts[:120]))
     if "quick check" in joined:
         raise SystemExit("Understanding response did not dismiss the checkpoint")
@@ -270,7 +270,7 @@ def assert_highlight_frames(directory):
 
 def assert_playback_state(path, expected):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     print("PLAYBACK STATE TEXT:", " | ".join(texts[:100]))
     required = ("stop", "resume") if expected == "paused" else ("stop", "pause")
     missing = [label for label in required if label not in joined]
@@ -329,7 +329,7 @@ def has_label(path, label):
 
 def assert_topic_selected(path):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     if "all 1s" not in joined and "patterns in mathematics" not in joined:
         raise SystemExit("No database-backed topic/chapter selection is visible: " + " | ".join(texts[:100]))
     print("PASS: a database-backed chapter/topic is already selected")
@@ -344,6 +344,8 @@ def main():
         assert_home(path)
     elif action == "assert-tutor":
         assert_tutor(path)
+    elif action == "assert-continued":
+        assert_continued(path)
     elif action == "assert-feedback":
         assert_feedback(path)
     elif action == "assert-checkpoint" and len(sys.argv) >= 4:

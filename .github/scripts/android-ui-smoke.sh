@@ -132,6 +132,18 @@ sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
+log "Scrolling lesson setup to verify lower voice preferences while Done stays fixed"
+"${ADB[@]}" shell input swipe 540 1450 540 650 450
+sleep 1
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/settings-scrolled.png
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings-scrolled.xml
+"${ADB[@]}" pull /data/local/tmp/settings-scrolled.xml settings-scrolled.xml
+python3 .github/scripts/ui_smoke.py assert-voice-settings settings-scrolled.xml | tee -a "$REPORT"
+# Return to the top so the subject picker is visible for the next step.
+"${ADB[@]}" shell input swipe 540 650 540 1450 450
+sleep 1
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings-top.xml
+"${ADB[@]}" pull /data/local/tmp/settings-top.xml settings-top.xml
 
 log "Loading the real Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"

@@ -52,12 +52,10 @@ def assert_settings(path):
     nodes, texts = load(path)
     joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
     print("SETTINGS TEXT:", " | ".join(texts[:140]))
-    expected = ("Mathematics", "Choose chapter", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
+    expected = ("Mathematics", "Choose chapter", "Choose concept", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
     missing = [term for term in expected if term.lower() not in joined]
     if missing:
         raise SystemExit("Tutor settings are missing expected controls: " + ", ".join(missing))
-    if not any(term.lower() in joined for term in ("all 1s", "choose concept", "topic")):
-        raise SystemExit("Tutor settings do not expose a selected topic or a topic picker")
     print("PASS: subject, chapter/topic, language, and voice settings are accessible")
 
 def assert_chapter_button(path):
@@ -148,6 +146,10 @@ def assert_live(path):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
+    if "choose chapter" in joined or "choose concept" in joined or "subject" in joined:
+        raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
+    if "pause" not in joined or "stop" not in joined:
+        raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
     forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")
     found_activity = [label for label in forbidden_activity_labels if label in joined]
     if found_activity:

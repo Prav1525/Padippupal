@@ -44,7 +44,7 @@ This is a living record. Add a named regression case for every confirmed recurri
 
 - **Expected:** spoken words highlight inside the same displayed lesson text, not in a separate duplicate overlay; highlight advances with speech and content scrolls when needed.
 - **Checks:** accessibility/text hierarchy shows one primary lesson text; screenshot/frame evidence confirms the highlight is on that text and moves during playback; longer segments remain readable.
-- **Status:** OPEN — code fix committed on PR #13 at `0f648fe9159a9ac856d5b780c29fbb4820b9eb16`; fresh Android UI smoke is pending. Close only after the test proves at least two distinct inline highlight positions during speech.
+- **Status:** OPEN — earlier smoke on `8d6e9304ed459a4efeb29b434dd72cf6eeef06b1` detected 16 distinct inline-highlight positions, but the latest smoke on `cdd5094c48231cdeeafc788c045691d4d37a730c` failed before speech/highlight verification because cloud TTS providers were unavailable and emulator TTS had no compatible English voice. Do not mark passed from the earlier run alone.
 
 ### PP-TUTOR-005 — Chapter/topic selection remains deterministic
 
@@ -141,3 +141,13 @@ Add ID, severity, observed failure, expected behavior, evidence, confirmed cause
 - **Confirmed cause:** at PR #13 head `73a930a6a4be661c6413690dd387380774c67f0c`, the emulator accessibility tree showed `LIVE`, `1 / 5`, the inline lesson caption, and the All 1s animation, but not `teacher is speaking`. The stale assertion aborted the smoke before the later acceptance checks ran.
 - **Correction:** PR #13 head `8d6e9304ed459a4efeb29b434dd72cf6eeef06b1` now validates the real progress label and recognizable lesson text while preserving downstream checks.
 - **Verification:** PASS on PR #13 head `8d6e9304ed459a4efeb29b434dd72cf6eeef06b1`. Android APK [39741609797](https://github.com/Prav1525/Padippupal/actions/runs/39741609797), curriculum tests [39741609927](https://github.com/Prav1525/Padippupal/actions/runs/39741609927), and emulator UI smoke [39741609782](https://github.com/Prav1525/Padippupal/actions/runs/39741609782) all PASS. The UI log confirms the lesson content, 16 distinct inline highlight positions, pause/resume, checkpoint at 2/5, and continuation to 3/5. Screenshot/UI artifact: [12409322712](https://github.com/Prav1525/Padippupal/actions/runs/39741609782/artifacts/12409322712).
+
+
+### Latest tutor-fix verification — 2026-10-22
+
+- **PR #13 current head:** `cdd5094c48231cdeeafc788c045691d4d37a730c`.
+- **PASS:** Curriculum Engine Tests — [run 39745719285](https://github.com/Prav1525/Padippupal/actions/runs/39745719285).
+- **PASS:** Android APK — [run 39745719299](https://github.com/Prav1525/Padippupal/actions/runs/39745719299).
+- **FAIL:** Android UI smoke — [run 39745719279](https://github.com/Prav1525/Padippupal/actions/runs/39745719279), artifact [12411502837](https://github.com/Prav1525/Padippupal/actions/runs/39745719279/artifacts/12411502837). First attempt had a transient empty chapter list. Second attempt selected Patterns in Mathematics → All 1s, but cloud TTS returned 429 and Sarvam returned 402; device TTS then reported no compatible English voice, so the app correctly paused and the test could not verify the speaking/highlight/checkpoint journey.
+- **Confirmed backend validation gap fixed in PR #13:** the previous All 1s validator accepted a generic segment if any other segment matched. The current code checks each segment and a new backend regression test verifies a generic later segment triggers the retry. Backend tests pass on the current head.
+- **Merge gate:** remains closed until the UI smoke passes on the current head. Do not weaken assertions to bypass unavailable speech. Render logs show the TTS provider quota/payment failures; emulator English voice availability remains a test-environment blocker to resolve or document.

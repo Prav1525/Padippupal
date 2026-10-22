@@ -339,6 +339,33 @@ def assert_live_layout(path):
     print("PASS: live teaching panel occupies the available teaching viewport")
 
 
+def tap_exact(path, target):
+    """Tap an exact visible label, avoiding ambiguous substring matches like 'Teach'."""
+    nodes, texts = load(path)
+    normalized_target = target.strip().lower().lstrip("▶").strip()
+    candidates = []
+    for node in nodes:
+        label = node.attrib.get("text", "").strip()
+        normalized_label = label.lower().lstrip("▶").strip()
+        if normalized_label == normalized_target:
+            candidates.append(node)
+    if not candidates:
+        raise SystemExit(f"Could not find exact target {target!r}; visible labels: {' | '.join(texts[:100])}")
+    # Compose sometimes exposes a clickable parent and a non-clickable child with
+    # the same text. Prefer the clickable node; otherwise its bounds still identify
+    # the exact control without accidentally hitting a similarly named chat item.
+    node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
+    bounds = node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    if not match:
+        raise SystemExit(f"Exact target {target!r} has invalid accessibility bounds: {bounds!r}")
+    x1, y1, x2, y2 = map(int, match.groups())
+    x, y = (x1 + x2) // 2, (y1 + y2) // 2
+    print(f"Tapping exact target {target!r} at ({x}, {y}), bounds={bounds}, clickable={node.attrib.get('clickable')}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+                   check=True, timeout=45)
+
+
 def tap(path, target):
     nodes, texts = load(path)
     candidates = []
@@ -405,6 +432,8 @@ def main():
         tap_topic_picker(path)
     elif action == "tap-first-concept":
         tap_first_concept(path)
+    elif action == "tap-exact" and len(sys.argv) >= 4:
+        tap_exact(path, sys.argv[3])
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:

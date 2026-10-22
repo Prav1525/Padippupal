@@ -74,6 +74,8 @@ jobs:
     if: needs.check-key.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    outputs:
+      changed: ${{ steps.verify.outputs.changed }}
     permissions:
       actions: read
       contents: read
@@ -140,7 +142,7 @@ jobs:
 
   open-pr:
     needs: [prepare, check-key, repair]
-    if: needs.check-key.outputs.enabled == 'true' && needs.repair.result == 'success'
+    if: needs.check-key.outputs.enabled == 'true' && needs.repair.result == 'success' && needs.repair.outputs.changed == 'true'
     runs-on: ubuntu-latest
     permissions:
       actions: write

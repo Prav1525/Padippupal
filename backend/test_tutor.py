@@ -357,11 +357,14 @@ def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
 
 def test_lesson_plan_filters_unrelated_topic_passages_before_calling_gemini(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "must-not-be-called")
-    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
-        "text": "Let us look at a pattern by adding counting numbers up and then down.",
-        "source": {"chunk_id": "wrong-topic", "title": "Class 6 Mathematics",
-                   "page_start": 1, "page_end": 1},
-    }]})
+    retrieval_requests = []
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: (
+        retrieval_requests.append(payload) or {"matches": [{
+            "text": "Let us look at a pattern by adding counting numbers up and then down.",
+            "source": {"chunk_id": "wrong-topic", "title": "Class 6 Mathematics",
+                       "page_start": 1, "page_end": 1},
+        }]}
+    ))
 
     def unexpected_urlopen(*args, **kwargs):
         raise AssertionError("Gemini must not be called with an unrelated passage")
@@ -371,7 +374,7 @@ def test_lesson_plan_filters_unrelated_topic_passages_before_calling_gemini(monk
         "board": "CBSE", "class_level": 6, "subject": "Mathematics",
         "medium": "English", "app_language": "English",
         "chapter": "Patterns in Mathematics", "topic": "All 1s",
-        "message": "Teach me All 1s",
+        "message": "Teach this as a patient teacher in short, simple segments. Explain examples, add natural pauses, and ask whether I understand.",
     })
 
     assert response.status_code == 200, response.text
@@ -380,6 +383,9 @@ def test_lesson_plan_filters_unrelated_topic_passages_before_calling_gemini(monk
     assert body["segments"] == []
     assert body["sources"] == []
     assert "selected topic" in body["warning"].lower()
+    assert len(retrieval_requests) == 1
+    assert retrieval_requests[0].query == "All 1s Patterns in Mathematics"
+    assert retrieval_requests[0].limit == 10
 
 
 def test_lesson_plan_rejects_gemini_segments_that_drift_from_all_ones(monkeypatch):

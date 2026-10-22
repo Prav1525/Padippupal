@@ -189,6 +189,35 @@ sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml
 "${ADB[@]}" pull /data/local/tmp/live-resumed.xml live-resumed.xml
 python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playing | tee -a "$REPORT"
+
+log "Waiting for the lesson to reach its explicit understanding checkpoint"
+checkpoint_seen=0
+for attempt in $(seq 1 24); do
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-checkpoint.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-checkpoint.xml live-checkpoint.xml >/dev/null 2>&1 || true
+  if [ -s live-checkpoint.xml ] && grep -qi "Quick check" live-checkpoint.xml; then
+    checkpoint_seen=1
+    break
+  fi
+  sleep 3
+done
+if [ "$checkpoint_seen" -ne 1 ]; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: live lesson did not reach the understanding checkpoint within 72 seconds after resume"
+  exit 1
+fi
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-checkpoint.png
+python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml | tee -a "$REPORT"
+log "Testing checkpoint continuation"
+python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
+sleep 3
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml
+"${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml
+if grep -qi "Quick check" live-continued.xml; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: understanding response did not dismiss the checkpoint"
+  exit 1
+fi
 python3 .github/scripts/ui_smoke.py tap live-resumed.xml "Stop"
 sleep 2
 

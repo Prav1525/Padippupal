@@ -21,6 +21,18 @@ class ScreenshotMaskTests(unittest.TestCase):
         self.assertEqual(mask.getbbox(), (2, 3, 5, 5))
 
 
+
+class AndroidManifestContractTests(unittest.TestCase):
+    def test_android_11_tts_service_is_visible_to_package_manager(self):
+        manifest = Path(__file__).resolve().parents[2] / "app" / "src" / "main" / "AndroidManifest.xml"
+        content = manifest.read_text(encoding="utf-8")
+        self.assertRegex(
+            content,
+            r"<queries>\\s*<intent>\\s*<action android:name=\"android.intent.action.TTS_SERVICE\"",
+            "Android 11+ must be allowed to discover the system TextToSpeech service",
+        )
+
+
 class ConceptCandidateTests(unittest.TestCase):
     def test_compose_row_without_clickable_flag_is_still_selectable(self):
         root = ET.fromstring("""<hierarchy>

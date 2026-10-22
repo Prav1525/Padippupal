@@ -6,7 +6,19 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import concept_candidates
+from ui_smoke import concept_candidates, exact_color_mask
+
+
+
+class ScreenshotMaskTests(unittest.TestCase):
+    def test_exact_color_mask_counts_pixels_and_returns_their_bounds(self):
+        from PIL import Image, ImageDraw
+        target = (216, 232, 183)
+        image = Image.new("RGB", (10, 10), (0, 0, 0))
+        ImageDraw.Draw(image).rectangle((2, 3, 4, 4), fill=target)
+        mask = exact_color_mask(image, target)
+        self.assertEqual(mask.histogram()[255], 6)
+        self.assertEqual(mask.getbbox(), (2, 3, 5, 5))
 
 
 class ConceptCandidateTests(unittest.TestCase):

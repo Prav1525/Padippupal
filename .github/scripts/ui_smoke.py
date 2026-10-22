@@ -44,7 +44,8 @@ def assert_checkpoint(path):
     _, texts = load(path)
     joined = "\\n".join(texts).lower()
     print("CHECKPOINT TEXT:", " | ".join(texts[:120]))
-    required = ("quick check", "i understand", "explain again", "i have a question")
+    # The concept visual must remain mounted while the checkpoint is shown.
+    required = ("quick check", "i understand", "explain again", "i have a question", "watch the pattern")
     missing = [label for label in required if label not in joined]
     if missing:
         raise SystemExit("Live lesson did not pause at the complete understanding checkpoint: " + ", ".join(missing))

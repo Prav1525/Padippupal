@@ -90,5 +90,8 @@ jobs:
             chapter-selected.xml
             ready-to-teach.xml
             live-lesson.xml
+            live-checkpoint.xml
+            live-continued.xml
+            ui-screenshots/live-checkpoint.png
           if-no-files-found: warn
           retention-days: 14

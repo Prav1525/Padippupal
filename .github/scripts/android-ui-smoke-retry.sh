@@ -43,5 +43,5 @@ for attempt in 1 2; do
   fi
 done
 
-echo "UI smoke test failed on both attempts. See attempt-artifacts for each attempt's evidence."
+echo "UI smoke test failed. See attempt-artifacts for the captured attempt evidence."
 exit "$result"

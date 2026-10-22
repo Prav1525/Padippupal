@@ -228,6 +228,8 @@ def assert_live(path):
         "this selected voice engine has no tamil voice",
         "voice playback failed",
         "voice playback did not start",
+        "voice engine could not initialize",
+        "speech engine did not finish starting",
     )
     failure = next((message for message in voice_failures if message in joined), None)
     if failure:

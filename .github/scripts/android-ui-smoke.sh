@@ -207,9 +207,11 @@ python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml ui-scr
 log "Testing checkpoint continuation and next-segment progression"
 python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
 continued=0
-for attempt in $(seq 1 15); do
-  sleep 2
-  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml >/dev/null 2>&1 || true
+# Segment 3 can be short, so poll frequently enough to observe the required
+# 2/5 -> 3/5 transition before the next spoken segment/checkpoint appears.
+for attempt in $(seq 1 120); do
+  sleep 0.25
+  timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml >/dev/null 2>&1 || true
   if [ -s live-continued.xml ] && grep -Eqi "3 / 5|segment 3 of 5" live-continued.xml && ! grep -qi "Quick check" live-continued.xml; then
     continued=1
@@ -218,7 +220,7 @@ for attempt in $(seq 1 15); do
 done
 if [ "$continued" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: checkpoint closed but next lesson segment did not become active within 30 seconds"
+  log "FAIL: checkpoint closed but next lesson segment 3 of 5 was not observed within 30 seconds"
   [ -s live-continued.xml ] && cat live-continued.xml | tee -a "$REPORT"
   exit 1
 fi

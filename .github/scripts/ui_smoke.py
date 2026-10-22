@@ -48,7 +48,7 @@ def assert_checkpoint(path, screenshot_path=None):
         raise SystemExit("Live lesson did not pause at the complete understanding checkpoint: " + ", ".join(missing))
     prompt_index = joined.find("quick check")
     prompt_and_actions = joined[prompt_index:prompt_index + 260] if prompt_index >= 0 else joined
-    if re.search(r"(^|\\s)(null|undefined)(\\s|$)", prompt_and_actions):
+    if re.search(r"(^|\s)(null|undefined)(\s|$)", prompt_and_actions):
         raise SystemExit("Understanding checkpoint rendered a null/undefined placeholder")
     prompt_lines = [value.strip() for value in texts if value.strip().lower() not in required and value.strip().lower() != "quick check"]
     if not any("?" in value and len(value) >= 8 for value in prompt_lines):
@@ -71,6 +71,19 @@ def assert_checkpoint(path, screenshot_path=None):
     if tile_pixels < 350:
         raise SystemExit("Checkpoint XML exists, but the repeated-ones animation is not visibly rendered in the teaching viewport")
     print("PASS: checkpoint prompt, response choices, and visible repeated-ones animation are present")
+
+def assert_continued(path):
+    _, texts = load(path)
+    joined = "\\n".join(texts).lower()
+    print("CONTINUED LESSON TEXT:", " | ".join(texts[:120]))
+    if "quick check" in joined:
+        raise SystemExit("Understanding response did not dismiss the checkpoint")
+    # The first checkpoint is segment 2 of the 5-item opening + lesson sequence.
+    # Require evidence that segment 3 is active, not merely that the card vanished.
+    progressed = ("3 / 5" in joined or "segment 3 of 5" in joined)
+    if not progressed:
+        raise SystemExit("Checkpoint closed, but the next lesson segment was not confirmed active")
+    print("PASS: understanding response dismissed checkpoint and advanced to segment 3 of 5")
 
 def assert_feedback(path):
     _, texts = load(path)
@@ -104,7 +117,7 @@ def assert_chapter_button(path):
 
 def assert_chapter_selected(path):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     print("SELECTED CHAPTER TEXT:", " | ".join(texts[:100]))
     if "patterns in mathematics" not in joined:
         raise SystemExit("Smoke test did not select Class 6 Mathematics Chapter 1: Patterns in Mathematics")
@@ -323,7 +336,7 @@ def assert_topic_selected(path):
 
 def main():
     if len(sys.argv) < 3:
-        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
+        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-checkpoint|assert-continued|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]
     if not Path(path).is_file():
         raise SystemExit("UI XML file does not exist: " + path)

@@ -1354,10 +1354,20 @@ internal fun TutorScreen(
         status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
-        // Some hosted voice paths do not invoke onStarted; do not leave loading text over audio.
+        // Publish the segment before starting audio. Hosted audio can finish or fall
+        // back without reliably delivering onStarted; if UI state is initialized only
+        // in that callback, the checkpoint is left with an empty caption and the
+        // topic animation disappears. The word index still advances only with speech.
+        liveCaption = words
+        liveWordIndex = 0
+        liveVisualAction = visualCue
+        liveVisualActionType = action?.optString("type", "none") ?: "none"
+        liveVisualTarget = action?.optString("target", "").orEmpty()
+        liveSegmentIndex = index
         status = "Playing segment ${index + 1} of ${liveSegments.size}…"
         speak(words, onStarted = {
-            // Display the exact text being spoken so word highlighting matches the audio.
+            // Audio has actually started: keep the exact same segment caption so
+            // inline highlighting follows the spoken words rather than a separate overlay.
             liveCaption = words
             liveWordIndex = 0
             liveVisualAction = visualCue

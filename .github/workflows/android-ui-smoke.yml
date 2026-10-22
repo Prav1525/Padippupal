@@ -57,6 +57,24 @@ jobs:
           test -e /dev/kvm && ls -l /dev/kvm
           test -r /dev/kvm && test -w /dev/kvm
 
+      # Render's free instance sleeps when idle. Wake it before the cold emulator
+      # reaches the tutor flow so the first curriculum request isn't mistaken for an
+      # empty chapter list. Require a real health response; never silently skip warmup.
+      - name: Wake curriculum API and wait for readiness
+        run: |
+          ready=0
+          for attempt in $(seq 1 10); do
+            if curl --fail --silent --show-error --max-time 15 \
+              "https://padippupal-curriculum-api.onrender.com/health" -o /tmp/padippupal-health.json; then
+              cat /tmp/padippupal-health.json
+              ready=1
+              break
+            fi
+            echo "Curriculum API is waking up (attempt $attempt/10); retrying in 5 seconds"
+            sleep 5
+          done
+          test "$ready" -eq 1
+
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:

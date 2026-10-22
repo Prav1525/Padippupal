@@ -339,16 +339,19 @@ def assert_live_layout(path):
     print("PASS: live teaching panel occupies the available teaching viewport")
 
 
+def exact_text_candidates(nodes, target):
+    """Return only nodes whose visible label equals the requested control label."""
+    normalized_target = target.strip().lower().lstrip("▶").strip()
+    return [
+        node for node in nodes
+        if node.attrib.get("text", "").strip().lower().lstrip("▶").strip() == normalized_target
+    ]
+
+
 def tap_exact(path, target):
     """Tap an exact visible label, avoiding ambiguous substring matches like 'Teach'."""
     nodes, texts = load(path)
-    normalized_target = target.strip().lower().lstrip("▶").strip()
-    candidates = []
-    for node in nodes:
-        label = node.attrib.get("text", "").strip()
-        normalized_label = label.lower().lstrip("▶").strip()
-        if normalized_label == normalized_target:
-            candidates.append(node)
+    candidates = exact_text_candidates(nodes, target)
     if not candidates:
         raise SystemExit(f"Could not find exact target {target!r}; visible labels: {' | '.join(texts[:100])}")
     # Compose sometimes exposes a clickable parent and a non-clickable child with
@@ -356,7 +359,7 @@ def tap_exact(path, target):
     # the exact control without accidentally hitting a similarly named chat item.
     node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
     bounds = node.attrib.get("bounds", "")
-    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit(f"Exact target {target!r} has invalid accessibility bounds: {bounds!r}")
     x1, y1, x2, y2 = map(int, match.groups())

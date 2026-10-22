@@ -1625,9 +1625,18 @@ internal fun TutorScreen(
                     Text(if (liveLessonActive) "LIVE" else "READY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TutorDeep)
                 }
             }
+            if (liveLessonActive) {
+                TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
+                    Text(if (livePaused) "Resume" else "Pause", color = TutorGreen, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                }
+                TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
+                    Text("Stop", color = Color(0xFF9E3D35), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                }
+            }
         }
 
-        // Keep the lesson controls concise; the full selection panel is expandable.
+        // Selection controls are setup UI, not part of the full-screen live teaching surface.
+        if (!liveLessonActive) {
         Surface(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
             color = Color.White,
@@ -1645,11 +1654,6 @@ internal fun TutorScreen(
                     }
                     TextButton(onClick = { showLessonSettings = !showLessonSettings }) {
                         Text(if (showLessonSettings) "Done" else "Change", color = TutorGreen, fontWeight = FontWeight.SemiBold)
-                    }
-                    if (liveLessonActive) {
-                        TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }) {
-                            Text(if (livePaused) "Resume" else "Pause", color = TutorGreen, fontWeight = FontWeight.SemiBold)
-                        }
                     }
                     Button(
                         onClick = { if (liveLessonActive) stopLiveLesson() else startLiveLesson() },
@@ -1739,6 +1743,8 @@ internal fun TutorScreen(
                     }
                 }
             }
+        }
+
         }
 
         // The chat owns the flexible space and scrolls independently of the fixed composer.

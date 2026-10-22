@@ -937,3 +937,58 @@ def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):
     assert body["segments"][0]["spoken_text"] == passage
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "none"
+
+def test_approved_topic_lesson_rejects_off_topic_steps_before_returning(monkeypatch):
+    """An approved label/source must not let a wrong teaching sequence bypass topic validation."""
+    from contextlib import contextmanager
+
+    chunk_id = "approved-all-ones-source"
+    approved_row = {
+        "id": "approved-all-ones",
+        "chapter": "Patterns in Mathematics",
+        "topic": "All 1s",
+        "lesson_json": json.dumps({
+            "chapter_title": "Patterns in Mathematics",
+            "overview": "All 1s repeats the number one.",
+            "teaching_sequence": [{
+                "id": "wrong-step",
+                "teacher_says": "Now count up and down to make square numbers.",
+                "caption": "Count up and down to make square numbers.",
+                "checkpoint": None,
+                "source_chunk_ids": [chunk_id],
+                "visual": {"type": "number_pattern", "objects": ["1", "2", "3"], "actions": ["reveal"]},
+            }],
+        }),
+        "source_refs_json": json.dumps([{
+            "chunk_id": chunk_id, "source_id": "source-1", "title": "Class 6 Mathematics",
+            "page_start": 1, "page_end": 2,
+        }]),
+    }
+
+    class FakeResult:
+        def fetchall(self):
+            return [approved_row]
+
+    class FakeConnection:
+        def execute(self, query, params=()):
+            return FakeResult()
+
+    @contextmanager
+    def fake_db():
+        yield FakeConnection()
+
+    monkeypatch.setattr(curriculum, "db", fake_db)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [], "warning": None})
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "medium": "English", "app_language": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach me All 1s",
+    })
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body.get("provider") != "approved_chapter_lesson"
+    assert body["grounded"] is False
+    assert body["segments"] == []
+    assert "no lesson was generated" in body["warning"].lower()

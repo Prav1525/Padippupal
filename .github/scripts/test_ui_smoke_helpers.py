@@ -91,9 +91,20 @@ class TtsFailureRegressionTests(unittest.TestCase):
     def test_smoke_workflow_does_not_force_the_incompatible_hayai_engine(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows" /
                     "android-ui-smoke.yml").read_text()
-        self.assertIn("system-image: google_apis", workflow)
+        self.assertIn("system-image: google_apis_playstore", workflow)
+        self.assertIn("query-services -a android.intent.action.TTS_SERVICE", workflow)
+        self.assertIn("settings put secure tts_default_synth com.google.android.tts", workflow)
+        self.assertIn("No Google Text-to-Speech service is installed", workflow)
         self.assertNotIn("dev.ahmedmohamed.hayaitts", workflow)
         self.assertNotIn("hayaitts-x86_64", workflow)
+
+    def test_live_smoke_reports_missing_tts_before_pause_stop_control_error(self):
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        failure_check = smoke.index('voice_failures = (')
+        controls_check = smoke.index('if "pause" not in joined or "stop" not in joined:')
+        self.assertLess(failure_check, controls_check)
+        self.assertIn('"voice engine could not initialize"', smoke)
+        self.assertIn('"speech engine did not finish starting"', smoke)
 
 
 class ConceptCandidateTests(unittest.TestCase):

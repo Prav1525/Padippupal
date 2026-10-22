@@ -25,6 +25,17 @@ required = {
         "D-001",
         "D-005",
     ],
+    ".github/NEW_CHAT_STARTER.md": [
+        "Required startup actions",
+        "PROJECT_STATE.md",
+    ],
+    ".github/pull_request_template.md": [
+        "Observed behavior and evidence",
+        "Root cause",
+        "Acceptance criteria",
+        "Verification evidence",
+        "Project handoff",
+    ],
 }
 errors = []
 for name, markers in required.items():
@@ -52,5 +63,5 @@ if errors:
     sys.exit(1)
 
 print("PROJECT PROCESS GUARD: PASS")
-print("Required durable process records and review metadata are present.")
-print("This guard does not prove a developer read the protocol or that product tests pass.")
+print("Required durable process records, handoff prompt, PR template, and review metadata are present.")
+print("This guard does not prove a developer read the protocol or that product behavior is correct.")

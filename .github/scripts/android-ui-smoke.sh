@@ -152,15 +152,22 @@ sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
 python3 .github/scripts/ui_smoke.py assert-chapter-selected chapter-selected.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Choose concept"
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
-"${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
-python3 .github/scripts/ui_smoke.py tap-first-concept concept-menu.xml
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
-"${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml
-python3 .github/scripts/ui_smoke.py tap concept-selected.xml "Done"
+# The current tutor preselects the first database-backed topic (e.g. "All 1s").
+# Only open a concept picker if the UI exposes one; don't fail on a stale label.
+if python3 .github/scripts/ui_smoke.py has-label chapter-selected.xml "Choose concept"; then
+  python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Choose concept"
+  sleep 2
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
+  "${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
+  python3 .github/scripts/ui_smoke.py tap-first-concept concept-menu.xml
+  sleep 2
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
+  "${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml
+  python3 .github/scripts/ui_smoke.py tap concept-selected.xml "Done"
+else
+  log "No separate concept picker is exposed; verifying the selected database topic and continuing"
+  python3 .github/scripts/ui_smoke.py assert-topic-selected chapter-selected.xml
+fi
 sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml

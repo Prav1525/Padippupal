@@ -62,6 +62,10 @@ For every failure, collect workflow URL, job/step, failing assertion or stack tr
 
 Record Android/emulator version, app install/reset strategy, permissions, seeded data, and deterministic setup. Prefer a known clean state for picker/navigation tests while separately testing persistence. Do not rely on an undocumented saved emulator state.
 
+- **Confirmed recurring fixture defect (2026-10-22):** the smoke script removed `padippupal_profile.xml` but left `padippupal_tutor_sessions.xml`. TutorScreen restores same-day subject/chapter/topic from the latter, so the test could see `Patterns in Mathematics` / `All 1s` where it expected the empty-state `Choose chapter` / `Choose concept` labels.
+- **Correction in PR #13 head `159dc8c9902e992b53e55388303ab9f8d18d00eb`:** reset both preference files before seeding the CBSE profile; helper regression test verifies both resets happen before profile setup.
+- **Status:** UNVERIFIED until fresh emulator smoke on that commit proves the clean selection path succeeds. Do not loosen selector assertions to accept stale state.
+
 ### PP-TEST-003 — Repeat-failure protocol
 
 If a regression returns:

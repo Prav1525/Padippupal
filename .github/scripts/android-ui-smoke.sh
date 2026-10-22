@@ -180,7 +180,7 @@ for attempt in $(seq 1 50); do
   timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
   if [ -s live-lesson.xml ]; then
-    if grep -Eqi "Live lesson · segment|segment [0-9]+ of [0-9]+|Quick check|N / 5" live-lesson.xml; then
+    if grep -Eqi "Live lesson · segment|segment [0-9]+ of [0-9]+|[0-9]+[[:space:]]*/[[:space:]]*5|Quick check|check your understanding|does that make sense so far" live-lesson.xml; then
       lesson_started=1
       break
     fi
@@ -234,7 +234,7 @@ for attempt in $(seq 1 50); do
     cat live-checkpoint.xml | tee -a "$REPORT"
     exit 1
   fi
-  if [ -s live-checkpoint.xml ] && grep -qi "Quick check" live-checkpoint.xml; then
+  if [ -s live-checkpoint.xml ] && grep -Eqi "Quick check|check your understanding|does that make sense so far" live-checkpoint.xml; then
     checkpoint_seen=1
     break
   fi

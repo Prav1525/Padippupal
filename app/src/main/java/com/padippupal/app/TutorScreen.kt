@@ -947,6 +947,7 @@ internal fun TutorScreen(
     var topic by remember { mutableStateOf(savedSession.optString("topic", "")) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
     var topicMenuExpanded by remember { mutableStateOf(false) }
+    var showLessonSettings by remember { mutableStateOf(false) }
     var chapterOptions by remember { mutableStateOf<List<Pair<String, List<String>>>>(emptyList()) }
     var outlineLoading by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
@@ -1782,17 +1783,6 @@ internal fun TutorScreen(
         }
     }
 
-    // Starting a selected concept should teach first, not ask the child what to learn.
-    // Only auto-start before the conversation has moved beyond the initial greeting.
-    LaunchedEffect(chapter, topic) {
-        if (topic.isNotBlank() && messages.size == 1 && !loading) {
-            sendMessage(
-                 "START LESSON as a warm, patient teacher. Begin by naming the chapter $chapter and topic $topic in the opening sentence. Say what we are going to learn, then preview 2-3 key ideas. Teach the first concept in small steps with a familiar everyday example, explain why it works, and ask one easy check question at the end. Do not jump straight into a question or write one dense paragraph. Use simple child-friendly spoken language in $selectedLanguage."
-            )
-        }
-    }
-
-    var showLessonSettings by remember { mutableStateOf(false) }
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
     LaunchedEffect(messages.size, loading, liveLessonActive) {
         // The live-teaching panel occupies list index 0 while it is visible.
@@ -1882,6 +1872,9 @@ internal fun TutorScreen(
                     Text("Stop", color = Color(0xFF9E3D35), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 }
             } else {
+                TextButton(onClick = { showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)) {
+                    Text("Change", color = TutorGreen, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                }
                 Button(
                     onClick = { startLiveLesson() },
                     enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),
@@ -1892,7 +1885,65 @@ internal fun TutorScreen(
             }
         }
 
-        if (!liveLessonActive) {
+        if (showLessonSettings && !liveLessonActive) {
+            Surface(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 6.dp), color = Color.White, shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, Color(0xFFE1E9E2))) {
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Set up your lesson", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TutorDeep)
+                    Text("Choose what you want to learn. Your tutor will start when you tap Teach.", fontSize = 12.sp, color = TutorGrey)
+                    Text("Subject", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Mathematics", "Science", "English", "Tamil", "Social Science", "Computer Science").forEach { option ->
+                            FilterChip(selected = subject == option, onClick = { subject = option; chapter = ""; topic = "" }, label = { Text(option, maxLines = 1) })
+                        }
+                    }
+                    Text("Chapter", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
+                    Box {
+                        OutlinedButton(onClick = { chapterMenuExpanded = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                            Text(chapter.ifBlank { if (outlineLoading) "Loading chapters…" else "Choose chapter" }, maxLines = 1)
+                        }
+                        DropdownMenu(expanded = chapterMenuExpanded, onDismissRequest = { chapterMenuExpanded = false }) {
+                            chapterOptions.forEachIndexed { index, option ->
+                                DropdownMenuItem(text = { Text("${index + 1}. ${option.first}") }, onClick = { chapter = option.first; topic = option.second.firstOrNull().orEmpty(); chapterMenuExpanded = false })
+                            }
+                            if (!outlineLoading && chapterOptions.isEmpty()) DropdownMenuItem(text = { Text("No chapter list is available") }, onClick = { chapterMenuExpanded = false }, enabled = false)
+                        }
+                    }
+                    Text("Topic / concept", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
+                    Box {
+                        OutlinedButton(onClick = { topicMenuExpanded = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                            Text(topic.ifBlank { "Choose concept" }, maxLines = 1)
+                        }
+                        DropdownMenu(expanded = topicMenuExpanded, onDismissRequest = { topicMenuExpanded = false }) {
+                            val topics = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
+                            topics.forEachIndexed { index, option ->
+                                DropdownMenuItem(text = { Text("${index + 1}. $option") }, onClick = { topic = option; topicMenuExpanded = false })
+                            }
+                            if (topics.isEmpty()) DropdownMenuItem(text = { Text("Choose a chapter first") }, onClick = { topicMenuExpanded = false }, enabled = false)
+                        }
+                    }
+                    Text("Language", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("English", "Tanglish", "தமிழ்").forEach { option ->
+                            FilterChip(selected = selectedLanguage == option, onClick = { selectedLanguage = option }, label = { Text(option) })
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Read replies aloud", modifier = Modifier.weight(1f), color = TutorDeep, fontSize = 13.sp)
+                        Switch(checked = speakReplies, onCheckedChange = { speakReplies = it })
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Prefer on-device voice", modifier = Modifier.weight(1f), color = TutorDeep, fontSize = 13.sp)
+                        Switch(checked = preferOnDeviceVoice, onCheckedChange = {
+                            preferOnDeviceVoice = it
+                            context.getSharedPreferences("padippupal_settings", 0).edit().putBoolean("prefer_on_device_voice", it).apply()
+                        })
+                    }
+                    Button(onClick = { showLessonSettings = false }, modifier = Modifier.fillMaxWidth(), enabled = subject.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("Done") }
+                }
+            }
+        }
+
+        if (!liveLessonActive && !showLessonSettings) {
         // The chat owns the flexible space and scrolls independently of the fixed composer.
         LazyColumn(
             state = chatListState,
@@ -2135,6 +2186,8 @@ internal fun TutorScreen(
             Text("Textbook sources · " + lastSources.joinToString { it.title }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGreen, fontSize = 10.sp, maxLines = 1)
         }
 
+        // Keep setup focused; show the question composer only after selection.
+        if (!showLessonSettings) {
         // Always-visible learner input, including during spoken lessons.
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -2180,6 +2233,7 @@ internal fun TutorScreen(
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = TutorGreen, contentColor = Color.White)
                 ) { Icon(Icons.Default.Send, contentDescription = "Send question") }
             }
+        }
         }
     }
 }

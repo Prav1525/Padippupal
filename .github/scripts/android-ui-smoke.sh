@@ -207,7 +207,7 @@ if [ "$checkpoint_seen" -ne 1 ]; then
   exit 1
 fi
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-checkpoint.png
-python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml ui-screenshots/live-checkpoint.png | tee -a "$REPORT"
 log "Testing checkpoint continuation"
 python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
 sleep 1

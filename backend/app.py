@@ -1225,6 +1225,12 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
         # Fill only safe display defaults; never invent source citations or spoken content.
         if isinstance(item, dict):
             item = dict(item)
+            # Empty narration is not a playable teaching segment. Reject it so the
+            # endpoint's existing single retry can repair the model response instead
+            # of letting Android silently skip a step and jump past the checkpoint.
+            raw_spoken = item.get("spoken_text")
+            if not isinstance(raw_spoken, str) or not raw_spoken.strip():
+                raise HTTPException(status_code=502, detail=f"The lesson planner returned an empty spoken segment (segment {index}).")
             # Normalize presentation metadata that can safely default without changing
             # the lesson content. Never synthesize spoken text or textbook citations.
             raw_id = item.get("id")

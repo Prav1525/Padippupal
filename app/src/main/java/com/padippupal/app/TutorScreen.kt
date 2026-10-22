@@ -88,6 +88,11 @@ private val tutorMainHandler = Handler(Looper.getMainLooper())
 private data class TutorMessage(val role: String, val content: String, val visualLesson: JSONObject? = null, val interactiveLesson: JSONObject? = null)
 private data class TutorSource(val title: String, val url: String)
 
+private fun normalizedCheckpoint(raw: String?): String {
+    val value = raw.orEmpty().trim()
+    return if (value.isBlank() || value.equals("null", ignoreCase = true) || value.equals("undefined", ignoreCase = true) || value == "{}" || value == "[]") "Does that make sense so far?" else value
+}
+
 private fun cleanTutorDisplayText(raw: String): String {
     return raw
         .replace("\\text", "")
@@ -302,7 +307,13 @@ private fun InteractiveLessonLab(
 
 
 @Composable
-private fun ChapterOneMathAnimation(scene: String, title: String, topic: String, caption: String) {
+private fun ChapterOneMathAnimation(
+    scene: String,
+    title: String,
+    topic: String,
+    caption: String,
+    compact: Boolean = false
+) {
     var stage by remember(scene, title) { mutableIntStateOf(0) }
     LaunchedEffect(scene, title) {
         stage = 0
@@ -324,27 +335,27 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
         shape = RoundedCornerShape(20.dp),
         border = BorderStroke(1.dp, Color(0xFFD1E7D8))
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(if (compact) 9.dp else 14.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 12.dp)) {
             Text("WATCH THE PATTERN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text(title, color = TutorDeep, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = TutorDeep, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Bold)
             when (scene) {
                 "repeated_ones" -> {
-                    Text("The number stays the same each time", color = TutorGrey, fontSize = 12.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (!compact) Text("The number stays the same each time", color = TutorGrey, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         repeat(5) { index ->
                             Box(
-                                Modifier.weight(1f).aspectRatio(1f).background(
+                                Modifier.weight(1f).then(if (compact) Modifier.height(38.dp) else Modifier.aspectRatio(1f)).background(
                                     if (index <= stage) Color(0xFFDDF4A8) else Color.White,
                                     RoundedCornerShape(12.dp)
                                 ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("1", color = TutorDeep, fontSize = (22 * if (index == stage) pulse else 1f).sp, fontWeight = FontWeight.ExtraBold)
+                                Text("1", color = TutorDeep, fontSize = (if (compact) 18f else 22f * if (index == stage) pulse else 1f).sp, fontWeight = FontWeight.ExtraBold)
                             }
                         }
                     }
-                    Text("1, 1, 1, 1, 1 …", color = TutorGreen, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                    Text("Each term is 1. The pattern repeats the same number; it does not grow.", color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
+                    Text("1, 1, 1, 1, 1 …", color = TutorGreen, fontSize = if (compact) 14.sp else 17.sp, fontWeight = FontWeight.Bold)
+                    if (!compact) Text("Each term is 1. The pattern repeats the same number; it does not grow.", color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
                 }
                 "number_pattern" -> {
                     Text("Numbers can follow a rule", color = TutorGrey, fontSize = 12.sp)
@@ -415,12 +426,14 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
                     Text(explanation, color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
                 }
             }
-            Text(caption, color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                repeat(4) { index ->
-                    Box(Modifier.weight(1f).height(3.dp).background(if (index == stage) TutorGreen else Color(0xFFD1E7D8), RoundedCornerShape(3.dp)))
+            if (!compact) {
+                Text(caption, color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    repeat(4) { index ->
+                        Box(Modifier.weight(1f).height(3.dp).background(if (index == stage) TutorGreen else Color(0xFFD1E7D8), RoundedCornerShape(3.dp)))
+                    }
+                    Text("AUTO", color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 }
-                Text("AUTO", color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1332,10 +1345,9 @@ internal fun TutorScreen(
         if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        val checkpointText = segment.optString("checkpoint").trim()
-        currentCheckpoint = if ((index + 1) % 2 == 0) {
-            if (checkpointText.isBlank() || checkpointText.equals("null", ignoreCase = true)) "Does that make sense so far?" else checkpointText
-        } else ""
+        // Normalize nullable API data before it enters UI state; optString may yield literal "null".
+        val rawCheckpoint = if (segment.isNull("checkpoint")) null else segment.optString("checkpoint")
+        currentCheckpoint = if ((index + 1) % 2 == 0) normalizedCheckpoint(rawCheckpoint) else ""
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
@@ -1911,7 +1923,8 @@ internal fun TutorScreen(
                                 scene = scene,
                                 title = topic.ifBlank { "Patterns in Mathematics" },
                                 topic = topic,
-                                caption = "Watch the pattern change automatically as your teacher explains."
+                                caption = "Watch the pattern change automatically as your teacher explains.",
+                                compact = awaitingUnderstanding
                             )
                         }
                     }
@@ -1930,7 +1943,7 @@ internal fun TutorScreen(
             ) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Quick check", color = TutorGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
                             awaitingUnderstanding = false

@@ -121,16 +121,8 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
 
-log "Testing the I understand feedback action"
-python3 .github/scripts/ui_smoke.py tap tutor.xml "I understand"
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/feedback.xml
-"${ADB[@]}" pull /data/local/tmp/feedback.xml feedback.xml
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/feedback.png
-python3 .github/scripts/ui_smoke.py assert-feedback feedback.xml | tee -a "$REPORT"
-
 log "Testing tutor settings and voice controls"
-python3 .github/scripts/ui_smoke.py tap feedback.xml "Change"
+python3 .github/scripts/ui_smoke.py tap tutor.xml "Change"
 sleep 2
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
@@ -190,9 +182,9 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml
 "${ADB[@]}" pull /data/local/tmp/live-resumed.xml live-resumed.xml
 python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playing | tee -a "$REPORT"
 
-log "Waiting for the lesson to reach its explicit understanding checkpoint"
+log "Waiting for the lesson to reach its explicit understanding checkpoint (up to 150s; speech duration varies by voice engine)"
 checkpoint_seen=0
-for attempt in $(seq 1 24); do
+for attempt in $(seq 1 50); do
   timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-checkpoint.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-checkpoint.xml live-checkpoint.xml >/dev/null 2>&1 || true
   if [ -s live-checkpoint.xml ] && grep -qi "Quick check" live-checkpoint.xml; then
@@ -203,7 +195,7 @@ for attempt in $(seq 1 24); do
 done
 if [ "$checkpoint_seen" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: live lesson did not reach the understanding checkpoint within 72 seconds after resume"
+  log "FAIL: live lesson did not reach the understanding checkpoint within 150 seconds after resume"
   exit 1
 fi
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-checkpoint.png

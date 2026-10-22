@@ -40,6 +40,9 @@ class TtsFailureRegressionTests(unittest.TestCase):
         self.assertIn("catch (error: SecurityException)", tutor)
         self.assertIn("Voice engine could not initialize.", tutor)
         self.assertIn("runCatching { engine?.shutdown() }", tutor)
+        smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn("Voice engine could not initialize", smoke)
+        self.assertIn("speech engine did not finish starting", smoke)
 
     def test_smoke_workflow_does_not_force_the_incompatible_hayai_engine(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows" /

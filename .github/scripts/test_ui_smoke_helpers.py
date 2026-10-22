@@ -33,6 +33,17 @@ class AndroidManifestContractTests(unittest.TestCase):
         )
 
 
+class CurriculumRetryRegressionTests(unittest.TestCase):
+    def test_transient_outline_failures_retry_and_surface_final_error(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn("fun loadCurriculumOutline(forSubject: String, attempt: Int = 1)", tutor)
+        self.assertIn("else if (attempt < 3)", tutor)
+        self.assertIn("postDelayed", tutor)
+        self.assertIn("Couldn't load the chapter list.", tutor)
+        self.assertIn("if (subject != forSubject) return@post", tutor)
+
+
 class TtsFailureRegressionTests(unittest.TestCase):
     def test_tutor_handles_tts_binding_security_exception_without_crashing(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

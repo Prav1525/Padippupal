@@ -1474,13 +1474,15 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
         r"\bnumber\s+one\b",
     )
     for segment in segments:
-        content = " ".join(
-            str(segment.get(key, ""))
-            for key in ("spoken_text", "caption_text", "visual_action")
+        # Validate what the learner actually hears/reads independently. A relevant
+        # visual target (for example "All 1s") must not mask generic spoken text.
+        speech = " ".join(
+            str(segment.get(key, "")) for key in ("spoken_text", "caption_text")
         ).casefold()
-        if any(re.search(pattern, content) for pattern in forbidden):
+        visual = str(segment.get("visual_action", "")).casefold()
+        if any(re.search(pattern, speech + " " + visual) for pattern in forbidden):
             return False
-        if not any(re.search(pattern, content) for pattern in relevant):
+        if not any(re.search(pattern, speech) for pattern in relevant):
             return False
     return True
 

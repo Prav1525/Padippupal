@@ -1414,6 +1414,60 @@ def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medi
 
 
 
+def _topic_passage_matches(topic: str, passage: str) -> bool:
+    """Return whether a retrieved textbook passage actually covers the selected topic."""
+    selected = normalize(topic).casefold()
+    text = normalize(passage).casefold()
+    if not selected:
+        return True
+
+    # This known pilot topic needs phrase-level matching: the word "all" alone
+    # is far too broad and allowed unrelated number-sequence passages through.
+    if selected in {"all 1s", "all ones", "all one's"}:
+        aliases = (
+            r"\ball\s+1s?\b",
+            r"\ball\s+ones?\b",
+            r"\brepeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?1\b",
+            r"\brepeat(?:s|ed|ing)?\s+ones?\b",
+            r"\b1\s*[,;]\s*1(?:\s*[,;]\s*1)*\b",
+            r"\bsame number\b",
+            r"\bstays? the same\b",
+        )
+        return any(re.search(pattern, text) for pattern in aliases)
+
+    ignored = {"a", "an", "the", "of", "in", "on", "and", "for", "to", "topic", "chapter", "concept"}
+    tokens = [token for token in re.findall(r"[a-z0-9]+", selected) if token not in ignored and len(token) > 1]
+    passage_tokens = set(re.findall(r"[a-z0-9]+", text))
+    return bool(tokens) and any(token in passage_tokens for token in tokens)
+
+
+def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> bool:
+    """Reject known cross-topic generation for the All 1s pilot instead of teaching it."""
+    selected = normalize(topic).casefold()
+    if selected not in {"all 1s", "all ones", "all one's"}:
+        return True
+
+    spoken = " ".join(str(segment.get("spoken_text", "")) for segment in segments).casefold()
+    forbidden = (
+        r"count(?:ing)? numbers? up and then down",
+        r"square numbers?",
+        r"1\s*\+\s*2\s*\+\s*1\s*=\s*4",
+        r"1\s*²",
+        r"\+\s*3\b",
+    )
+    if any(re.search(pattern, spoken) for pattern in forbidden):
+        return False
+
+    relevant = (
+        r"\ball\s+ones?\b",
+        r"\brepeat(?:s|ed|ing)?\b",
+        r"\b1\s*[,;]\s*1\b",
+        r"\bsame number\b",
+        r"\bstays? the same\b",
+    )
+    return any(re.search(pattern, spoken) for pattern in relevant)
+
+
 @app.post("/tutor/lesson-plan")
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     """Create short source-grounded lesson segments for synchronized playback."""
@@ -1494,9 +1548,16 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         medium=payload.medium, query=" ".join(part for part in (payload.chapter, payload.topic, payload.message) if part),
         chapter=payload.chapter or None, limit=5))
     matches = retrieved.get("matches", [])
+    if payload.topic.strip():
+        # Retrieval is chapter/profile-scoped, but can still return a neighbouring
+        # topic. Only give the model passages that actually mention the selected concept.
+        matches = [
+            item for item in matches
+            if _topic_passage_matches(payload.topic, str(item.get("text", "")))
+        ]
     if not matches:
         return {"lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
-                "warning": "No matching textbook passage was found; no lesson was generated."}
+                "warning": "No matching textbook passage was found for the selected topic; no lesson was generated."}
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Gemini tutor is not configured on the backend.")
@@ -1570,6 +1631,12 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             raise HTTPException(status_code=502, detail="The lesson planner returned an invalid response.") from exc
     if validated is None:
         raise HTTPException(status_code=502, detail="The lesson planner could not produce a valid grounded lesson.")
+    if not _lesson_segments_match_topic(payload.topic, validated["segments"]):
+        logger.warning("Tutor lesson rejected: generated segments do not match selected topic=%s", payload.topic)
+        return {
+            "lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
+            "warning": "The generated explanation did not match the selected topic; no lesson was started.",
+        }
     return {"lesson_id": str(uuid.uuid4()), "segments": validated["segments"], "grounded": True, "sources": sources,
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False}

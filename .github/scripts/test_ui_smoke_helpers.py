@@ -28,7 +28,7 @@ class AndroidManifestContractTests(unittest.TestCase):
         content = manifest.read_text(encoding="utf-8")
         self.assertRegex(
             content,
-            r"<queries>\\s*<intent>\\s*<action android:name=\"android.intent.action.TTS_SERVICE\"",
+            r'<queries>\s*<intent>\s*<action android:name="android.intent.action.TTS_SERVICE"',
             "Android 11+ must be allowed to discover the system TextToSpeech service",
         )
 

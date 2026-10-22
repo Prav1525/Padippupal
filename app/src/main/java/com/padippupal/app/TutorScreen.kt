@@ -1229,12 +1229,31 @@ internal fun TutorScreen(
             "Natural voice unavailable; using this phone's TTS engine."
         }
         val engine = ttsState.value ?: run { finishSpeechSegment(); return }
-        val candidateLocales = when (selectedLanguage) {
-            "Tanglish" -> listOf(Locale("en", "IN"), Locale.US)
+        // Prefer a natural British English voice when installed, then Indian
+        // English and US English. Do not assume those three are the only English
+        // locales a device engine can provide: Android engines may expose en-AU,
+        // en-CA, or another downloaded English voice.
+        val preferredLocales = when (selectedLanguage) {
+            "Tanglish" -> listOf(Locale("en", "IN"), Locale.UK, Locale.US)
             "தமிழ்" -> listOf(Locale("ta", "IN"))
-            else -> listOf(Locale("en", "IN"), Locale.US)
+            else -> listOf(Locale.UK, Locale("en", "IN"), Locale.US)
         }
-        val locale = candidateLocales.firstOrNull { engine.isLanguageAvailable(it) >= TextToSpeech.LANG_AVAILABLE }
+        val requiredLanguage = if (selectedLanguage == "தமிழ்") "ta" else "en"
+        val installedLocales = engine.availableLanguages
+            .orEmpty()
+            .filter { it.language.equals(requiredLanguage, ignoreCase = true) }
+            .sortedBy {
+                when {
+                    it == Locale.UK -> 0
+                    it == Locale("en", "IN") -> 1
+                    it == Locale.US -> 2
+                    else -> 3
+                }
+            }
+        val candidateLocales = (preferredLocales + installedLocales).distinct()
+        val locale = candidateLocales.firstOrNull {
+            engine.isLanguageAvailable(it) >= TextToSpeech.LANG_AVAILABLE
+        }
         if (locale == null) {
             status = if (selectedLanguage == "தமிழ்") {
                 "This selected voice engine has no Tamil voice. Choose Tanglish or install a Tamil-capable engine."

@@ -1671,7 +1671,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 "",
             )
             if excerpt:
-                sentence_match = re.search(r"[^.!?]+[.!?]?(?:\\s|$)", excerpt)
+                sentence_match = re.search(r"[^.!?]+[.!?]?(?:\s|$)", excerpt)
                 spoken = sentence_match.group(0).strip() if sentence_match else excerpt
                 spoken = spoken[:500].rsplit(" ", 1)[0] if len(spoken) > 500 else spoken
                 source_ids = [

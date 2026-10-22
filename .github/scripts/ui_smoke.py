@@ -240,6 +240,14 @@ def assert_live(path):
             raise SystemExit("All 1s topic is incorrectly showing square-number content")
     print("PASS: live lesson has inline teaching text, no interactive activity, and concept-matched passive animation")
 
+def exact_color_mask(image, target):
+    """Return a fast Pillow mask for pixels exactly matching an RGB color."""
+    from PIL import Image, ImageChops
+    rgb = image.convert("RGB")
+    difference = ImageChops.difference(rgb, Image.new("RGB", rgb.size, target))
+    return difference.convert("L").point(lambda value: 255 if value == 0 else 0)
+
+
 def assert_highlight_frames(directory):
     try:
         from PIL import Image
@@ -256,14 +264,16 @@ def assert_highlight_frames(directory):
     for frame in frames:
         try:
             image = Image.open(frame).convert("RGB")
-            pixels = image.load()
-            coords = [(x, y) for y in range(image.height) for x in range(image.width) if pixels[x, y] == target]
-            count = len(coords)
+            mask = exact_color_mask(image, target)
+            count = mask.histogram()[255]
             if count > best_count:
                 best_count, best_frame = count, str(frame)
-            # The same lesson text must visibly move its highlight as speech progresses.
-            if count >= 12:
-                centers.append((sum(x for x, _ in coords) / count, sum(y for _, y in coords) / count))
+            # The highlight is a single word-sized region; its bounding-box center
+            # is sufficient to detect movement. Pillow computes the mask/bounds in
+            # optimized native code instead of scanning millions of pixels in Python.
+            bbox = mask.getbbox()
+            if count >= 12 and bbox:
+                centers.append(((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2))
         except Exception as exc:
             print("Skipping unreadable frame", frame, exc)
     distinct_centers = []
@@ -299,11 +309,8 @@ def assert_live_layout(path):
     # bottom of the teaching viewport, above the fixed message composer.
     x1, x2 = int(width * 0.15), int(width * 0.85)
     y1, y2 = int(height * 0.58), int(height * 0.70)
-    count = 0
-    for y in range(y1, y2):
-        for x in range(x1, x2):
-            if image.getpixel((x, y)) == (234, 245, 238):
-                count += 1
+    region = image.crop((x1, y1, x2, y2))
+    count = exact_color_mask(region, (234, 245, 238)).histogram()[255]
     print(f"Live panel lower-viewport background pixels: {count}")
     if count < 500:
         raise SystemExit("Live teaching panel does not fill the available vertical space; a large unused blank area remains below the lesson")

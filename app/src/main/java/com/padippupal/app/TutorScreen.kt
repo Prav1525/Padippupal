@@ -1912,7 +1912,9 @@ internal fun TutorScreen(
                         if (liveVisualAction.isNotBlank()) {
                             Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                         }
-                        if (!awaitingUnderstanding && liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
+                        // Keep the concept animation mounted during the checkpoint; compact it so
+                        // the student can see both the pattern and the response choices together.
+                        if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
                             val topicKey = topic.lowercase(Locale.ROOT)
                             val scene = when {
                                 topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"

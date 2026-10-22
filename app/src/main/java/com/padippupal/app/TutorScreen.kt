@@ -968,7 +968,9 @@ internal fun TutorScreen(
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
-    var nativeWordTiming by remember { mutableStateOf(false) }
+    // Some Android TTS engines emit only an initial onRangeStart callback.
+    // Keep a timestamp so elapsed-time highlighting can take over if callbacks stall.
+    var lastNativeRangeAt by remember { mutableLongStateOf(0L) }
     var hostedWordTimings by remember { mutableStateOf<List<Pair<Long, Long>>>(emptyList()) }
     var liveVisualAction by remember { mutableStateOf("") }
     var liveVisualActionType by remember { mutableStateOf("none") }
@@ -1187,7 +1189,7 @@ internal fun TutorScreen(
                     tutorMainHandler.post {
                         val index = speechWordStarts.indexOfLast { it <= start }.coerceAtLeast(0)
                         liveWordIndex = index
-                        nativeWordTiming = true
+                        lastNativeRangeAt = System.currentTimeMillis()
                     }
                 }
             }
@@ -1243,7 +1245,7 @@ internal fun TutorScreen(
         speechActive = true
         speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
         liveWordIndex = 0
-        nativeWordTiming = false
+        lastNativeRangeAt = 0L
         hostedWordTimings = emptyList()
         speechStartCallback = onStarted ?: { if (liveLessonActive) liveCaption = text }
         speechCompletion = onFinished
@@ -1572,11 +1574,12 @@ internal fun TutorScreen(
         if (itemCount > 0) chatListState.animateScrollToItem(itemCount - 1)
     }
 
-    // Hosted audio has no word timestamps, so align to its real playback position
-    // with word-length and punctuation weighting. Android TTS uses exact onRangeStart
-    // character offsets and must not be overwritten by this fallback loop.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value, nativeWordTiming) {
-        if (!speechActive || !liveLessonActive || liveCaption.isBlank() || nativeWordTiming) {
+    // Hosted audio uses playback position; Android TTS normally supplies exact
+    // character offsets. Some engines emit only one range callback, however, so
+    // keep a weighted elapsed-time fallback ready and use it whenever native ranges
+    // stop arriving. This prevents a single callback freezing the inline highlight.
+    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value) {
+        if (!speechActive || !liveLessonActive || liveCaption.isBlank()) {
             if (!speechActive) liveWordIndex = 0
             return@LaunchedEffect
         }
@@ -1589,7 +1592,7 @@ internal fun TutorScreen(
         }
         val totalWeight = weights.sum().coerceAtLeast(1f)
         var elapsedMs = 0L
-        while (speechActive && liveLessonActive && !nativeWordTiming) {
+        while (speechActive && liveLessonActive) {
             val player = audioPlayer.value
             val duration = if (player != null) runCatching { player.duration }.getOrDefault(0).coerceAtLeast(0) else 0
             val position = if (player != null) runCatching { player.currentPosition }.getOrDefault(0).coerceAtLeast(0).toLong() else elapsedMs
@@ -1610,7 +1613,9 @@ internal fun TutorScreen(
                 }
                 weightedIndex
             }
-            liveWordIndex = index
+            val nativeRangeIsFresh = lastNativeRangeAt > 0L &&
+                System.currentTimeMillis() - lastNativeRangeAt < 900L
+            if (!nativeRangeIsFresh) liveWordIndex = index
             delay(45L)
             elapsedMs += 45L
         }

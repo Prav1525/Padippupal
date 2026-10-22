@@ -212,12 +212,26 @@ def assert_live(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
-    if "teacher is speaking" not in joined and "quick check" not in joined:
-        raise SystemExit("Live lesson did not reach the speaking/checkpoint UI")
-    # The inline caption is ordinary Text now; verify lesson words, not the removed prompt.
+    # The app intentionally exposes progress as "Playing segment N of M" /
+    # "Live lesson · segment N of M"; it never renders the obsolete literal
+    # "teacher is speaking". Validate the real progress + inline lesson content.
+    # Audio/highlight progression is checked independently below, so this
+    # assertion must not mask those checks with a stale accessibility label.
+    has_progress = ("1 / 5" in joined or "segment 1 of 5" in joined or "quick check" in joined)
+    if not has_progress:
+        raise SystemExit("Live lesson is missing its segment progress or understanding checkpoint")
     lesson_words = ("one", "all 1s", "pattern", "number")
     if not any(term in joined for term in lesson_words):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
+    voice_failures = (
+        "no compatible english voice",
+        "this selected voice engine has no tamil voice",
+        "voice playback failed",
+        "voice playback did not start",
+    )
+    failure = next((message for message in voice_failures if message in joined), None)
+    if failure:
+        raise SystemExit("Live lesson cannot speak on the selected voice engine: " + failure)
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
     visible_labels = {text.strip().lower() for text in texts}

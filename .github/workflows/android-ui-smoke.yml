@@ -93,7 +93,7 @@ jobs:
             # the bare Google APIs image has repeatedly exposed no TTS service.
             # Never let a missing engine masquerade as a playback-controls failure.
             adb -s emulator-5554 shell settings delete secure tts_default_synth || true
-            adb -s emulator-5554 shell pm list packages | grep -E 'com\\.google\\.android\\.tts|com\\.android\\.tts' || true
+            adb -s emulator-5554 shell pm list packages | grep -E 'com\.google\.android\.tts|com\.android\.tts' || true
             tts_services="$(adb -s emulator-5554 shell cmd package query-services -a android.intent.action.TTS_SERVICE)"
             printf '%s\n' "$tts_services"
             if ! printf '%s\n' "$tts_services" | grep -q 'com.google.android.tts'; then

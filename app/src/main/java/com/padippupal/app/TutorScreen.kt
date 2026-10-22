@@ -1743,6 +1743,7 @@ internal fun TutorScreen(
 
         }
 
+        if (!liveLessonActive) {
         // The chat owns the flexible space and scrolls independently of the fixed composer.
         LazyColumn(
             state = chatListState,
@@ -1857,6 +1858,64 @@ internal fun TutorScreen(
             }
         }
 
+        }
+
+        if (liveLessonActive) {
+            // Dedicated teaching surface: it owns the remaining height, not a LazyColumn item.
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    color = Color(0xFFEAF5EE),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+                ) {
+                    Column(
+                        Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(7.dp))
+                            Text(if (speechActive) "YOUR TEACHER IS SPEAKING" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else "LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.weight(1f))
+                            Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
+                        }
+                        if (liveCaption.isNotBlank()) {
+                            WordByWordCaption(
+                                liveCaption, speechActive, liveWordIndex,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                expandToAvailableHeight = true
+                            )
+                        } else {
+                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = TutorGreen)
+                            }
+                        }
+                        if (liveVisualAction.isNotBlank()) {
+                            Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
+                        }
+                        if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
+                            val topicKey = topic.lowercase(Locale.ROOT)
+                            val scene = when {
+                                topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                                topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                                else -> "number_pattern"
+                            }
+                            ChapterOneMathAnimation(
+                                scene = scene,
+                                title = topic.ifBlank { "Patterns in Mathematics" },
+                                topic = topic,
+                                caption = "Watch the pattern change automatically as your teacher explains."
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // Fixed checkpoint: never hidden below the scrollable passage.
         if (awaitingUnderstanding && liveLessonActive) {
             Surface(
@@ -1905,13 +1964,14 @@ internal fun TutorScreen(
             }
         }
 
-        if (status.isNotBlank()) {
+        if (!liveLessonActive && status.isNotBlank()) {
             Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)
         }
-        if (lastSources.isNotEmpty()) {
+        if (!liveLessonActive && lastSources.isNotEmpty()) {
             Text("Textbook sources · " + lastSources.joinToString { it.title }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGreen, fontSize = 10.sp, maxLines = 1)
         }
 
+        if (!liveLessonActive) {
         // Fixed composer: independent from chat scrolling and responsive to the IME.
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -1957,6 +2017,7 @@ internal fun TutorScreen(
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = TutorGreen, contentColor = Color.White)
                 ) { Icon(Icons.Default.Send, contentDescription = "Send question") }
             }
+        }
         }
     }
 }

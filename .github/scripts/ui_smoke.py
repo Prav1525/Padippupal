@@ -34,15 +34,13 @@ def assert_tutor(path):
     expected_any = ("chapter", "math", "tutor", "lesson", "ask", "subject", "class", "english", "tamil", "topic")
     if not any(term in joined.lower() for term in expected_any):
         raise SystemExit("Tutor screen has no recognizable tutor/lesson/chapter labels")
-    feedback = ("How did that explanation feel?", "I understand", "Explain again", "Ask")
-    missing = [term for term in feedback if term.lower() not in joined.lower()]
-    if missing:
-        raise SystemExit("Tutor feedback controls are missing: " + ", ".join(missing))
-    print("PASS: tutor screen and all three explanation-feedback controls are accessible")
+    # Feedback controls belong to a completed chat answer or live checkpoint,
+    # not the READY/settings screen.
+    print("PASS: tutor ready screen is accessible; feedback is tested in its actual UI state")
 
 def assert_checkpoint(path, screenshot_path=None):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     print("CHECKPOINT TEXT:", " | ".join(texts[:120]))
     required = ("quick check", "i understand", "explain again", "i have a question", "watch the pattern")
     missing = [label for label in required if label not in joined]

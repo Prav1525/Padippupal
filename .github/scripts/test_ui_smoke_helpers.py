@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import concept_candidates, exact_color_mask, tap_exact
+from ui_smoke import concept_candidates, exact_color_mask, exact_text_candidates
 
 
 
@@ -17,10 +17,8 @@ class ExactSelectorTests(unittest.TestCase):
           <node text="▶ Teach" bounds="[200,0][300,80]" clickable="false"/>
           <node text="▶ Teach" bounds="[190,0][310,90]" clickable="true"/>
         </hierarchy>""")
-        nodes, texts = [], []
-        # The exact selector only considers nodes whose normalized label is Teach.
-        candidates = [n for n in root.iter("node")
-                      if n.attrib.get("text", "").strip().lower().lstrip("▶").strip() == "teach"]
+        # The production helper must reject longer chat text containing "teacher".
+        candidates = exact_text_candidates(list(root.iter("node")), "▶ Teach")
         self.assertEqual(len(candidates), 2)
         selected = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
         self.assertEqual(selected.attrib["bounds"], "[190,0][310,90]")

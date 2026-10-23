@@ -191,11 +191,11 @@ for attempt in $(seq 1 50); do
   timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
   if [ -s live-lesson.xml ]; then
-    if grep -Eqi "Live lesson · segment|segment [0-9]+ of [0-9]+|[0-9]+[[:space:]]*/[[:space:]]*[0-9]+|Quick check|check your understanding|does that make sense so far" live-lesson.xml; then
+    if python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml >/dev/null 2>&1; then
       lesson_started=1
       break
     fi
-    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s" live-lesson.xml; then
+    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s|too short to explain the selected topic" live-lesson.xml; then
       FAILURE_CLASS="APP_FAILURE"
       log "FAIL: tutor API returned an explicit lesson-start error"
       cat live-lesson.xml | tee -a "$REPORT"

@@ -1923,10 +1923,10 @@ internal fun TutorScreen(
             }
             Spacer(Modifier.width(6.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                Text("PadippuPal", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                Text("PadippuPal", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
                 Text(
                     if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "CLASS $grade  ·  $board",
-                    fontSize = 8.sp, color = TutorMutedOnNight, maxLines = 1
+                    fontSize = 11.sp, color = TutorMutedOnNight, maxLines = 1
                 )
             }
             if (liveLessonActive) {
@@ -1936,7 +1936,7 @@ internal fun TutorScreen(
                     }
                 }
                 TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
-                    Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                    Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 }
             } else {
                 TextButton(onClick = { showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)) {
@@ -2074,7 +2074,7 @@ internal fun TutorScreen(
                             if (message.role == "assistant" && message.content == liveCaption && speechActive && !liveLessonActive) {
                                 WordByWordCaption(liveCaption, speechActive && speechPlaybackObserved, liveWordIndex)
                             } else {
-                                Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
+                                Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 16.sp, lineHeight = 24.sp)
                             }
                             if (message.role == "assistant") {
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
@@ -2132,21 +2132,21 @@ internal fun TutorScreen(
                 Column(
                     modifier = Modifier.fillMaxWidth()
                         .heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)
-                        .padding(horizontal = 18.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
                         .verticalScroll(liveLessonScrollState),
-                    verticalArrangement = Arrangement.spacedBy(if (awaitingUnderstanding) 16.dp else 12.dp)
+                    verticalArrangement = Arrangement.spacedBy(if (awaitingUnderstanding) 10.dp else 12.dp)
                 ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(7.dp))
-                    Text(if (liveLessonComplete) "TOPIC COMPLETE" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else if (speechActive) "YOUR TEACHER IS SPEAKING" else "YOUR LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(if (liveLessonComplete) "TOPIC COMPLETE" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else if (speechActive) "YOUR TEACHER IS SPEAKING" else "YOUR LESSON", color = TutorGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                     if (livePaused) Text("Paused", color = TutorGrey, fontSize = 11.sp)
                 }
                 // Preserve previously taught modules in this same lesson flow.
                 for (pastIndex in 0 until liveSegmentIndex.coerceAtMost(liveSegments.size)) {
                     val pastText = liveSegments.getOrNull(pastIndex)?.optString("spoken_text").orEmpty()
-                    if (pastText.isNotBlank()) Text(pastText, modifier = Modifier.fillMaxWidth(), color = TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
+                    if (pastText.isNotBlank()) Text(pastText, modifier = Modifier.fillMaxWidth(), color = TutorDeep, fontSize = 16.sp, lineHeight = 24.sp)
                 }
                 if (liveCaption.isNotBlank()) {
                     WordByWordCaption(liveCaption, speechActive && speechPlaybackObserved, liveWordIndex, modifier = Modifier.fillMaxWidth().wrapContentHeight(), expandToAvailableHeight = false)
@@ -2169,7 +2169,7 @@ internal fun TutorScreen(
         }
         if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete) {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 24.sp)
+                        Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, lineHeight = 26.sp)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Button(
                                 onClick = {

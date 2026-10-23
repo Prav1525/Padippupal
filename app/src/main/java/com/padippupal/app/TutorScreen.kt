@@ -2033,7 +2033,7 @@ internal fun TutorScreen(
                             Modifier.size(64.dp).background(TutorAccentSoft, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.MenuBook, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(30.dp))
+                            Text("📘", fontSize = 30.sp)
                         }
                         Text("Your next idea starts here", color = TutorDeep, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         Text(

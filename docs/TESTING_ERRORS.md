@@ -97,3 +97,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Added a unit test for duplicated speech/caption transition text while retaining the negative generic-later-segment and forbidden-content cases.
 - **Evidence:** Validator/test commits `a90fbbf6959b04360b107f9298cc0f3e2b7787af` and `abd8d17eb3662152ca502e4568aae5551ecc5b56`; final CI run evidence pending.
 - **Status:** **Implemented; verification pending.**
+
+
+### TE-008 — Supporting language was incorrectly counted as an explicit topic signal
+- **Date discovered:** 2026-10-23
+- **Area:** Android All 1s topic validator and pre-emulator JVM gate.
+- **Symptom/failure:** UI smoke run [39891634599](https://github.com/Prav1525/Padippupal/actions/runs/39891634599) failed in `AllOnesTopicValidatorTest.rejectsAnOtherwiseSupportingSequenceWithoutAnExplicitTopicSignal` before allocating/starting the emulator. The assertion expected a supporting-only lesson to be rejected for lacking an explicit topic signal.
+- **Root cause:** The Android `relevant` regex included broad explanatory phrases such as `stays the same` and `same number`. In particular, “A pattern can stay the same without increasing” matched both the supporting-expression rule and the explicit-topic rule, so the validator incorrectly treated a generic supporting explanation as proof that the lesson was specifically about All 1s.
+- **Why it escaped:** The test checked the expected failure reason, but the topic-signal regex was not reviewed independently from the supporting-language regex. The APK compilation could pass despite this semantic validation bug.
+- **Corrective action:** Removed generic sameness phrases from the explicit-topic regex; they remain eligible as supporting explanations but cannot establish topic identity on their own.
+- **Regression protection:** Strengthened the test to cover both “stay the same without increasing” and “repeat without increasing or decreasing” as supporting-only text that must not satisfy the explicit-topic requirement. Preserve the valid All 1s positive case and generic/off-topic rejection cases.
+- **Evidence:** Failing run [39891634599](https://github.com/Prav1525/Padippupal/actions/runs/39891634599), initial fix commit `49dac4ca02e6e0b6486fef609470458fc6992802`, regression test commit `928aad86a79f224f97a251d7d2ec63dd90002e37`. Verification on the latest PR head is pending.
+- **Status:** **Root cause confirmed; code and regression test committed; verification pending.** Keep PR #13 unmerged until the JVM tests and full emulator flow pass on the latest commit.

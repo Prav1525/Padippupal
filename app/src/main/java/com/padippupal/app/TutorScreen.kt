@@ -2083,7 +2083,7 @@ internal fun TutorScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(7.dp))
-                    Text(if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else if (speechActive) "YOUR TEACHER IS SPEAKING" else "YOUR LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(if (liveLessonComplete) "TOPIC COMPLETE" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else if (speechActive) "YOUR TEACHER IS SPEAKING" else "YOUR LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                     if (livePaused) Text("Paused", color = TutorGrey, fontSize = 11.sp)
                 }

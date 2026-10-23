@@ -315,3 +315,17 @@ class SpeechPlaybackLeadRegressionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TutorIdleStateRegressionTests(unittest.TestCase):
+    def test_unselected_tutor_has_compact_lesson_picker_instead_of_greeting_and_composer(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        idle_start = tutor.index('if (!liveLessonActive && !showLessonSettings) {')
+        idle_end = tutor.index('if (liveLessonActive) {', idle_start)
+        idle = tutor[idle_start:idle_end]
+        self.assertIn('if (chapter.isBlank() && topic.isBlank())', idle)
+        self.assertIn('Text("Your next idea starts here"', idle)
+        self.assertIn('Text("Choose a lesson"', idle)
+        self.assertNotIn('LazyColumn(', idle[:idle.index('} else {')])
+        self.assertIn('if (!showLessonSettings && !liveLessonActive && (chapter.isNotBlank() || topic.isNotBlank()))', tutor)
+

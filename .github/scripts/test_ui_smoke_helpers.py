@@ -180,9 +180,13 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("modifier.fillMaxWidth().wrapContentHeight()", tutor)
         self.assertNotIn("heightIn(min = 64.dp, max = 108.dp)", tutor)
         self.assertNotIn("Visual focus ·", tutor)
-        # The checkpoint lesson area must consume viewport space and center its content.
+        # The parent fills the viewport but top-aligns the compact teaching group.
+        # Centering a short group vertically reproduces the giant blank bands in the screenshot.
         self.assertIn("modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)", tutor)
-        self.assertIn("verticalArrangement = if (awaitingUnderstanding) Arrangement.Center else Arrangement.spacedBy(8.dp)", tutor)
+        live_layout = tutor[tutor.index("// One continuous teaching canvas"):tutor.index('if (!liveLessonActive && status.isNotBlank())')]
+        self.assertIn("verticalArrangement = Arrangement.spacedBy(8.dp)", live_layout)
+        self.assertNotIn("Arrangement.Center", live_layout)
+        self.assertIn('Text("I have a question", color = TutorGreen)', live_layout)
         self.assertNotIn("if (liveVisualAction.isNotBlank()) {\n                        }", tutor)
         # Word highlighting still auto-scrolls during active speech.
         self.assertIn("scrollState.animateScrollTo(target)", tutor)

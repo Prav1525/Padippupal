@@ -1688,7 +1688,15 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                     if str(item.get("source", {}).get("chunk_id", ""))
                     and str(item.get("text", "")).strip() == excerpt
                 ]
-                if spoken and source_ids:
+                fallback_segment = {
+                    "spoken_text": spoken,
+                    "caption_text": spoken,
+                    "visual_action": {"type": "none", "target": "", "value": ""},
+                }
+                # Provider-error fallback is still a teaching path: it must pass
+                # exactly the same topic gate as generated and approved lessons.
+                fallback_matches_topic = _lesson_segments_match_topic(payload.topic, [fallback_segment])
+                if spoken and source_ids and fallback_matches_topic:
                     logger.warning(
                         "Starting source-extract lesson fallback after Gemini failure status=%s topic=%s",
                         exc.code, payload.topic,

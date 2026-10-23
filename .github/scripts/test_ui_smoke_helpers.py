@@ -6,7 +6,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import (assert_composer_question, concept_candidates, exact_color_mask,\n                       exact_text_candidates, tap, tap_input)
+from ui_smoke import (assert_composer_question, concept_candidates, exact_color_mask,
+                       exact_text_candidates, tap, tap_input)
 
 
 

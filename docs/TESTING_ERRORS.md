@@ -276,3 +276,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep the explicit Send tap and require the follow-up assertion to observe both the submitted question and a tutor answer; inspect the follow-up XML artifact on any failure.
 - **Evidence:** UI smoke run [39908839302](https://github.com/Prav1525/Padippupal/actions/runs/39908839302); test correction commit `1014f6d8ac0f55eef047027ba9d5f21d205ee2d2`.
 - **Status:** **Test-harness root cause strongly indicated by captured XML; correction committed, rerun pending.** This does not yet prove app follow-up behavior passes.
+
+
+### TE-016 — Follow-up Send selector ignored Compose content descriptions
+- **Date discovered:** 2026-10-23
+- **Area:** Android emulator follow-up smoke / accessibility selector helper.
+- **Symptom/failure:** UI smoke run [39908839302](https://github.com/Prav1525/Padippupal/actions/runs/39908839302) showed the typed question still inside the multiline composer and no user-message bubble or tutor reply. The captured accessibility tree exposes the Send control with `content-desc="Send question"` while its `text` attribute is empty.
+- **Root cause:** The smoke selector helper matched only XML `text` attributes and ignored `content-desc`, so it could not reliably locate the accessible Send button in this Compose layout. The prior fix had changed the flow to tap Send but had not made the selector helper understand the control's actual accessibility representation.
+- **Why it escaped:** Existing selector unit tests covered exact visible text and clickable Compose rows, but not controls represented only by accessibility content descriptions. The script's failure evidence was not checked against the selector's supported attributes.
+- **Corrective action:** Updated the UI smoke selector to match either visible text or content descriptions, and added focused regression tests for exact content-description matching and tap-selector support. Separately, removed contradictory legacy backend prompt instructions that forced a single small step and 20–45-word reply, replacing them with one coherent complete-topic lesson contract.
+- **Regression protection:** Run `python3 .github/scripts/test_ui_smoke_helpers.py`; the test now checks Send control content descriptions and verifies the backend prompt has no legacy short-step/forced-checkpoint rule. The emulator assertion must observe both the submitted follow-up question and its tutor answer; never loosen this assertion.
+- **Evidence:** Failing run [39908839302](https://github.com/Prav1525/Padippupal/actions/runs/39908839302); captured `follow-up.xml` in artifact `padippupal-emulator-ui` (artifact ID `12482332532`). Fix commits begin at `0eb17d22a20e6c4a2094dfd722c388bbfe23f056`; final combined commit and rerun are pending.
+- **Status:** **Root cause confirmed from the captured accessibility tree; fix and regression coverage committed to the PR branch, verification pending.** Keep PR #17 open.

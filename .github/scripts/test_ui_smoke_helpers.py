@@ -169,9 +169,6 @@ class RetryIsolationTests(unittest.TestCase):
         self.assertLess(script.index(session_reset), setup)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class CheckpointLayoutRegressionTests(unittest.TestCase):
     def test_checkpoint_caption_wraps_naturally_without_debug_visual_focus_row(self):
@@ -196,3 +193,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         # Word highlighting still auto-scrolls during active speech.
         self.assertIn("scrollState.animateScrollTo(target)", tutor)
         self.assertIn("if (active && layout != null && words.isNotEmpty())", tutor)
+
+
+if __name__ == "__main__":
+    unittest.main()

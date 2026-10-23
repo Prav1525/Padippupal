@@ -244,5 +244,16 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("Page-style segment progress reappeared", helpers)
 
 
+class VoicePreparationStatusRegressionTests(unittest.TestCase):
+    def test_hosted_voice_request_sets_preparation_status_before_network_work(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        speak = tutor[tutor.index("fun speak(text: String"):tutor.index("fun playLiveSegment(index: Int)")]
+        preparation = speak.index('status = "Preparing natural voice…"')
+        request = speak.index('val audioFile = File(context.cacheDir, "padippupal-voice-')
+        self.assertLess(preparation, request)
+        self.assertIn('status = "Speaking with Gemini natural voice."', tutor)
+        self.assertIn('status = "Natural voice unavailable; using this phone\'s TTS engine."', tutor)
+
 if __name__ == "__main__":
     unittest.main()

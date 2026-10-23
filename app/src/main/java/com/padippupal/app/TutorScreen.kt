@@ -1628,9 +1628,16 @@ internal fun TutorScreen(
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
                 require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
+                val allOnesTopic = topic.equals("All 1s", ignoreCase = true) ||
+                    topic.equals("All ones", ignoreCase = true) ||
+                    topic.equals("All one's", ignoreCase = true)
+                val topicGuardrail = if (allOnesTopic) {
+                    " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
+                } else ""
+                val lessonPrompt = "Teach this as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Split the explanation into small modules, one idea per module. Each module should use only 2-3 short spoken sentences, simple child-friendly language, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
-                    .put("message", "Teach this as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Split the explanation into small modules, one idea per module. Each module should use only 2-3 short spoken sentences, simple child-friendly language, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages.").put("max_segments", 5)
+                    .put("message", lessonPrompt).put("max_segments", 5)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
                 // The backend may retry Gemini once after schema validation; its two 45s
                 // upstream attempts can exceed 50s in total. Keep the UI waiting for the
@@ -1675,16 +1682,21 @@ internal fun TutorScreen(
                             (segment.optString("spoken_text") + " " +
                                 segment.optString("caption_text")).trim()
                         }
-                        val invalid = spokenSegments.any { forbidden.containsMatchIn(it) } ||
-                            spokenSegments.any {
-                                !relevant.containsMatchIn(it) &&
-                                    !supporting.containsMatchIn(it) &&
-                                    !neutralTransition.matches(it)
-                            } ||
-                            spokenSegments.none { relevant.containsMatchIn(it) }
-                        if (invalid) {
+                        val invalidSegments = spokenSegments.mapIndexedNotNull { index, text ->
+                            when {
+                                forbidden.containsMatchIn(text) -> "segment ${index + 1}: forbidden/off-topic content"
+                                !relevant.containsMatchIn(text) &&
+                                    !supporting.containsMatchIn(text) &&
+                                    !neutralTransition.matches(text) -> "segment ${index + 1}: no All 1s explanation or approved short transition"
+                                else -> null
+                            }
+                        }
+                        val hasRelevantSpeech = spokenSegments.any { relevant.containsMatchIn(it) }
+                        if (invalidSegments.isNotEmpty() || !hasRelevantSpeech) {
+                            val reasons = (invalidSegments + if (!hasRelevantSpeech) listOf("no segment explicitly identifies the repeated-one topic") else emptyList())
+                                .distinct().joinToString("; ")
                             throw IllegalStateException(
-                                "The lesson content did not stay on All 1s. Please try again; no incorrect lesson was started."
+                                "The lesson content did not stay on All 1s ($reasons). Please try again; no incorrect lesson was started."
                             )
                         }
                     }

@@ -1586,7 +1586,7 @@ internal fun TutorScreen(
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
-        status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
+        status = "Preparing the next part of your lesson…"
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
         // Publish the segment before starting audio. Hosted audio can finish or fall
@@ -1599,7 +1599,7 @@ internal fun TutorScreen(
         liveVisualActionType = action?.optString("type", "none") ?: "none"
         liveVisualTarget = action?.optString("target", "").orEmpty()
         liveSegmentIndex = index
-        status = "Playing segment ${index + 1} of ${liveSegments.size}…"
+        status = "Your lesson is starting…"
         speak(words, onStarted = {
             // Audio has actually started: keep the exact same segment caption so
             // inline highlighting follows the spoken words rather than a separate overlay.
@@ -1609,7 +1609,7 @@ internal fun TutorScreen(
             liveVisualActionType = action?.optString("type", "none") ?: "none"
             liveVisualTarget = action?.optString("target", "").orEmpty()
             liveSegmentIndex = index
-            status = "Live lesson · segment ${index + 1} of ${liveSegments.size}"
+            status = "Your teacher is explaining this topic."
         }) {
             if (!liveLessonActive) return@speak
             if (currentCheckpoint.isNotBlank()) {
@@ -1636,10 +1636,10 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach this as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Split the explanation into small modules, one idea per module. Each module should use only 2-3 short spoken sentences, simple child-friendly language, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages." + topicGuardrail
+                val lessonPrompt = "Teach this topic fully as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Explain the whole selected topic from beginning to end in small modules, one idea per module, and keep every module in the same continuous lesson flow. Cover the core idea, how it works, useful examples, a common confusion where relevant, and a short recap; do not stop after an introductory example or treat the module list as separate pages. Use simple child-friendly language, 2-3 short spoken sentences per module, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
-                    .put("message", lessonPrompt).put("max_segments", 5)
+                    .put("message", lessonPrompt).put("max_segments", 8)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
                 // The backend may retry Gemini once after schema validation; its two 45s
                 // upstream attempts can exceed 50s in total. Keep the UI waiting for the
@@ -1815,6 +1815,7 @@ internal fun TutorScreen(
     }
 
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val liveLessonScrollState = rememberScrollState()
     LaunchedEffect(messages.size, loading, liveLessonActive) {
         // The live-teaching panel occupies list index 0 while it is visible.
         val livePanelOffset = if (liveCaption.isNotBlank() || liveLessonActive) 1 else 0
@@ -1875,10 +1876,15 @@ internal fun TutorScreen(
             elapsedMs += 45L
         }
     }
+    LaunchedEffect(liveSegmentIndex, liveLessonActive) {
+        if (liveLessonActive) {
+            delay(80L)
+            liveLessonScrollState.animateScrollTo(liveLessonScrollState.maxValue)
+        }
+    }
+
     LaunchedEffect(liveCaption, speechActive, awaitingUnderstanding, liveLessonActive, liveWordIndex) {
-        if (liveLessonActive && (liveCaption.isNotBlank() || awaitingUnderstanding)) {
-            chatListState.animateScrollToItem(0)
-        } else if (!liveLessonActive && liveCaption.isNotBlank() && speechActive) {
+        if (!liveLessonActive && liveCaption.isNotBlank() && speechActive) {
             chatListState.animateScrollToItem(messages.lastIndex.coerceAtLeast(0))
         }
     }
@@ -1999,46 +2005,6 @@ internal fun TutorScreen(
             verticalArrangement = Arrangement.spacedBy(9.dp),
             contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp)
         ) {
-            if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
-                item(key = "live-teaching-passage") {
-                    Surface(
-                        Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 390.dp),
-                        color = Color(0xFFF8FAFC), shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFDCE3ED))
-                    ) {
-                        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LAST SPOKEN SEGMENT", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.weight(1f))
-                                if (liveLessonActive) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
-                            }
-                            if (liveCaption.isNotBlank()) {
-                                WordByWordCaption(
-                                    liveCaption, speechActive, liveWordIndex,
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp, max = 170.dp),
-                                    expandToAvailableHeight = false
-                                )
-                            }
-                                                        if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
-                                val topicKey = topic.lowercase(Locale.ROOT)
-                                val scene = when {
-                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
-                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
-                                    else -> "number_pattern"
-                                }
-                                ChapterOneMathAnimation(
-                                    scene = scene,
-                                    title = topic.ifBlank { "Patterns in Mathematics" },
-                                    topic = topic,
-                                    caption = "Watch the pattern change automatically as your teacher explains."
-                                )
-                            }
-                        }
-                    }
-                }
-            }
             if (!liveLessonActive) items(messages) { message ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (message.role == "user") Arrangement.End else Arrangement.Start) {
                     Surface(
@@ -2108,109 +2074,70 @@ internal fun TutorScreen(
         }
 
         if (liveLessonActive) {
-            // One continuous teaching canvas: no inset green card or floating lesson overlay.
+            // One continuous, scrollable lesson transcript. New modules append below the earlier explanation.
             Column(
-                // Keep the teaching flow anchored near the top; centering a short checkpoint
-                // group vertically creates large, misleading blank bands above and below it.
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp).verticalScroll(liveLessonScrollState),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    // Keep the caption and concept animation close together. Only
-                    // the combined teaching area receives flexible vertical space.
-                    modifier = (if (awaitingUnderstanding) Modifier else Modifier.weight(1f)).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(7.dp))
-                            Text(if (speechActive) "YOUR TEACHER IS SPEAKING" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else "LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.weight(1f))
-                            Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
-                        }
-                        if (liveCaption.isNotBlank()) {
-                            WordByWordCaption(
-                                liveCaption, speechActive, liveWordIndex,
-                                // At checkpoints, don't let the caption consume all remaining height:
-                                // the compact concept animation and fixed answer card must stay visible.
-                                modifier = if (awaitingUnderstanding) {
-                                    Modifier.fillMaxWidth().wrapContentHeight()
-                                } else {
-                                    Modifier.weight(1f).fillMaxWidth()
-                                },
-                                expandToAvailableHeight = !awaitingUnderstanding
-                            )
-                        } else {
-                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = TutorGreen)
-                            }
-                        }
-                        // Keep the concept animation mounted during the checkpoint; compact it so
-                        // the student can see both the pattern and the response choices together.
-                        if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
-                            val topicKey = topic.lowercase(Locale.ROOT)
-                            val scene = when {
-                                topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
-                                topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
-                                else -> "number_pattern"
-                            }
-                            ChapterOneMathAnimation(
-                                scene = scene,
-                                title = topic.ifBlank { "Patterns in Mathematics" },
-                                topic = topic,
-                                caption = "Watch the pattern change automatically as your teacher explains.",
-                                compact = awaitingUnderstanding
-                            )
-                        }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(7.dp))
+                    Text(if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else if (speechActive) "YOUR TEACHER IS SPEAKING" else "YOUR LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.weight(1f))
+                    if (livePaused) Text("Paused", color = TutorGrey, fontSize = 11.sp)
+                }
+                // Preserve previously taught modules in this same lesson flow.
+                for (pastIndex in 0 until liveSegmentIndex.coerceAtMost(liveSegments.size)) {
+                    val pastText = liveSegments.getOrNull(pastIndex)?.optString("spoken_text").orEmpty()
+                    if (pastText.isNotBlank()) Text(pastText, modifier = Modifier.fillMaxWidth(), color = TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
+                }
+                if (liveCaption.isNotBlank()) {
+                    WordByWordCaption(liveCaption, speechActive, liveWordIndex, modifier = Modifier.fillMaxWidth().wrapContentHeight(), expandToAvailableHeight = false)
+                } else { CircularProgressIndicator(color = TutorGreen) }
+                // The animation is part of the explanation flow, never a separate overlay.
+                if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
+                    val topicKey = topic.lowercase(Locale.ROOT)
+                    val scene = when {
+                        topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                        topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                        else -> "number_pattern"
                     }
-                // Keep checkpoint choices inside the same centered teaching group.
+                    ChapterOneMathAnimation(scene = scene, title = topic.ifBlank { "Patterns in Mathematics" }, topic = topic, caption = "Watch the pattern change automatically as your teacher explains.")
+                }
                 if (awaitingUnderstanding) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        val nextIndex = liveSegmentIndex + 1
-                        awaitingUnderstanding = false
-                        currentCheckpoint = ""
-                        livePaused = false
-                        status = "Great! Let’s take the next small step."
-                        tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
-                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand", maxLines = 1) }
-                    OutlinedButton(onClick = {
-                        awaitingUnderstanding = false
-                        val segment = liveSegments.getOrNull(liveSegmentIndex)
-                        if (segment != null) {
-                            val original = segment.optString("spoken_text")
-                            speak("That is okay. Let me explain it more simply. " + original, onStarted = {
-                                liveCaption = "Let me explain it more simply. " + original
-                                liveWordIndex = 0
-                            }) {
-                                awaitingUnderstanding = true
-                                currentCheckpoint = "Was that explanation clearer?"
-                                status = "Tell your teacher whether that helped."
-                            }
-                        } else {
-                            awaitingUnderstanding = true
+                    Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = {
+                                val nextIndex = liveSegmentIndex + 1
+                                awaitingUnderstanding = false
+                                currentCheckpoint = ""
+                                livePaused = false
+                                status = "Great! Let's take the next part of the lesson."
+                                tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
+                            }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand", maxLines = 1) }
+                            OutlinedButton(onClick = {
+                                awaitingUnderstanding = false
+                                val segment = liveSegments.getOrNull(liveSegmentIndex)
+                                if (segment != null) {
+                                    val original = segment.optString("spoken_text")
+                                    speak("That is okay. Let me explain it more simply. " + original, onStarted = { liveCaption = "Let me explain it more simply. " + original; liveWordIndex = 0 }) {
+                                        awaitingUnderstanding = true
+                                        currentCheckpoint = "Was that explanation clearer?"
+                                        status = "Tell your teacher whether that helped."
+                                    }
+                                } else { awaitingUnderstanding = true }
+                            }, modifier = Modifier.weight(1f)) { Text("Explain again", maxLines = 1) }
                         }
-                    }, modifier = Modifier.weight(1f)) { Text("Explain again", maxLines = 1) }
-                }
-                TextButton(
-                    onClick = {
-                        input = "I have a question about this part: " + currentCheckpoint
-                        stopLiveLesson()
-                        status = "Your question is ready below. Send it and I’ll explain this part."
-                    },
-                    modifier = Modifier.align(Alignment.End)
-                ) { Text("I have a question", color = TutorGreen) }
+                        TextButton(onClick = {
+                            input = "I have a question about this part: " + currentCheckpoint
+                            stopLiveLesson()
+                            status = "Your question is ready below. Send it and I’ll explain this part."
+                        }, modifier = Modifier.align(Alignment.End)) { Text("I have a question", color = TutorGreen) }
                     }
                 }
-
             }
         }
-
         if (!liveLessonActive && status.isNotBlank()) {
             Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)
         }

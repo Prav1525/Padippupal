@@ -216,7 +216,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertNotIn("heightIn(min = 64.dp, max = 108.dp)", tutor)
         self.assertNotIn("Visual focus ·", tutor)
         # The lesson must be a continuous scrollable transcript, not a compact page.
-        live_layout = tutor[tutor.index("// One continuous, scrollable lesson transcript"):tutor.index('if (!liveLessonActive && status.isNotBlank())')]
+        live_layout = tutor[tutor.index("Column(\n                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp).verticalScroll(liveLessonScrollState)"):tutor.index('if (!liveLessonActive && status.isNotBlank())')]
         self.assertIn(".verticalScroll(liveLessonScrollState)", live_layout)
         self.assertIn("for (pastIndex in 0 until liveSegmentIndex.coerceAtMost(liveSegments.size))", live_layout)
         self.assertIn("WordByWordCaption(liveCaption, speechActive && speechPlaybackObserved, liveWordIndex", live_layout)

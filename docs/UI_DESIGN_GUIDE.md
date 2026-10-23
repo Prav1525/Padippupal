@@ -95,3 +95,57 @@ Before changing a screen:
 - All relevant states and interactions still work.
 - Fresh screenshots from the exact candidate commit have been inspected.
 - Required automated tests pass, failures are recorded, and the PR remains open until all acceptance criteria pass.
+
+
+## Visual taste and art direction — beyond alignment
+
+Good-looking UI is not achieved by aligning every element and choosing a nice font. It comes from the combined feeling of composition, visual weight, rhythm, restraint, material, color, shape, and the product's personality. Review the screen as a whole at first glance, then inspect individual details.
+
+### Lessons from product-design practice
+
+- **Make the content the hero.** YouTube's design team explicitly describes reducing clutter, removing redundant actions and keeping the content central. For PadippuPal, the lesson sentence and its concept visual are the hero; controls should support teaching without competing for attention. See [YouTube's five design principles](https://blog.youtube/inside-youtube/design-principles-use-put-creators-center-stage/).
+- **Create one coherent visual voice.** Use a deliberate palette, repeatable typography, consistent icon style, and related corner radii. Do not make every component look individually fashionable; the screen should feel like one designed product.
+- **Use contrast to create composition.** Decide what should be noticed first, second and third. Reserve the strongest contrast, largest type, richest color and most prominent surface for the current learning task or primary action. If everything is bold, colorful, elevated or oversized, nothing is important.
+- **Use whitespace with intention.** Empty space is useful when it separates groups, gives a focal point room, or improves reading. It is a defect when it leaves the lesson stranded in a corner or separates the animation from the checkpoint with no purpose. Judge the balance of the whole screen, not padding values in isolation.
+- **Design a recognizable personality.** PadippuPal should feel calm, encouraging, intelligent and teacher-like—not like a generic dashboard, a game lobby, a corporate admin tool, or a collection of cards. Use warmth through tone, subtle color, friendly shapes and carefully chosen illustrations, rather than emoji overload or decorative clutter.
+- **Treat shape as a system.** Buttons, containers, icons and illustrations should share a consistent geometry. Larger nested surfaces may use larger radii; small controls should not be rounded randomly. Use shadows and borders only when they clarify grouping or depth.
+- **Use color semantically and sparingly.** A neutral canvas allows lesson text and the active highlight to stand out. Accent color should signal interaction, current focus, or meaningful state—not decorate every surface. Gradients and ambient effects are optional art direction, never a substitute for hierarchy.
+- **Make illustrations feel art-directed.** Keep line weight, perspective, scale, palette and level of detail consistent. A teaching animation must be visually related to the concept and integrated with the spoken explanation. Avoid mixing unrelated clip-art, emoji, stock icons and illustration styles on one screen.
+- **Motion needs choreography.** Use motion to show cause and effect, focus attention, or make a state change understandable. Keep transitions short and subtle, and never let motion delay speech or cause the highlight to get ahead of the voice.
+- **Polish is cumulative.** Review small details together: baseline alignment, icon optical centering, button label balance, text wrapping, edge spacing, selected/disabled states, separators, animation pacing and system-bar insets. A handful of coherent refinements beats a pile of effects.
+
+### Aesthetic review ritual
+
+Before approving a screen, do these passes in order:
+
+1. **Three-second glance:** Without reading details, can a person immediately tell what this screen is for and where to look first?
+2. **Silhouette and balance:** Squint or view a small screenshot. Are the visual masses balanced? Is the focal content centered in the usable area, or is one region unexpectedly empty/heavy?
+3. **Hierarchy in grayscale:** Temporarily judge the screen without relying on color. Are size, weight, spacing and placement enough to communicate priority?
+4. **Color discipline:** Is the accent color scarce and meaningful? Are there too many competing surfaces, borders, shadows or saturated elements?
+5. **Typography and rhythm:** Do headings, body text and labels have distinct roles? Is spacing consistent, and are related items visibly grouped?
+6. **Personality and coherence:** Does the interface feel warm, calm and distinctive to PadippuPal? Do icons, illustrations, controls and animation belong to the same visual language?
+7. **Real-device check:** Inspect the actual screenshot at normal phone size. Check long topic names, Tamil/Tanglish text, large font settings, system bars and the keyboard. Do not approve based only on a zoomed-in emulator or source code.
+8. **Function check:** Confirm visual polish has not hidden essential actions, weakened touch targets, interrupted teaching or made state unclear.
+
+### YouTube study queue
+
+Use YouTube videos as visual-analysis exercises, not as templates to copy blindly. Search links are intentional so the team can choose currently available uploads and compare multiple explanations:
+
+- [Steve Schoger — Refactoring UI design talk](https://www.youtube.com/results?search_query=Steve+Schoger+Refactoring+UI+design+talk): observe before/after transformations and note how hierarchy, contrast, spacing, shadows and surface treatment work together.
+- [Steve Schoger — How to Think Like a Visual Designer](https://www.youtube.com/results?search_query=Steve+Schoger+How+to+Think+Like+a+Visual+Designer): practise explaining *why* a screen looks weak before choosing a fix.
+- [Mobile app UI/UX design critiques and audits](https://www.youtube.com/results?search_query=mobile+app+UI+UX+design+critique+visual+hierarchy+typography): pause before the reviewer reveals changes; write down the three most important problems first.
+- [Mobile app art direction, color and typography](https://www.youtube.com/results?search_query=mobile+app+visual+design+art+direction+color+typography): compare restrained, content-first designs with decorative, high-noise designs.
+- [Material 3 Compose design system](https://developer.android.com/develop/ui/compose/designsystems/material3): use this as the implementation reference after learning from visual examples.
+
+For each useful video, extract a transferable principle and test it against PadippuPal's learning goals. Do not copy another app's palette, layout, gradients or trendy effects simply because they look attractive. A visual idea is accepted only if it improves clarity, calmness, lesson focus, accessibility and consistency on the real device.
+
+### Design decision record
+
+When a substantial aesthetic change is made, briefly record in the PR description or relevant project notes:
+- the visual problem observed in the real screenshot;
+- the intended mood and hierarchy;
+- the design principle applied and why;
+- the states and device sizes inspected;
+- the screenshot/test evidence and any remaining trade-offs.
+
+This makes design reasoning reusable rather than relying on memory or repeated subjective tweaks.

@@ -205,3 +205,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Prevention against recurrence:** For UI source-contract tests, assert labels, modifiers, accessibility semantics, and behavior independently. Avoid exact full-call strings when style arguments can evolve. Before every workflow run, execute `python3 .github/scripts/test_ui_smoke_helpers.py` after reviewing this log/checklist; require that test to pass before emulator allocation. Add a focused regression test whenever a test-harness assertion fails due to a source-formatting-only change.
 - **Evidence:** Failed run [39965295414](https://github.com/Prav1525/Padippupal/actions/runs/39965295414), commit `5c08868d80b8ddac2bf39e2ff2d6d704e4124a72`; corrective test commit `373ee801db9e338be9a7e5950a4c0bb7be0825ea`.
 - **Status:** **Corrective assertion committed; helper and full emulator verification pending.**
+
+
+### TE-016 — Understanding checkpoint screenshot clipped the question action
+- **Date discovered:** 2026-10-23
+- **Area:** Android live tutor transcript auto-scroll and visual acceptance capture.
+- **Symptom/failure:** The UI smoke run [39966569063](https://github.com/Prav1525/Padippupal/actions/runs/39966569063) passed functional checkpoint assertions, but the captured `live-checkpoint.png` showed the full-width “I have a question” button partly below the visible viewport.
+- **Root cause:** The transcript auto-scrolled when the segment index changed, but the checkpoint state appeared after speech completion without a dedicated scroll-to-end pass after the checkpoint controls were composed. The screenshot was captured immediately after the accessibility tree exposed the checkpoint, before any such visual settling.
+- **Why it escaped:** Existing assertions checked that the button existed in the accessibility tree and had the intended full-width/height contract, but did not ensure the viewport was scrolled to show the complete control.
+- **Corrective action:** Add a checkpoint/completion-state effect that scrolls to the transcript end after layout, and allow the smoke screenshot one second for the UI state to settle.
+- **Regression protection:** Add source-contract assertions for checkpoint auto-scroll and screenshot settling; inspect the screenshot from the exact tested SHA and verify the question button is fully visible above system navigation.
+- **Evidence:** Initial screenshot artifact `padippupal-emulator-ui`, run [39966569063](https://github.com/Prav1525/Padippupal/actions/runs/39966569063), commit `5575ff3a99901a355419382412a2b743b31e98ae`. Fix verification pending.
+- **Status:** **Fix implemented; verification pending.**

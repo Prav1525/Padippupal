@@ -362,3 +362,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Run `python3 -m py_compile .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py` and `python3 .github/scripts/test_ui_smoke_helpers.py` before emulator allocation; do not treat an APK build as a UI pass.
 - **Evidence:** Failure log from run [39993092646](https://github.com/Prav1525/Padippupal/actions/runs/39993092646), job `120550208202`, head `6b3cc51e0a890c5b37e0fb23900b8b7a060596d1`. Anchor correction committed; rerun pending.
 - **Status:** **Test anchor corrected; verification pending.**
+
+
+### TE-029 — Disabled Teach action rendered with insufficient contrast
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android tutor header / initial lesson-selection state.
+- **Symptom:** The emulator tutor screenshot shows the Teach action almost invisible before a chapter or topic is selected.
+- **Root cause:** The button is correctly disabled until lesson selection, but its disabled Material button colors were not explicitly set; the theme's default disabled styling reduced text and background contrast.
+- **Corrective action:** Explicitly set disabled container and content colors so Teach remains legible while still disabled.
+- **Regression protection:** Rebuild and inspect the tutor screenshot at the exact tested commit; confirm Teach is legible before selection and remains disabled until a chapter/topic is chosen.
+- **Evidence:** Fix commit `b0cb214f6cc0a9d4e5fe18c40f65e0690895d407`; CI and screenshot verification pending.
+- **Status:** **Implemented; verification pending.** The separate-screen lesson-selection flow and large blank area on the pre-lesson tutor screen remain open acceptance issues.

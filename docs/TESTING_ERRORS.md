@@ -386,3 +386,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Added `.github/scripts/test_ui_smoke_helpers.py::TutorIdleStateRegressionTests` to require the empty state and guard the composer condition. Latest-head helper/JVM/build/emulator checks and screenshot review are required before verification.
 - **Evidence:** Implementation commit `f2f8cb570855c3129dd58dbbd2dfa1ad475f55ab`; regression test commit pending.
 - **Status:** **Implemented; regression and screenshot verification pending.**
+
+### TE-031 — Tutor idle-screen icon broke Kotlin compilation
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android build / tutor idle-state UI.
+- **Symptom:** Android APK build and emulator smoke test both failed at Kotlin compilation with `Unresolved reference 'MenuBook'` in `TutorScreen.kt`.
+- **Root cause:** The new idle-state UI used a Material icon that is not included in the project's available icon set/imports.
+- **Why it escaped:** The UI change was committed before a build was run against the exact resulting commit.
+- **Corrective action:** Replaced the unavailable icon with a text-based book symbol; no dependency or icon-pack change needed.
+- **Regression protection:** Re-run APK build and UI smoke tests on the corrected commit; inspect emulator screenshot before claiming verified.
+- **Evidence:** Failure on commit `4bee813bb37ab33edb6a57192a02e3f96ff9e31e`; fix commit pending.
+- **Status:** **Fix committed; rerun checks pending.**

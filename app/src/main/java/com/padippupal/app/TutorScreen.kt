@@ -1600,7 +1600,20 @@ internal fun TutorScreen(
 
     fun playLiveSegment(index: Int) {
         if (!liveLessonActive || livePaused) return
-        if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
+        if (index >= liveSegments.size) {
+            // Keep the completed explanation in chat history so the learner can reread it
+            // and follow up after playback; otherwise it vanishes when the full-screen player closes.
+            val completedLesson = liveCaption.trim()
+            if (completedLesson.isNotBlank() && messages.none { it.role == "assistant" && it.content == completedLesson }) {
+                messages.add(TutorMessage("assistant", completedLesson))
+            }
+            liveLessonActive = false
+            livePaused = false
+            awaitingUnderstanding = false
+            currentCheckpoint = ""
+            status = "Live lesson complete."
+            return
+        }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
         // Normalize nullable API data before it enters UI state; optString may yield literal "null".

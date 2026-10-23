@@ -2110,9 +2110,7 @@ internal fun TutorScreen(
         if (liveLessonActive) {
             // One continuous teaching canvas: no inset green card or floating lesson overlay.
             Column(
-                // Keep the lesson area sized to the available viewport even at a
-                // checkpoint. Center the teaching content in that area, while the
-                // learner controls remain anchored directly below it.
+                // Center the complete caption + animation + checkpoint as one group.
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalArrangement = if (awaitingUnderstanding) Arrangement.Center else Arrangement.spacedBy(8.dp)
             ) {
@@ -2164,15 +2162,12 @@ internal fun TutorScreen(
                             )
                         }
                     }
-            }
-        }
-
-        // Inline learner checkpoint: part of the teaching flow, not a floating card.
-        if (awaitingUnderstanding && liveLessonActive) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
+                // Keep checkpoint choices inside the same centered teaching group.
+                if (awaitingUnderstanding) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                 Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
@@ -2209,6 +2204,9 @@ internal fun TutorScreen(
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) { Text("I have a question", color = TutorGreen) }
+                    }
+                }
+
             }
         }
 

@@ -374,3 +374,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Rebuild and inspect the tutor screenshot at the exact tested commit; confirm Teach is legible before selection and remains disabled until a chapter/topic is chosen.
 - **Evidence:** Fix commit `b0cb214f6cc0a9d4e5fe18c40f65e0690895d407`; CI and screenshot verification pending.
 - **Status:** **Implemented; verification pending.** The separate-screen lesson-selection flow and large blank area on the pre-lesson tutor screen remain open acceptance issues.
+
+### TE-030 — Unselected tutor opened into a greeting chat with unused viewport space
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android tutor ready/idle state.
+- **Symptom:** Before a lesson was selected, the tutor screen showed a generic greeting bubble and an empty question composer, leaving a large blank area and making the page look unfinished.
+- **Root cause:** The default chat transcript and composer were rendered even when both chapter and topic were blank; there was no intentional empty state for lesson selection.
+- **Why it escaped:** Existing smoke checks only required recognizable tutor labels plus Change and Teach controls. They did not assert the unselected-state content or prevent an empty chat composer from appearing.
+- **Corrective action:** Render a centered, compact lesson-selection invitation with a clear “Choose a lesson” action when no chapter/topic is selected; hide the general chat composer until selection exists. Keep the actual teaching experience on the tutor screen.
+- **Regression protection:** Added `.github/scripts/test_ui_smoke_helpers.py::TutorIdleStateRegressionTests` to require the empty state and guard the composer condition. Latest-head helper/JVM/build/emulator checks and screenshot review are required before verification.
+- **Evidence:** Implementation commit `f2f8cb570855c3129dd58dbbd2dfa1ad475f55ab`; regression test commit pending.
+- **Status:** **Implemented; regression and screenshot verification pending.**

@@ -188,5 +188,15 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertNotIn("explicit understanding checkpoint", script)
 
 
+class PreviousScreenSelectionTests(unittest.TestCase):
+    def test_tutor_ready_screen_does_not_duplicate_selection_controls(self):
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        self.assertIn('if "change" in labels:', smoke)
+        self.assertNotIn('if "change" not in labels:', smoke)
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertNotIn("TextButton(onClick = { showLessonSettings = true }", tutor)
+        self.assertIn("onClick = { startLiveLesson() }", tutor)
+
+
 if __name__ == "__main__":
     unittest.main()

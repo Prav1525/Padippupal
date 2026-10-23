@@ -952,9 +952,9 @@ internal fun TutorScreen(
         }
         if (restored.isEmpty()) {
             restored.add(TutorMessage("assistant", when (appLanguage) {
-                "Tanglish" -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! Namma onna konjam konjama kathukkalaam. Enna concept purinjukkanum?"
-                "தமிழ்" -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", " + studentName) + "! நிதானமாக ஒவ்வொரு படியாகவும் கற்றுக்கொள்ளலாம். இன்று என்ன புரிந்துகொள்ள வேண்டும்?"
-                else -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! I'm here to help. We'll take it one small step at a time. What would you like to understand today?"
+                "Tanglish" -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! Namma selected topic-a clear-a examples-oda kathukkalaam. Eppo venaalum kelvi kelunga."
+                "தமிழ்" -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", " + studentName) + "! தேர்ந்தெடுத்த தலைப்பை எளிய விளக்கங்களும் எடுத்துக்காட்டுகளும் கொண்டு கற்றுக்கொள்வோம். எப்போது வேண்டுமானாலும் கேள்வி கேளுங்கள்."
+                else -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! I'll explain the selected topic clearly with examples. You can ask me questions whenever you need."
             }))
         }
         restored
@@ -1934,9 +1934,6 @@ internal fun TutorScreen(
                     Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
             } else {
-                TextButton(onClick = { showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)) {
-                    Text("Change", color = TutorAccentSoft, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
-                }
                 Button(
                     onClick = { startLiveLesson() },
                     enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),

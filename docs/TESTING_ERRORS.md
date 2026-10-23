@@ -102,6 +102,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Combined PR #17 UI smoke run [39902140454](https://github.com/Prav1525/Padippupal/actions/runs/39902140454), `Validate smoke-test scripts` failed before emulator startup; correction commit recorded in branch history.
 - **Status:** **Corrective change implemented; verification pending.**
 
+
+### TE-015 — Lesson smoke wait claimed a 150-second limit without enforcing one
+- **Date discovered:** 2026-10-23
+- **Area:** Emulator smoke harness / ADB timeout guarantees.
+- **Symptom:** Code review found the lesson wait loop could spend up to 20 seconds in each of 50 attempts, and its `adb pull` had no timeout, despite logging “up to 150s”. This could leave a failed UI journey running much longer than its stated deadline.
+- **Root cause:** The loop bounded individual UI dumps but did not enforce a wall-clock deadline and left a related pull unbounded.
+- **Why it escaped:** The stated timeout was trusted without calculating the worst-case time across all attempts and commands.
+- **Corrective action:** Added a hard `SECONDS` deadline, shorter per-command timeouts, and moved frame capture until after the complete caption is detected so captured frames cover actual speech.
+- **Regression protection:** Keep the bounded-wait rule in this checklist and test the complete-caption wait before emulator allocation.
+- **Evidence:** Combined PR #17 UI smoke run [39902333735](https://github.com/Prav1525/Padippupal/actions/runs/39902333735) was still running the emulator step at last inspection; the fix is in the next combined commit.
+- **Status:** **Corrective change implemented; verification pending.**
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

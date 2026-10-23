@@ -35,8 +35,8 @@ def assert_tutor(path):
     if not any(term in joined.lower() for term in expected_any):
         raise SystemExit("Tutor screen has no recognizable tutor/lesson/chapter labels")
     labels = {text.strip().lower() for text in texts}
-    if "change" not in labels:
-        raise SystemExit("Tutor ready screen is missing the Change control for lesson selection")
+    if "change" in labels:
+        raise SystemExit("Tutor ready screen must not duplicate chapter/topic selection; use the previous screen")
     if not any(label.strip().lstrip("▶").strip().lower() == "teach" for label in labels):
         raise SystemExit("Tutor ready screen is missing the Teach action")
     if any("set up your lesson" in text.lower() for text in texts):
@@ -46,7 +46,7 @@ def assert_tutor(path):
     if "color=Color(0xFFEAF5EE)" in source and "InteractiveLessonLab" in source:
         raise SystemExit("Concept lab still uses the detached pale-green panel styling")
     print("PASS: concept lab does not use the detached pale-green panel styling")
-    print("PASS: tutor ready screen exposes Change and Teach without showing setup or starting a chat lesson")
+    print("PASS: tutor ready screen exposes Teach without duplicating chapter/topic selection or showing setup")
 
 def assert_checkpoint(path, screenshot_path=None):
     _, texts = load(path)

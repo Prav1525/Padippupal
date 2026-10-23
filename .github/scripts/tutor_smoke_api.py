@@ -18,24 +18,32 @@ LESSON = {
     "segments": [
         {
             "id": "all-ones-definition",
-            "spoken_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease.",
-            "caption_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease.",
+            "spoken_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease. The rule is simple: write 1 again each time.",
+            "caption_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease. The rule is simple: write 1 again each time.",
             "source_chunk_ids": ["smoke-source"],
             "visual_action": {"type": "none", "target": "", "value": ""},
             "checkpoint": None,
         },
         {
             "id": "all-ones-example",
-            "spoken_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule repeats the same number each time.",
-            "caption_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule is to repeat the same number.",
+            "spoken_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule repeats the same number each time. The pattern can have three terms, five terms, or ten terms, and the rule stays the same.",
+            "caption_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule repeats the same number each time. The pattern can have three terms, five terms, or ten terms, and the rule stays the same.",
+            "source_chunk_ids": ["smoke-source"],
+            "visual_action": {"type": "none", "target": "", "value": ""},
+            "checkpoint": None,
+        },
+        {
+            "id": "all-ones-common-mistake",
+            "spoken_text": "A common mistake is to think every number pattern must grow. This one does not grow; it repeats 1 each time. Even if the list becomes longer, the value of each term does not change. In an All 1s pattern, each term is the number 1, so we should not replace it with a different number.",
+            "caption_text": "A common mistake is to think every number pattern must grow. This one does not grow; it repeats 1 each time. Even if the list becomes longer, the value of each term does not change. In an All 1s pattern, each term is the number 1, so we should not replace it with a different number.",
             "source_chunk_ids": ["smoke-source"],
             "visual_action": {"type": "none", "target": "", "value": ""},
             "checkpoint": None,
         },
         {
             "id": "all-ones-recap",
-            "spoken_text": "A common mistake is to think every number pattern must grow. This one does not grow; it repeats 1 each time. Remember: every term stays equal to 1. Quick recap: All 1s means 1 repeated again and again. What number comes next after 1, 1, 1?",
-            "caption_text": "A common mistake is to think every number pattern must grow. This one does not grow; it repeats 1 each time. Remember: every term stays equal to 1. Quick recap: All 1s means 1 repeated again and again. What number comes next after 1, 1, 1?",
+            "spoken_text": "Here is another way to check the rule: cover the last term and ask what should come next. Since the rule repeats 1, the missing term must also be 1. Adding more terms changes the length of the list, not the value of each term. Remember, in the All 1s pattern, every term is 1. Quick recap: 1, 1, 1, 1 always follows the same rule. What number comes next after 1, 1, 1?",
+            "caption_text": "Here is another way to check the rule: cover the last term and ask what should come next. Since the rule repeats 1, the missing term must also be 1. Adding more terms changes the length of the list, not the value of each term. Remember, in the All 1s pattern, every term is 1. Quick recap: 1, 1, 1, 1 always follows the same rule. What number comes next after 1, 1, 1?",
             "source_chunk_ids": ["smoke-source"],
             "visual_action": {"type": "none", "target": "", "value": ""},
             "checkpoint": None,
@@ -114,7 +122,9 @@ def self_test() -> None:
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
     assert all(segment["visual_action"]["type"] == "none" for segment in LESSON["segments"])
-    assert len(" ".join(segment["spoken_text"] for segment in LESSON["segments"])) >= 220
+    full_lesson = " ".join(segment["spoken_text"] for segment in LESSON["segments"])
+    assert len(full_lesson) >= 220
+    assert len(full_lesson.split()) >= 140
     assert "square" not in json.dumps(LESSON).casefold()
     print("smoke API fixture self-test passed: complete topic-valid lesson, no checkpoints or visuals")
 

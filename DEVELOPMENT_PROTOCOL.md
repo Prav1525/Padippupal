@@ -20,6 +20,20 @@
 11. **Keep the handoff durable.** Update `PROJECT_STATE.md`, regression coverage, and decision records as applicable before declaring the task complete. Commit documentation with the code it describes where practical.
 12. **Be transparent about access.** If a runner, emulator, secret, repository, or environment is inaccessible, state exactly what was and was not verified.
 
+## Mandatory testing-error prevention gate
+
+Before **every** test run (local, CI-triggered, emulator, smoke, or release verification):
+
+1. Read `docs/TESTING_ERROR_LOG.md` and `.github/testing-regression-checklist.md`.
+2. Identify prior failures that touch the files, components, data path, test harness, or behavior under test.
+3. Convert each relevant past mistake into a pre-run check: a regression test, an explicit assertion, a fixture/setup check, a timeout/diagnostic, or a manual verification step. Confirm the safeguard is present and applicable before starting the run.
+4. Check the planned test command, environment, branch, and exact commit SHA. Do not start a test against a stale or unintended head.
+5. After every failure or newly discovered mistake, record it in `docs/TESTING_ERROR_LOG.md` **before rerunning**. Include the evidence, root cause or confidence level, correction, prevention rule, and regression coverage. If root cause is unknown, say so; do not invent one.
+6. After a fix, rerun the failed test and the relevant regression set. Inspect the result and ensure the run tested the new exact commit. A prior green run is not proof for a new commit.
+7. Never erase an entry because the bug is fixed. Mark its status and keep the prevention lesson permanently useful.
+
+**No repeat without learning:** do not rerun a failed test unchanged unless the purpose is to reproduce/confirm the diagnosis, and label it as a reproduction. Before that reproduction, explain what evidence it is intended to collect. Every other rerun must include a meaningful code, test, setup, or diagnosis change.
+
 ## Required task record
 
 Before implementation, record:

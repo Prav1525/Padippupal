@@ -444,7 +444,11 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val raw = lesson.optJSONArray("objects")
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {
         val topicKey = lesson.optString("topic").lowercase()
-        val mappedScene = if (scene == "pattern_builder" || topicKey.contains("shape")) "shape_pattern" else scene
+        val mappedScene = when {
+            topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+            scene == "pattern_builder" || topicKey.contains("shape") -> "shape_pattern"
+            else -> scene
+        }
         ChapterOneMathAnimation(mappedScene, title, lesson.optString("topic"), caption)
         return
     }
@@ -1644,6 +1648,30 @@ internal fun TutorScreen(
                     val array = response.optJSONArray("segments") ?: JSONArray()
                     val lessonSegments = (0 until array.length()).mapNotNull { array.optJSONObject(it) }
                     if (lessonSegments.isEmpty()) throw IllegalStateException("No textbook-backed lesson segments were returned.")
+                    // Fail closed on the device too: a hosted API may be on an older
+                    // deployment, so never let an unrelated segment reach speech playback.
+                    if (topic.equals("All 1s", ignoreCase = true) ||
+                        topic.equals("All ones", ignoreCase = true) ||
+                        topic.equals("All one's", ignoreCase = true)) {
+                        val forbidden = Regex(
+                            """\b(square numbers?|count(?:ing)? numbers? up and down|1\s*\+\s*2\s*\+\s*1\s*=\s*4|1\s*²)\b""",
+                            RegexOption.IGNORE_CASE
+                        )
+                        val relevant = Regex(
+                            """(all\s+1s?|all\s+ones?|repeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?(?:1|one|ones)\b|1\s*[,;]\s*1|same number|stays? the same|number one|each term is (?:the )?(?:number )?(?:1|one)|each term stays the same)""",
+                            RegexOption.IGNORE_CASE
+                        )
+                        val invalid = lessonSegments.any { segment ->
+                            val spoken = (segment.optString("spoken_text") + " " +
+                                segment.optString("caption_text")).trim()
+                            forbidden.containsMatchIn(spoken) || !relevant.containsMatchIn(spoken)
+                        }
+                        if (invalid) {
+                            throw IllegalStateException(
+                                "The lesson content did not stay on All 1s. Please try again; no incorrect lesson was started."
+                            )
+                        }
+                    }
                     // Orient the learner before the curriculum lesson begins.
                     val opening = JSONObject()
                         .put("id", "lesson-opening")

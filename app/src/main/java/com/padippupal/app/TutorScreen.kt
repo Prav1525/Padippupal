@@ -1457,6 +1457,7 @@ internal fun TutorScreen(
             speakWithDeviceTts(text, onStarted, onFinished)
             return
         }
+        status = "Preparing natural voice…"
         tutorExecutor.execute {
             val audioFile = File(context.cacheDir, "padippupal-voice-${System.nanoTime()}.wav")
             val audioWordTimings = mutableListOf<Pair<Long, Long>>()

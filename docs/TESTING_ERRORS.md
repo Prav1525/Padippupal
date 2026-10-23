@@ -78,6 +78,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Source artifact [12476801555](https://github.com/Prav1525/Padippupal/actions/runs/39894585249); combined fix commits on `feature/grade-aware-chat-tutor` beginning at `ce59974def7f657f8bb58022d88877741b1b744b`. Validation of the updated harness and app is pending.
 - **Status:** **Fix implemented; not yet tested.** The prior green run does not satisfy the new acceptance criteria. Do not merge until updated backend, Android, emulator, screenshot, and highlight checks pass.
 
+
+### TE-013 — Replacing checkpoint assertions removed explicit voice-failure detection
+- **Date discovered:** 2026-10-23
+- **Area:** Emulator smoke-test diagnostics.
+- **Symptom:** The combined PR's script-preflight suite failed in `test_tutor_handles_tts_binding_security_exception_without_crashing` because the smoke shell no longer contained the explicit voice-engine failure strings.
+- **Root cause:** While removing the obsolete checkpoint-wait loop, its TTS failure detection was removed with it and was not moved to the new complete-caption wait.
+- **Why it escaped:** The script was edited before running the required helper tests; the helper suite correctly caught the lost diagnostic before emulator allocation.
+- **Corrective action:** Restored all known TTS startup/playback error patterns to the live-lesson wait's explicit failure check.
+- **Regression protection:** Keep `test_tutor_handles_tts_binding_security_exception_without_crashing` and `test_live_smoke_reports_missing_tts_before_pause_stop_control_error`; rerun script preflight before emulator allocation.
+- **Evidence:** Combined PR #17 workflow run [39901962065](https://github.com/Prav1525/Padippupal/actions/runs/39901962065), job `emulator-smoke`, preflight failed before emulator startup. Corrective commit pending workflow rerun.
+- **Status:** **Corrective change implemented; verification pending.**
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

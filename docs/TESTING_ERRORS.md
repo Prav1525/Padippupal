@@ -54,6 +54,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Failed UI run [39883728326](https://github.com/Prav1525/Padippupal/actions/runs/39883728326), artifact [12471996904](https://github.com/Prav1525/Padippupal/actions/runs/39883728326/artifacts/12471996904); prior fix commits d86174adfe5450bc77bced0e26ff9c37702b30e1 and 02f278b283eb8dcbd4e4092657d2a0bfa7fb838b; backend fallback commit e05a51f7e7a41dbd17472b396c51fc856ed9a4b8 and regression-test commit 7a7a2608d7ad391735426c975477ed1152bb91f0.
 - **Status:** **Backend fallback and regression test committed; verification pending.** Do not merge PR #13 until backend tests pass and the hosted API deployment plus current-head emulator smoke test are verified.
 
+
+### TE-011 — Gemini output token cap contradicted complete-lesson contract
+- **Date discovered:** 2026-10-23
+- **Area:** Backend tutor generation budget.
+- **Symptom:** The prompt requested a complete topic explanation with examples and recap, but Gemini generation was capped at 300 output tokens, risking truncation before the lesson could be complete.
+- **Root cause:** The model output budget retained an older short-response configuration after the product requirement changed to a complete chat-first lesson.
+- **Why it escaped:** Prompt-text regression coverage checked the instruction but did not check the actual generation budget.
+- **Corrective action:** Raised the configured maximum to 700 output tokens and added an assertion that protects the minimum budget.
+- **Regression protection:** `test_tutor_uses_profile_and_gentle_prompt` now checks `generationConfig.maxOutputTokens >= 700`; full backend and end-to-end validation remains required.
+- **Evidence:** Change committed on `feature/grade-aware-chat-tutor`; CI verification pending.
+- **Status:** **Implemented; not yet tested.** Do not mark complete until the backend suite and full tutor journey pass.
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

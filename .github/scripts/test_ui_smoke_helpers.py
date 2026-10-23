@@ -252,7 +252,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("TOPIC COMPLETE", tutor)
         # Checkpoint feedback controls share a deliberate size and consistent rounded styling.
         self.assertIn("modifier = Modifier.weight(1f).height(52.dp)", tutor)
-        self.assertIn("shape = RoundedCornerShape(16.dp)", live_layout)
+        self.assertIn("shape = RoundedCornerShape(16.dp)", tutor)
         self.assertIn("modifier = Modifier.fillMaxWidth().height(48.dp)", live_layout)
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('Now look at the sequence.', smoke)

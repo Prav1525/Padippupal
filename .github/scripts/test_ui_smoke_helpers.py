@@ -203,7 +203,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         live_layout = tutor[tutor.index("// One continuous, scrollable lesson transcript"):tutor.index('if (!liveLessonActive && status.isNotBlank())')]
         self.assertIn(".verticalScroll(liveLessonScrollState)", live_layout)
         self.assertIn("for (pastIndex in 0 until liveSegmentIndex.coerceAtMost(liveSegments.size))", live_layout)
-        self.assertIn("WordByWordCaption(liveCaption, speechActive, liveWordIndex", live_layout)
+        self.assertIn("WordByWordCaption(liveCaption, speechActive && speechPlaybackObserved, liveWordIndex", live_layout)
         # Live lesson visuals are inline and compact: no technical AUTO label or extra caption card.
         self.assertIn('caption = "Watch the pattern change automatically as your teacher explains.", compact = true)', live_layout)
         self.assertIn("verticalArrangement = Arrangement.spacedBy(12.dp)", live_layout)

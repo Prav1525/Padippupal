@@ -255,8 +255,6 @@ class VoicePreparationStatusRegressionTests(unittest.TestCase):
         self.assertIn('status = "Speaking with Gemini natural voice."', tutor)
         self.assertIn('Natural voice unavailable; using this phone\\'s TTS engine.', tutor)
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class SpeechHighlightSynchronizationRegressionTests(unittest.TestCase):
@@ -287,3 +285,7 @@ class SpeechPlaybackLeadRegressionTests(unittest.TestCase):
         self.assertIn("tutorMainHandler.postDelayed", hosted_start)
         self.assertIn("audioPlayer.value === player", hosted_start)
         self.assertIn("speechPlaybackObserved = true", hosted_start)
+
+
+if __name__ == "__main__":
+    unittest.main()

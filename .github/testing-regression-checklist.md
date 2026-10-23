@@ -67,3 +67,11 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 5. Run neighboring/regression tests, then full required CI and end-to-end checks.
 6. Inspect actual outputs (logs, screenshots, UI state), confirm they correspond to the latest tested SHA, and update the error log.
 7. Only then provide a status report or consider release/merge readiness.
+
+
+### Tutor vertical-layout regression gate
+
+- [ ] Command bar is bounded to 48–52dp; Back/Pause/Resume/Stop remain usable and not clipped.
+- [ ] The lesson transcript scrolls independently and fills the flexible space; checkpoint controls are in-flow below it, pinned to the bottom of the tutor screen rather than inside the transcript scroll container.
+- [ ] Fresh screenshots from the exact tested SHA show all three checkpoint actions above system navigation with no large unused region beneath them.
+- [ ] Helper tests, JVM tests, APK build, and emulator flow pass after any layout change; inspect both live lesson and checkpoint screenshots before marking verified.

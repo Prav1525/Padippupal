@@ -133,3 +133,11 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Re-run the full Android UI smoke flow and inspect `live-lesson.png` and `live-checkpoint.png` from the exact tested head SHA. Confirm no large unexplained blank gap, clipping, overlap, or hidden controls; confirm the animation remains inline and the understand/explain-again/question actions still work.
 - **Evidence:** Screenshot artifact from UI smoke run [39894585249](https://github.com/Prav1525/Padippupal/actions/runs/39894585249), tested before this fix on `fa1760f9569658f1ec44040974cdac33ecf5f653`; fix commit `e83e9a4e62892561826fc2de2e5976ba1547bccc`.
 - **Status:** **Fix committed; verification pending.** Do not merge PR #13 until all required checks pass and the new checkpoint screenshots are reviewed.
+
+
+#### TE-010 follow-up — first fix was incomplete
+- **Observed on:** Emulator smoke run [39940987650](https://github.com/Prav1525/Padippupal/actions/runs/39940987650), commit `c6c29826be12a0a3310b6a084a99e78d5046bd51`.
+- **Result:** Screenshot review still showed the blank gap. The first fix removed weight from the inner teaching-content column, but the *outer* live-lesson column still had `Modifier.weight(1f)`, so it continued to occupy all remaining height and push the checkpoint controls down.
+- **Correction:** On checkpoint state, remove the flexible weight from the outer live-lesson column too; preserve it during normal teaching. Commit `9944dedd2aabb7c95157b096cde6c808eb3dbf52`.
+- **Regression rule:** Treat the screenshot review—not just a passing smoke test—as mandatory. Review fresh `live-checkpoint.png` and `live-lesson.png` from the exact same tested SHA. Do not close TE-010 until the gap is gone and controls/animation are visible without clipping or overlap.
+- **Status:** Second, parent-level correction committed; verification pending.

@@ -121,3 +121,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep both checks in `.github/scripts/test_ui_smoke_helpers.py`; run `python3 .github/scripts/test_ui_smoke_helpers.py` and the full UI workflow preflight before emulator allocation.
 - **Evidence:** Failed run [39894074738](https://github.com/Prav1525/Padippupal/actions/runs/39894074738); correction commit `bb738972d939c68b5bc8f5392cb2e875835fa2ef`. Verification on this correction commit is pending.
 - **Status:** **Root cause confirmed and test corrections committed; full verification pending.** Do not merge PR #13 until helper tests, APK build, emulator journey, and screenshot review pass on the same latest commit.
+
+
+### TE-010 — Tutor prompt and UI contradicted the requested complete chat-first lesson
+- **Date discovered:** 2026-10-23
+- **Area:** Backend lesson-generation instructions and Android tutor rendering.
+- **Symptom:** The prompt forced a short, single-step reply and check question, while the app rendered generated visual lessons/animation labs and displayed feedback after each latest assistant reply. This encouraged chopped-up teaching and unrelated visuals.
+- **Root cause:** Older conversational-learning and visual-first requirements remained higher priority than the desired complete-topic, chat-like lesson experience; visual widgets and feedback were attached to individual assistant messages rather than the end of a complete lesson.
+- **Corrective action:** Add an explicit overriding chat-first prompt contract: complete age-aware topic explanation, simple worked examples/text diagrams, question only after teaching, and no animation in the current mode. Disable current Android animation/lab composables and remove per-reply feedback prompts for now.
+- **Regression protection:** Add a backend prompt-contract test. Before every test run, read this document and .github/testing-regression-checklist.md; verify selected-topic explanation, follow-up answers, no visual overlays, and no per-reply feedback in emulator screenshots.
+- **Evidence:** Branch feature/grade-aware-chat-tutor; implementation is awaiting test execution and emulator/screenshot verification.
+- **Status:** **Changes drafted; not verified.** Do not merge PR #13 or this follow-up until backend tests, Android build, emulator chat journey, and screenshot review pass.

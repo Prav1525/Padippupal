@@ -228,3 +228,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add a backend prompt-contract test. Before every test run, read this document and .github/testing-regression-checklist.md; verify selected-topic explanation, follow-up answers, no visual overlays, and no per-reply feedback in emulator screenshots.
 - **Evidence:** Branch feature/grade-aware-chat-tutor; implementation is awaiting test execution and emulator/screenshot verification.
 - **Status:** **Changes drafted; not verified.** Do not merge PR #13 or this follow-up until backend tests, Android build, emulator chat journey, and screenshot review pass.
+
+
+### TE-012 — Continuous lesson caption looked fragmented because every sentence became a paragraph
+- **Date discovered:** 2026-10-23
+- **Area:** Android word-by-word caption formatting / visual acceptance.
+- **Symptom:** Screenshot review of the combined UI smoke run [39904633845](https://github.com/Prav1525/Padippupal/actions/runs/39904633845) showed excessive blank space between every spoken sentence. Although the caption was one continuous lesson, the presentation looked like a series of disconnected blocks and pushed later text below the viewport.
+- **Root cause:** `WordByWordCaption` inserted a blank paragraph after every sentence-ending word rather than grouping sentences into natural teaching paragraphs.
+- **Why it escaped:** The UI smoke checked that the lesson was continuous, unclipped in the viewport, and free of separate cards, but did not check sentence grouping or paragraph density.
+- **Corrective action:** Group three sentences per paragraph and keep the word-offset calculation aligned with the inserted separators so inline highlighting continues to point at the correct spoken word.
+- **Regression protection:** Add a source-level helper regression test for paragraph grouping and retain screenshot-based moving-highlight/layout checks.
+- **Evidence:** Screenshot artifact from run [39904633845](https://github.com/Prav1525/Padippupal/actions/runs/39904633845); correction commits `9953bff2abd2c38cb4af61935be8640fd2113fe9` and `dee6541daa24aac1907edbbc343404efca0f40c0`. Verification on the latest combined head is pending.
+- **Status:** **Implemented; not yet verified.** Keep PR #17 open until helper tests, Android build, emulator flow, screenshot review, and follow-up chat behavior pass on the same head.

@@ -315,3 +315,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Added `.github/scripts/test_ui_smoke_helpers.py::TutorHeaderLayoutRegressionTests` to assert compact dimensions while preserving Back, Teach, Pause/Resume, and Stop actions. Inspect fresh emulator screenshots from the exact tested SHA for clipping, touch-target usability, and overall header/body balance.
 - **Evidence:** Implementation commit `cf69ae360b28e89a9c03bf207fedc92b5098713f`; regression test commit `030a4ba08e83d468474d93f6d125761b2dac5958`. Fresh CI and screenshot verification pending.
 - **Status:** **Implemented; verification pending.** Do not merge PR #13 until latest-head build, helper tests, emulator flow, and screenshot review pass.
+
+
+### TE-025 — Tutor header sizing and checkpoint actions wasted vertical space
+
+- **Date discovered:** 2026-10-23
+- **Area:** Android live tutor layout / viewport usage.
+- **Symptom:** The emulator screenshot showed a tall command header and a large unused area below the understanding actions, despite the header's earlier padding reduction and a passing visibility smoke test.
+- **Root cause:** The header row was still sized by its largest interactive children and used oversized title/icon styling. Separately, checkpoint actions were children of the scrollable transcript, so when the lesson content was shorter than the viewport the actions remained near the top and left empty space below them.
+- **Why it escaped:** The previous header regression checked styling constants but not the command bar's bounded height. Checkpoint tests verified that controls existed and were visible, but did not require them to occupy the bottom of the available tutor screen.
+- **Corrective action:** Bound the command bar to 48–52dp, reduced the icon and title/subtitle sizing while preserving accessible action controls, and moved checkpoint feedback into a fixed in-flow section below the independently scrollable transcript. This keeps controls on the same screen without an overlay and lets the lesson transcript use the remaining height.
+- **Regression protection:** Helper tests now assert the bounded header contract and that checkpoint controls are outside the scrollable transcript but remain within the live lesson screen. Build and emulator checks must pass, and fresh live-lesson and live-checkpoint screenshots from the exact tested head must be inspected for touch-target usability, no clipping, and no blank area below the checkpoint actions.
+- **Affected commits:** Header 229aa08afdebfb66ceba5166182a8bcf81857212; pinned checkpoint layout a2b3b1ea0d55cefb7d4971da4d0063441618c810; regression assertions pending CI verification.
+- **Status:** **Implemented; regression/build/emulator verification pending.** Keep PR #13 open until exact-head screenshots and all acceptance checks pass.

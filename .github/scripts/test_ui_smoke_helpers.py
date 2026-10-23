@@ -30,7 +30,9 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertIn("connection.readTimeout = 120000", lesson_plan[:900])
         self.assertIn("TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only", tutor)
         self.assertIn("Every teaching segment must explain that repeated-one sequence", tutor)
-        self.assertIn("no All 1s explanation or approved short transition", tutor)
+        validator = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                     "java" / "com" / "padippupal" / "app" / "AllOnesTopicValidator.kt").read_text()
+        self.assertIn("no All 1s explanation or approved short transition", validator)
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
@@ -60,13 +62,15 @@ class AndroidManifestContractTests(unittest.TestCase):
 
 
 class BackendWarmupRegressionTests(unittest.TestCase):
-    def test_emulator_workflow_waits_for_free_render_backend_readiness(self):
+    def test_emulator_workflow_uses_deterministic_local_backend_fixture(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows" /
                     "android-ui-smoke.yml").read_text()
-        self.assertIn("Wake curriculum API and wait for readiness", workflow)
-        self.assertIn("https://padippupal-curriculum-api.onrender.com/health", workflow)
+        self.assertIn("Start deterministic tutor smoke API", workflow)
+        self.assertIn("http://127.0.0.1:8765/health", workflow)
+        self.assertIn("http://10.0.2.2:8765", workflow)
         self.assertIn('test "$ready" -eq 1', workflow)
-        self.assertLess(workflow.index("Wake curriculum API"), workflow.index("Launch app in Android emulator"))
+        self.assertNotIn("https://padippupal-curriculum-api.onrender.com", workflow)
+        self.assertLess(workflow.index("Start deterministic tutor smoke API"), workflow.index("Launch app in Android emulator"))
 
 
 class CurriculumRetryRegressionTests(unittest.TestCase):

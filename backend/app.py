@@ -1467,7 +1467,7 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
     relevant = (
         r"\ball\s+1s?\b",
         r"\ball\s+ones?\b",
-        r"\brepeat(?:s|ed|ing)?\b",
+        r"\brepeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?(?:1|one|ones)\b",
         r"\b1\s*[,;]\s*1\b",
         r"\bsame number\b",
         r"\bstays? the same\b",

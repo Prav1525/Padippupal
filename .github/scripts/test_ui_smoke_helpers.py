@@ -187,6 +187,18 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn(r'append(if (endsSentence && sentencesInParagraph % 3 == 0) "\\n\\n" else " ")', tutor)
         self.assertIn("offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1", tutor)
 
+    def test_completed_lesson_is_kept_for_follow_up_chat(self):
+        root = Path(__file__).resolve().parents[2]
+        tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn('messages.add(TutorMessage("assistant", completedLesson))', tutor)
+        self.assertIn('status = "Live lesson complete."', tutor)
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        self.assertIn("def assert_completed_lesson(path):", smoke)
+        self.assertIn("def assert_followup_answer(path):", smoke)
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn("Waiting for playback to finish", script)
+        self.assertIn("assert-followup follow-up.xml", script)
+
     def test_smoke_waits_for_full_caption_and_rejects_checkpoint_ui(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("assert-live live-lesson.xml >/dev/null 2>&1", script)

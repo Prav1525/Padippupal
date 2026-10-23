@@ -17,27 +17,27 @@ LESSON = {
     "sources": [{"chunk_id": "smoke-source", "title": "Smoke-test fixture", "page_start": 1, "page_end": 1}],
     "segments": [
         {
-            "id": "all-ones-intro",
-            "spoken_text": "The All 1s pattern repeats the number 1: 1, 1, 1.",
-            "caption_text": "The All 1s pattern repeats the number 1: 1, 1, 1.",
+            "id": "all-ones-definition",
+            "spoken_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease.",
+            "caption_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease.",
             "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "1, 1, 1"},
+            "visual_action": {"type": "none", "target": "", "value": ""},
             "checkpoint": None,
         },
         {
-            "id": "all-ones-rule",
-            "spoken_text": "Each term stays the same because the number 1 repeats.",
-            "caption_text": "Each term stays the same because the number 1 repeats.",
+            "id": "all-ones-example",
+            "spoken_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule is to repeat the same number.",
+            "caption_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule is to repeat the same number.",
             "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "1, 1, 1"},
-            "checkpoint": "Does that make sense so far?",
+            "visual_action": {"type": "none", "target": "", "value": ""},
+            "checkpoint": None,
         },
         {
-            "id": "all-ones-practice",
-            "spoken_text": "Now look at the sequence.",
-            "caption_text": "Now look at the sequence.",
+            "id": "all-ones-recap",
+            "spoken_text": "A common mistake is to think every number pattern must grow. This one does not grow; it repeats 1 each time. Remember: every term stays equal to 1. Quick recap: All 1s means 1 repeated again and again. What number comes next after 1, 1, 1?",
+            "caption_text": "A common mistake is to think every number pattern must grow. This one does not grow; it repeats 1 each time. Remember: every term stays equal to 1. Quick recap: All 1s means 1 repeated again and again. What number comes next after 1, 1, 1?",
             "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "1, 1, 1"},
+            "visual_action": {"type": "none", "target": "", "value": ""},
             "checkpoint": None,
         },
     ],
@@ -112,9 +112,11 @@ def self_test() -> None:
     assert len(LESSON["segments"]) == 3
     assert "All 1s" in LESSON["segments"][0]["spoken_text"]
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
-    assert LESSON["segments"][1]["checkpoint"]
+    assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
+    assert all(segment["visual_action"]["type"] == "none" for segment in LESSON["segments"])
+    assert len(" ".join(segment["spoken_text"] for segment in LESSON["segments"])) >= 220
     assert "square" not in json.dumps(LESSON).casefold()
-    print("smoke API fixture self-test passed: topic-valid sequence, checkpoint, no square-number content")
+    print("smoke API fixture self-test passed: complete topic-valid lesson, no checkpoints or visuals")
 
 
 def main() -> None:

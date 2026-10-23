@@ -156,3 +156,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add a backend prompt-contract test. Before every test run, read this document and .github/testing-regression-checklist.md; verify selected-topic explanation, follow-up answers, no visual overlays, and no per-reply feedback in emulator screenshots.
 - **Evidence:** Branch feature/grade-aware-chat-tutor; implementation is awaiting test execution and emulator/screenshot verification.
 - **Status:** **Changes drafted; not verified.** Do not merge PR #13 or this follow-up until backend tests, Android build, emulator chat journey, and screenshot review pass.
+
+
+### TE-012 — TTS smoke helper test asserted a message in the wrong script
+- **Date discovered:** 2026-10-23
+- **Area:** UI smoke preflight / TTS failure regression coverage.
+- **Symptom:** Workflow run [39901962065](https://github.com/Prav1525/Padippupal/actions/runs/39901962065) failed during `Validate smoke-test scripts`, before emulator allocation. The test expected the shell navigation script to contain the text-to-speech failure messages.
+- **Root cause:** The assertion looked in `.github/scripts/android-ui-smoke.sh`, which owns emulator navigation; voice failure classification is implemented in `.github/scripts/ui_smoke.py`. The test was coupled to the wrong file and therefore failed even though the classifier's message checks were elsewhere.
+- **Why it escaped:** The helper suite was not run successfully on the latest combined branch before the UI workflow started.
+- **Corrective action:** Point the message assertions at `ui_smoke.py`, where the actual voice-failure classification is implemented.
+- **Regression protection:** Keep the TTS helper test asserting both initialization-failure phrases in `ui_smoke.py`; rerun the helper suite before allocating an emulator.
+- **Evidence:** Failed workflow run [39901962065](https://github.com/Prav1525/Padippupal/actions/runs/39901962065); correction commit `84d3f4dd9bdf8f014e26aae07cb1c77e169916b9`. Verification on the corrected head is pending.
+- **Status:** **Corrective test change committed; not yet verified.** Do not merge until preflight, backend/JVM tests, APK build, emulator lesson flow, and screenshot review pass on the same head.

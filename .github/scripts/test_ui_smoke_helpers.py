@@ -204,6 +204,8 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn(".verticalScroll(liveLessonScrollState)", live_layout)
         self.assertIn("for (pastIndex in 0 until liveSegmentIndex.coerceAtMost(liveSegments.size))", live_layout)
         self.assertIn("WordByWordCaption(liveCaption, speechActive, liveWordIndex", live_layout)
+        # Live lesson visuals are inline and compact: no technical AUTO label or extra caption card.
+        self.assertIn('caption = "Watch the pattern change automatically as your teacher explains.", compact = true)', live_layout)
         self.assertIn("verticalArrangement = Arrangement.spacedBy(12.dp)", live_layout)
         # When a checkpoint appears, auto-scroll must reveal all feedback controls.
         self.assertIn("LaunchedEffect(awaitingUnderstanding, liveLessonComplete, liveLessonActive)", tutor)

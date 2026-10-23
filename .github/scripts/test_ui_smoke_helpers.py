@@ -91,9 +91,10 @@ class TtsFailureRegressionTests(unittest.TestCase):
         self.assertIn("catch (error: SecurityException)", tutor)
         self.assertIn("Voice engine could not initialize.", tutor)
         self.assertIn("runCatching { engine?.shutdown() }", tutor)
-        smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        self.assertIn("Voice engine could not initialize", smoke)
-        self.assertIn("speech engine did not finish starting", smoke)
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        # The smoke shell script owns navigation; UI error classification lives in ui_smoke.py.
+        self.assertIn('"voice engine could not initialize"', smoke)
+        self.assertIn('"speech engine did not finish starting"', smoke)
 
     def test_tts_callbacks_are_bound_to_the_current_utterance_generation(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

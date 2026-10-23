@@ -259,20 +259,28 @@ python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml ui-scr
 log "Testing checkpoint continuation and next-segment progression"
 python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
 continued=0
-# Segment 3 can be short, so poll frequently enough to observe the required
-# 2/5 -> 3/5 transition before the next spoken segment/checkpoint appears.
+# The curriculum API can return four or five segments. The next segment may
+# finish quickly and reach its own checkpoint before UIAutomator captures a frame,
+# so assert real forward progress from the checkpoint we tapped rather than a
+# hard-coded 2/5 -> 3/5 transient screen.
+checkpoint_counter=$(grep -oE '[0-9]+[[:space:]]*/[[:space:]]*[0-9]+' live-checkpoint.xml | head -n1 | tr -d ' ')
+checkpoint_caption=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-checkpoint.xml)
 for attempt in $(seq 1 120); do
   sleep 0.25
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml >/dev/null 2>&1 || true
-  if [ -s live-continued.xml ] && grep -Eqi "3 / 5|segment 3 of 5" live-continued.xml && ! grep -qi "Quick check" live-continued.xml; then
-    continued=1
-    break
+  if [ -s live-continued.xml ]; then
+    current_counter=$(grep -oE '[0-9]+[[:space:]]*/[[:space:]]*[0-9]+' live-continued.xml | head -n1 | tr -d ' ')
+    current_caption=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-continued.xml)
+    if [ -n "$current_counter" ] && [ "$current_counter" != "$checkpoint_counter" ] && [ "$current_caption" != "$checkpoint_caption" ]; then
+      continued=1
+      break
+    fi
   fi
 done
 if [ "$continued" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: checkpoint closed but next lesson segment 3 of 5 was not observed within 30 seconds"
+  log "FAIL: understanding response did not advance to a different lesson segment/checkpoint within 30 seconds"
   [ -s live-continued.xml ] && cat live-continued.xml | tee -a "$REPORT"
   exit 1
 fi

@@ -225,7 +225,8 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn('caption = "Watch the pattern change automatically as your teacher explains.", compact = true)', live_layout)
         self.assertIn("BoxWithConstraints(Modifier.weight(1f).fillMaxWidth())", live_layout)
         self.assertIn("heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)", live_layout)
-        self.assertIn("verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)", live_layout)
+        self.assertIn("verticalArrangement = Arrangement.spacedBy(if (awaitingUnderstanding) 16.dp else 12.dp)", live_layout)
+        # Do not distribute a short checkpoint transcript with SpaceEvenly: it creates a large gap below the command header.
         self.assertIn(".verticalScroll(liveLessonScrollState)", live_layout)
         # Checkpoint actions are outside the scrollable transcript and remain pinned below its weighted viewport.
         checkpoint_controls = tutor[tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)"):tutor.index("if (!liveLessonActive && status.isNotBlank())")]

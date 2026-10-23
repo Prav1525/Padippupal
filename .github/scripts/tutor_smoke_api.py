@@ -26,7 +26,7 @@ LESSON = {
         },
         {
             "id": "all-ones-example",
-            "spoken_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule is to repeat the same number.",
+            "spoken_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule repeats the same number each time.",
             "caption_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule is to repeat the same number.",
             "source_chunk_ids": ["smoke-source"],
             "visual_action": {"type": "none", "target": "", "value": ""},

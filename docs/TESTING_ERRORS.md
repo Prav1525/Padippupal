@@ -90,6 +90,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Combined PR #17 workflow run [39901962065](https://github.com/Prav1525/Padippupal/actions/runs/39901962065), job `emulator-smoke`, preflight failed before emulator startup. Corrective commit pending workflow rerun.
 - **Status:** **Corrective change implemented; verification pending.**
 
+
+### TE-014 — Complete-lesson smoke fixture self-test used stale wording
+- **Date discovered:** 2026-10-23
+- **Area:** Deterministic emulator API fixture.
+- **Symptom:** The smoke preflight passed all 16 UI helper tests but failed `tutor_smoke_api.py --self-test` because the updated example said “repeat the same number” while the existing fixture assertion specifically required “repeats”.
+- **Root cause:** Fixture wording changed without updating its semantic self-test expectation.
+- **Why it escaped:** The helper suite did not run the fixture's own `--self-test`; the workflow runs that as a separate required preflight step and caught it before emulator allocation.
+- **Corrective action:** Adjusted the fixture wording to state “the rule repeats the same number each time,” preserving the same teaching meaning and the existing check.
+- **Regression protection:** Keep `python3 .github/scripts/tutor_smoke_api.py --self-test` in the pre-emulator validation sequence.
+- **Evidence:** Combined PR #17 UI smoke run [39902140454](https://github.com/Prav1525/Padippupal/actions/runs/39902140454), `Validate smoke-test scripts` failed before emulator startup; correction commit recorded in branch history.
+- **Status:** **Corrective change implemented; verification pending.**
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

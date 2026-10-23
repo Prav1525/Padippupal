@@ -178,3 +178,5 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** The helper contract asserts a scrollable transcript, retained earlier modules, active word highlighting, absence of page counters, the eight-module request, and the complete-topic prompt. Before release, inspect fresh lesson/checkpoint screenshots and verify the entire topic can be followed by scrolling without a page transition.
 - **Affected commits:** UI 4c4ec21111c7d9ac1f8093c59287c13a94fbca0c; helper regression 17428f8401fd7539c58976fcd4531be6f7e3ab5a.
 - **Status:** **Implemented; verification pending.** Run the required pre-test checklist and inspect latest-head emulator evidence before calling this verified.
+
+- **Test harness safeguard added during review:** The new regression class was initially placed after the script's `unittest.main()` call, which can cause direct script execution to start discovery before that class is defined. Moved the runner to the end of the file so the continuous-transcript assertions are included in the actual run. Helper correction commit: 9436309582fdba72dc39d8afe2672530cf043d6f.

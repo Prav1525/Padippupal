@@ -1627,7 +1627,7 @@ internal fun TutorScreen(
         tutorExecutor.execute {
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
-                require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
+                require(base.startsWith("https://") || (BuildConfig.DEBUG && base == "http://10.0.2.2:8765")) { "The secure PadippuPal API URL is not configured." }
                 val allOnesTopic = topic.equals("All 1s", ignoreCase = true) ||
                     topic.equals("All ones", ignoreCase = true) ||
                     topic.equals("All one's", ignoreCase = true)

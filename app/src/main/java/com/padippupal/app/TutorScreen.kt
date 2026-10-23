@@ -2110,9 +2110,10 @@ internal fun TutorScreen(
         if (liveLessonActive) {
             // One continuous teaching canvas: no inset green card or floating lesson overlay.
             Column(
-                // Center the complete caption + animation + checkpoint as one group.
+                // Keep the teaching flow anchored near the top; centering a short checkpoint
+                // group vertically creates large, misleading blank bands above and below it.
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
-                verticalArrangement = if (awaitingUnderstanding) Arrangement.Center else Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(
                     // Keep the caption and concept animation close together. Only

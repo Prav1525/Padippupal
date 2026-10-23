@@ -263,6 +263,7 @@ def assert_live(path):
     has_lesson_state = any(label in joined for label in (
         "your teacher is speaking", "your lesson", "topic complete",
         "quick check", "let's check your understanding",
+        "does that make sense so far?",
     ))
     if not has_lesson_state:
         raise SystemExit("Live lesson is missing its teaching, checkpoint, or completion state")

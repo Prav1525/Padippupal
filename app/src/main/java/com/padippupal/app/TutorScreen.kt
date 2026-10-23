@@ -2018,7 +2018,39 @@ internal fun TutorScreen(
         }
 
         if (!liveLessonActive && !showLessonSettings) {
-        // The chat owns the flexible space and scrolls independently of the fixed composer.
+            if (chapter.isBlank() && topic.isBlank()) {
+                // Keep the idle tutor screen intentional and compact: no generic greeting,
+                // empty chat composer, or large unused transcript region before lesson choice.
+                Box(
+                    Modifier.weight(1f).fillMaxWidth().padding(horizontal = 28.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            Modifier.size(64.dp).background(TutorAccentSoft, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.MenuBook, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(30.dp))
+                        }
+                        Text("Your next idea starts here", color = TutorDeep, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(
+                            "Choose a subject, chapter and concept. Your teacher will explain it step by step on this screen.",
+                            color = TutorGrey, fontSize = 14.sp, lineHeight = 21.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Button(
+                            onClick = { showLessonSettings = true },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)
+                        ) { Text("Choose a lesson", fontWeight = FontWeight.SemiBold) }
+                    }
+                }
+            } else {
+                // The chat owns the flexible space and scrolls independently of the fixed composer.
         LazyColumn(
             state = chatListState,
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
@@ -2090,7 +2122,7 @@ internal fun TutorScreen(
                 }
             }
         }
-
+            }
         }
 
         if (liveLessonActive) {
@@ -2193,7 +2225,7 @@ internal fun TutorScreen(
         }
 
         // Keep setup focused; show the question composer only after selection.
-        if (!showLessonSettings && !liveLessonActive) {
+        if (!showLessonSettings && !liveLessonActive && (chapter.isNotBlank() || topic.isNotBlank())) {
         // Keep the question composer for regular tutor chat, not setup or full-screen teaching.
         Surface(
             modifier = Modifier.fillMaxWidth(),

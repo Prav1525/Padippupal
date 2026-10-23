@@ -425,7 +425,7 @@ def exact_text_candidates(nodes, target):
     normalized_target = target.strip().lower().lstrip("▶").strip()
     return [
         node for node in nodes
-        if node.attrib.get("text", "").strip().lower().lstrip("▶").strip() == normalized_target
+        if (node.attrib.get("text", "").strip() or node.attrib.get("content-desc", "").strip()).lower().lstrip("▶").strip() == normalized_target
     ]
 
 
@@ -455,7 +455,8 @@ def tap(path, target):
     candidates = []
     for node in nodes:
         text = node.attrib.get("text", "").strip()
-        if target.lower() in text.lower():
+        description = node.attrib.get("content-desc", "").strip()
+        if target.lower() in text.lower() or target.lower() in description.lower():
             candidates.append(node)
     if not candidates:
         raise SystemExit(f"Could not find target text {target!r}; visible labels: {' | '.join(texts[:100])}")

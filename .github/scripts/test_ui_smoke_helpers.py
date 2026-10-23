@@ -222,8 +222,10 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("WordByWordCaption(liveCaption, speechActive && speechPlaybackObserved, liveWordIndex", live_layout)
         # Live lesson visuals are inline and compact: no technical AUTO label or extra caption card.
         self.assertIn('caption = "Watch the pattern change automatically as your teacher explains.", compact = true)', live_layout)
+        self.assertIn("BoxWithConstraints(Modifier.weight(1f).fillMaxWidth())", live_layout)
+        self.assertIn("heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)", live_layout)
         self.assertIn("verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)", live_layout)
-        self.assertIn("modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp).verticalScroll(liveLessonScrollState)", live_layout)
+        self.assertIn(".verticalScroll(liveLessonScrollState)", live_layout)
         # Checkpoint actions are outside the scrollable transcript and remain pinned below its weighted viewport.
         checkpoint_controls = tutor[tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)"):tutor.index("if (!liveLessonActive && status.isNotBlank())")]
         self.assertNotIn("verticalScroll(liveLessonScrollState)", checkpoint_controls)

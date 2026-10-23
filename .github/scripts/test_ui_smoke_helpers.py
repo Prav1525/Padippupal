@@ -171,3 +171,15 @@ class RetryIsolationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CheckpointLayoutRegressionTests(unittest.TestCase):
+    def test_checkpoint_caption_wraps_naturally_without_debug_visual_focus_row(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn("modifier.fillMaxWidth().wrapContentHeight()", tutor)
+        self.assertNotIn("heightIn(min = 64.dp, max = 108.dp)", tutor)
+        self.assertNotIn("Visual focus ·", tutor)
+        # Word highlighting still auto-scrolls during active speech.
+        self.assertIn("scrollState.animateScrollTo(target)", tutor)
+        self.assertIn("if (active && layout != null && words.isNotEmpty())", tutor)

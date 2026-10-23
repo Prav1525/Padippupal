@@ -1,0 +1,51 @@
+# PadippuPal testing error log
+
+This is the durable record of meaningful test failures, incorrect fixes, and test-harness mistakes. Read it **before every test run** alongside `.github/testing-regression-checklist.md`. Add a dated entry whenever a mistake is discovered; do not erase old entries when resolved. Update each entry with the final verification result and exact run/commit references when available.
+
+## How to record an incident
+
+For every entry, capture: **symptom/failure**, **root cause**, **why it escaped**, **corrective action**, **regression protection**, **evidence (commit/run/log)**, and **status**. If the root cause is not yet confirmed, label it as a hypothesis and do not present it as fact.
+
+## Incidents
+
+### TE-001 — Generic later lesson segment was incorrectly accepted
+- **Date discovered:** 2026-10-23
+- **Area:** Backend lesson-plan validation; Android topic guard; retry behavior.
+- **Symptom/failure:** Curriculum Engine Tests run [39880904470](https://github.com/Prav1525/Padippupal/actions/runs/39880904470) failed at `test_tutor.py::test_lesson_plan_retries_when_a_later_segment_is_generic_not_all_ones`. The test expected two model requests (the initial invalid lesson plus one retry) but observed only one.
+- **Root cause:** The All 1s topic validator was loosened from validating each spoken segment to accepting a lesson when any segment anywhere looked relevant. A relevant first segment therefore masked a generic unrelated later segment, preventing the required retry. The Android guard was loosened in a similar way, creating a backend/client consistency risk.
+- **Why it escaped:** The change was reasoned about at whole-lesson level and the valid supporting-explanation case was not balanced against the existing generic-later-segment retry test before the change was committed. The APK build passing did not exercise this backend contract.
+- **Corrective action:** Pending at time of entry. Restore per-segment validation while explicitly allowing genuine topic-supporting explanations and short neutral transitions; require at least one genuinely topic-relevant speech segment. Keep forbidden-content checks for every segment. Align Android behavior with backend behavior.
+- **Regression protection required:** Preserve and pass the generic-later-segment retry test; preserve `test_all_ones_lesson_allows_supporting_explanation_without_repeated_keyword`; preserve the off-topic-segment rejection and no-topic-relevance tests. Add any additional focused tests needed to prove generic unrelated text is rejected even when another segment is relevant.
+- **Evidence:** Failing curriculum run [39880904470](https://github.com/Prav1525/Padippupal/actions/runs/39880904470); APK run [39880904476](https://github.com/Prav1525/Padippupal/actions/runs/39880904476) passed on commit `dcc70153daf0123841ff51007272b70d6537243e`. UI smoke run [39880904502](https://github.com/Prav1525/Padippupal/actions/runs/39880904502) was still in progress at the last recorded check.
+- **Status:** **Open — not fixed or verified.** Do not merge PR #13 until corrected behavior and all required checks pass.
+
+### TE-002 — UI smoke test assumed a fixed number of lesson segments
+- **Date discovered:** 2026-10-23
+- **Area:** Android UI smoke harness / checkpoint progression.
+- **Symptom/failure:** Smoke validation assumed a lesson always had five segments, which could falsely fail or misread real lesson progression when the actual segment count differed.
+- **Root cause:** The test encoded an implementation-specific fixed count rather than reading the actual displayed progress counter and verifying that both the counter and active caption/text changed.
+- **Why it escaped:** The harness assertion was not resilient to valid content-driven segment counts.
+- **Corrective action:** Update the smoke script to compare observed progress-counter values and active caption/text rather than assume a fixed five-segment lesson; correct counter parsing to recognize the displayed `current / total` format.
+- **Regression protection:** Keep unit tests for counter parsing and progression detection in `.github/scripts/test_ui_smoke_helpers.py`; check the actual UI state after selecting a lesson and advancing a checkpoint.
+- **Evidence:** Commits `0ad2de5c3c7ec3159adfee888c2adfbbc624b4f1` and `d7e681acb8a37b72d8f8612fd92641ffa019b487` (verify the latest history before relying on these as the final implementation).
+- **Status:** Corrective changes were committed; final end-to-end status must be checked against the latest UI smoke workflow before release.
+
+### TE-003 — A visible option was treated as proof that selection succeeded
+- **Date discovered:** 2026-10-23
+- **Area:** Android Compose UI smoke / accessibility selectors.
+- **Symptom/failure:** Android XML may expose a visible Compose row without reliable clickable/enabled attributes; selecting based only on accessibility flags or assuming a tap succeeded can leave the smoke test on the previous screen.
+- **Root cause:** The test harness relied on selector metadata rather than observing the resulting application state.
+- **Why it escaped:** UI accessibility metadata is not a reliable representation of every Compose interaction.
+- **Corrective action:** Select only visible numbered rows with valid non-zero bounds; prefer clickable nodes when available, then verify the tap by observing the next screen/state.
+- **Regression protection:** Keep selection-state assertions in `.github/scripts/android-ui-smoke.sh` and related helper tests; capture XML, screenshots, and logs when a transition does not occur.
+- **Evidence:** See the UI selector and smoke-flow safeguards described in `.github/testing-regression-checklist.md`; attach the exact workflow run and artifacts when next reproduced or verified.
+- **Status:** Safeguard documented/implemented; confirm with a successful current end-to-end run before calling fully verified.
+
+## Update protocol
+
+- Add a new numbered incident instead of overwriting history.
+- If one incident has multiple separate root causes, split them into separate entries.
+- Link exact GitHub Actions runs and record the tested commit SHA.
+- After a fix, update the incident's corrective-action and status fields, but preserve the original failure description.
+- Before running tests, turn relevant open incidents into a short preflight checklist and ensure each has a regression test or explicit safeguard.
+- Never call a test suite green based on an older SHA, a build-only run, or a run that did not exercise the failing path.

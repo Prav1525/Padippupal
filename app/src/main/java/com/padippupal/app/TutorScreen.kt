@@ -1661,26 +1661,27 @@ internal fun TutorScreen(
                             """(all\s+1s?|all\s+ones?|repeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?(?:1|one|ones)\b|1\s*[,;]\s*1|same number|stays? the same|number one|each term is (?:the )?(?:number )?(?:1|one)|each term stays the same)""",
                             RegexOption.IGNORE_CASE
                         )
-                        // Allow short instructional transitions, but never allow an
-                        // off-topic claim or a lesson whose actual speech has no topic signal.
-                        // Some valid lesson plans include "notice/try/your turn" steps between
-                        // topic-specific explanations; rejecting those individually broke the
-                        // emulator flow even when the lesson itself was correctly scoped.
+                        val supporting = Regex(
+                            """(pattern\w*.{0,70}repeat\w*|without\s+(increasing|decreasing)|(?:does|do)\s+not\s+(increase|decrease|change)|(?:doesn't|don't)\s+(increase|decrease|change)|(?:stays?|remains?)\s+(constant|unchanged|the same)|same value)""",
+                            RegexOption.IGNORE_CASE
+                        )
+                        // Neutral transitions must be short, recognizable phrases; a long
+                        // generic sentence cannot pass just because it says "notice" or "try".
                         val neutralTransition = Regex(
-                            """\b(?:now\s+)?(?:let'?s\s+)?(?:look|notice|try|think|pause|continue|move|check|remember|your turn|next step|tell me|what do you notice|take a moment)\b""",
+                            """^(?:now\s+)?(?:let'?s\s+)?(?:look carefully at the sequence|look at the sequence|try the next step|think about it|your turn|take a moment|tell me what you notice|what do you notice\??|pause here)[.!?\s]*$""",
                             RegexOption.IGNORE_CASE
                         )
                         val spokenSegments = lessonSegments.map { segment ->
                             (segment.optString("spoken_text") + " " +
                                 segment.optString("caption_text")).trim()
                         }
-                        // Topic relevance is required across the whole lesson, not every
-                        // sentence: a supporting explanation may describe the idea without
-                        // repeating its keyword. Forbidden off-topic claims remain per-segment.
                         val invalid = spokenSegments.any { forbidden.containsMatchIn(it) } ||
-                            spokenSegments.none {
-                                relevant.containsMatchIn(it) || neutralTransition.containsMatchIn(it)
-                            }
+                            spokenSegments.any {
+                                !relevant.containsMatchIn(it) &&
+                                    !supporting.containsMatchIn(it) &&
+                                    !neutralTransition.matches(it)
+                            } ||
+                            spokenSegments.none { relevant.containsMatchIn(it) }
                         if (invalid) {
                             throw IllegalStateException(
                                 "The lesson content did not stay on All 1s. Please try again; no incorrect lesson was started."

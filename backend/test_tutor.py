@@ -81,6 +81,7 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     assert response.json()["grounded"] is True
     assert response.json()["visual_lesson"]["title"] == "Photosynthesis"
     assert "systemInstruction" in captured["payload"]
+    assert captured["payload"]["generationConfig"]["maxOutputTokens"] >= 700
     prompt = captured["payload"]["systemInstruction"]["parts"][0]["text"]
     assert "warm, patient school tutor" in prompt
     assert "Tanglish" in prompt

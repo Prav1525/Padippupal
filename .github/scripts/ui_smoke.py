@@ -94,7 +94,7 @@ def assert_continued(path):
     # The shell-level assertion verifies the counter and caption both changed from
     # the checkpoint we tapped; here verify the UI has advanced beyond segment 2.
     import re
-    counters = re.findall(r"(?<!\\d)(\\d+)\\s*/\\s*(\\d+)(?!\\d)", joined)
+    counters = re.findall(r"(\d+)\s*/\s*(\d+)", joined)
     progressed = any(int(current) >= 3 and int(total) >= int(current) for current, total in counters)
     if not progressed:
         raise SystemExit("Checkpoint closed, but no later lesson segment was confirmed active")

@@ -106,7 +106,6 @@ jobs:
             ui-screenshots/
             attempt-artifacts/
             home.xml
-            tutor.xml
             home-return.xml
             feedback.xml
             settings.xml

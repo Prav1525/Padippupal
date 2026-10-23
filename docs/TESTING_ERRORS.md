@@ -138,6 +138,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Combined PR #17 emulator run [39903215063](https://github.com/Prav1525/Padippupal/actions/runs/39903215063) was exercising the previous navigation at last inspection; this change replaces that path.
 - **Status:** **Navigation fix implemented; verification pending.**
 
+
+### TE-018 — Retry-isolation test still expected the removed tutor.xml artifact
+- **Date discovered:** 2026-10-23
+- **Area:** Emulator smoke retry isolation and artifact list.
+- **Symptom:** The script-preflight suite failed in `test_each_retry_clears_old_xml_and_screenshot_evidence` because it still expected the old `tutor.xml` file after the journey moved lesson selection to `settings.xml` and the ready tutor state to `ready-to-teach.xml`.
+- **Root cause:** The smoke flow and cleanup script were updated, but the test expectation, retry evidence list, and workflow artifact list were not all updated together.
+- **Why it escaped:** These related path lists are maintained in separate files and the helper test asserted the old literal filename.
+- **Corrective action:** Updated the retry-isolation expectation and removed the obsolete `tutor.xml` artifact reference; refreshed the lesson-selection assertion message.
+- **Regression protection:** Keep the retry-isolation test and the previous-screen selection test; run script preflight before emulator allocation.
+- **Evidence:** Combined PR #17 UI smoke run [39904323005](https://github.com/Prav1525/Padippupal/actions/runs/39904323005), `Validate smoke-test scripts` failed before emulator allocation.
+- **Status:** **Corrective change implemented; verification pending.**
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

@@ -153,7 +153,7 @@ class RetryIsolationTests(unittest.TestCase):
     def test_each_retry_clears_old_xml_and_screenshot_evidence(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke-retry.sh").read_text()
         self.assertIn("rm -rf ui-screenshots", script)
-        self.assertIn("rm -f home.xml tutor.xml", script)
+        self.assertIn("rm -f home.xml settings.xml ready-to-teach.xml", script)
         for evidence_file in ("live-resumed.xml", "live-complete.xml", "live-lesson.xml"):
             self.assertIn(evidence_file, script)
         self.assertLess(script.index("rm -rf ui-screenshots"), script.index("bash .github/scripts/android-ui-smoke.sh"))

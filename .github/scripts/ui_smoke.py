@@ -113,7 +113,7 @@ def assert_settings(path):
     joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
     print("SETTINGS TEXT:", " | ".join(texts[:140]))
     if "set up your lesson" not in joined:
-        raise SystemExit("Change did not open the dedicated lesson-selection screen")
+        raise SystemExit("The pre-tutor lesson-selection screen did not render its setup heading")
     if "done" not in joined:
         raise SystemExit("Lesson-selection screen has no Done action to return to the tutor")
     # Done must remain in the visible, fixed footer even when the setup fields

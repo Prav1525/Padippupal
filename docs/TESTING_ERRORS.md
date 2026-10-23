@@ -166,3 +166,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Change the helper contract to require top-aligned `Arrangement.spacedBy(8.dp)`, reject `Arrangement.Center` in the live teaching section, and retain checks for natural caption height, inline animation/checkpoint controls, and active-speech auto-scroll. Rerun the complete UI flow and inspect both `live-lesson.png` and `live-checkpoint.png` from the exact new head SHA.
 - **Evidence:** UI screenshot artifact [12502270996](https://github.com/Prav1525/Padippupal/actions/runs/39954229853/artifacts/12502270996); offending commit `cc4f46a7c473c4702de78ced2d67cbd3609a9ba3`. Corrective commit and verification pending.
 - **Status:** **Root cause confirmed; correction and regression assertion prepared; not yet verified.** Keep PR #13 open until the latest screenshot and all release gates pass.
+
+### TE-013 — Topic lesson replaced its previous explanation and displayed page-style progress
+
+- **Date discovered:** 2026-10-23
+- **Area:** Android tutor lesson progression / lesson completeness / continuous scrolling.
+- **Symptom:** During live teaching, the spoken caption was replaced for every module and the UI displayed an n / total counter. This made one topic feel like a sequence of pages and left earlier explanations unavailable in the current lesson flow. The lesson request was also capped at five segments, which could truncate a topic before it was fully taught.
+- **Root cause:** liveCaption was the only rendered teaching text; playLiveSegment replaced it on every module. The live UI displayed the current segment index as page progress, and the Android request explicitly asked for only five segments.
+- **Why it escaped:** Previous acceptance checks concentrated on synchronized highlighting, checkpoint actions, and spacing. They did not assert that completed modules remain visible in one scrollable transcript or reject page-style progress counters.
+- **Corrective action:** Render all earlier spoken modules followed by the active highlighted module in one vertically scrollable lesson flow; auto-scroll to newly appended modules; remove the page counter and segment-number status text; request the backend-supported maximum of eight modules and explicitly instruct the planner to cover the selected topic from start to recap. The inline concept animation and checkpoint actions remain in the same flow.
+- **Regression protection:** The helper contract asserts a scrollable transcript, retained earlier modules, active word highlighting, absence of page counters, the eight-module request, and the complete-topic prompt. Before release, inspect fresh lesson/checkpoint screenshots and verify the entire topic can be followed by scrolling without a page transition.
+- **Affected commits:** UI 4c4ec21111c7d9ac1f8093c59287c13a94fbca0c; helper regression 17428f8401fd7539c58976fcd4531be6f7e3ab5a.
+- **Status:** **Implemented; verification pending.** Run the required pre-test checklist and inspect latest-head emulator evidence before calling this verified.

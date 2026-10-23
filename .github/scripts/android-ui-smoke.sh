@@ -254,6 +254,8 @@ if [ "$checkpoint_seen" -ne 1 ]; then
   log "FAIL: live lesson did not reach the understanding checkpoint within 150 seconds after resume"
   exit 1
 fi
+# Allow the checkpoint auto-scroll to settle before visual acceptance capture.
+sleep 1
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-checkpoint.png
 python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml ui-screenshots/live-checkpoint.png | tee -a "$REPORT"
 log "Testing checkpoint continuation and next-segment progression"

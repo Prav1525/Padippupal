@@ -41,6 +41,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** See the UI selector and smoke-flow safeguards described in `.github/testing-regression-checklist.md`; attach the exact workflow run and artifacts when next reproduced or verified.
 - **Status:** Safeguard documented/implemented; confirm with a successful current end-to-end run before calling fully verified.
 
+
+### TE-004 — All 1s lesson rejected by the Android topic guard
+- **Date discovered:** 2026-10-23
+- **Area:** Live tutor request prompt; Android All 1s fail-closed validation; emulator UI smoke.
+- **Symptom/failure:** Android UI smoke run [39882430428](https://github.com/Prav1525/Padippupal/actions/runs/39882430428) built the APK and passed curriculum-engine tests, but failed in the live tutor flow with: “The lesson content did not stay on All 1s. Please try again; no incorrect lesson was started.”
+- **Confirmed immediate cause:** The lesson-plan endpoint returned a response that passed the API's grounded and non-empty-segment checks, but the Android All 1s topic guard rejected at least one segment or found no explicit repeated-one topic signal. The captured smoke evidence does not expose which segment triggered the guard, so the exact offending wording / whether the hosted backend was stale remains unconfirmed.
+- **Why it escaped:** The Android request prompt named the selected topic but did not explicitly require every generated segment to stay within the All 1s concept. The rejection message also hid the failed validator condition, preventing the smoke report from identifying the precise mismatch.
+- **Corrective action:** Add an All 1s-specific generation guardrail requiring every segment to explain repeated ones or the invariant that each value stays the same; prohibit square-number/counting-up-and-down drift; fail closed when source grounding is insufficient. Improve the rejection message to report the rejected segment indices and reason categories without logging lesson text.
+- **Regression protection:** Add a static helper test verifying the topic guardrail and actionable rejection diagnostics remain in the Android request path. Continue requiring the real emulator flow, backend tests, APK build, and screenshot/log review; do not weaken the per-segment validator.
+- **Evidence:** Failed UI run [39882430428](https://github.com/Prav1525/Padippupal/actions/runs/39882430428), artifact [12471073829](https://github.com/Prav1525/Padippupal/actions/runs/39882430428/artifacts/12471073829); fix commits d86174adfe5450bc77bced0e26ff9c37702b30e1 and 02f278b283eb8dcbd4e4092657d2a0bfa7fb838b.
+- **Status:** **Fix committed; verification pending.** Do not mark the tutor flow fixed until the current head passes the UI smoke test and the captured live-lesson screenshots are reviewed.
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

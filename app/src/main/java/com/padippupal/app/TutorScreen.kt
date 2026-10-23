@@ -1947,7 +1947,12 @@ internal fun TutorScreen(
                     enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TutorGreen, contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = TutorGreen,
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFF4169E1),
+                        disabledContentColor = Color.White
+                    )
                 ) { Text("▶ Teach", color = Color.White, fontWeight = FontWeight.ExtraBold, maxLines = 1) }
             }
         }

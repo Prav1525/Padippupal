@@ -39,6 +39,22 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
+class TutorHeaderLayoutRegressionTests(unittest.TestCase):
+    def test_tutor_header_uses_compact_spacing_and_icon(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        header_start = tutor.index("// Midnight command bar: persistent context and clear lesson controls.")
+        header_end = tutor.index("if (showLessonSettings && !liveLessonActive)", header_start)
+        header = tutor[header_start:header_end]
+        self.assertIn("top = 2.dp, bottom = 3.dp", header)
+        self.assertIn("Modifier.size(30.dp).background(TutorAccentSoft, CircleShape)", header)
+        self.assertIn('Text("PadippuPal", fontSize = 16.sp', header)
+        self.assertIn('fontSize = 9.sp, color = TutorMutedOnNight', header)
+        # Keep essential tutor actions available while compacting the visual chrome.
+        for action in ('contentDescription = "Back"', 'Text(if (livePaused) "Resume" else "Pause"', 'Text("Stop"', 'Text("▶ Teach"'):
+            self.assertIn(action, header)
+
+
 class LiveCheckpointLabelRegressionTests(unittest.TestCase):
     def test_actual_understanding_checkpoint_label_is_a_valid_live_lesson_state(self):
         # Match the wording shown by the real Compose checkpoint, not just older labels.

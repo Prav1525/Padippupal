@@ -68,6 +68,20 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Status:** **Fix and regression assertion committed; verification pending.** Phase 1 remains open until the complete layout acceptance criteria pass.
 
 
+
+### TE-019 — New voice-status regression assertion matched the wrong source-code shape
+
+- **Date discovered:** 2026-10-23
+- **Area:** UI helper regression tests.
+- **Symptom/failure:** Android UI workflow run [39980790041](https://github.com/Prav1525/Padippupal/actions/runs/39980790041) failed during script validation before allocating the emulator. Sixteen helper tests passed; the new voice preparation test failed on its fallback-status assertion.
+- **Root cause:** The production fallback text is inside an `if/else` expression assigned to `status`, rather than a standalone `status = "…"` statement. The test asserted a source-code formatting shape instead of the actual fallback string.
+- **Why it escaped:** The new regression test had not run locally before the workflow was launched.
+- **Corrective action:** Assert the fallback text itself, independent of whether it is assigned directly or within an expression. No production behavior or valid existing assertion was weakened.
+- **Regression protection:** Re-run the complete helper test file and all workflow checks on the corrected latest commit before attempting emulator execution again.
+- **Evidence:** Failing run [39980790041](https://github.com/Prav1525/Padippupal/actions/runs/39980790041), tested commit `870836844db253fcc33c51b176b4a716169a9c3a`; assertion correction commit `747c0573d6da9010749a336b8600f83f574a31d5`.
+- **Status:** **Test-harness defect corrected; verification pending.**
+
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

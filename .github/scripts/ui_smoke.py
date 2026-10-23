@@ -481,7 +481,7 @@ def tap_input(path):
         raise SystemExit("Could not find an enabled editable text field in " + path)
     node = candidates[0]
     bounds = node.attrib.get("bounds", "")
-    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("Editable text field has invalid accessibility bounds: " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())

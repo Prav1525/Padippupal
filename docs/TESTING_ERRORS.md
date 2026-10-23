@@ -291,3 +291,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep script validation before emulator allocation. Run `python3 .github/scripts/test_ui_smoke_helpers.py` on the latest commit before relying on emulator results.
 - **Evidence:** Failed run [39981519885](https://github.com/Prav1525/Padippupal/actions/runs/39981519885), job `120509746200`; test correction commit `7eac81305e4d402fb092700613a8f146f0969cfb`.
 - **Status:** **Test syntax corrected; helper suite and emulator verification pending.**
+
+
+### TE-023 — Playback-gate regression tests were stale and an unused timer implementation remained
+
+- **Date discovered:** 2026-10-23
+- **Area:** Tutor caption source-contract tests / legacy speech-caption implementation.
+- **Symptom:** UI smoke workflow `39983540041` passed JVM tests and APK build, but pre-emulator helper tests failed in two places: the checkpoint-layout test expected the old ungated `WordByWordCaption(liveCaption, speechActive, ...)` call, and the synchronization test rejected the fixed 24-second timer string anywhere in the file.
+- **Confirmed root cause:** The production live caption correctly used `speechActive && speechPlaybackObserved`, but one layout assertion had not been updated to that intended contract. Separately, the old private `SpeakingCaption` composable was no longer used by the live lesson, but it still contained the obsolete independent 24-second timer; the global test was correctly detecting leftover unsafe implementation.
+- **Corrective action:** Updated the layout regression assertion to require the playback-observed gate and removed the unused timer-based `SpeakingCaption` implementation rather than weakening the no-fixed-timer assertion.
+- **Regression protection:** Keep the helper assertion requiring `speechActive && speechPlaybackObserved`; keep the prohibition on the fixed 24-second timer. Run helper tests first, then JVM tests, APK build, and a fresh emulator flow with screenshot review on the final head SHA.
+- **Evidence:** Failed run [39983540041](https://github.com/Prav1525/Padippupal/actions/runs/39983540041), job `120517388448`; assertion update commit `b870a0803d85fd7ea922bb17e74402f2480e7242`; obsolete implementation removal commit `7cd36c01025ad2cecd5d4493cfb328a1f6a86363`.
+- **Status:** **Correction committed; latest-head helper and emulator verification pending.**

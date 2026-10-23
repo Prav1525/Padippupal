@@ -89,16 +89,15 @@ def assert_continued(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("CONTINUED LESSON TEXT:", " | ".join(texts[:120]))
-    # The backend may return four or five segments, and the next segment can
-    # reach its own understanding checkpoint before the emulator captures a frame.
-    # The shell-level assertion verifies the counter and caption both changed from
-    # the checkpoint we tapped; here verify the UI has advanced beyond segment 2.
-    import re
-    counters = re.findall(r"(\d+)\s*/\s*(\d+)", joined)
-    progressed = any(int(current) >= 3 and int(total) >= int(current) for current, total in counters)
-    if not progressed:
-        raise SystemExit("Checkpoint closed, but no later lesson segment was confirmed active")
-    print("PASS: understanding response advanced beyond segment 2 (including valid 4- or 5-segment lessons)")
+    # No page counter is expected. Verify the next fixture sentence is appended
+    # while earlier teaching remains available in the same transcript.
+    required = ("now look at the sequence.", "the all 1s pattern repeats the number 1")
+    missing = [phrase for phrase in required if phrase not in joined]
+    if missing:
+        raise SystemExit("Continuous lesson did not retain prior teaching and append the next module: " + ", ".join(missing))
+    if re.search(r"\b\d+\s*/\s*\d+\b", joined) or re.search(r"segment\s+\d+\s+of\s+\d+", joined):
+        raise SystemExit("Page-style segment progress reappeared in the continuous lesson")
+    print("PASS: next teaching module appended to the same transcript; prior explanation retained; no page counter")
 
 def assert_feedback(path):
     _, texts = load(path)

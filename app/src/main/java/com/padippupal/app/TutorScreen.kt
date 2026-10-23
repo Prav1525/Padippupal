@@ -1232,10 +1232,19 @@ internal fun TutorScreen(
             override fun onStart(utteranceId: String?) {
                 tutorMainHandler.post {
                     if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
-                    speechPlaybackObserved = true
+                    // Android reports onStart just before the first audible samples on some engines.
+                    // Keep the caption unhighlighted briefly so it cannot visibly lead the voice.
+                    val generation = speechGeneration
                     val callback = speechStartCallback
                     speechStartCallback = null
                     callback?.invoke()
+                    tutorMainHandler.postDelayed({
+                        if (utteranceId == activeTtsUtteranceId &&
+                            speechActive && generation == speechGeneration
+                        ) {
+                            speechPlaybackObserved = true
+                        }
+                    }, 160L)
                 }
             }
             override fun onDone(utteranceId: String?) {
@@ -1558,10 +1567,20 @@ internal fun TutorScreen(
                             }
                             player.prepare()
                             player.start()
-                            speechPlaybackObserved = true
+                            // MediaPlayer.start() returns before audio is necessarily audible.
+                            // Delay the first visible highlight slightly; subsequent positions
+                            // are read from the player's clock, not an independent word timer.
                             val startedCallback = speechStartCallback
                             speechStartCallback = null
                             startedCallback?.invoke()
+                            val playbackUtterance = speechGeneration
+                            tutorMainHandler.postDelayed({
+                                if (speechActive && playbackUtterance == speechGeneration &&
+                                    audioPlayer.value === player
+                                ) {
+                                    speechPlaybackObserved = true
+                                }
+                            }, 160L)
                             status = "Speaking with Gemini natural voice."
                         }.onFailure {
                             audioFile.delete()

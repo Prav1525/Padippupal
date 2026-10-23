@@ -264,9 +264,15 @@ def assert_live(path):
     # "teacher is speaking". Validate the real progress + inline lesson content.
     # Audio/highlight progression is checked independently below, so this
     # assertion must not mask those checks with a stale accessibility label.
-    has_progress = bool(re.search(r"\b[1-5]\s*/\s*5\b", joined)) or bool(re.search(r"segment\s+[1-5]\s+of\s+5", joined)) or "quick check" in joined or "let's check your understanding" in joined
+    has_progress = bool(re.search(r"\b1\s*/\s*1\b", joined)) or bool(re.search(r"segment\s+1\s+of\s+1", joined)) or "live lesson complete" in joined or "your teacher is speaking" in joined
     if not has_progress:
-        raise SystemExit("Live lesson is missing its segment progress or understanding checkpoint")
+        raise SystemExit("Complete lesson is missing its active/completed playback state")
+    forbidden_interruptions = ("quick check", "let's check your understanding", "does that make sense so far", "i understand", "explain again", "i have a question", "watch the pattern", "visual focus")
+    found_interruptions = [label for label in forbidden_interruptions if label in joined]
+    if found_interruptions:
+        raise SystemExit("Per-segment checkpoint or animation UI reappeared: " + ", ".join(found_interruptions))
+    if len(joined) < 450:
+        raise SystemExit("Tutor screen does not expose enough text to verify a complete lesson explanation")
     lesson_words = ("one", "all 1s", "pattern", "number")
     if not any(term in joined for term in lesson_words):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
@@ -294,14 +300,12 @@ def assert_live(path):
     found_activity = [label for label in forbidden_activity_labels if label in joined]
     if found_activity:
         raise SystemExit("Interactive activity UI reappeared in the teaching flow: " + ", ".join(found_activity))
-    if "patterns in mathematics" in joined and "watch the pattern" not in joined:
-        raise SystemExit("Class 6 Patterns in Mathematics live lesson is missing its passive auto-playing concept animation")
     if "all 1s" in joined:
-        if "1, 1, 1, 1, 1" not in joined:
-            raise SystemExit("All 1s topic is not showing the matching repeated-ones animation")
+        if not any(term in joined for term in ("1, 1, 1", "repeats the number 1", "each term is 1", "same number")):
+            raise SystemExit("All 1s lesson lacks an explanation of the repeated-one rule")
         if "square numbers grow" in joined or "1²" in joined or "+3" in joined:
             raise SystemExit("All 1s topic is incorrectly showing square-number content")
-    print("PASS: live lesson has inline teaching text, no interactive activity, and concept-matched passive animation")
+    print("PASS: complete continuous lesson is visible without checkpoints, animations, or interactive overlays")
 
 def exact_color_mask(image, target):
     """Return a fast Pillow mask for pixels exactly matching an RGB color."""

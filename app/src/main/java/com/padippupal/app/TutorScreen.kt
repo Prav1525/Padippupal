@@ -1908,25 +1908,25 @@ internal fun TutorScreen(
     ) {
         // Midnight command bar: persistent context and clear lesson controls.
         Row(
-            modifier = Modifier.fillMaxWidth().background(TutorNight)
-                .padding(start = 4.dp, end = 8.dp, top = 2.dp, bottom = 3.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp, max = 52.dp)
+                .background(TutorNight).padding(start = 4.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Box(
-                modifier = Modifier.size(30.dp).background(TutorAccentSoft, CircleShape),
+                modifier = Modifier.size(26.dp).background(TutorAccentSoft, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.GraphicEq, contentDescription = "PadippuPal AI tutor", tint = TutorNight, modifier = Modifier.size(19.dp))
+                Icon(Icons.Default.GraphicEq, contentDescription = "PadippuPal AI tutor", tint = TutorNight, modifier = Modifier.size(17.dp))
             }
-            Spacer(Modifier.width(7.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text("PadippuPal", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1)
+            Spacer(Modifier.width(6.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                Text("PadippuPal", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
                 Text(
                     if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "CLASS $grade  ·  $board",
-                    fontSize = 9.sp, color = TutorMutedOnNight, maxLines = 1
+                    fontSize = 8.sp, color = TutorMutedOnNight, maxLines = 1
                 )
             }
             if (liveLessonActive) {

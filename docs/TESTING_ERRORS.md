@@ -264,3 +264,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Run the helper regression suite on the final combined head; keep the assertion tied to the paragraph separator and matching word-offset calculation.
 - **Evidence:** Correction commit `34a5a743bb740346580d2b09ecf05c0211b7ea4d`; final verification pending.
 - **Status:** **Caught during review and corrected before accepting test results.**
+
+
+### TE-015 — Follow-up smoke test typed a question but never pressed Send
+- **Date discovered:** 2026-10-23
+- **Area:** Android emulator follow-up chat regression test.
+- **Symptom:** The latest emulator run reported that a follow-up question received no answer. The captured accessibility tree showed the question still inside the multiline composer and the Send question control still visible; no user message had been submitted.
+- **Root cause:** The smoke script pressed Android Enter after typing. In this multiline Compose input, Enter inserts/retains a newline rather than reliably invoking the Send action, so the test asserted an answer to a question it had not actually sent.
+- **Why it escaped:** The test did not assert that the typed question appeared as a submitted user message before waiting for a tutor reply.
+- **Corrective action:** Capture the post-entry accessibility tree and tap the explicit accessible Send question control instead of relying on Enter.
+- **Regression protection:** Keep the explicit Send tap and require the follow-up assertion to observe both the submitted question and a tutor answer; inspect the follow-up XML artifact on any failure.
+- **Evidence:** UI smoke run [39908839302](https://github.com/Prav1525/Padippupal/actions/runs/39908839302); test correction commit `1014f6d8ac0f55eef047027ba9d5f21d205ee2d2`.
+- **Status:** **Test-harness root cause strongly indicated by captured XML; correction committed, rerun pending.** This does not yet prove app follow-up behavior passes.

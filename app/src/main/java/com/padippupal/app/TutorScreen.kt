@@ -193,6 +193,9 @@ private fun InteractiveLessonLab(
     visualTarget: String = "",
     segmentIndex: Int = 0
 ) {
+    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
+    return
+
     val key = "$chapter $topic $explanation".lowercase()
     val title: String
     val hint: String
@@ -317,6 +320,9 @@ private fun ChapterOneMathAnimation(
     caption: String,
     compact: Boolean = false
 ) {
+    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
+    return
+
     var stage by remember(scene, title) { mutableIntStateOf(0) }
     LaunchedEffect(scene, title) {
         stage = 0
@@ -437,6 +443,9 @@ private fun ChapterOneMathAnimation(
 
 @Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String) {
+    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
+    return
+
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
@@ -750,6 +759,9 @@ private fun chooseLessonVisual(text: String): LessonVisualKind {
 
 @Composable
 private fun DatabaseLessonVisual(lesson: JSONObject) {
+    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
+    return
+
     val array = lesson.optJSONArray("steps")
     val steps = remember(lesson) {
         if (array == null) emptyList() else (0 until array.length()).mapNotNull { array.optJSONObject(it) }
@@ -2062,31 +2074,8 @@ internal fun TutorScreen(
                                 if (message.content == latestAssistant?.content && message.visualLesson != null) {
                                     DatabaseLessonVisual(message.visualLesson)
                                 }
-                                if (message.content == latestAssistant?.content && !liveLessonActive && !loading) {
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("How did that explanation feel?", color = TutorGrey, fontSize = 11.sp)
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        TextButton(
-                                            onClick = { status = "Great! We’ll build on this one small step at a time." },
-                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
-                                        ) { Text("I understand", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
-                                        TextButton(
-                                            onClick = { sendMessage("Please explain the last idea more simply, in smaller steps, with an example.") },
-                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
-                                        ) { Text("Explain again", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
-                                        TextButton(
-                                            onClick = {
-                                                input = "I have a question about " + topic.ifBlank { chapter.ifBlank { "this explanation" } } + ": "
-                                                status = "Type your question in the box below, then tap send."
-                                            },
-                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
-                                        ) { Text("Ask", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
-                                    }
-                                }
+                                // Feedback is intentionally deferred until the complete lesson flow is implemented.
+
                             }
                         }
                     }

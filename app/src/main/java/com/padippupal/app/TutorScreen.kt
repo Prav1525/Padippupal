@@ -2092,7 +2092,9 @@ internal fun TutorScreen(
             // One continuous, scrollable lesson transcript. New modules append below the earlier explanation.
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp).verticalScroll(liveLessonScrollState),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                // During a checkpoint, distribute the short lesson content through the available viewport
+                // instead of leaving one large empty block immediately above the fixed feedback controls.
+                verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))

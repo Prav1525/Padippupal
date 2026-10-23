@@ -13,7 +13,7 @@ internal object AllOnesTopicValidator {
         RegexOption.IGNORE_CASE
     )
     private val relevant = Regex(
-        """(all\s+1s?|all\s+ones?|repeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?(?:1|one|ones)\b|1\s*[,;]\s*1|same number|stays? the same|number one|each term is (?:the )?(?:number )?(?:1|one)|each term stays the same)""",
+        """(all\s+1s?|all\s+ones?|repeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?(?:1|one|ones)\b|1\s*[,;]\s*1|number one|each term is (?:the )?(?:number )?(?:1|one))""",
         RegexOption.IGNORE_CASE
     )
     private val supporting = Regex(

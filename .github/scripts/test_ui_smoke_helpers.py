@@ -184,7 +184,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
     def test_spoken_caption_groups_sentences_into_natural_paragraphs(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
         self.assertIn("separate paragraphs only after every third sentence", tutor)
-        self.assertIn(r'append(if (endsSentence && sentencesInParagraph % 3 == 0) "\\n\\n" else " ")', tutor)
+        self.assertIn(r'append(if (endsSentence && sentencesInParagraph % 3 == 0) "\n\n" else " ")', tutor)
         self.assertIn("offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1", tutor)
 
     def test_completed_lesson_is_kept_for_follow_up_chat(self):

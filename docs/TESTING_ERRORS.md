@@ -240,3 +240,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add a source-level helper regression test for paragraph grouping and retain screenshot-based moving-highlight/layout checks.
 - **Evidence:** Screenshot artifact from run [39904633845](https://github.com/Prav1525/Padippupal/actions/runs/39904633845); correction commits `9953bff2abd2c38cb4af61935be8640fd2113fe9` and `dee6541daa24aac1907edbbc343404efca0f40c0`. Verification on the latest combined head is pending.
 - **Status:** **Implemented; not yet verified.** Keep PR #17 open until helper tests, Android build, emulator flow, screenshot review, and follow-up chat behavior pass on the same head.
+
+
+### TE-013 — Completed live lesson was not retained for follow-up chat
+- **Date discovered:** 2026-10-23
+- **Area:** Android live-playback completion state / conversation history.
+- **Symptom:** Code review of the completed-lesson flow found that when the single combined speech segment finished, the app set `liveLessonActive = false` but did not append the explanation to `messages`. The full-screen caption could therefore disappear and the next chat request would not include the lesson in conversation history.
+- **Root cause:** Playback UI state and chat history were treated as separate flows; no completion transition persisted the final spoken explanation as an assistant message.
+- **Why it escaped:** The previous emulator smoke paused/resumed and inspected the still-playing caption, then stopped playback. It did not wait for natural completion or ask a follow-up question.
+- **Corrective action:** On natural completion, append the full lesson to chat history once, retain the completed status, and expose the composer. Extend the emulator smoke to wait for completion, verify the explanation remains visible, submit a follow-up question, and assert the deterministic tutor answer.
+- **Regression protection:** Add helper coverage for lesson retention and follow-up assertions; preserve `live-complete.xml` and `follow-up.xml` on smoke retries.
+- **Evidence:** Implementation commit `d54226d39e3410cee3394943a775bd2083ed0705`; follow-up smoke and helper changes `1c13b9910b5b0113f6ff758ecd13251300a19409`, `1a0db763fe02595ce98534bc098abb5670419028`, `916e25d40d4d3cf77fa574cc0bfe46e856645359`, `f00b78eb357fc106c3c4e1acb3857c5e3f3e275c`, and `8d7355e664fb5beb90027ef9680a36e8fa673240`. Verification on the latest combined head is pending.
+- **Status:** **Fix and regression coverage drafted; not yet verified.** Do not merge until the full completion-and-follow-up smoke passes on the same head.

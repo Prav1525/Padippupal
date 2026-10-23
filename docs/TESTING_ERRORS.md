@@ -114,6 +114,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Combined PR #17 UI smoke run [39902333735](https://github.com/Prav1525/Padippupal/actions/runs/39902333735) was still running the emulator step at last inspection; the fix is in the next combined commit.
 - **Status:** **Corrective change implemented; verification pending.**
 
+
+### TE-016 — Smoke fixture self-test still expected three segments after expanding the lesson
+- **Date discovered:** 2026-10-23
+- **Area:** Deterministic lesson fixture self-test.
+- **Symptom:** The updated script preflight passed all 17 UI helper tests but failed `tutor_smoke_api.py --self-test` because the fixture now contains four segments while a separate assertion still required exactly three.
+- **Root cause:** The fixture was expanded to provide a complete, sufficiently long spoken lesson, but its segment-count assertion was not updated with the fixture.
+- **Why it escaped:** The self-test checks the segment count separately from its content and word-count assertions; the helper suite does not execute this self-test itself.
+- **Corrective action:** Updated the self-test to require four fixture segments, matching the actual complete lesson.
+- **Regression protection:** Keep the fixture self-test in the pre-emulator workflow and retain its minimum lesson word-count assertion.
+- **Evidence:** Combined PR #17 UI smoke run [39902997631](https://github.com/Prav1525/Padippupal/actions/runs/39902997631), preflight failed before emulator allocation.
+- **Status:** **Corrective change implemented; verification pending.**
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

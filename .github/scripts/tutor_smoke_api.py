@@ -117,7 +117,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def self_test() -> None:
-    assert len(LESSON["segments"]) == 3
+    assert len(LESSON["segments"]) == 4
     assert "All 1s" in LESSON["segments"][0]["spoken_text"]
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])

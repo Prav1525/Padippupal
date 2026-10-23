@@ -48,6 +48,8 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 - [ ] State the active objective, acceptance criteria, affected system layers, and exact commands/checks before running tests.
 - [ ] Trace the expected path end to end (data/source -> backend validation/API -> Android parsing/state -> playback/UI -> observable user outcome) where applicable.
 - [ ] For each prior failure that could recur, confirm a regression test or explicit preflight catches it; do not assume a test exists without locating it.
+- [ ] Follow-up chat: inspect the composer and send control accessibility XML; selectors must support `content-desc` as well as `text`. After tapping Send, assert the submitted learner question appears in chat history before accepting a tutor answer; never infer submission from text remaining in the composer.
+- [ ] Tutor prompt contract: confirm one complete selected-topic explanation (definition, why/how, worked example, key rule, relevant common mistake, recap) with no legacy single-step, 20–45-word, or forced per-segment checkpoint instruction.
 - [ ] Keep tests meaningful: never delete, weaken, skip, or rewrite a valid failing assertion merely to obtain a green run. If a test expectation is wrong, prove that independently and document why.
 - [ ] When a test fails, preserve the failing assertion, logs/screenshots, commit SHA, and environment; classify the cause before editing.
 - [ ] Fix the root cause, add a regression test/safeguard, and rerun the failed test plus affected neighboring tests. Then rerun all required release-gate checks on the latest commit.

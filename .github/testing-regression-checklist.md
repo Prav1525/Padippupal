@@ -64,4 +64,5 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 4. Run the narrowest relevant test first; diagnose any failure before proceeding.
 5. Run neighboring/regression tests, then full required CI and end-to-end checks.
 6. Inspect actual outputs (logs, screenshots, UI state), confirm they correspond to the latest tested SHA, and update the error log.
+8. For tutor UX changes, verify a complete grade-appropriate explanation, text-only examples (no animation/lab overlays), natural follow-up answers, and no feedback prompt after each assistant reply. If the UI lacks a reliable end-of-lesson state, do not reintroduce per-reply feedback.
 7. Only then provide a status report or consider release/merge readiness.

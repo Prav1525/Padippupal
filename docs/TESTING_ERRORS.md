@@ -141,3 +141,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Correction:** On checkpoint state, remove the flexible weight from the outer live-lesson column too; preserve it during normal teaching. Commit `9944dedd2aabb7c95157b096cde6c808eb3dbf52`.
 - **Regression rule:** Treat the screenshot review—not just a passing smoke test—as mandatory. Review fresh `live-checkpoint.png` and `live-lesson.png` from the exact same tested SHA. Do not close TE-010 until the gap is gone and controls/animation are visible without clipping or overlap.
 - **Status:** Second, parent-level correction committed; verification pending.
+
+
+### TE-011 — Checkpoint caption viewport inflated spacing despite parent-weight correction
+- **Date discovered:** 2026-10-23
+- **Area:** Android Compose caption measurement / checkpoint visual acceptance.
+- **Symptom/failure:** Emulator screenshot artifact from UI smoke run [39944090457](https://github.com/Prav1525/Padippupal/actions/runs/39944090457) still showed a large gap after a one-line spoken explanation and another large unused region below the checkpoint controls, despite the parent-column weight correction.
+- **Root-cause analysis:** The checkpoint caption was constrained with `heightIn(min = 64.dp, max = 108.dp)`; the shared caption component also applied a vertically scrollable viewport capped at 150.dp when not expanding. The screenshot showed the one-line caption occupying a much taller region than its rendered text required. The separate “Visual focus · …” debug-style metadata added another non-teaching row between the explanation and animation. The screenshot demonstrates the spacing symptom; the exact Compose measurement contribution of each modifier must be confirmed by the next screenshot.
+- **Why it escaped:** The smoke test asserted interaction/progression and visible controls, not content-to-content spacing. The previous fix removed flexible weights but did not remove the checkpoint caption's bounded scroll viewport or the metadata row.
+- **Corrective action:** Remove the checkpoint's forced minimum/maximum caption height; allow checkpoint text to wrap naturally rather than creating a scroll viewport. Remove the technical “Visual focus” line so the explanation flows directly into the inline animation.
+- **Regression protection:** Before rerunning, re-read this log and `.github/testing-regression-checklist.md`. Inspect both screenshots from the same latest SHA; confirm the one-line caption uses natural height, the animation follows closely, all checkpoint controls remain visible, and no content is clipped or overlapped. Confirm active-speech word auto-scroll remains unchanged.
+- **Evidence:** Screenshot artifact from run [39944090457](https://github.com/Prav1525/Padippupal/actions/runs/39944090457); code changes commits `1ecedcd9dffdb2832920a9c0be747466a42b7260` and `2736e84d400ea6dcc9eec5301558673e39a8cc64`. Verification on the new head is pending.
+- **Status:** **Code correction committed; visual verification pending.** Do not merge PR #13 until the latest screenshot demonstrates the gap is resolved and all regression gates pass.

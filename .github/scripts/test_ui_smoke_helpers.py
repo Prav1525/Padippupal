@@ -181,6 +181,12 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn("Per-segment checkpoint or animation UI reappeared", smoke)
         self.assertNotIn("missing its passive auto-playing concept animation", smoke)
 
+    def test_spoken_caption_groups_sentences_into_natural_paragraphs(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn("separate paragraphs only after every third sentence", tutor)
+        self.assertIn(r'append(if (endsSentence && sentencesInParagraph % 3 == 0) "\\n\\n" else " ")', tutor)
+        self.assertIn("offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1", tutor)
+
     def test_smoke_waits_for_full_caption_and_rejects_checkpoint_ui(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("assert-live live-lesson.xml >/dev/null 2>&1", script)

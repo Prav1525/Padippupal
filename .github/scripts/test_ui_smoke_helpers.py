@@ -180,12 +180,17 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("modifier.fillMaxWidth().wrapContentHeight()", tutor)
         self.assertNotIn("heightIn(min = 64.dp, max = 108.dp)", tutor)
         self.assertNotIn("Visual focus ·", tutor)
-        # The parent fills the viewport but top-aligns the compact teaching group.
-        # Centering a short group vertically reproduces the giant blank bands in the screenshot.
-        self.assertIn("modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)", tutor)
-        live_layout = tutor[tutor.index("// One continuous teaching canvas"):tutor.index('if (!liveLessonActive && status.isNotBlank())')]
-        self.assertIn("verticalArrangement = Arrangement.spacedBy(8.dp)", live_layout)
+        # The lesson must be a continuous scrollable transcript, not a compact page.
+        live_layout = tutor[tutor.index("// One continuous, scrollable lesson transcript"):tutor.index('if (!liveLessonActive && status.isNotBlank())')]
+        self.assertIn(".verticalScroll(liveLessonScrollState)", live_layout)
+        self.assertIn("for (pastIndex in 0 until liveSegmentIndex.coerceAtMost(liveSegments.size))", live_layout)
+        self.assertIn("WordByWordCaption(liveCaption, speechActive, liveWordIndex", live_layout)
+        self.assertIn("verticalArrangement = Arrangement.spacedBy(12.dp)", live_layout)
         self.assertNotIn("Arrangement.Center", live_layout)
+        self.assertNotIn(" / ${liveSegments.size}", tutor)
+        self.assertNotIn("Preparing segment ${index + 1} of ${liveSegments.size}", tutor)
+        self.assertIn('.put("max_segments", 8)', tutor)
+        self.assertIn("Teach this topic fully", tutor)
         self.assertIn('Text("I have a question", color = TutorGreen)', live_layout)
         self.assertNotIn("if (liveVisualAction.isNotBlank()) {\n                        }", tutor)
         # Word highlighting still auto-scrolls during active speech.

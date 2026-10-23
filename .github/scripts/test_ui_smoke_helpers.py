@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import concept_candidates, exact_color_mask, exact_text_candidates, tap
+from ui_smoke import (assert_composer_question, concept_candidates, exact_color_mask,\n                       exact_text_candidates, tap, tap_input)
 
 
 
@@ -30,6 +30,25 @@ class ExactSelectorTests(unittest.TestCase):
         candidates = exact_text_candidates(list(root.iter("node")), "Send question")
         self.assertEqual(len(candidates), 1)
         self.assertEqual(candidates[0].attrib["content-desc"], "Send question")
+
+    def test_follow_up_smoke_focuses_edit_text_and_asserts_question_before_send(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn("tap-input follow-up-input.xml", script)
+        self.assertIn("assert-composer-question follow-up-typed.xml", script)
+        self.assertIn('tap follow-up-typed.xml "Send question"', script)
+        self.assertIn("follow-up-typed.xml", script)
+
+    def test_composer_assertion_rejects_empty_input_before_send(self):
+        empty = ET.fromstring("""<hierarchy>
+          <node class="android.widget.EditText" text="" bounds="[0,0][300,80]"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-empty-composer-test.xml"
+        try:
+            path.write_text(ET.tostring(empty, encoding="unicode"))
+            with self.assertRaises(SystemExit):
+                assert_composer_question(str(path))
+        finally:
+            path.unlink(missing_ok=True)
 
     def test_tap_selector_checks_content_description_as_well_as_text(self):
         source = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()

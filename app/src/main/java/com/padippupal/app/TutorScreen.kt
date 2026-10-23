@@ -1909,24 +1909,24 @@ internal fun TutorScreen(
         // Midnight command bar: persistent context and clear lesson controls.
         Row(
             modifier = Modifier.fillMaxWidth().background(TutorNight)
-                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 10.dp),
+                .padding(start = 4.dp, end = 8.dp, top = 2.dp, bottom = 3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Box(
-                modifier = Modifier.size(38.dp).background(TutorAccentSoft, CircleShape),
+                modifier = Modifier.size(30.dp).background(TutorAccentSoft, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.GraphicEq, contentDescription = "PadippuPal AI tutor", tint = TutorNight, modifier = Modifier.size(23.dp))
+                Icon(Icons.Default.GraphicEq, contentDescription = "PadippuPal AI tutor", tint = TutorNight, modifier = Modifier.size(19.dp))
             }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("PadippuPal", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1)
+            Spacer(Modifier.width(7.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text("PadippuPal", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1)
                 Text(
                     if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "CLASS $grade  ·  $board",
-                    fontSize = 10.sp, color = TutorMutedOnNight, maxLines = 1
+                    fontSize = 9.sp, color = TutorMutedOnNight, maxLines = 1
                 )
             }
             if (liveLessonActive) {

@@ -2134,7 +2134,7 @@ internal fun TutorScreen(
                         .heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)
                         .padding(horizontal = 18.dp, vertical = 8.dp)
                         .verticalScroll(liveLessonScrollState),
-                    verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(if (awaitingUnderstanding) 16.dp else 12.dp)
                 ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))

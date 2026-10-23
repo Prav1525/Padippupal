@@ -279,3 +279,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Corrective action:** Delay enabling the visual playback gate by 160 ms after the platform start signal, guarded by the active utterance/generation and current MediaPlayer identity. Word progression after the gate continues to use native TTS range callbacks or hosted audio playback position/timing data.
 - **Regression protection:** `.github/scripts/test_ui_smoke_helpers.py::SpeechPlaybackLeadRegressionTests` checks both playback paths have the guarded delayed gate. Run the helper suite, Android JVM tests, APK build, and emulator screenshot/voice regression on this exact revision.
 - **Status:** **Patch prepared; verification pending.**
+
+
+### TE-022 — Regression helper syntax error blocked emulator validation
+- **Date discovered:** 2026-10-23
+- **Area:** Python UI smoke helper tests / speech-highlight regression coverage.
+- **Symptom:** Android UI smoke run [39981519885](https://github.com/Prav1525/Padippupal/actions/runs/39981519885) built the APK and passed fast JVM tests, but script validation failed with a Python `SyntaxError: unterminated string literal` in the natural-voice fallback assertion. Emulator allocation and UI checks were skipped.
+- **Root cause:** The apostrophe in `phone's` was escaped incorrectly inside a single-quoted Python literal, leaving the test file syntactically invalid.
+- **Why it escaped:** The workflow ran the helper script after committing the new assertion, but the syntax error itself prevented any helper regression tests from executing.
+- **Corrective action:** Use a double-quoted Python literal for the fallback text assertion; this changes only test quoting, not the production speech/highlight logic.
+- **Regression protection:** Keep script validation before emulator allocation. Run `python3 .github/scripts/test_ui_smoke_helpers.py` on the latest commit before relying on emulator results.
+- **Evidence:** Failed run [39981519885](https://github.com/Prav1525/Padippupal/actions/runs/39981519885), job `120509746200`; test correction commit `7eac81305e4d402fb092700613a8f146f0969cfb`.
+- **Status:** **Test syntax corrected; helper suite and emulator verification pending.**

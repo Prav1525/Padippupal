@@ -28,6 +28,9 @@ class ExactSelectorTests(unittest.TestCase):
                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
         lesson_plan = tutor[tutor.index('URL("$base/tutor/lesson-plan")'):]
         self.assertIn("connection.readTimeout = 120000", lesson_plan[:900])
+        self.assertIn("TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only", tutor)
+        self.assertIn("Every teaching segment must explain that repeated-one sequence", tutor)
+        self.assertIn("no All 1s explanation or approved short transition", tutor)
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)

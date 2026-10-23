@@ -471,6 +471,36 @@ def tap(path, target):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
+def tap_input(path):
+    """Focus the actual editable composer node, not its placeholder label."""
+    nodes, _ = load(path)
+    candidates = [node for node in nodes
+                  if node.attrib.get("class") == "android.widget.EditText"
+                  and node.attrib.get("enabled", "true") == "true"]
+    if not candidates:
+        raise SystemExit("Could not find an enabled editable text field in " + path)
+    node = candidates[0]
+    bounds = node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    if not match:
+        raise SystemExit("Editable text field has invalid accessibility bounds: " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    x, y = (x1 + x2) // 2, (y1 + y2) // 2
+    print(f"Focusing editable text field at ({x}, {y}), bounds={bounds}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+                   check=True, timeout=45)
+
+
+def assert_composer_question(path):
+    nodes, _ = load(path)
+    expected = "why does all 1s repeat"
+    fields = [node.attrib.get("text", "").replace("\\n", " ").lower()
+              for node in nodes if node.attrib.get("class") == "android.widget.EditText"]
+    if not any(expected in value for value in fields):
+        raise SystemExit("Follow-up question was not entered into the editable composer; refusing to tap Send")
+    print("PASS: follow-up question is present in the composer before Send")
+
+
 def has_label(path, label):
     _, texts = load(path)
     found = any(label.lower() in text.lower() for text in texts)
@@ -509,6 +539,10 @@ def main():
             raise SystemExit(1)
     elif action == "assert-topic-selected":
         assert_topic_selected(path)
+    elif action == "tap-input":
+        tap_input(path)
+    elif action == "assert-composer-question":
+        assert_composer_question(path)
     elif action == "assert-chapter-button":
         assert_chapter_button(path)
     elif action == "assert-chapter-selected":

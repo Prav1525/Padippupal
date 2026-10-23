@@ -183,6 +183,12 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("for (pastIndex in 0 until liveSegmentIndex.coerceAtMost(liveSegments.size))", live_layout)
         self.assertIn("WordByWordCaption(liveCaption, speechActive, liveWordIndex", live_layout)
         self.assertIn("verticalArrangement = Arrangement.spacedBy(12.dp)", live_layout)
+        # When a checkpoint appears, auto-scroll must reveal all feedback controls.
+        self.assertIn("LaunchedEffect(awaitingUnderstanding, liveLessonComplete, liveLessonActive)", tutor)
+        self.assertIn("liveLessonScrollState.animateScrollTo(liveLessonScrollState.maxValue)", tutor)
+        smoke_script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        checkpoint_capture = smoke_script.index('> ui-screenshots/live-checkpoint.png')
+        self.assertIn("sleep 1", smoke_script[max(0, checkpoint_capture - 120):checkpoint_capture])
         self.assertNotIn("Arrangement.Center", live_layout)
         self.assertNotIn(" / ${liveSegments.size}", tutor)
         self.assertNotIn("Preparing segment ${index + 1} of ${liveSegments.size}", tutor)

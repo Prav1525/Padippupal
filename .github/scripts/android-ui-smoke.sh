@@ -237,13 +237,17 @@ fi
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-complete.png
 python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml | tee -a "$REPORT"
 log "Testing a follow-up question after lesson playback"
-python3 .github/scripts/ui_smoke.py tap live-complete.xml "Ask your teacher"
-"${ADB[@]}" shell input text 'Why%sdoes%sAll%s1s%srepeat'
-# The multiline Compose field accepts Enter as a newline; explicitly tap Send.
-sleep 1
+# Dump the completed screen, then focus the actual EditText node rather than
+# tapping its placeholder Text composable (which may not focus the field).
 timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-input.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-input.xml follow-up-input.xml
-python3 .github/scripts/ui_smoke.py tap follow-up-input.xml "Send question"
+python3 .github/scripts/ui_smoke.py tap-input follow-up-input.xml
+"${ADB[@]}" shell input text 'Why%sdoes%sAll%s1s%srepeat'
+sleep 1
+timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-typed.xml
+timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-typed.xml follow-up-typed.xml
+python3 .github/scripts/ui_smoke.py assert-composer-question follow-up-typed.xml
+python3 .github/scripts/ui_smoke.py tap follow-up-typed.xml "Send question"
 followup_received=0
 for attempt in $(seq 1 30); do
   timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up.xml >/dev/null 2>&1 || true

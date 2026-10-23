@@ -2027,7 +2027,7 @@ PADIPPUPAL CHAT-FIRST TEACHING CONTRACT — overrides older step-by-step/short-r
         gemini_body = json.dumps({
             "systemInstruction": {"parts": [{"text": system_text}]},
             "contents": gemini_contents,
-            "generationConfig": {"maxOutputTokens": 300, "temperature": 0.4},
+            "generationConfig": {"maxOutputTokens": 700, "temperature": 0.4},
         }).encode("utf-8")
         gemini_request = urllib.request.Request(
             f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent",

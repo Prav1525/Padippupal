@@ -259,20 +259,16 @@ python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml ui-scr
 log "Testing checkpoint continuation and next-segment progression"
 python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
 continued=0
-# The curriculum API can return four or five segments. The next segment may
-# finish quickly and reach its own checkpoint before UIAutomator captures a frame,
-# so assert real forward progress from the checkpoint we tapped rather than a
-# hard-coded 2/5 -> 3/5 transient screen.
-checkpoint_counter=$(grep -oE '[0-9]+[[:space:]]*/[[:space:]]*[0-9]+' live-checkpoint.xml | head -n1 | tr -d ' ')
+# Page counters were deliberately removed. Prove the same scrollable transcript advanced
+# to the fixture's next teaching sentence while retaining the earlier explanation.
 checkpoint_caption=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-checkpoint.xml)
 for attempt in $(seq 1 120); do
   sleep 0.25
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml >/dev/null 2>&1 || true
   if [ -s live-continued.xml ]; then
-    current_counter=$(grep -oE '[0-9]+[[:space:]]*/[[:space:]]*[0-9]+' live-continued.xml | head -n1 | tr -d ' ')
     current_caption=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-continued.xml)
-    if [ -n "$current_counter" ] && [ "$current_counter" != "$checkpoint_counter" ] && [ "$current_caption" != "$checkpoint_caption" ]; then
+    if [[ "$current_caption" == *"Now look at the sequence."* && "$current_caption" == *"The All 1s pattern repeats the number 1"* && "$current_caption" != "$checkpoint_caption" ]]; then
       continued=1
       break
     fi
@@ -280,7 +276,7 @@ for attempt in $(seq 1 120); do
 done
 if [ "$continued" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: understanding response did not advance to a different lesson segment/checkpoint within 30 seconds"
+  log "FAIL: understanding response did not append the next teaching sentence to the existing lesson transcript within 30 seconds"
   [ -s live-continued.xml ] && cat live-continued.xml | tee -a "$REPORT"
   exit 1
 fi

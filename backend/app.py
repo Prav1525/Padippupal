@@ -1671,10 +1671,55 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "the equation 1 + 2 + 1 = 4. Keep the same approved source chunk IDs."
                     )
                     continue
-                logger.warning("Gemini lesson planner remained off-topic after retry topic=%s", payload.topic)
+                logger.warning("Gemini lesson planner remained off-topic after retry topic=%s; trying an exact matched-source excerpt", payload.topic)
+                # The model can ignore topic instructions even after a corrective retry.
+                # Do not fail a lesson when retrieval already found an exact-topic passage:
+                # extract a sentence from that passage and apply the same topic gate.
+                # This is not model-authored text and preserves the retrieved chunk IDs.
+                fallback_segment = None
+                fallback_source_ids: list[str] = []
+                for item in matches:
+                    excerpt = str(item.get("text", "")).strip()
+                    source_id = str(item.get("source", {}).get("chunk_id", ""))
+                    if not excerpt or not source_id:
+                        continue
+                    sentences = re.findall(r"[^.!?]+[.!?]?", excerpt)
+                    for sentence in sentences:
+                        spoken = normalize(sentence)
+                        if not spoken:
+                            continue
+                        candidate = {"spoken_text": spoken[:500], "caption_text": spoken[:500],
+                                     "visual_action": {"type": "none", "target": "", "value": ""}}
+                        if _lesson_segments_match_topic(payload.topic, [candidate]):
+                            fallback_segment = candidate
+                            fallback_source_ids = [source_id]
+                            break
+                    if fallback_segment:
+                        break
+                if fallback_segment and fallback_source_ids:
+                    return {
+                        "lesson_id": str(uuid.uuid4()),
+                        "segments": [{
+                            "id": "textbook-extract-1",
+                            "spoken_text": fallback_segment["spoken_text"],
+                            "caption_text": fallback_segment["caption_text"],
+                            "source_chunk_ids": fallback_source_ids,
+                            "visual_action": fallback_segment["visual_action"],
+                            "checkpoint": None,
+                        }],
+                        "grounded": True,
+                        "sources": [source for source in sources if source.get("chunk_id") in fallback_source_ids],
+                        "warning": "The generated lesson was off-topic; this segment is taken from the matched textbook passage.",
+                        "language": payload.app_language,
+                        "subject": subject,
+                        "provider": "textbook_extract_fallback",
+                        "model": "retrieved-textbook",
+                        "timing_mode": "segment",
+                        "word_timestamps_available": False,
+                    }
                 return {
                     "lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
-                    "warning": "The generated explanation did not match the selected topic; no lesson was started.",
+                    "warning": "The generated explanation did not match the selected topic and no matching source sentence was safe to teach; no lesson was started.",
                 }
             validated = candidate
             break

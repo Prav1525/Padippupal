@@ -964,8 +964,11 @@ def test_lesson_plan_does_not_fallback_to_off_topic_textbook_excerpt(monkeypatch
         "message": "Teach me All 1s",
     })
 
-    assert response.status_code == 502, response.text
-    assert "no safe textbook fallback" in response.json()["detail"].lower()
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["grounded"] is False
+    assert body["segments"] == []
+    assert "no lesson was generated" in body["warning"].lower()
 
 
 def test_approved_topic_lesson_rejects_off_topic_steps_before_returning(monkeypatch):

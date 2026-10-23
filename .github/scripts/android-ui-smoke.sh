@@ -239,7 +239,11 @@ python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml | 
 log "Testing a follow-up question after lesson playback"
 python3 .github/scripts/ui_smoke.py tap live-complete.xml "Ask your teacher"
 "${ADB[@]}" shell input text 'Why%sdoes%sAll%s1s%srepeat'
-"${ADB[@]}" shell input keyevent 66
+# The multiline Compose field accepts Enter as a newline; explicitly tap Send.
+sleep 1
+timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-input.xml
+timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-input.xml follow-up-input.xml
+python3 .github/scripts/ui_smoke.py tap follow-up-input.xml "Send question"
 followup_received=0
 for attempt in $(seq 1 30); do
   timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up.xml >/dev/null 2>&1 || true

@@ -154,7 +154,7 @@ class RetryIsolationTests(unittest.TestCase):
         script = (Path(__file__).resolve().parent / "android-ui-smoke-retry.sh").read_text()
         self.assertIn("rm -rf ui-screenshots", script)
         self.assertIn("rm -f home.xml tutor.xml", script)
-        for evidence_file in ("live-resumed.xml", "live-checkpoint.xml", "live-continued.xml"):
+        for evidence_file in ("live-resumed.xml", "live-complete.xml", "live-lesson.xml"):
             self.assertIn(evidence_file, script)
         self.assertLess(script.index("rm -rf ui-screenshots"), script.index("bash .github/scripts/android-ui-smoke.sh"))
 
@@ -167,6 +167,25 @@ class RetryIsolationTests(unittest.TestCase):
         setup = script.index("Configuring smoke-test profile")
         self.assertLess(script.index(profile_reset), setup)
         self.assertLess(script.index(session_reset), setup)
+
+
+class CompleteLessonRegressionTests(unittest.TestCase):
+    def test_live_lesson_joins_segments_and_does_not_create_checkpoints(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn("The API segments are transport chunks, not separate learner-facing steps.", tutor)
+        self.assertIn('listOf(completeLesson)', tutor)
+        self.assertIn("currentCheckpoint = \"\"", tutor)
+        self.assertIn("The lesson was too short to explain the selected topic completely.", tutor)
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        self.assertIn("Per-segment checkpoint or animation UI reappeared", smoke)
+        self.assertNotIn("missing its passive auto-playing concept animation", smoke)
+
+    def test_smoke_waits_for_full_caption_and_rejects_checkpoint_ui(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn("assert-live live-lesson.xml >/dev/null 2>&1", script)
+        self.assertIn("live-complete.xml", script)
+        self.assertNotIn("explicit understanding checkpoint", script)
 
 
 if __name__ == "__main__":

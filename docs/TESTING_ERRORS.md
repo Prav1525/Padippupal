@@ -328,3 +328,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Helper tests now assert the bounded header contract and that checkpoint controls are outside the scrollable transcript but remain within the live lesson screen. Build and emulator checks must pass, and fresh live-lesson and live-checkpoint screenshots from the exact tested head must be inspected for touch-target usability, no clipping, and no blank area below the checkpoint actions.
 - **Affected commits:** Header 229aa08afdebfb66ceba5166182a8bcf81857212; pinned checkpoint layout a2b3b1ea0d55cefb7d4971da4d0063441618c810; regression assertions pending CI verification.
 - **Status:** **Implemented; regression/build/emulator verification pending.** Keep PR #13 open until exact-head screenshots and all acceptance checks pass.
+
+
+### TE-026 — Checkpoint pinning fixed bottom gap but left a large gap above controls
+- **Date discovered:** 2026-10-23
+- **Area:** Android live tutor viewport distribution.
+- **Symptom:** Fresh emulator screenshot from commit `cf42777ee9cc605cd82cf5824cb82fd80d598406` confirmed the header was compact and the checkpoint controls were pinned above system navigation, but a large blank block remained between the inline All 1s animation and the checkpoint prompt.
+- **Root cause:** The transcript occupied the weighted viewport with `Arrangement.spacedBy(12.dp)`, which kept all short lesson content top-aligned while the checkpoint controls were correctly outside the scrollable transcript at the bottom.
+- **Corrective action:** While the understanding checkpoint is visible, use `Arrangement.SpaceEvenly` within the transcript viewport so the status, explanation, inline animation, and checkpoint boundary use the available height more evenly. Normal speaking state retains the compact 12dp flow spacing.
+- **Regression protection:** Extend `.github/scripts/test_ui_smoke_helpers.py::CheckpointLayoutRegressionTests` to require the conditional arrangement and verify checkpoint controls remain outside the scrollable transcript. Review the exact-head emulator checkpoint screenshot for balanced spacing, intact touch targets, and no clipping; run helper tests before the APK/emulator workflow.
+- **Evidence:** Baseline screenshot artifact `padippupal-emulator-ui`, run [39989220068](https://github.com/Prav1525/Padippupal/actions/runs/39989220068), tested SHA `cf42777ee9cc605cd82cf5824cb82fd80d598406`. New implementation and regression verification pending.
+- **Status:** **Fix and regression guard committed; verification pending.**

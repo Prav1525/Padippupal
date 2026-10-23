@@ -269,3 +269,13 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Corrective action:** Keep the first word unhighlighted (`liveWordIndex = -1`) during preparation; gate caption highlighting and the live elapsed-time fallback on `speechPlaybackObserved`; use the actual hosted player position/word timings or Android TTS range callbacks after playback begins.
 - **Regression protection:** `.github/scripts/test_ui_smoke_helpers.py::SpeechHighlightSynchronizationRegressionTests` asserts the playback-observed gate, initial no-highlight state, and removal of the independent 24-second caption timer. Run helper tests before emulator allocation, then inspect live-caption screenshots and playback logs from the same commit.
 - **Status:** **Fix and regression assertion committed; test and emulator verification pending.**
+
+
+### TE-021 — First word highlight led audible playback onset
+- **Date discovered:** 2026-10-23
+- **Area:** Android live tutor speech/highlight synchronization.
+- **Symptom:** The first highlighted word could appear slightly before the first audible samples even though the app had received a speech-start callback.
+- **Root cause:** Android TTS `onStart` and MediaPlayer `start()` can report start before audio output is perceptible; the UI enabled word highlighting immediately on those signals.
+- **Corrective action:** Delay enabling the visual playback gate by 160 ms after the platform start signal, guarded by the active utterance/generation and current MediaPlayer identity. Word progression after the gate continues to use native TTS range callbacks or hosted audio playback position/timing data.
+- **Regression protection:** `.github/scripts/test_ui_smoke_helpers.py::SpeechPlaybackLeadRegressionTests` checks both playback paths have the guarded delayed gate. Run the helper suite, Android JVM tests, APK build, and emulator screenshot/voice regression on this exact revision.
+- **Status:** **Patch prepared; verification pending.**

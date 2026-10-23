@@ -46,10 +46,10 @@ class TutorHeaderLayoutRegressionTests(unittest.TestCase):
         header_start = tutor.index("// Midnight command bar: persistent context and clear lesson controls.")
         header_end = tutor.index("if (showLessonSettings && !liveLessonActive)", header_start)
         header = tutor[header_start:header_end]
-        self.assertIn("top = 2.dp, bottom = 3.dp", header)
-        self.assertIn("Modifier.size(30.dp).background(TutorAccentSoft, CircleShape)", header)
-        self.assertIn('Text("PadippuPal", fontSize = 16.sp', header)
-        self.assertIn('fontSize = 9.sp, color = TutorMutedOnNight', header)
+        self.assertIn("heightIn(min = 48.dp, max = 52.dp)", header)
+        self.assertIn("Modifier.size(26.dp).background(TutorAccentSoft, CircleShape)", header)
+        self.assertIn('Text("PadippuPal", fontSize = 14.sp', header)
+        self.assertIn('fontSize = 8.sp, color = TutorMutedOnNight', header)
         # Keep essential tutor actions available while compacting the visual chrome.
         for action in ('contentDescription = "Back"', 'Text(if (livePaused) "Resume" else "Pause"', 'Text("Stop"', 'Text("▶ Teach"'):
             self.assertIn(action, header)
@@ -235,10 +235,12 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn('.put("max_segments", 8)', tutor)
         self.assertIn("Teach this topic fully", tutor)
         # Assert the user-visible label independently of Kotlin argument formatting/order.
-        self.assertRegex(live_layout, r'Text\(\s*"I have a question"')
+        self.assertRegex(tutor, r'Text\(\s*"I have a question"')
         # Assert the intended control contract separately: full-width, balanced-height outlined action.
-        self.assertIn("modifier = Modifier.fillMaxWidth().height(48.dp)", live_layout)
-        self.assertIn("border = BorderStroke(1.dp, TutorAccentSoft)", live_layout)
+        self.assertIn("modifier = Modifier.fillMaxWidth().height(48.dp)", tutor)
+        self.assertIn("border = BorderStroke(1.dp, TutorAccentSoft)", tutor)
+        self.assertIn("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)", tutor)
+        self.assertLess(tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)"), tutor.index("if (!liveLessonActive && status.isNotBlank())"))
         self.assertNotIn("if (liveVisualAction.isNotBlank()) {\n                        }", tutor)
         # Word highlighting still auto-scrolls during active speech.
         self.assertIn("scrollState.animateScrollTo(target)", tutor)
@@ -249,7 +251,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("if (liveLessonComplete) {", live_layout)
         self.assertIn("TOPIC COMPLETE", tutor)
         # Checkpoint feedback controls share a deliberate size and consistent rounded styling.
-        self.assertIn("modifier = Modifier.weight(1f).height(52.dp)", live_layout)
+        self.assertIn("modifier = Modifier.weight(1f).height(52.dp)", tutor)
         self.assertIn("shape = RoundedCornerShape(16.dp)", live_layout)
         self.assertIn("modifier = Modifier.fillMaxWidth().height(48.dp)", live_layout)
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()

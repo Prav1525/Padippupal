@@ -1471,20 +1471,39 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
         r"\bstays? the same\b",
         r"\bnumber\s+one\b",
     )
+    # These describe the invariant in an All 1s pattern without requiring the
+    # lesson to repeat its label in every segment.
+    supporting = (
+        r"\bpattern\w*\b.{0,70}\brepeat\w*\b",
+        r"\bwithout\s+(?:increasing|decreasing)\b",
+        r"\b(?:does|do)\s+not\s+(?:increase|decrease|change)\b",
+        r"\b(?:doesn't|don't)\s+(?:increase|decrease|change)\b",
+        r"\b(?:stays?|remains?)\s+(?:constant|unchanged|the same)\b",
+        r"\bsame value\b",
+    )
+    # Only brief classroom transitions qualify as neutral; a generic paragraph
+    # cannot pass merely because it contains words such as "notice" or "try".
+    neutral = (
+        r"^(?:now\s+)?(?:let'?s\s+)?(?:look carefully at the sequence|look at the sequence|"
+        r"try the next step|think about it|your turn|take a moment|tell me what you notice|"
+        r"what do you notice\??|pause here)[.!?\s]*$",
+    )
     has_relevant_speech = False
     for segment in segments:
-        # Never let a matching visual label hide unrelated or forbidden speech.
         speech = " ".join(
             str(segment.get(key, "")) for key in ("spoken_text", "caption_text")
-        ).casefold()
+        ).strip().casefold()
         visual = str(segment.get("visual_action", "")).casefold()
         if any(re.search(pattern, speech + " " + visual) for pattern in forbidden):
             return False
-        if any(re.search(pattern, speech) for pattern in relevant):
-            has_relevant_speech = True
+        is_relevant = any(re.search(pattern, speech) for pattern in relevant)
+        is_supporting = any(re.search(pattern, speech) for pattern in supporting)
+        is_neutral = any(re.search(pattern, speech) for pattern in neutral)
+        if not (is_relevant or is_supporting or is_neutral):
+            return False
+        has_relevant_speech = has_relevant_speech or is_relevant
 
-    # Topic relevance is a lesson-level requirement, not a per-sentence requirement:
-    # valid explanation steps may describe the idea without repeating its keyword.
+    # Require both per-segment topicality and at least one explicit topic signal.
     return has_relevant_speech
 
 

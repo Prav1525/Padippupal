@@ -2109,7 +2109,7 @@ internal fun TutorScreen(
         if (liveLessonActive) {
             // One continuous teaching canvas: no inset green card or floating lesson overlay.
             Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+                modifier = (if (awaitingUnderstanding) Modifier else Modifier.weight(1f)).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(

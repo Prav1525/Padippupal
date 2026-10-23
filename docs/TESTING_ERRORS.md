@@ -54,6 +54,30 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Failed UI run [39883728326](https://github.com/Prav1525/Padippupal/actions/runs/39883728326), artifact [12471996904](https://github.com/Prav1525/Padippupal/actions/runs/39883728326/artifacts/12471996904); prior fix commits d86174adfe5450bc77bced0e26ff9c37702b30e1 and 02f278b283eb8dcbd4e4092657d2a0bfa7fb838b; backend fallback commit e05a51f7e7a41dbd17472b396c51fc856ed9a4b8 and regression-test commit 7a7a2608d7ad391735426c975477ed1152bb91f0.
 - **Status:** **Backend fallback and regression test committed; verification pending.** Do not merge PR #13 until backend tests pass and the hosted API deployment plus current-head emulator smoke test are verified.
 
+
+### TE-011 — Gemini output token cap contradicted complete-lesson contract
+- **Date discovered:** 2026-10-23
+- **Area:** Backend tutor generation budget.
+- **Symptom:** The prompt requested a complete topic explanation with examples and recap, but Gemini generation was capped at 300 output tokens, risking truncation before the lesson could be complete.
+- **Root cause:** The model output budget retained an older short-response configuration after the product requirement changed to a complete chat-first lesson.
+- **Why it escaped:** Prompt-text regression coverage checked the instruction but did not check the actual generation budget.
+- **Corrective action:** Raised the configured maximum to 700 output tokens and added an assertion that protects the minimum budget.
+- **Regression protection:** `test_tutor_uses_profile_and_gentle_prompt` now checks `generationConfig.maxOutputTokens >= 700`; full backend and end-to-end validation remains required.
+- **Evidence:** Change committed on `feature/grade-aware-chat-tutor`; CI verification pending.
+- **Status:** **Implemented; not yet tested.** Do not mark complete until the backend suite and full tutor journey pass.
+
+
+### TE-012 — Emulator smoke test treated the unwanted checkpoint and animation as success
+- **Date discovered:** 2026-10-23
+- **Area:** Android lesson-flow acceptance and UI smoke assertions.
+- **Symptom:** The successful UI smoke artifact [12476801555](https://github.com/Prav1525/Padippupal/actions/runs/39894585249) showed the lesson paused at “LET'S CHECK YOUR UNDERSTANDING”, with “Does that make sense so far?”, response buttons, a segment counter, and the “WATCH THE PATTERN” animation. This contradicted the requested continuous explanation, even though the workflow passed.
+- **Root cause:** The smoke assertions explicitly required a checkpoint and a visible animation, so the test treated the old behaviour as the expected result instead of detecting the product requirement regression.
+- **Why it escaped:** The workflow was green but its acceptance assertions encoded the previous UX; a passing test was mistaken for proof of the requested experience.
+- **Corrective action:** The tutor now joins validated source-grounded segments into one continuous spoken caption, disables checkpoint pauses, uses no visual action, and asks the smoke test to reject checkpoint/animation labels and require a long complete caption.
+- **Regression protection:** The UI smoke flow now waits for the full caption, checks for checkpoint/animation regressions, and retains pause/resume and moving word-highlight checks. The frame-capture window is shortened so playback controls can be tested while speech is active.
+- **Evidence:** Source artifact [12476801555](https://github.com/Prav1525/Padippupal/actions/runs/39894585249); combined fix commits on `feature/grade-aware-chat-tutor` beginning at `ce59974def7f657f8bb58022d88877741b1b744b`. Validation of the updated harness and app is pending.
+- **Status:** **Fix implemented; not yet tested.** The prior green run does not satisfy the new acceptance criteria. Do not merge until updated backend, Android, emulator, screenshot, and highlight checks pass.
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.
@@ -121,3 +145,26 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep both checks in `.github/scripts/test_ui_smoke_helpers.py`; run `python3 .github/scripts/test_ui_smoke_helpers.py` and the full UI workflow preflight before emulator allocation.
 - **Evidence:** Failed run [39894074738](https://github.com/Prav1525/Padippupal/actions/runs/39894074738); correction commit `bb738972d939c68b5bc8f5392cb2e875835fa2ef`. Verification on this correction commit is pending.
 - **Status:** **Root cause confirmed and test corrections committed; full verification pending.** Do not merge PR #13 until helper tests, APK build, emulator journey, and screenshot review pass on the same latest commit.
+
+
+### TE-010 — Tutor prompt and UI contradicted the requested complete chat-first lesson
+- **Date discovered:** 2026-10-23
+- **Area:** Backend lesson-generation instructions and Android tutor rendering.
+- **Symptom:** The prompt forced a short, single-step reply and check question, while the app rendered generated visual lessons/animation labs and displayed feedback after each latest assistant reply. This encouraged chopped-up teaching and unrelated visuals.
+- **Root cause:** Older conversational-learning and visual-first requirements remained higher priority than the desired complete-topic, chat-like lesson experience; visual widgets and feedback were attached to individual assistant messages rather than the end of a complete lesson.
+- **Corrective action:** Add an explicit overriding chat-first prompt contract: complete age-aware topic explanation, simple worked examples/text diagrams, question only after teaching, and no animation in the current mode. Disable current Android animation/lab composables and remove per-reply feedback prompts for now.
+- **Regression protection:** Add a backend prompt-contract test. Before every test run, read this document and .github/testing-regression-checklist.md; verify selected-topic explanation, follow-up answers, no visual overlays, and no per-reply feedback in emulator screenshots.
+- **Evidence:** Branch feature/grade-aware-chat-tutor; implementation is awaiting test execution and emulator/screenshot verification.
+- **Status:** **Changes drafted; not verified.** Do not merge PR #13 or this follow-up until backend tests, Android build, emulator chat journey, and screenshot review pass.
+
+
+### TE-012 — TTS smoke helper test asserted a message in the wrong script
+- **Date discovered:** 2026-10-23
+- **Area:** UI smoke preflight / TTS failure regression coverage.
+- **Symptom:** Workflow run [39901962065](https://github.com/Prav1525/Padippupal/actions/runs/39901962065) failed during `Validate smoke-test scripts`, before emulator allocation. The test expected the shell navigation script to contain the text-to-speech failure messages.
+- **Root cause:** The assertion looked in `.github/scripts/android-ui-smoke.sh`, which owns emulator navigation; voice failure classification is implemented in `.github/scripts/ui_smoke.py`. The test was coupled to the wrong file and therefore failed even though the classifier's message checks were elsewhere.
+- **Why it escaped:** The helper suite was not run successfully on the latest combined branch before the UI workflow started.
+- **Corrective action:** Point the message assertions at `ui_smoke.py`, where the actual voice-failure classification is implemented.
+- **Regression protection:** Keep the TTS helper test asserting both initialization-failure phrases in `ui_smoke.py`; rerun the helper suite before allocating an emulator.
+- **Evidence:** Failed workflow run [39901962065](https://github.com/Prav1525/Padippupal/actions/runs/39901962065); correction commit `84d3f4dd9bdf8f014e26aae07cb1c77e169916b9`. Verification on the corrected head is pending.
+- **Status:** **Corrective test change committed; not yet verified.** Do not merge until preflight, backend/JVM tests, APK build, emulator lesson flow, and screenshot review pass on the same head.

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -80,6 +81,7 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     assert response.json()["grounded"] is True
     assert response.json()["visual_lesson"]["title"] == "Photosynthesis"
     assert "systemInstruction" in captured["payload"]
+    assert captured["payload"]["generationConfig"]["maxOutputTokens"] >= 700
     prompt = captured["payload"]["systemInstruction"]["parts"][0]["text"]
     assert "warm, patient school tutor" in prompt
     assert "Tanglish" in prompt
@@ -434,7 +436,7 @@ def test_lesson_plan_retries_when_generated_segment_has_empty_speech(monkeypatch
     assert request_count["value"] == 2
 
 
-def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
+def test_lesson_plan_returns_source_grounded_segments_with_complete_lesson_contract(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     chunk_id = "chunk-123"
     class FakeResponse:
@@ -448,6 +450,12 @@ def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
     def fake_urlopen(request, timeout):
         body = json.loads(request.data.decode())
         assert body["generationConfig"]["responseMimeType"] == "application/json"
+        prompt = body["systemInstruction"]["parts"][0]["text"]
+        assert "teach the full topic, not just its first idea" in prompt
+        assert "Set checkpoint to null for every segment" in prompt
+        assert "This product mode is text-only" in prompt
+        assert "no more than 18 spoken words each" not in prompt
+        assert "Set checkpoint on at least every second segment" not in prompt
         return FakeResponse()
     monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
@@ -1065,3 +1073,13 @@ def test_all_ones_lesson_requires_topic_relevance_somewhere_in_speech():
         {"spoken_text": "Tell me what you notice.", "caption_text": ""},
     ]
     assert not curriculum._lesson_segments_match_topic("All 1s", segments)
+
+
+def test_tutor_prompt_requires_complete_grade_aware_chat_and_text_only_visuals():
+    """Protect the current chat-first mode from old step-by-step/animation prompt rules."""
+    source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+    assert "PADIPPUPAL CHAT-FIRST TEACHING CONTRACT" in source
+    assert "Teach the complete selected topic in one coherent lesson response" in source
+    assert "Adapt vocabulary, sentence length, abstraction, and example complexity to class" in source
+    assert "Current product mode: text/chat examples only" in source
+    assert "Do not request lesson feedback until the complete explanation" in source

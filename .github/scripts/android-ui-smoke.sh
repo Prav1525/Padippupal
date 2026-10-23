@@ -182,7 +182,7 @@ python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 log "Starting early live-lesson frame capture for playback/highlight evidence"
 "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
 "${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames
-("${ADB[@]}" shell 'i=0; while [ "$i" -lt 100 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done' > ui-screenshots/frame-capture.log 2>&1) &
+("${ADB[@]}" shell 'i=0; while [ "$i" -lt 40 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done' > ui-screenshots/frame-capture.log 2>&1) &
 FRAME_CAPTURE_PID=$!
 
 log "Waiting for the lesson-plan API to return a real segment (up to 150s)"
@@ -191,11 +191,11 @@ for attempt in $(seq 1 50); do
   timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
   if [ -s live-lesson.xml ]; then
-    if grep -Eqi "Live lesson · segment|segment [0-9]+ of [0-9]+|[0-9]+[[:space:]]*/[[:space:]]*[0-9]+|Quick check|check your understanding|does that make sense so far" live-lesson.xml; then
+    if python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml >/dev/null 2>&1; then
       lesson_started=1
       break
     fi
-    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s" live-lesson.xml; then
+    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s|too short to explain the selected topic" live-lesson.xml; then
       FAILURE_CLASS="APP_FAILURE"
       log "FAIL: tutor API returned an explicit lesson-start error"
       cat live-lesson.xml | tee -a "$REPORT"
@@ -232,62 +232,22 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml
 "${ADB[@]}" pull /data/local/tmp/live-resumed.xml live-resumed.xml
 python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playing | tee -a "$REPORT"
 
-log "Waiting for the lesson to reach its explicit understanding checkpoint (up to 150s; speech duration varies by voice engine)"
-checkpoint_seen=0
-for attempt in $(seq 1 50); do
-  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-checkpoint.xml >/dev/null 2>&1 || true
-  "${ADB[@]}" pull /data/local/tmp/live-checkpoint.xml live-checkpoint.xml >/dev/null 2>&1 || true
-  if [ -s live-checkpoint.xml ] && grep -Eqi "No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-checkpoint.xml; then
-    FAILURE_CLASS="APP_FAILURE"
-    log "FAIL: speech could not start, so checkpoint progression cannot be tested; captured the explicit voice error instead of waiting for the full timeout"
-    cat live-checkpoint.xml | tee -a "$REPORT"
-    exit 1
-  fi
-  if [ -s live-checkpoint.xml ] && grep -Eqi "Quick check|check your understanding|does that make sense so far" live-checkpoint.xml; then
-    checkpoint_seen=1
-    break
-  fi
-  sleep 3
-done
-if [ "$checkpoint_seen" -ne 1 ]; then
-  FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: live lesson did not reach the understanding checkpoint within 150 seconds after resume"
-  exit 1
-fi
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-checkpoint.png
-python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml ui-screenshots/live-checkpoint.png | tee -a "$REPORT"
-log "Testing checkpoint continuation and next-segment progression"
-python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
-continued=0
-# The curriculum API can return four or five segments. The next segment may
-# finish quickly and reach its own checkpoint before UIAutomator captures a frame,
-# so assert real forward progress from the checkpoint we tapped rather than a
-# hard-coded 2/5 -> 3/5 transient screen.
-checkpoint_counter=$(grep -oE '[0-9]+[[:space:]]*/[[:space:]]*[0-9]+' live-checkpoint.xml | head -n1 | tr -d ' ')
-checkpoint_caption=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-checkpoint.xml)
-for attempt in $(seq 1 120); do
-  sleep 0.25
-  timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml >/dev/null 2>&1 || true
-  "${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml >/dev/null 2>&1 || true
-  if [ -s live-continued.xml ]; then
-    current_counter=$(grep -oE '[0-9]+[[:space:]]*/[[:space:]]*[0-9]+' live-continued.xml | head -n1 | tr -d ' ')
-    current_caption=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-continued.xml)
-    if [ -n "$current_counter" ] && [ "$current_counter" != "$checkpoint_counter" ] && [ "$current_caption" != "$checkpoint_caption" ]; then
-      continued=1
-      break
-    fi
-  fi
-done
-if [ "$continued" -ne 1 ]; then
-  FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: understanding response did not advance to a different lesson segment/checkpoint within 30 seconds"
-  [ -s live-continued.xml ] && cat live-continued.xml | tee -a "$REPORT"
-  exit 1
-fi
-python3 .github/scripts/ui_smoke.py assert-continued live-continued.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap live-continued.xml "Stop"
+log "Checking the complete lesson remains continuous and has no mid-lesson checkpoint"
 sleep 2
-
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml
+"${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-complete.png
+python3 .github/scripts/ui_smoke.py assert-live live-complete.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-live-layout ui-screenshots/live-complete.png | tee -a "$REPORT"
+if grep -Eqi "Quick check|check your understanding|does that make sense so far|I understand|Explain again|I have a question|WATCH THE PATTERN|Visual focus" live-complete.xml; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: complete lesson contains an unwanted checkpoint or visual overlay"
+  cat live-complete.xml | tee -a "$REPORT"
+  exit 1
+fi
+log "PASS: complete lesson remains uninterrupted and contains no checkpoint/animation UI"
+python3 .github/scripts/ui_smoke.py tap live-complete.xml "Stop"
+sleep 2
 log "Testing Android back navigation to Home"
 "${ADB[@]}" shell input keyevent 4
 sleep 5

@@ -180,3 +180,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Status:** **Implemented; verification pending.** Run the required pre-test checklist and inspect latest-head emulator evidence before calling this verified.
 
 - **Test harness safeguard added during review:** The new regression class was initially placed after the script's `unittest.main()` call, which can cause direct script execution to start discovery before that class is defined. Moved the runner to the end of the file so the continuous-transcript assertions are included in the actual run. Helper correction commit: 9436309582fdba72dc39d8afe2672530cf043d6f.
+
+### TE-014 — Continuous-lesson regression test still required the removed page counter
+
+- **Date discovered:** 2026-10-23
+- **Area:** Android emulator continuation smoke test, topic completion, checkpoint feedback UI.
+- **Symptom:** The latest APK built and the emulator reached the checkpoint, but the smoke test failed immediately after tapping “I understand.” The log showed the tap occurred; the continuation loop then timed out.
+- **Root cause:** The shell smoke test still required a numeric segment counter to change, and ui_smoke.py still asserted that the lesson had advanced beyond a numbered page. Those expectations directly contradicted the approved continuous-screen design, so a valid continuation could never satisfy the old gate. Separately, playLiveSegment marked the live lesson inactive after the final module, hiding the transcript and making the topic feel like it had exited the lesson screen.
+- **Why it escaped:** The UI tests were not updated end-to-end when page-style progress was removed. They checked for visible checkpoint controls but retained the obsolete progress-counter assertion. Completion behavior was not tested as part of the continuous transcript contract.
+- **Corrective action:** Changed continuation checks to require the fixture's next sentence (“Now look at the sequence.”) and retention of the earlier explanation, with no counter. A completed topic now stays in the same scrollable lesson screen, shows “TOPIC COMPLETE,” and keeps prior teaching available for review. Refined checkpoint feedback into consistently rounded controls with aligned heights and a full-width question action.
+- **Regression protection:** Helper tests now assert that completion preserves the lesson screen, feedback buttons share the expected rounded sizing, and continuation is verified by actual lesson content rather than page counters. Required pre-test checklist and this error log were read before starting the next test run.
+- **Affected commits:** UI 70d724e83e2d76eeb4538601701848f44d3b8e36; continuation shell f179b38b03f75804a3310d86e55e590da01dd843; continuation assertion 601022b0577a31c317c075df3631a4837d495716; regression tests cc00584eb63f4b1fa051087879bd3f4c507ac155; completion label 2ffdb2934c14ee68d0143828cf3a6a456270786c.
+- **Status:** **Fixes committed; latest-head build, tests, and screenshot verification pending.**

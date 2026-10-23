@@ -271,3 +271,19 @@ class SpeechHighlightSynchronizationRegressionTests(unittest.TestCase):
         self.assertIn("liveWordIndex = -1", tutor)
         # Live playback timing must use the audio position or actual TTS callbacks, not a fixed 24-second caption timer.
         self.assertNotIn("val perWord = (24000L / words.size)", tutor)
+
+
+class SpeechPlaybackLeadRegressionTests(unittest.TestCase):
+    def test_highlight_gate_waits_briefly_after_platform_playback_start(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        tts_start = tutor[tutor.index("override fun onStart(utteranceId: String?)"):
+                          tutor.index("override fun onDone(utteranceId: String?)")]
+        self.assertIn("tutorMainHandler.postDelayed", tts_start)
+        self.assertIn("speechActive && generation == speechGeneration", tts_start)
+        self.assertIn("}, 160L)", tts_start)
+        hosted_start = tutor[tutor.index("player.start()"):
+                             tutor.index('status = "Speaking with Gemini natural voice."')]
+        self.assertIn("tutorMainHandler.postDelayed", hosted_start)
+        self.assertIn("audioPlayer.value === player", hosted_start)
+        self.assertIn("speechPlaybackObserved = true", hosted_start)

@@ -340,3 +340,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Extend `.github/scripts/test_ui_smoke_helpers.py::CheckpointLayoutRegressionTests` to require the conditional arrangement and verify checkpoint controls remain outside the scrollable transcript. Review the exact-head emulator checkpoint screenshot for balanced spacing, intact touch targets, and no clipping; run helper tests before the APK/emulator workflow.
 - **Evidence:** Baseline screenshot artifact `padippupal-emulator-ui`, run [39989220068](https://github.com/Prav1525/Padippupal/actions/runs/39989220068), tested SHA `cf42777ee9cc605cd82cf5824cb82fd80d598406`. Viewport-bound correction and regression verification pending.
 - **Status:** **Fix and regression guard committed; verification pending.**
+
+
+### TE-027 — UI smoke preflight failed on a stale source anchor
+- **Date discovered:** 2026-10-23
+- **Area:** Checkpoint layout regression helper.
+- **Symptom:** Android build passed, but the UI workflow stopped before emulator launch because `CheckpointLayoutRegressionTests` searched for the old comment `// One continuous, scrollable lesson transcript`; the implementation had evolved to a viewport-constrained wrapper, so the source marker no longer existed.
+- **Root cause:** The test used a presentation comment as its code-region boundary, making it brittle to a legitimate layout refactor.
+- **Corrective action:** Anchor the test to the stable weighted scrollable-column declaration rather than the obsolete comment.
+- **Regression protection:** Run `python3 .github/scripts/test_ui_smoke_helpers.py` in the required pre-emulator validation step; only continue to emulator allocation after all helper tests pass.
+- **Evidence:** UI smoke run [39992103654](https://github.com/Prav1525/Padippupal/actions/runs/39992103654), PR merge SHA `55067e2244e4cabbea3c9b64ab8bdc0ce59d7d12`; code fix commit `14d73941dff71a827ea4b331729087b5f2f06e3a`.
+- **Status:** **Test anchor corrected; helper rerun and screenshot verification pending.**

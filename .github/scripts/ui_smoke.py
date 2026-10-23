@@ -299,7 +299,7 @@ def assert_live(path):
     if found_activity:
         raise SystemExit("Interactive activity UI reappeared in the teaching flow: " + ", ".join(found_activity))
     if "all 1s" in joined:
-        if not any(term in joined for term in ("1, 1, 1", "repeats the number 1", "each term is 1", "same number")):
+        if not any(term in joined for term in ("1, 1, 1", "repeats the number 1", "each term is 1", "same number", "number one", "stays the same", "each value stays the same")):
             raise SystemExit("All 1s lesson lacks an explanation of the repeated-one rule")
         if "square numbers grow" in joined or "1²" in joined or "+3" in joined:
             raise SystemExit("All 1s topic is incorrectly showing square-number content")

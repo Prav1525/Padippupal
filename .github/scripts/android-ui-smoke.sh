@@ -191,7 +191,7 @@ for attempt in $(seq 1 50); do
   timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
   if [ -s live-lesson.xml ]; then
-    if grep -Eqi "Live lesson · segment|segment [0-9]+ of [0-9]+|[0-9]+[[:space:]]*/[[:space:]]*5|Quick check|check your understanding|does that make sense so far" live-lesson.xml; then
+    if grep -Eqi "Live lesson · segment|segment [0-9]+ of [0-9]+|[0-9]+[[:space:]]*/[[:space:]]*[0-9]+|Quick check|check your understanding|does that make sense so far" live-lesson.xml; then
       lesson_started=1
       break
     fi

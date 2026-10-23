@@ -23,23 +23,22 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 - Do not start the next phase until all acceptance criteria for the current phase pass. If a required test fails, stay on the current objective, diagnose, fix, and rerun.
 - At handoff, record what changed, what passed, what remains unverified, and the single next objective.
 
-## Active objective: Phase 1 — tutor-screen layout cleanup
+## Active objective: Combined release — complete tutor lesson flow
 
-**Scope (do not expand without a blocking dependency):**
-1. Remove the "Tap any word to hear its pronunciation again" prompt and its unnecessary tap interaction from the current tutor screen, while preserving speech and inline highlighting.
-2. Make the lesson body use available vertical space without hiding bottom controls or overlapping system bars/keyboard.
-3. Remove faded previews of upcoming lesson text; present the active teaching segment clearly.
-4. Fix playback/loading status so "Preparing segment..." appears only while genuinely preparing, then transitions to the correct speaking/paused/finished/error state.
-5. Simplify visual hierarchy and controls without breaking pause/stop, student input, or navigation.
+**Scope (single integrated release):**
+1. Ensure the selected chapter/topic reaches the correct backend and all spoken content passes topic/source validation; fail safely on off-topic content.
+2. Teach the complete selected topic in one coherent, grade-appropriate explanation with a definition, worked example, key rule, and recap; combine transport segments into one caption/audio flow.
+3. Remove mid-lesson understanding checkpoints, per-reply feedback prompts, animation/interactive overlays, and faded upcoming text.
+4. Preserve synchronized inline word highlighting, pause/resume/stop, truthful loading states, and follow-up questions after the explanation.
+5. Keep the tutor screen uncluttered and ensure controls, content, system bars, and keyboard do not overlap.
 
 **Acceptance criteria:**
-- Prompt and tap-to-pronounce affordance are absent from the tutor lesson UI; speech and inline highlight still work.
-- On the supported emulator viewport, the lesson content uses available space appropriately with no unexplained large blank region, clipping, overlap, or hidden controls.
-- Only the active lesson segment is shown; no faded upcoming paragraph is visible.
-- Loading status is truthful and does not remain stuck while playback is active.
-- Back navigation, pause/stop, and student input remain functional.
-- Backend tests, JVM/helper tests, APK build, and relevant emulator regression tests pass; inspect screenshots and logs from the final run.
-- If any criterion fails, Phase 1 remains open. Do not start Phase 2 (speech/highlight synchronization) until Phase 1 is verified.
+- The complete topic appears as one continuous teaching caption/audio flow; no per-segment checkpoint, feedback prompt, animation, or visual overlay appears.
+- The selected topic is validated end-to-end; unrelated lesson content is rejected and safe source-grounded recovery is verified.
+- Inline word highlighting visibly advances with speech; pause, resume, stop, back navigation, and follow-up input work.
+- Loading status is truthful and the complete caption fits the supported viewport without hidden controls, clipping, or overlap.
+- Backend tests, JVM/helper tests, APK build, deployed-API contract checks, emulator journey, and screenshot review pass on the same tested commit.
+- Any failing or unverified acceptance item keeps the combined release open.
 
 ## Mandatory pre-test mistake-prevention gate
 

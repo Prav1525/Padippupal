@@ -1884,6 +1884,15 @@ internal fun TutorScreen(
         }
     }
 
+    // Checkpoint controls live at the end of the transcript. Scroll after Compose lays
+    // them out so the full question action is visible above system navigation bars.
+    LaunchedEffect(awaitingUnderstanding, liveLessonComplete, liveLessonActive) {
+        if (liveLessonActive && (awaitingUnderstanding || liveLessonComplete)) {
+            delay(180L)
+            liveLessonScrollState.animateScrollTo(liveLessonScrollState.maxValue)
+        }
+    }
+
     LaunchedEffect(liveCaption, speechActive, awaitingUnderstanding, liveLessonActive, liveWordIndex) {
         if (!liveLessonActive && liveCaption.isNotBlank() && speechActive) {
             chatListState.animateScrollToItem(messages.lastIndex.coerceAtLeast(0))

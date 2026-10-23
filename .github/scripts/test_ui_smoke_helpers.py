@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import concept_candidates, exact_color_mask, exact_text_candidates
+from ui_smoke import concept_candidates, exact_color_mask, exact_text_candidates, tap
 
 
 
@@ -22,6 +22,20 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertEqual(len(candidates), 2)
         selected = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
         self.assertEqual(selected.attrib["bounds"], "[190,0][310,90]")
+
+    def test_accessibility_content_description_can_select_send_button(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="" content-desc="Send question" bounds="[900,800][1040,980]" clickable="true"/>
+        </hierarchy>""")
+        candidates = exact_text_candidates(list(root.iter("node")), "Send question")
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0].attrib["content-desc"], "Send question")
+
+    def test_tap_selector_checks_content_description_as_well_as_text(self):
+        source = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        tap_body = source[source.index("def tap(path, target):"):source.index("\ndef has_label", source.index("def tap(path, target):"))]
+        self.assertIn('description = node.attrib.get("content-desc", "").strip()', tap_body)
+        self.assertIn('target.lower() in description.lower()', tap_body)
 
     def test_live_lesson_client_timeout_exceeds_two_backend_generation_attempts(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

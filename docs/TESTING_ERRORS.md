@@ -288,3 +288,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Run `python3 .github/scripts/test_ui_smoke_helpers.py`; the test now checks Send control content descriptions and verifies the backend prompt has no legacy short-step/forced-checkpoint rule. The emulator assertion must observe both the submitted follow-up question and its tutor answer; never loosen this assertion.
 - **Evidence:** Failing run [39908839302](https://github.com/Prav1525/Padippupal/actions/runs/39908839302); captured `follow-up.xml` in artifact `padippupal-emulator-ui` (artifact ID `12482332532`). Fix commits begin at `0eb17d22a20e6c4a2094dfd722c388bbfe23f056`; final combined commit and rerun are pending.
 - **Status:** **Root cause confirmed from the captured accessibility tree; fix and regression coverage committed to the PR branch, verification pending.** Keep PR #17 open.
+
+
+### TE-017 — Prompt refactor dropped an asserted textbook-grounding phrase
+- **Date discovered:** 2026-10-23
+- **Area:** Backend tutor prompt regression suite.
+- **Symptom/failure:** Curriculum Engine Tests run [39934463369](https://github.com/Prav1525/Padippupal/actions/runs/39934463369) failed: `test_tutor_uses_profile_and_gentle_prompt` expected the explicit sentence “Do not answer from general knowledge, web sources, or memory”.
+- **Root cause:** While consolidating duplicate lesson-start instructions, the refactor preserved the textbook-not-found behavior in different wording but removed a specific grounding sentence that the regression test intentionally requires.
+- **Why it escaped:** The backend prompt was edited before running the full pytest suite; this phrase-level guard was not reviewed against the new wording beforehand.
+- **Corrective action:** Restored the exact explicit grounding phrase in the revised prompt. No test assertion was weakened.
+- **Regression protection:** Rerun the complete curriculum pytest suite, the UI smoke helper tests, APK build, and emulator smoke on the latest combined head.
+- **Evidence:** Failed run [39934463369](https://github.com/Prav1525/Padippupal/actions/runs/39934463369); correction commit `db3af3c7d6882d8f2691255d07dbb31098ee67d8`.
+- **Status:** **Prompt wording corrected; rerun pending.** Keep PR #17 open.

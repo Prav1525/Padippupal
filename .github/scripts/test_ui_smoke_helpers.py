@@ -253,7 +253,7 @@ class VoicePreparationStatusRegressionTests(unittest.TestCase):
         request = speak.index('val audioFile = File(context.cacheDir, "padippupal-voice-')
         self.assertLess(preparation, request)
         self.assertIn('status = "Speaking with Gemini natural voice."', tutor)
-        self.assertIn('Natural voice unavailable; using this phone\\'s TTS engine.', tutor)
+        self.assertIn("Natural voice unavailable; using this phone's TTS engine.", tutor)
 
 
 

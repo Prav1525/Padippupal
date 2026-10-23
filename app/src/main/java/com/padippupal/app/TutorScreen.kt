@@ -1599,10 +1599,9 @@ internal fun TutorScreen(
         status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
-        // Publish the segment before starting audio. Hosted audio can finish or fall
-        // back without reliably delivering onStarted; if UI state is initialized only
-        // in that callback, the checkpoint is left with an empty caption and the
-        // topic animation disappears. The word index still advances only with speech.
+        // Publish the full lesson before starting audio. Hosted audio can finish or fall
+        // back without reliably delivering onStarted; initialize the caption before playback.
+        // The word index still advances only with speech.
         liveCaption = words
         liveWordIndex = 0
         liveVisualAction = visualCue
@@ -2027,7 +2026,7 @@ internal fun TutorScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LAST SPOKEN SEGMENT", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LESSON EXPLANATION", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.weight(1f))
                                 if (liveLessonActive && liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                             }

@@ -300,3 +300,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Rerun the complete curriculum pytest suite, the UI smoke helper tests, APK build, and emulator smoke on the latest combined head.
 - **Evidence:** Failed run [39934463369](https://github.com/Prav1525/Padippupal/actions/runs/39934463369); correction commit `db3af3c7d6882d8f2691255d07dbb31098ee67d8`.
 - **Status:** **Prompt wording corrected; rerun pending.** Keep PR #17 open.
+
+
+### TE-018 — Follow-up smoke tapped the placeholder instead of focusing the composer
+- **Date discovered:** 2026-10-23
+- **Area:** Android emulator follow-up chat submission.
+- **Symptom/failure:** UI smoke run [39934595131](https://github.com/Prav1525/Padippupal/actions/runs/39934595131) passed script preflight, APK build, navigation, lesson playback, completion retention, and visible follow-up composer, but timed out waiting for the expected tutor reply. The captured final accessibility tree showed an empty `EditText` and a disabled Send button.
+- **Root cause:** The smoke test tapped the visible “Ask your teacher” placeholder label rather than locating and focusing the actual `android.widget.EditText`. The subsequent ADB text-entry command therefore did not reliably enter the question; the script then tapped Send while the composer was empty.
+- **Why it escaped:** The harness treated a successful coordinate tap as proof the input field had focus and did not assert the expected text was present in the editable composer before sending.
+- **Corrective action:** Added a dedicated `tap-input` helper that targets the enabled EditText bounds, then added an explicit `assert-composer-question` check after typing and before Send. The smoke flow now captures the typed-composer XML and preserves it as evidence.
+- **Regression protection:** Added helper tests requiring the smoke flow to focus the EditText, assert the question in the composer, and only then tap Send; added a negative test proving an empty composer is rejected before submission. Keep the existing post-send assertion that both the submitted learner question and deterministic tutor response appear in chat history.
+- **Evidence:** Failing run [39934595131](https://github.com/Prav1525/Padippupal/actions/runs/39934595131), commit `fd3e0d9f7b4791566d1ace20247296804cf7978d`; correction commits begin at `8e5c317184ae1d21c0b1b0952f0bca2a18793fe4`. Verification on the latest head is pending.
+- **Status:** **Fix and regression coverage committed; not yet verified.** Keep PR #17 open until helper tests and the complete emulator follow-up flow pass on the same commit.

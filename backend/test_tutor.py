@@ -1036,3 +1036,30 @@ def test_all_ones_visual_label_cannot_mask_generic_spoken_segment():
         "visual_action": {"type": "highlight", "target": "All 1s", "value": ""},
     }
     assert curriculum._lesson_segments_match_topic("All 1s", [generic]) is False
+
+
+
+def test_all_ones_lesson_allows_supporting_explanation_without_repeated_keyword():
+    segments = [
+        {"spoken_text": "The sequence is 1, 1, 1, 1, 1.", "caption_text": ""},
+        {"spoken_text": "The value stays the same each time; the rule is to repeat one.", "caption_text": ""},
+        {"spoken_text": "A pattern can repeat without increasing or decreasing.", "caption_text": ""},
+    ]
+    assert curriculum._lesson_segments_match_topic("All 1s", segments)
+
+
+def test_all_ones_lesson_rejects_off_topic_segment_even_when_other_steps_match():
+    segments = [
+        {"spoken_text": "The sequence is 1, 1, 1, 1, 1.", "caption_text": ""},
+        {"spoken_text": "Square numbers grow as 1, 4, 9.", "caption_text": ""},
+    ]
+    assert not curriculum._lesson_segments_match_topic("All 1s", segments)
+
+
+def test_all_ones_lesson_requires_topic_relevance_somewhere_in_speech():
+    segments = [
+        {"spoken_text": "Look carefully at the sequence.", "caption_text": ""},
+        {"spoken_text": "Now try the next step.", "caption_text": ""},
+        {"spoken_text": "Tell me what you notice.", "caption_text": ""},
+    ]
+    assert not curriculum._lesson_segments_match_topic("All 1s", segments)

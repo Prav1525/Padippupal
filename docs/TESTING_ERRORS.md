@@ -121,3 +121,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep both checks in `.github/scripts/test_ui_smoke_helpers.py`; run `python3 .github/scripts/test_ui_smoke_helpers.py` and the full UI workflow preflight before emulator allocation.
 - **Evidence:** Failed run [39894074738](https://github.com/Prav1525/Padippupal/actions/runs/39894074738); correction commit `bb738972d939c68b5bc8f5392cb2e875835fa2ef`. Verification on this correction commit is pending.
 - **Status:** **Root cause confirmed and test corrections committed; full verification pending.** Do not merge PR #13 until helper tests, APK build, emulator journey, and screenshot review pass on the same latest commit.
+
+
+### TE-010 — Understanding checkpoint reserved the whole viewport and created excessive blank space
+- **Date discovered:** 2026-10-23
+- **Area:** Android Compose live tutor layout / screenshot acceptance.
+- **Symptom/failure:** The successful emulator screenshot for the understanding checkpoint showed the spoken explanation and inline All 1s animation at the top, followed by a very large unexplained blank region before the checkpoint question and response controls. The interaction passed, but the visual acceptance requirement did not.
+- **Root cause:** The inner teaching-content `Column` always used `Modifier.weight(1f)`, even when `awaitingUnderstanding` was true and the caption already had a bounded height. The checkpoint layout therefore reserved the remaining viewport instead of sizing to the actual teaching content.
+- **Why it escaped:** Previous smoke assertions verified lesson opening, caption/progression and checkpoint actions, but did not assert or review the vertical distribution of the final checkpoint screenshot as a release gate.
+- **Corrective action:** On understanding checkpoints, remove the inner content column's flexible weight so the caption and compact concept animation occupy only the height they need; retain the flexible weight during normal speech so the lesson still uses available screen space.
+- **Regression protection:** Re-run the full Android UI smoke flow and inspect `live-lesson.png` and `live-checkpoint.png` from the exact tested head SHA. Confirm no large unexplained blank gap, clipping, overlap, or hidden controls; confirm the animation remains inline and the understand/explain-again/question actions still work.
+- **Evidence:** Screenshot artifact from UI smoke run [39894585249](https://github.com/Prav1525/Padippupal/actions/runs/39894585249), tested before this fix on `fa1760f9569658f1ec44040974cdac33ecf5f653`; fix commit `e83e9a4e62892561826fc2de2e5976ba1547bccc`.
+- **Status:** **Fix committed; verification pending.** Do not merge PR #13 until all required checks pass and the new checkpoint screenshots are reviewed.

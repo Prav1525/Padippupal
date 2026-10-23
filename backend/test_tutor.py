@@ -938,6 +938,36 @@ def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "none"
 
+def test_lesson_plan_does_not_fallback_to_off_topic_textbook_excerpt(monkeypatch):
+    """A provider outage must not bypass topic validation through the excerpt fallback."""
+    from urllib.error import HTTPError
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    chunk_id = "unrelated-sequence-source"
+    passage = "Some important examples of number sequences include square numbers and counting numbers."
+
+    def fail_gemini(request, timeout):
+        raise HTTPError(request.full_url, 503, "temporarily unavailable", {}, None)
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fail_gemini)
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{
+        "text": passage,
+        "source": {"chunk_id": chunk_id, "source_id": "source-1",
+                   "title": "Class 6 Mathematics", "board": "CBSE", "class_level": 6,
+                   "subject": "Mathematics", "medium": "English", "page_start": 1, "page_end": 1},
+    }]})
+
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Mathematics",
+        "medium": "English", "app_language": "English",
+        "chapter": "Patterns in Mathematics", "topic": "All 1s",
+        "message": "Teach me All 1s",
+    })
+
+    assert response.status_code == 502, response.text
+    assert "no safe textbook fallback" in response.json()["detail"].lower()
+
+
 def test_approved_topic_lesson_rejects_off_topic_steps_before_returning(monkeypatch):
     """An approved label/source must not let a wrong teaching sequence bypass topic validation."""
     from contextlib import contextmanager

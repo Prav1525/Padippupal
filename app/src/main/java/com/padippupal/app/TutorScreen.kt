@@ -2110,12 +2110,15 @@ internal fun TutorScreen(
         if (liveLessonActive) {
             // One continuous teaching canvas: no inset green card or floating lesson overlay.
             Column(
-                modifier = (if (awaitingUnderstanding) Modifier else Modifier.weight(1f)).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Keep the lesson area sized to the available viewport even at a
+                // checkpoint. Center the teaching content in that area, while the
+                // learner controls remain anchored directly below it.
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+                verticalArrangement = if (awaitingUnderstanding) Arrangement.Center else Arrangement.spacedBy(8.dp)
             ) {
                 Column(
-                    // During a checkpoint, size to the teaching content instead of
-                    // reserving the entire viewport and leaving a large empty gap.
+                    // Keep the caption and concept animation close together. Only
+                    // the combined teaching area receives flexible vertical space.
                     modifier = (if (awaitingUnderstanding) Modifier else Modifier.weight(1f)).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -2142,8 +2145,6 @@ internal fun TutorScreen(
                             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator(color = TutorGreen)
                             }
-                        }
-                        if (liveVisualAction.isNotBlank()) {
                         }
                         // Keep the concept animation mounted during the checkpoint; compact it so
                         // the student can see both the pattern and the response choices together.

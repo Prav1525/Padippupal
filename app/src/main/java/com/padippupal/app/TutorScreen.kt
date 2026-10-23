@@ -167,7 +167,9 @@ private fun WordByWordCaption(
     val captionModifier = if (expandToAvailableHeight) {
         modifier.fillMaxWidth().verticalScroll(scrollState)
     } else {
-        modifier.fillMaxWidth().heightIn(max = 150.dp).verticalScroll(scrollState)
+        // Checkpoint captions should wrap to their content instead of reserving a
+        // scroll viewport's maximum height for a one-line sentence.
+        modifier.fillMaxWidth().wrapContentHeight()
     }
     Box(captionModifier) {
         Text(
@@ -2019,8 +2021,7 @@ internal fun TutorScreen(
                                     expandToAvailableHeight = false
                                 )
                             }
-                            if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                            if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
+                                                        if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
                                 val topicKey = topic.lowercase(Locale.ROOT)
                                 val scene = when {
                                     topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
@@ -2131,7 +2132,7 @@ internal fun TutorScreen(
                                 // At checkpoints, don't let the caption consume all remaining height:
                                 // the compact concept animation and fixed answer card must stay visible.
                                 modifier = if (awaitingUnderstanding) {
-                                    Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
+                                    Modifier.fillMaxWidth().wrapContentHeight()
                                 } else {
                                     Modifier.weight(1f).fillMaxWidth()
                                 },

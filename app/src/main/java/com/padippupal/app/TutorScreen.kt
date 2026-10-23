@@ -127,11 +127,14 @@ private fun WordByWordCaption(
     val wordStarts = remember(text) {
         buildList {
             var offset = 0
+            var sentencesInParagraph = 0
             words.forEachIndexed { index, word ->
                 add(offset)
                 offset += word.length
                 if (index < words.lastIndex) {
-                    offset += if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) 2 else 1
+                    val endsSentence = word.endsWith(".") || word.endsWith("?") || word.endsWith("!")
+                    if (endsSentence) sentencesInParagraph += 1
+                    offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1
                 }
             }
         }
@@ -141,9 +144,17 @@ private fun WordByWordCaption(
     val density = LocalDensity.current
     val caption = remember(text, active, currentWordIndex) {
         buildAnnotatedString {
+            var sentencesInParagraph = 0
             words.forEachIndexed { index, pair ->
                 val word = pair
-                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\n\n" else " ")
+                if (index > 0) {
+                    val previous = words[index - 1]
+                    val endsSentence = previous.endsWith(".") || previous.endsWith("?") || previous.endsWith("!")
+                    if (endsSentence) sentencesInParagraph += 1
+                    // Keep several sentences together like a natural tutor explanation;
+                    // separate paragraphs only after every third sentence.
+                    append(if (endsSentence && sentencesInParagraph % 3 == 0) "\n\n" else " ")
+                }
                 val start = length
                 append(word)
                 val end = length

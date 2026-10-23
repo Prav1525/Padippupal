@@ -28,7 +28,10 @@ internal object AllOnesTopicValidator {
     /** Returns a safe, user-displayable validation reason, or null when accepted. */
     fun failureReason(segments: List<Pair<String, String>>): String? {
         if (segments.isEmpty()) return "no lesson segments were returned"
-        val textSegments = segments.map { (spoken, caption) -> "$spoken $caption".trim() }
+        val textSegments = segments.map { (spoken, caption) ->
+            if (caption.isBlank() || caption.equals(spoken, ignoreCase = true)) spoken.trim()
+            else "$spoken $caption".trim()
+        }
         val invalidSegments = textSegments.mapIndexedNotNull { index, text ->
             when {
                 forbidden.containsMatchIn(text) -> "segment ${index + 1}: forbidden/off-topic content"

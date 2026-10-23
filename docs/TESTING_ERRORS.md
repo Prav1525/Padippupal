@@ -54,6 +54,20 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Failed UI run [39883728326](https://github.com/Prav1525/Padippupal/actions/runs/39883728326), artifact [12471996904](https://github.com/Prav1525/Padippupal/actions/runs/39883728326/artifacts/12471996904); prior fix commits d86174adfe5450bc77bced0e26ff9c37702b30e1 and 02f278b283eb8dcbd4e4092657d2a0bfa7fb838b; backend fallback commit e05a51f7e7a41dbd17472b396c51fc856ed9a4b8 and regression-test commit 7a7a2608d7ad391735426c975477ed1152bb91f0.
 - **Status:** **Backend fallback and regression test committed; verification pending.** Do not merge PR #13 until backend tests pass and the hosted API deployment plus current-head emulator smoke test are verified.
 
+
+### TE-018 — Live lesson status stayed on a generic startup message during hosted voice preparation
+
+- **Date discovered:** 2026-10-23
+- **Area:** Android live tutor playback status / hosted TTS lifecycle.
+- **Symptom:** When a lesson segment was handed to hosted natural voice, the UI could keep showing “Your lesson is starting…” while the app waited for the speech service response. That status did not distinguish voice preparation from playback.
+- **Root cause:** `playLiveSegment` set a generic startup status immediately before `speak`, and the hosted-TTS path did not set its own preparation status before starting the network request. The device-TTS fallback already had preparation/failure states; the hosted path was missing the matching state.
+- **Why it escaped:** The emulator fixture focuses on successful playback, highlighting, pause/resume, and checkpoint progression. It did not assert the transient status during a delayed hosted voice request.
+- **Corrective action:** Set “Preparing natural voice…” immediately before the hosted speech request. Existing callbacks then transition the status to speaking after audio starts, or to the explicit fallback/error status if hosted voice fails.
+- **Regression protection:** Added `VoicePreparationStatusRegressionTests.test_hosted_voice_request_sets_preparation_status_before_network_work` to assert the preparation state is set before the hosted request and that speaking/fallback states remain present.
+- **Evidence:** Initial implementation commit `e48081dd784d30fbbb12833049fddef4096e31dd`; helper regression commit `aac937ef8daa9697807701853f2240f6b84ca6c1`. Latest-head tests and screenshot verification are pending.
+- **Status:** **Fix and regression assertion committed; verification pending.** Phase 1 remains open until the complete layout acceptance criteria pass.
+
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

@@ -258,3 +258,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Run `python3 .github/scripts/test_ui_smoke_helpers.py` before emulator tests; then rerun the full emulator flow and inspect screenshot evidence from the same commit.
 - **Evidence:** Failing workflow run [39971641146](https://github.com/Prav1525/Padippupal/actions/runs/39971641146), prior tested commit `48df77095823aed1b99ab3629df280a01d1acc5f`. Corrective commit and rerun evidence to be added after verification.
 - **Status:** **Correction prepared; verification pending.**
+
+
+### TE-020 — Live word highlight advanced before speech playback began
+
+- **Date discovered:** 2026-10-23
+- **Area:** Android live tutor caption / audio synchronization.
+- **Symptom:** Word highlighting could begin while the natural-voice request was still being generated or while Android TextToSpeech was still initializing; the fallback timer could also drift from actual speech.
+- **Root cause:** The live caption effect treated `speechActive` as proof of audible playback. That flag is set before network generation and TTS startup complete. The timed caption path used a fixed 24-second word loop, independent of audio position.
+- **Corrective action:** Keep the first word unhighlighted (`liveWordIndex = -1`) during preparation; gate caption highlighting and the live elapsed-time fallback on `speechPlaybackObserved`; use the actual hosted player position/word timings or Android TTS range callbacks after playback begins.
+- **Regression protection:** `.github/scripts/test_ui_smoke_helpers.py::SpeechHighlightSynchronizationRegressionTests` asserts the playback-observed gate, initial no-highlight state, and removal of the independent 24-second caption timer. Run helper tests before emulator allocation, then inspect live-caption screenshots and playback logs from the same commit.
+- **Status:** **Fix and regression assertion committed; test and emulator verification pending.**

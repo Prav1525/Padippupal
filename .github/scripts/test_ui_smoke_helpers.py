@@ -188,7 +188,11 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertNotIn("Preparing segment ${index + 1} of ${liveSegments.size}", tutor)
         self.assertIn('.put("max_segments", 8)', tutor)
         self.assertIn("Teach this topic fully", tutor)
-        self.assertIn('Text("I have a question", color = TutorGreen)', live_layout)
+        # Assert the user-visible label independently of Kotlin argument formatting/order.
+        self.assertRegex(live_layout, r'Text\(\s*"I have a question"')
+        # Assert the intended control contract separately: full-width, balanced-height outlined action.
+        self.assertIn("modifier = Modifier.fillMaxWidth().height(48.dp)", live_layout)
+        self.assertIn("border = BorderStroke(1.dp, TutorAccentSoft)", live_layout)
         self.assertNotIn("if (liveVisualAction.isNotBlank()) {\n                        }", tutor)
         # Word highlighting still auto-scrolls during active speech.
         self.assertIn("scrollState.animateScrollTo(target)", tutor)

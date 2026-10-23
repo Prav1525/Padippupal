@@ -16,6 +16,16 @@ class AllOnesTopicValidatorTest {
         )))
     }
 
+
+    @Test
+    fun acceptsAnApprovedTransitionWhenCaptionDuplicatesSpokenText() {
+        assertNull(AllOnesTopicValidator.failureReason(listOf(
+            "The All 1s pattern repeats the number 1." to
+                "The All 1s pattern repeats the number 1.",
+            "Now look at the sequence." to "Now look at the sequence."
+        )))
+    }
+
     @Test
     fun rejectsGenericLaterSegmentEvenWhenOpeningIsRelevant() {
         val reason = AllOnesTopicValidator.failureReason(listOf(

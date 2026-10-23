@@ -2121,7 +2121,10 @@ internal fun TutorScreen(
                 }
                 if (liveLessonComplete) {
                     Text("You have finished this topic. Scroll up to review any explanation, or use Stop when you are ready to leave the lesson.", modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = TutorGrey, fontSize = 14.sp, lineHeight = 21.sp)
-                } else if (awaitingUnderstanding) {
+                }
+            }
+        }
+        if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete) {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 24.sp)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -2170,8 +2173,6 @@ internal fun TutorScreen(
                             border = BorderStroke(1.dp, TutorAccentSoft)
                         ) { Text("I have a question", color = TutorGreen, fontWeight = FontWeight.SemiBold, fontSize = 14.sp) }
                     }
-                }
-            }
         }
         if (!liveLessonActive && status.isNotBlank()) {
             Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)

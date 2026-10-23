@@ -40,3 +40,28 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 - Back navigation, pause/stop, and student input remain functional.
 - Backend tests, JVM/helper tests, APK build, and relevant emulator regression tests pass; inspect screenshots and logs from the final run.
 - If any criterion fails, Phase 1 remains open. Do not start Phase 2 (speech/highlight synchronization) until Phase 1 is verified.
+
+## Mandatory pre-test mistake-prevention gate
+
+**Before every test run, read `docs/TESTING_ERRORS.md` and this checklist. Do not start testing until the known-failure checks relevant to the current change have been mapped to explicit tests or verification steps.** If a known mistake has no regression test or practical safeguard yet, add one before proceeding whenever feasible; otherwise document the blocker and do not claim the risk is covered.
+
+- [ ] Read the testing-error log and identify prior failures related to the files, behavior, test harness, APIs, emulator, or workflow being changed.
+- [ ] State the active objective, acceptance criteria, affected system layers, and exact commands/checks before running tests.
+- [ ] Trace the expected path end to end (data/source -> backend validation/API -> Android parsing/state -> playback/UI -> observable user outcome) where applicable.
+- [ ] For each prior failure that could recur, confirm a regression test or explicit preflight catches it; do not assume a test exists without locating it.
+- [ ] Keep tests meaningful: never delete, weaken, skip, or rewrite a valid failing assertion merely to obtain a green run. If a test expectation is wrong, prove that independently and document why.
+- [ ] When a test fails, preserve the failing assertion, logs/screenshots, commit SHA, and environment; classify the cause before editing.
+- [ ] Fix the root cause, add a regression test/safeguard, and rerun the failed test plus affected neighboring tests. Then rerun all required release-gate checks on the latest commit.
+- [ ] Check for interactions/regressions across backend, Android, CI scripts, and deployed API. A build passing is not proof that the user journey works.
+- [ ] Update `docs/TESTING_ERRORS.md` in the same workstream for every meaningful mistake/failure: symptom, root cause, why it escaped, corrective action, regression protection, affected commit/run, and current status.
+- [ ] Report each result accurately as **passed**, **failed**, **blocked**, or **not run**. Never say fixed/verified until the relevant rerun passes. Keep the PR unmerged while required checks or acceptance criteria fail.
+
+### Required test-run order
+
+1. Read this checklist and `docs/TESTING_ERRORS.md`.
+2. Inspect current branch/commit and relevant existing tests; identify the previous failure modes that apply.
+3. Define the fix and regression coverage before executing the test suite.
+4. Run the narrowest relevant test first; diagnose any failure before proceeding.
+5. Run neighboring/regression tests, then full required CI and end-to-end checks.
+6. Inspect actual outputs (logs, screenshots, UI state), confirm they correspond to the latest tested SHA, and update the error log.
+7. Only then provide a status report or consider release/merge readiness.

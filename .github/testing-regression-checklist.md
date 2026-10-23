@@ -37,6 +37,7 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 **Acceptance criteria:**
 - Prompt and tap-to-pronounce affordance are absent from the tutor lesson UI; speech and inline highlight still work.
 - On the supported emulator viewport, the lesson content uses available space appropriately with no unexplained large blank region, clipping, overlap, or hidden controls.
+- In checkpoint state, the transcript content is balanced through the available viewport while the three feedback controls remain pinned below it and above system navigation; verify the actual screenshot rather than relying only on source assertions.
 - Only the active lesson segment is shown; no faded upcoming paragraph is visible.
 - Loading status is truthful and does not remain stuck while playback is active.
 - Back navigation, pause/stop, and student input remain functional.

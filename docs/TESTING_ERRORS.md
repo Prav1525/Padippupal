@@ -303,3 +303,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep the helper assertion requiring `speechActive && speechPlaybackObserved`; keep the prohibition on the fixed 24-second timer. Run helper tests first, then JVM tests, APK build, and a fresh emulator flow with screenshot review on the final head SHA.
 - **Evidence:** Failed run [39983540041](https://github.com/Prav1525/Padippupal/actions/runs/39983540041), job `120517388448`; assertion update commit `b870a0803d85fd7ea922bb17e74402f2480e7242`; obsolete implementation removal commit `7cd36c01025ad2cecd5d4493cfb328a1f6a86363`.
 - **Status:** **Correction committed; latest-head helper and emulator verification pending.**
+
+
+### TE-024 — Tutor header consumed excessive vertical space
+- **Date discovered:** 2026-10-23
+- **Area:** Android tutor-screen visual layout.
+- **Symptom:** The current-head emulator screenshot showed a tall dark header with oversized branding/icon, reducing the vertical space available to the lesson transcript and checkpoint.
+- **Root cause:** Header used 18dp combined vertical padding, a 38dp icon container, 18sp title text, and 10sp subtitle text; the combination was disproportionate on the tested viewport.
+- **Why it escaped:** Prior screenshot review focused on checkpoint visibility and lesson progression, but did not explicitly evaluate header height relative to the viewport.
+- **Corrective action:** Reduced combined header vertical padding to 5dp, icon container to 30dp, title to 16sp, subtitle to 9sp, and tightened horizontal/line spacing.
+- **Regression protection:** Added `.github/scripts/test_ui_smoke_helpers.py::TutorHeaderLayoutRegressionTests` to assert compact dimensions while preserving Back, Teach, Pause/Resume, and Stop actions. Inspect fresh emulator screenshots from the exact tested SHA for clipping, touch-target usability, and overall header/body balance.
+- **Evidence:** Implementation commit `cf69ae360b28e89a9c03bf207fedc92b5098713f`; regression test commit `030a4ba08e83d468474d93f6d125761b2dac5958`. Fresh CI and screenshot verification pending.
+- **Status:** **Implemented; verification pending.** Do not merge PR #13 until latest-head build, helper tests, emulator flow, and screenshot review pass.

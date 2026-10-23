@@ -1591,8 +1591,8 @@ internal fun TutorScreen(
         val segment = liveSegments[index]
         awaitingUnderstanding = false
         // Normalize nullable API data before it enters UI state; optString may yield literal "null".
-        val rawCheckpoint = if (segment.isNull("checkpoint")) null else segment.optString("checkpoint")
-        currentCheckpoint = if ((index + 1) % 2 == 0) normalizedCheckpoint(rawCheckpoint) else ""
+        // Complete-lesson mode never interrupts playback with per-segment feedback.
+        currentCheckpoint = ""
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
@@ -1646,10 +1646,10 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach this as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Split the explanation into small modules, one idea per module. Each module should use only 2-3 short spoken sentences, simple child-friendly language, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages." + topicGuardrail
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
-                    .put("message", lessonPrompt).put("max_segments", 5)
+                    .put("message", lessonPrompt).put("max_segments", 6)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
                 // The backend may retry Gemini once after schema validation; its two 45s
                 // upstream attempts can exceed 50s in total. Keep the UI waiting for the
@@ -1683,13 +1683,20 @@ internal fun TutorScreen(
                             )
                         }
                     }
-                    // Orient the learner before the curriculum lesson begins.
-                    val opening = JSONObject()
-                        .put("id", "lesson-opening")
-                        .put("spoken_text", "Today, we are going to learn the chapter $chapter, focusing on $topic.")
-                        .put("caption_text", "Today, we are going to learn the chapter $chapter, focusing on $topic.")
+                    // The API segments are transport chunks, not separate learner-facing steps.
+                    // Join them into one caption/audio response so no checkpoint interrupts the explanation.
+                    val completeText = lessonSegments.map { it.optString("spoken_text").trim() }
+                        .filter { it.isNotBlank() }.joinToString(" ")
+                    if (completeText.length < 220) {
+                        throw IllegalStateException("The lesson was too short to explain the selected topic completely. Please try again.")
+                    }
+                    val completeLesson = JSONObject()
+                        .put("id", "complete-lesson")
+                        .put("spoken_text", completeText)
+                        .put("caption_text", completeText)
                         .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-                    listOf(opening) + lessonSegments
+                        .put("checkpoint", JSONObject.NULL)
+                    listOf(completeLesson)
                 } finally { connection.disconnect() }
             }
             tutorMainHandler.post {
@@ -2022,7 +2029,7 @@ internal fun TutorScreen(
                                 Spacer(Modifier.width(6.dp))
                                 Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LAST SPOKEN SEGMENT", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.weight(1f))
-                                if (liveLessonActive) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
+                                if (liveLessonActive && liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                             }
                             if (liveCaption.isNotBlank()) {
                                 WordByWordCaption(
@@ -2110,7 +2117,7 @@ internal fun TutorScreen(
                             Spacer(Modifier.width(7.dp))
                             Text(if (speechActive) "YOUR TEACHER IS SPEAKING" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else "LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.weight(1f))
-                            Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
+                            if (liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                         }
                         if (liveCaption.isNotBlank()) {
                             WordByWordCaption(

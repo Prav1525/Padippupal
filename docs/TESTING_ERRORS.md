@@ -398,3 +398,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Re-run APK build and UI smoke tests on the corrected commit; inspect emulator screenshot before claiming verified.
 - **Evidence:** Failure on commit `4bee813bb37ab33edb6a57192a02e3f96ff9e31e`; fix commit pending.
 - **Status:** **Fix committed; rerun checks pending.**
+
+
+### TE-032 — Checkpoint spacing created an oversized gap below the tutor header
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android live tutor checkpoint layout.
+- **Symptom:** The exact-head emulator checkpoint screenshot showed a large blank gap between the compact header and the checkpoint heading, making the teaching flow feel disconnected.
+- **Root cause:** `Arrangement.SpaceEvenly` distributed a short transcript's spare viewport height across every child gap, including the gap immediately below the header.
+- **Corrective action:** Replace space-distributed placement with fixed, readable 16dp spacing during the checkpoint; retain 12dp spacing while speaking. The transcript remains independently scrollable and checkpoint actions stay in-flow below it.
+- **Regression protection:** Update `.github/scripts/test_ui_smoke_helpers.py::CheckpointLayoutRegressionTests` to assert the bounded spacing policy and rerun helper tests, JVM tests, APK build, emulator flow, and inspect a fresh checkpoint screenshot.
+- **Evidence:** Baseline emulator run [40038927517](https://github.com/Prav1525/Padippupal/actions/runs/40038927517), screenshot artifact [12538666569](https://github.com/Prav1525/Padippupal/actions/runs/40038927517/artifacts/12538666569). Fix commit and verification pending.
+- **Status:** **Fix implemented; exact-head verification pending.**

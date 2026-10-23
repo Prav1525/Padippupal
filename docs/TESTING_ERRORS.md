@@ -252,3 +252,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add helper coverage for lesson retention and follow-up assertions; preserve `live-complete.xml` and `follow-up.xml` on smoke retries.
 - **Evidence:** Implementation commit `d54226d39e3410cee3394943a775bd2083ed0705`; follow-up smoke and helper changes `1c13b9910b5b0113f6ff758ecd13251300a19409`, `1a0db763fe02595ce98534bc098abb5670419028`, `916e25d40d4d3cf77fa574cc0bfe46e856645359`, `f00b78eb357fc106c3c4e1acb3857c5e3f3e275c`, and `8d7355e664fb5beb90027ef9680a36e8fa673240`. Verification on the latest combined head is pending.
 - **Status:** **Fix and regression coverage drafted; not yet verified.** Do not merge until the full completion-and-follow-up smoke passes on the same head.
+
+
+### TE-014 — Caption regression test initially over-escaped newline literals
+- **Date discovered:** 2026-10-23
+- **Area:** Source-level regression test for caption paragraph spacing.
+- **Symptom:** Review of the new assertion found it searched for two literal backslashes before each `n`, while Kotlin source contains the normal escaped newline sequence `\n`.
+- **Root cause:** A raw Python string was written with an extra level of escaping.
+- **Why it escaped:** The assertion was added through a source-text transformation and had not yet completed a test run.
+- **Corrective action:** Reduce the raw-string escaping to match the exact Kotlin source text.
+- **Regression protection:** Run the helper regression suite on the final combined head; keep the assertion tied to the paragraph separator and matching word-offset calculation.
+- **Evidence:** Correction commit `34a5a743bb740346580d2b09ecf05c0211b7ea4d`; final verification pending.
+- **Status:** **Caught during review and corrected before accepting test results.**

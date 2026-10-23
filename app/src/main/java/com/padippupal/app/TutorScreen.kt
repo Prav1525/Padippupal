@@ -1674,10 +1674,13 @@ internal fun TutorScreen(
                             (segment.optString("spoken_text") + " " +
                                 segment.optString("caption_text")).trim()
                         }
-                        val invalid = spokenSegments.any { spoken ->
-                            forbidden.containsMatchIn(spoken) ||
-                                (!relevant.containsMatchIn(spoken) && !neutralTransition.containsMatchIn(spoken))
-                        } || spokenSegments.none { relevant.containsMatchIn(it) }
+                        // Topic relevance is required across the whole lesson, not every
+                        // sentence: a supporting explanation may describe the idea without
+                        // repeating its keyword. Forbidden off-topic claims remain per-segment.
+                        val invalid = spokenSegments.any { forbidden.containsMatchIn(it) } ||
+                            spokenSegments.none {
+                                relevant.containsMatchIn(it) || neutralTransition.containsMatchIn(it)
+                            }
                         if (invalid) {
                             throw IllegalStateException(
                                 "The lesson content did not stay on All 1s. Please try again; no incorrect lesson was started."

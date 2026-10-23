@@ -1441,7 +1441,8 @@ internal fun TutorScreen(
         scheduleSpeechCompletionWatchdog(generation, text)
         speechWordIndexOffset = 0
         speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
-        liveWordIndex = 0
+        // Keep the caption plain while voice is generated or the TTS engine is binding.
+        liveWordIndex = -1
         lastNativeRangeAt = 0L
         hostedWordTimings = emptyList()
         speechStartCallback = onStarted ?: { if (liveLessonActive) liveCaption = text }
@@ -1596,7 +1597,8 @@ internal fun TutorScreen(
         // in that callback, the checkpoint is left with an empty caption and the
         // topic animation disappears. The word index still advances only with speech.
         liveCaption = words
-        liveWordIndex = 0
+        // Reveal the first word only after the playback-start callback confirms audio.
+        liveWordIndex = -1
         liveVisualAction = visualCue
         liveVisualActionType = action?.optString("type", "none") ?: "none"
         liveVisualTarget = action?.optString("target", "").orEmpty()
@@ -1829,8 +1831,9 @@ internal fun TutorScreen(
     // character offsets. Some engines emit only one range callback, however, so
     // keep a weighted elapsed-time fallback ready and use it whenever native ranges
     // stop arriving. This prevents a single callback freezing the inline highlight.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, livePaused, audioPlayer.value, hostedWordTimings, speechWordIndexOffset) {
-        if (!speechActive || !liveLessonActive || liveCaption.isBlank()) {
+    LaunchedEffect(speechActive, speechPlaybackObserved, liveCaption, liveLessonActive, livePaused, audioPlayer.value, hostedWordTimings, speechWordIndexOffset) {
+        // speechActive includes network generation and engine startup; wait for actual playback.
+        if (!speechActive || !speechPlaybackObserved || !liveLessonActive || liveCaption.isBlank()) {
             if (!speechActive) liveWordIndex = 0
             return@LaunchedEffect
         }
@@ -2033,7 +2036,7 @@ internal fun TutorScreen(
                     ) {
                         Column(Modifier.padding(14.dp)) {
                             if (message.role == "assistant" && message.content == liveCaption && speechActive && !liveLessonActive) {
-                                WordByWordCaption(liveCaption, true, liveWordIndex)
+                                WordByWordCaption(liveCaption, speechActive && speechPlaybackObserved, liveWordIndex)
                             } else {
                                 Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
                             }
@@ -2105,7 +2108,7 @@ internal fun TutorScreen(
                     if (pastText.isNotBlank()) Text(pastText, modifier = Modifier.fillMaxWidth(), color = TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
                 }
                 if (liveCaption.isNotBlank()) {
-                    WordByWordCaption(liveCaption, speechActive, liveWordIndex, modifier = Modifier.fillMaxWidth().wrapContentHeight(), expandToAvailableHeight = false)
+                    WordByWordCaption(liveCaption, speechActive && speechPlaybackObserved, liveWordIndex, modifier = Modifier.fillMaxWidth().wrapContentHeight(), expandToAvailableHeight = false)
                 } else { CircularProgressIndicator(color = TutorGreen) }
                 // The animation is part of the explanation flow, never a separate overlay.
                 if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -1065,3 +1066,13 @@ def test_all_ones_lesson_requires_topic_relevance_somewhere_in_speech():
         {"spoken_text": "Tell me what you notice.", "caption_text": ""},
     ]
     assert not curriculum._lesson_segments_match_topic("All 1s", segments)
+
+
+def test_tutor_prompt_requires_complete_grade_aware_chat_and_text_only_visuals():
+    """Protect the current chat-first mode from old step-by-step/animation prompt rules."""
+    source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+    assert "PADIPPUPAL CHAT-FIRST TEACHING CONTRACT" in source
+    assert "Teach the complete selected topic in one coherent lesson response" in source
+    assert "Adapt vocabulary, sentence length, abstraction, and example complexity to class" in source
+    assert "Current product mode: text/chat examples only" in source
+    assert "Do not request lesson feedback until the complete explanation" in source

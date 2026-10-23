@@ -52,6 +52,19 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
+class TutorPromptContractTests(unittest.TestCase):
+    def test_prompt_has_no_legacy_short_step_or_forced_checkpoint_rules(self):
+        backend = (Path(__file__).resolve().parents[2] / "backend" / "app.py").read_text()
+        start = backend.index("system_prompt = f")
+        end = backend.index('"""', start + len('system_prompt = f"""'))
+        prompt = backend[start:end]
+        self.assertIn("teach the complete selected topic in one coherent lesson", prompt)
+        self.assertIn("one connected explanation", prompt)
+        self.assertNotIn("teach only its current small step", prompt)
+        self.assertNotIn("usually 20–45 words total", prompt)
+        self.assertNotIn("Do not answer your own question or continue to the next lesson step before the child responds", prompt)
+        self.assertIn("Ask at most one specific practice question after the full explanation", prompt)
+
 class ScreenshotMaskTests(unittest.TestCase):
     def test_exact_color_mask_counts_pixels_and_returns_their_bounds(self):
         from PIL import Image, ImageDraw

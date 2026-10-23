@@ -217,22 +217,48 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/live-resumed.xml live-resumed.xml
 python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playing | tee -a "$REPORT"
 
-log "Checking the complete lesson remains continuous and has no mid-lesson checkpoint"
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml
-timeout 10s "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml
-timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-complete.png
-python3 .github/scripts/ui_smoke.py assert-live live-complete.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py assert-live-layout ui-screenshots/live-complete.png | tee -a "$REPORT"
-if grep -Eqi "Quick check|check your understanding|does that make sense so far|I understand|Explain again|I have a question|WATCH THE PATTERN|Visual focus" live-complete.xml; then
+log "Waiting for playback to finish; verify the complete explanation remains in chat"
+lesson_finished=0
+for attempt in $(seq 1 90); do
+  timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
+  timeout 10s "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
+  if [ -s live-complete.xml ] && python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml >/dev/null 2>&1; then
+    lesson_finished=1
+    break
+  fi
+  sleep 2
+done
+if [ "$lesson_finished" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: complete lesson contains an unwanted checkpoint or visual overlay"
-  cat live-complete.xml | tee -a "$REPORT"
+  log "FAIL: playback did not complete with the lesson retained and follow-up composer visible"
+  [ ! -s live-complete.xml ] || cat live-complete.xml | tee -a "$REPORT"
   exit 1
 fi
-log "PASS: complete lesson remains uninterrupted and contains no checkpoint/animation UI"
-python3 .github/scripts/ui_smoke.py tap live-complete.xml "Stop"
-sleep 2
+timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-complete.png
+python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml | tee -a "$REPORT"
+log "Testing a follow-up question after lesson playback"
+python3 .github/scripts/ui_smoke.py tap live-complete.xml "Ask your teacher"
+"${ADB[@]}" shell input text 'Why%sdoes%sAll%s1s%srepeat'
+"${ADB[@]}" shell input keyevent 66
+followup_received=0
+for attempt in $(seq 1 30); do
+  timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up.xml >/dev/null 2>&1 || true
+  timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up.xml follow-up.xml >/dev/null 2>&1 || true
+  if [ -s follow-up.xml ] && python3 .github/scripts/ui_smoke.py assert-followup follow-up.xml >/dev/null 2>&1; then
+    followup_received=1
+    break
+  fi
+  sleep 1
+done
+if [ "$followup_received" -ne 1 ]; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: follow-up question did not receive a tutor answer after playback"
+  [ ! -s follow-up.xml ] || cat follow-up.xml | tee -a "$REPORT"
+  exit 1
+fi
+python3 .github/scripts/ui_smoke.py assert-followup follow-up.xml | tee -a "$REPORT"
+# Tap the header to dismiss the keyboard before testing Back navigation.
+python3 .github/scripts/ui_smoke.py tap follow-up.xml "PadippuPal"
 log "Testing Android back navigation to Home"
 timeout 10s "${ADB[@]}" shell input keyevent 4
 sleep 5

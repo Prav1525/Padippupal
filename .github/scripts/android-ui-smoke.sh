@@ -195,7 +195,7 @@ for attempt in $(seq 1 50); do
       lesson_started=1
       break
     fi
-    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback" live-lesson.xml; then
+    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s" live-lesson.xml; then
       FAILURE_CLASS="APP_FAILURE"
       log "FAIL: tutor API returned an explicit lesson-start error"
       cat live-lesson.xml | tee -a "$REPORT"

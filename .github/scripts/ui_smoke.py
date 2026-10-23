@@ -255,6 +255,33 @@ def tap_first_concept(path):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
                    check=True, timeout=45)
 
+def assert_completed_lesson(path):
+    _, texts = load(path)
+    joined = "\n".join(texts).lower()
+    print("COMPLETED LESSON TEXT:", " | ".join(texts[:100]))
+    if "live lesson complete" not in joined:
+        raise SystemExit("Playback did not reach the explicit lesson-complete state")
+    if "ask your teacher" not in joined:
+        raise SystemExit("Question composer is missing after lesson playback completes")
+    if not any(len(value.strip()) >= 220 and "all 1s" in value.lower() for value in texts):
+        raise SystemExit("Completed lesson disappeared instead of remaining available in chat history")
+    if any(term in joined for term in ("how did that explanation feel", "i understand", "explain again")):
+        raise SystemExit("Per-reply feedback prompt reappeared after the lesson")
+    print("PASS: completed lesson remains in chat and follow-up input is available")
+
+
+def assert_followup_answer(path):
+    _, texts = load(path)
+    joined = "\n".join(texts).lower()
+    print("FOLLOW-UP TEXT:", " | ".join(texts[:100]))
+    expected = "the smoke-test tutor is ready to help with the selected topic"
+    if expected not in joined:
+        raise SystemExit("Follow-up question did not receive the expected tutor response")
+    if "why does all 1s repeat" not in joined:
+        raise SystemExit("The submitted follow-up question is not visible in chat history")
+    print("PASS: follow-up question and answer are both visible")
+
+
 def assert_live(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
@@ -495,6 +522,10 @@ def main():
         tap_exact(path, sys.argv[3])
     elif action == "assert-live":
         assert_live(path)
+    elif action == "assert-completed-lesson":
+        assert_completed_lesson(path)
+    elif action == "assert-followup":
+        assert_followup_answer(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:
         assert_highlight_frames(sys.argv[3])
     elif action == "assert-live-layout":

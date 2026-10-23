@@ -109,3 +109,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Strengthened the test to cover both “stay the same without increasing” and “repeat without increasing or decreasing” as supporting-only text that must not satisfy the explicit-topic requirement. Preserve the valid All 1s positive case and generic/off-topic rejection cases.
 - **Evidence:** Failing run [39891634599](https://github.com/Prav1525/Padippupal/actions/runs/39891634599), initial fix commit `49dac4ca02e6e0b6486fef609470458fc6992802`, regression test commit `928aad86a79f224f97a251d7d2ec63dd90002e37`. Verification on the latest PR head is pending.
 - **Status:** **Root cause confirmed; code and regression test committed; verification pending.** Keep PR #13 unmerged until the JVM tests and full emulator flow pass on the latest commit.
+
+
+### TE-009 — UI smoke preflight assertions drifted from the deterministic test design
+- **Date discovered:** 2026-10-23
+- **Area:** Android UI smoke helper regression tests and topic-guard contract.
+- **Symptom/failure:** UI smoke run [39894074738](https://github.com/Prav1525/Padippupal/actions/runs/39894074738) failed during `Validate smoke-test scripts`, before emulator allocation. Two helper tests failed.
+- **Confirmed root cause:** (1) `BackendWarmupRegressionTests` still required a Render production warm-up step even though the workflow had intentionally switched to the deterministic local fixture at `127.0.0.1:8765` / emulator host `10.0.2.2:8765`. The test was asserting obsolete architecture, not the current safety contract. (2) `ExactSelectorTests` looked for the validator's failure reason inside `TutorScreen.kt`, but the reason is owned by `AllOnesTopicValidator.kt`; the test was checking the wrong source file.
+- **Why it escaped:** The workflow implementation and helper tests were changed at different times, and the helper test did not assert the actual fixture contract. The source-string assertion also failed to follow the code's ownership boundary.
+- **Corrective action:** Update the workflow regression test to require the local fixture health check, emulator-reachable base URL, readiness gate, and absence of the production Render URL. Update the topic-validator contract test to read `AllOnesTopicValidator.kt` for the validator's rejection reason.
+- **Regression protection:** Keep both checks in `.github/scripts/test_ui_smoke_helpers.py`; run `python3 .github/scripts/test_ui_smoke_helpers.py` and the full UI workflow preflight before emulator allocation.
+- **Evidence:** Failed run [39894074738](https://github.com/Prav1525/Padippupal/actions/runs/39894074738); correction commit `bb738972d939c68b5bc8f5392cb2e875835fa2ef`. Verification on this correction commit is pending.
+- **Status:** **Root cause confirmed and test corrections committed; full verification pending.** Do not merge PR #13 until helper tests, APK build, emulator journey, and screenshot review pass on the same latest commit.

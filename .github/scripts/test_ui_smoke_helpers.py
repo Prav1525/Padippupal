@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Regression tests for accessibility-tree selectors; no emulator required."""
 import sys
+import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import concept_candidates, exact_color_mask, exact_text_candidates
+from ui_smoke import assert_live, concept_candidates, exact_color_mask, exact_text_candidates
 
 
 
@@ -36,6 +37,27 @@ class ExactSelectorTests(unittest.TestCase):
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
+
+
+class LiveCheckpointLabelRegressionTests(unittest.TestCase):
+    def test_actual_understanding_checkpoint_label_is_a_valid_live_lesson_state(self):
+        # Match the wording shown by the real Compose checkpoint, not just older labels.
+        xml = """<hierarchy>
+          <node text="Patterns in Mathematics" bounds="[0,0][400,60]"/>
+          <node text="Pause" bounds="[0,60][100,110]"/>
+          <node text="Stop" bounds="[100,60][200,110]"/>
+          <node text="The All 1s pattern repeats the number 1" bounds="[0,120][400,180]"/>
+          <node text="WATCH THE PATTERN" bounds="[0,180][400,220]"/>
+          <node text="1, 1, 1, 1, 1" bounds="[0,220][400,260]"/>
+          <node text="Does that make sense so far?" bounds="[0,270][400,320]"/>
+          <node text="I understand" bounds="[0,320][200,370]"/>
+          <node text="Explain again" bounds="[200,320][400,370]"/>
+          <node text="I have a question" bounds="[0,370][400,420]"/>
+        </hierarchy>"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", encoding="utf-8") as handle:
+            handle.write(xml)
+            handle.flush()
+            assert_live(handle.name)
 
 
 class ScreenshotMaskTests(unittest.TestCase):

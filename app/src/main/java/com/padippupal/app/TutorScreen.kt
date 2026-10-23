@@ -2089,13 +2089,16 @@ internal fun TutorScreen(
         }
 
         if (liveLessonActive) {
-            // One continuous, scrollable lesson transcript. New modules append below the earlier explanation.
-            Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp).verticalScroll(liveLessonScrollState),
-                // During a checkpoint, distribute the short lesson content through the available viewport
-                // instead of leaving one large empty block immediately above the fixed feedback controls.
-                verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)
-            ) {
+            // Bound the viewport separately from the scroll content. verticalScroll measures its child
+            // with an unbounded height, so SpaceEvenly alone cannot fill a short checkpoint transcript.
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                        .heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)
+                        .padding(horizontal = 18.dp, vertical = 8.dp)
+                        .verticalScroll(liveLessonScrollState),
+                    verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)
+                ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(7.dp))
@@ -2123,6 +2126,7 @@ internal fun TutorScreen(
                 }
                 if (liveLessonComplete) {
                     Text("You have finished this topic. Scroll up to review any explanation, or use Stop when you are ready to leave the lesson.", modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = TutorGrey, fontSize = 14.sp, lineHeight = 21.sp)
+                }
                 }
             }
         }

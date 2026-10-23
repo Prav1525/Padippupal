@@ -193,6 +193,21 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         # Word highlighting still auto-scrolls during active speech.
         self.assertIn("scrollState.animateScrollTo(target)", tutor)
         self.assertIn("if (active && layout != null && words.isNotEmpty())", tutor)
+        # A completed lesson must remain visible as a reviewable transcript.
+        self.assertIn("var liveLessonComplete by remember { mutableStateOf(false) }", tutor)
+        self.assertIn("if (index >= liveSegments.size) { liveLessonComplete = true", tutor)
+        self.assertIn("if (liveLessonComplete) {", live_layout)
+        self.assertIn("TOPIC COMPLETE", tutor)
+        # Checkpoint feedback controls share a deliberate size and consistent rounded styling.
+        self.assertIn("modifier = Modifier.weight(1f).height(52.dp)", live_layout)
+        self.assertIn("shape = RoundedCornerShape(16.dp)", live_layout)
+        self.assertIn("modifier = Modifier.fillMaxWidth().height(48.dp)", live_layout)
+        smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn('Now look at the sequence.', smoke)
+        self.assertIn('The All 1s pattern repeats the number 1', smoke)
+        self.assertNotIn("current_counter=$(grep", smoke)
+        helpers = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        self.assertIn("Page-style segment progress reappeared", helpers)
 
 
 if __name__ == "__main__":

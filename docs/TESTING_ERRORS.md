@@ -217,3 +217,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add source-contract assertions for checkpoint auto-scroll and screenshot settling; inspect the screenshot from the exact tested SHA and verify the question button is fully visible above system navigation.
 - **Evidence:** Initial screenshot artifact `padippupal-emulator-ui`, run [39966569063](https://github.com/Prav1525/Padippupal/actions/runs/39966569063), commit `5575ff3a99901a355419382412a2b743b31e98ae`. Fix verification pending.
 - **Status:** **Fix implemented; verification pending.**
+
+
+### TE-017 — Live smoke assertion rejected the actual understanding checkpoint label
+
+- **Date discovered:** 2026-10-23
+- **Area:** Android UI smoke harness / live lesson state detection.
+- **Symptom/failure:** UI smoke run [39971641146](https://github.com/Prav1525/Padippupal/actions/runs/39971641146) reached the All 1s lesson checkpoint and displayed all three feedback actions, but failed with “Live lesson is missing its teaching, checkpoint, or completion state.”
+- **Confirmed root cause:** `.github/scripts/ui_smoke.py::assert_live()` accepted several state labels but omitted the actual Compose checkpoint wording, “Does that make sense so far?”. The lesson state was present; the test harness did not recognize it.
+- **Why it escaped:** Helper tests did not exercise `assert_live()` with the exact checkpoint wording produced by the real UI.
+- **Corrective action:** Add the actual checkpoint label to the accepted state labels and add a focused regression test using an accessibility XML fixture with the real checkpoint and its teaching/animation/control labels.
+- **Regression protection:** Run `python3 .github/scripts/test_ui_smoke_helpers.py` before emulator tests; then rerun the full emulator flow and inspect screenshot evidence from the same commit.
+- **Evidence:** Failing workflow run [39971641146](https://github.com/Prav1525/Padippupal/actions/runs/39971641146), prior tested commit `48df77095823aed1b99ab3629df280a01d1acc5f`. Corrective commit and rerun evidence to be added after verification.
+- **Status:** **Correction prepared; verification pending.**

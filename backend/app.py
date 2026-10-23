@@ -1448,7 +1448,7 @@ def _topic_passage_matches(topic: str, passage: str) -> bool:
 
 
 def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> bool:
-    """Require every All 1s segment—not merely one segment—to teach the selected concept."""
+    """Reject off-topic All 1s content while allowing supporting explanation steps."""
     selected = normalize(topic).casefold()
     if selected not in {"all 1s", "all ones", "all one's"}:
         return True
@@ -1462,8 +1462,6 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
         r"1\s*²",
         r"\+\s*3\b",
     )
-    # A topic-matched opening segment must not mask a later generic or unrelated
-    # segment. Validate each segment independently because Android plays them in order.
     relevant = (
         r"\ball\s+1s?\b",
         r"\ball\s+ones?\b",
@@ -1473,18 +1471,21 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
         r"\bstays? the same\b",
         r"\bnumber\s+one\b",
     )
+    has_relevant_speech = False
     for segment in segments:
-        # Validate what the learner actually hears/reads independently. A relevant
-        # visual target (for example "All 1s") must not mask generic spoken text.
+        # Never let a matching visual label hide unrelated or forbidden speech.
         speech = " ".join(
             str(segment.get(key, "")) for key in ("spoken_text", "caption_text")
         ).casefold()
         visual = str(segment.get("visual_action", "")).casefold()
         if any(re.search(pattern, speech + " " + visual) for pattern in forbidden):
             return False
-        if not any(re.search(pattern, speech) for pattern in relevant):
-            return False
-    return True
+        if any(re.search(pattern, speech) for pattern in relevant):
+            has_relevant_speech = True
+
+    # Topic relevance is a lesson-level requirement, not a per-sentence requirement:
+    # valid explanation steps may describe the idea without repeating its keyword.
+    return has_relevant_speech
 
 
 @app.post("/tutor/lesson-plan")

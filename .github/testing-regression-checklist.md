@@ -6,7 +6,7 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 2. **Chapter 1 curriculum coverage**: verify every required concept label exists and lesson text explicitly contains counting, odd/even, triangular, square, cube, Virahanka, powers of 2/3, hexagonal, regular polygon, complete graph, stacked squares/triangles, Koch snowflake and the 192-edge stage.
 3. **API against deployed service**: confirm CBSE Class 6 Mathematics outline returns 10 chapters, Chapter 1 is Patterns in Mathematics, and its topic list is non-empty. Keep API success separate from UI success.
 4. **Fast Android checks before emulator**: run Kotlin/JVM tests, assemble the debug APK, and compile/run smoke-test helper unit tests before allocating the emulator.
-5. **UI flow, not just screen presence**: verify profile -> tutor -> feedback action -> settings -> Mathematics -> Chapter 1 -> select a numbered concept -> lesson actually opens -> spoken caption visible -> highlight appears in captured frames.
+5. **UI flow, not just screen presence**: verify profile -> tutor -> settings -> Mathematics -> Chapter 1 -> select a numbered concept -> lesson actually opens -> complete explanation is present -> spoken caption visible -> highlight appears in captured frames; no per-reply feedback prompt.
 6. **Accessibility selector resilience**: Android XML may omit clickable/enabled flags for Compose rows. Select only visible numbered rows with valid non-zero bounds; prefer clickable nodes when present, but verify the tap by observing the next state. Never interpret a visible option as proof selection succeeded.
 7. **Failure diagnosis**: preserve XML/screenshots/logs; classify failure as app behavior, test harness, API/data, emulator/ADB, or timing. Fix the cause before rerun; do not simply loosen assertions or skip the failed step.
 8. **Bounded waits**: every emulator/ADB action has a timeout; detect emulator/ADB unavailability and fail with a diagnostic rather than waiting indefinitely.
@@ -64,5 +64,5 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 4. Run the narrowest relevant test first; diagnose any failure before proceeding.
 5. Run neighboring/regression tests, then full required CI and end-to-end checks.
 6. Inspect actual outputs (logs, screenshots, UI state), confirm they correspond to the latest tested SHA, and update the error log.
-8. For tutor UX changes, verify a complete grade-appropriate explanation, text-only examples (no animation/lab overlays), natural follow-up answers, and no feedback prompt after each assistant reply. If the UI lacks a reliable end-of-lesson state, do not reintroduce per-reply feedback.
-7. Only then provide a status report or consider release/merge readiness.
+7. For tutor UX changes, verify a complete grade-appropriate explanation, text-only examples (no animation/lab overlays), natural follow-up answers, and no feedback prompt after each assistant reply. If the UI lacks a reliable end-of-lesson state, do not reintroduce per-reply feedback.
+8. Only then provide a status report or consider release/merge readiness.

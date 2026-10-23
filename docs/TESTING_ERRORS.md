@@ -351,3 +351,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Run `python3 .github/scripts/test_ui_smoke_helpers.py` in the required pre-emulator validation step; only continue to emulator allocation after all helper tests pass.
 - **Evidence:** UI smoke run [39992103654](https://github.com/Prav1525/Padippupal/actions/runs/39992103654), PR merge SHA `55067e2244e4cabbea3c9b64ab8bdc0ce59d7d12`; code fix commit `14d73941dff71a827ea4b331729087b5f2f06e3a`.
 - **Status:** **Test anchor corrected; helper rerun and screenshot verification pending.**
+
+
+### TE-028 — Checkpoint layout helper failed before emulator allocation on stale selector
+- **Date discovered:** 2026-10-23
+- **Area:** Android UI regression helper.
+- **Symptom:** UI smoke workflow [39993092646](https://github.com/Prav1525/Padippupal/actions/runs/39993092646) passed JVM tests and built the debug APK, then stopped during script validation with `ValueError: substring not found` in `CheckpointLayoutRegressionTests`.
+- **Root cause:** The test sliced the lesson layout using the previous direct `Column(...verticalScroll...)` declaration after production correctly introduced a `BoxWithConstraints` viewport wrapper. The layout assertion itself never ran.
+- **Corrective action:** Anchor the lesson layout slice to the stable `BoxWithConstraints(Modifier.weight(1f).fillMaxWidth())` wrapper and keep all subsequent layout assertions intact.
+- **Regression protection:** Run `python3 -m py_compile .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py` and `python3 .github/scripts/test_ui_smoke_helpers.py` before emulator allocation; do not treat an APK build as a UI pass.
+- **Evidence:** Failure log from run [39993092646](https://github.com/Prav1525/Padippupal/actions/runs/39993092646), job `120550208202`, head `6b3cc51e0a890c5b37e0fb23900b8b7a060596d1`. Anchor correction committed; rerun pending.
+- **Status:** **Test anchor corrected; verification pending.**

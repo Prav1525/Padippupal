@@ -66,6 +66,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Change committed on `feature/grade-aware-chat-tutor`; CI verification pending.
 - **Status:** **Implemented; not yet tested.** Do not mark complete until the backend suite and full tutor journey pass.
 
+
+### TE-012 — Emulator smoke test treated the unwanted checkpoint and animation as success
+- **Date discovered:** 2026-10-23
+- **Area:** Android lesson-flow acceptance and UI smoke assertions.
+- **Symptom:** The successful UI smoke artifact [12476801555](https://github.com/Prav1525/Padippupal/actions/runs/39894585249) showed the lesson paused at “LET'S CHECK YOUR UNDERSTANDING”, with “Does that make sense so far?”, response buttons, a segment counter, and the “WATCH THE PATTERN” animation. This contradicted the requested continuous explanation, even though the workflow passed.
+- **Root cause:** The smoke assertions explicitly required a checkpoint and a visible animation, so the test treated the old behaviour as the expected result instead of detecting the product requirement regression.
+- **Why it escaped:** The workflow was green but its acceptance assertions encoded the previous UX; a passing test was mistaken for proof of the requested experience.
+- **Corrective action:** The tutor now joins validated source-grounded segments into one continuous spoken caption, disables checkpoint pauses, uses no visual action, and asks the smoke test to reject checkpoint/animation labels and require a long complete caption.
+- **Regression protection:** The UI smoke flow now waits for the full caption, checks for checkpoint/animation regressions, and retains pause/resume and moving word-highlight checks. The frame-capture window is shortened so playback controls can be tested while speech is active.
+- **Evidence:** Source artifact [12476801555](https://github.com/Prav1525/Padippupal/actions/runs/39894585249); combined fix commits on `feature/grade-aware-chat-tutor` beginning at `ce59974def7f657f8bb58022d88877741b1b744b`. Validation of the updated harness and app is pending.
+- **Status:** **Fix implemented; not yet tested.** The prior green run does not satisfy the new acceptance criteria. Do not merge until updated backend, Android, emulator, screenshot, and highlight checks pass.
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

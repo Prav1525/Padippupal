@@ -2114,7 +2114,7 @@ internal fun TutorScreen(
                         topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
                         else -> "number_pattern"
                     }
-                    ChapterOneMathAnimation(scene = scene, title = topic.ifBlank { "Patterns in Mathematics" }, topic = topic, caption = "Watch the pattern change automatically as your teacher explains.")
+                    ChapterOneMathAnimation(scene = scene, title = topic.ifBlank { "Patterns in Mathematics" }, topic = topic, caption = "Watch the pattern change automatically as your teacher explains.", compact = true)
                 }
                 if (liveLessonComplete) {
                     Text("You have finished this topic. Scroll up to review any explanation, or use Stop when you are ready to leave the lesson.", modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = TutorGrey, fontSize = 14.sp, lineHeight = 21.sp)

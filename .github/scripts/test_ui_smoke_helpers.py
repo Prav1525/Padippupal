@@ -257,3 +257,17 @@ class VoicePreparationStatusRegressionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SpeechHighlightSynchronizationRegressionTests(unittest.TestCase):
+    def test_live_highlight_waits_for_real_playback_and_has_no_independent_prep_timer(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        # A request being active includes network generation and TTS initialization; neither is audible playback.
+        self.assertIn("if (!speechActive || !speechPlaybackObserved || !liveLessonActive || liveCaption.isBlank())", tutor)
+        self.assertIn("LaunchedEffect(speechActive, speechPlaybackObserved, liveCaption", tutor)
+        self.assertIn("WordByWordCaption(liveCaption, speechActive && speechPlaybackObserved, liveWordIndex", tutor)
+        self.assertIn("// Keep the caption plain while voice is generated or the TTS engine is binding.", tutor)
+        self.assertIn("liveWordIndex = -1", tutor)
+        # Live playback timing must use the audio position or actual TTS callbacks, not a fixed 24-second caption timer.
+        self.assertNotIn("val perWord = (24000L / words.size)", tutor)

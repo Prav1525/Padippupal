@@ -1660,43 +1660,14 @@ internal fun TutorScreen(
                     if (topic.equals("All 1s", ignoreCase = true) ||
                         topic.equals("All ones", ignoreCase = true) ||
                         topic.equals("All one's", ignoreCase = true)) {
-                        val forbidden = Regex(
-                            """\b(square numbers?|count(?:ing)? numbers? up and down|1\s*\+\s*2\s*\+\s*1\s*=\s*4|1\s*²)\b""",
-                            RegexOption.IGNORE_CASE
-                        )
-                        val relevant = Regex(
-                            """(all\s+1s?|all\s+ones?|repeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?(?:1|one|ones)\b|1\s*[,;]\s*1|same number|stays? the same|number one|each term is (?:the )?(?:number )?(?:1|one)|each term stays the same)""",
-                            RegexOption.IGNORE_CASE
-                        )
-                        val supporting = Regex(
-                            """(pattern\w*.{0,70}repeat\w*|without\s+(increasing|decreasing)|(?:does|do)\s+not\s+(increase|decrease|change)|(?:doesn't|don't)\s+(increase|decrease|change)|(?:stays?|remains?)\s+(constant|unchanged|the same)|same value)""",
-                            RegexOption.IGNORE_CASE
-                        )
-                        // Neutral transitions must be short, recognizable phrases; a long
-                        // generic sentence cannot pass just because it says "notice" or "try".
-                        val neutralTransition = Regex(
-                            """^(?:now\s+)?(?:let'?s\s+)?(?:look carefully at the sequence|look at the sequence|try the next step|think about it|your turn|take a moment|tell me what you notice|what do you notice\??|pause here)[.!?\s]*$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                        val spokenSegments = lessonSegments.map { segment ->
-                            (segment.optString("spoken_text") + " " +
-                                segment.optString("caption_text")).trim()
-                        }
-                        val invalidSegments = spokenSegments.mapIndexedNotNull { index, text ->
-                            when {
-                                forbidden.containsMatchIn(text) -> "segment ${index + 1}: forbidden/off-topic content"
-                                !relevant.containsMatchIn(text) &&
-                                    !supporting.containsMatchIn(text) &&
-                                    !neutralTransition.matches(text) -> "segment ${index + 1}: no All 1s explanation or approved short transition"
-                                else -> null
+                        val validationError = AllOnesTopicValidator.failureReason(
+                            lessonSegments.map { segment ->
+                                segment.optString("spoken_text") to segment.optString("caption_text")
                             }
-                        }
-                        val hasRelevantSpeech = spokenSegments.any { relevant.containsMatchIn(it) }
-                        if (invalidSegments.isNotEmpty() || !hasRelevantSpeech) {
-                            val reasons = (invalidSegments + if (!hasRelevantSpeech) listOf("no segment explicitly identifies the repeated-one topic") else emptyList())
-                                .distinct().joinToString("; ")
+                        )
+                        if (validationError != null) {
                             throw IllegalStateException(
-                                "The lesson content did not stay on All 1s ($reasons). Please try again; no incorrect lesson was started."
+                                "The lesson content did not stay on All 1s ($validationError). Please try again; no incorrect lesson was started."
                             )
                         }
                     }

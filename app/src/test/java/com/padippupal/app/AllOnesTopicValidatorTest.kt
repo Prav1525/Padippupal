@@ -49,12 +49,21 @@ class AllOnesTopicValidatorTest {
     }
 
     @Test
-    fun rejectsAnOtherwiseSupportingSequenceWithoutAnExplicitTopicSignal() {
-        val reason = AllOnesTopicValidator.failureReason(listOf(
+    fun rejectsSupportingExplanationsAsTopicSignalsWhenTopicIsNeverNamed() {
+        val supportingOnlySegments = listOf(
             "A pattern can stay the same without increasing." to
-                "A pattern can stay the same without increasing."
-        ))
-        assertNotNull(reason)
-        org.junit.Assert.assertTrue(reason!!.contains("no segment explicitly identifies"))
+                "A pattern can stay the same without increasing.",
+            "A pattern can repeat without increasing or decreasing." to
+                "A pattern can repeat without increasing or decreasing."
+        )
+
+        supportingOnlySegments.forEach { segment ->
+            val reason = AllOnesTopicValidator.failureReason(listOf(segment))
+            assertNotNull(reason)
+            org.junit.Assert.assertTrue(
+                "Supporting language must not count as an explicit All 1s topic signal: $segment",
+                reason!!.contains("no segment explicitly identifies")
+            )
+        }
     }
 }

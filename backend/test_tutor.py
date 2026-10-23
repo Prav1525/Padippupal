@@ -436,7 +436,7 @@ def test_lesson_plan_retries_when_generated_segment_has_empty_speech(monkeypatch
     assert request_count["value"] == 2
 
 
-def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
+def test_lesson_plan_returns_source_grounded_segments_with_complete_lesson_contract(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     chunk_id = "chunk-123"
     class FakeResponse:
@@ -450,6 +450,12 @@ def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
     def fake_urlopen(request, timeout):
         body = json.loads(request.data.decode())
         assert body["generationConfig"]["responseMimeType"] == "application/json"
+        prompt = body["systemInstruction"]["parts"][0]["text"]
+        assert "teach the full topic, not just its first idea" in prompt
+        assert "Set checkpoint to null for every segment" in prompt
+        assert "This product mode is text-only" in prompt
+        assert "no more than 18 spoken words each" not in prompt
+        assert "Set checkpoint on at least every second segment" not in prompt
         return FakeResponse()
     monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [{

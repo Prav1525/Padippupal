@@ -498,7 +498,7 @@ def test_lesson_plan_filters_unrelated_topic_passages_before_calling_gemini(monk
     assert retrieval_requests[0].limit == 10
 
 
-def test_lesson_plan_rejects_gemini_segments_that_drift_from_all_ones(monkeypatch):
+def test_lesson_plan_falls_back_to_matched_source_when_gemini_drifts_from_all_ones(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
     chunk_id = "all-ones-source"
     generated = {"segments": [
@@ -536,10 +536,12 @@ def test_lesson_plan_rejects_gemini_segments_that_drift_from_all_ones(monkeypatc
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["grounded"] is False
-    assert body["segments"] == []
-    assert body["sources"] == []
-    assert "did not match the selected topic" in body["warning"].lower()
+    assert body["grounded"] is True
+    assert body["provider"] == "textbook_extract_fallback"
+    assert len(body["segments"]) == 1
+    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
+    assert "The All 1s pattern repeats the number 1" in body["segments"][0]["spoken_text"]
+    assert "off-topic" in body["warning"].lower()
 
 
 

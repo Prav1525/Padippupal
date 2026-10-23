@@ -42,7 +42,7 @@ class MainActivity:ComponentActivity(){
  setContent{PadippuPalApp()}
  }
 }
-private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESSON,QUESTIONS,PDF,EXAM_MASTER,SETUP}
+private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,LESSON_SETUP,TUTOR,SCAN,LESSON,QUESTIONS,PDF,EXAM_MASTER,SETUP}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun PadippuPalApp(){
@@ -69,7 +69,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
   Scaffold(
     containerColor = Paper,
     topBar = {
-      if (page !in listOf(Page.TUTOR, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.EXAM_MASTER, Page.SETUP)) {
+      if (page !in listOf(Page.TUTOR, Page.LESSON_SETUP, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.EXAM_MASTER, Page.SETUP)) {
         TopAppBar(
           title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -134,6 +134,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
       Page.PLANNER -> PlannerScreen(profileId = profileId, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.PROFILE -> Profile(name, grade, board, medium, language, { page = Page.SETUP }, Modifier.padding(padding))
       Page.CURRICULUM -> CurriculumConnectionScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
+      Page.LESSON_SETUP -> TutorScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, appLanguage = language, studentName = name, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding), setupOnly = true, onStartTeaching = { page = Page.TUTOR })
       Page.TUTOR -> TutorScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, appLanguage = language, studentName = name, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.SCAN -> DiaryScanScreen(profileId = profileId, grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, language = language, onBack = { page = Page.HOME }, onSaved = { page = Page.PLANNER })
       Page.LESSON -> Lesson(lesson, { page = Page.QUESTIONS }, { page = Page.SUBJECTS })
@@ -167,7 +168,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
    }
    item {
      Card(
-       Modifier.fillMaxWidth().clickable { go(Page.TUTOR) },
+       Modifier.fillMaxWidth().clickable { go(Page.LESSON_SETUP) },
        shape=RoundedCornerShape(24.dp),
        colors=CardDefaults.cardColors(containerColor=Deep),
        elevation=CardDefaults.cardElevation(defaultElevation=0.dp)

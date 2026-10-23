@@ -126,6 +126,18 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Combined PR #17 UI smoke run [39902997631](https://github.com/Prav1525/Padippupal/actions/runs/39902997631), preflight failed before emulator allocation.
 - **Status:** **Corrective change implemented; verification pending.**
 
+
+### TE-017 — Removing the in-tutor Change button exposed a missing pre-tutor selection route
+- **Date discovered:** 2026-10-23
+- **Area:** Main navigation, lesson selection, and emulator smoke flow.
+- **Symptom:** The tutor screen no longer exposed the Change button, but the smoke journey still attempted to tap it. More importantly, the app did not yet provide a dedicated pre-tutor screen for subject/chapter/topic/language selection, so simply removing the button would strand first-time learners without a selection path.
+- **Root cause:** Selection controls were embedded in the tutor screen, and the navigation flow had not been refactored when the product requirement moved selection to the previous screen.
+- **Why it escaped:** The UX requirement and the existing smoke journey disagreed about where selection occurs; the test was still coupled to the old in-tutor Change action.
+- **Corrective action:** Added a dedicated `LESSON_SETUP` route that reuses the existing selection panel, routes Home's Begin lesson card to that screen, and navigates to the clean Tutor screen after Done. Updated the smoke journey to validate selection before tutor entry.
+- **Regression protection:** Keep the `PreviousScreenSelectionTests` assertions and the emulator sequence `settings.xml -> ready-to-teach.xml -> Teach`; reject a Change control on the tutor screen.
+- **Evidence:** Combined PR #17 emulator run [39903215063](https://github.com/Prav1525/Padippupal/actions/runs/39903215063) was exercising the previous navigation at last inspection; this change replaces that path.
+- **Status:** **Navigation fix implemented; verification pending.**
+
 ## Update protocol
 
 - Add a new numbered incident instead of overwriting history.

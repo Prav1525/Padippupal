@@ -114,24 +114,14 @@ timeout 10s "${ADB[@]}" pull /data/local/tmp/home.xml home.xml
 python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 FAILURE_CLASS="APP_FAILURE"
 
-log "Opening tutor using accessibility bounds"
+log "Opening lesson selection before entering the tutor"
 python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
 sleep 8
-timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/tutor.png
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
-  sleep 3
-  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml
-}
-timeout 10s "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
-python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
-
-log "Testing tutor settings and voice controls"
-python3 .github/scripts/ui_smoke.py tap tutor.xml "Change"
-sleep 2
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
+log "Lesson selection is completed before entering the tutor; no Change control is needed"
 log "Scrolling lesson setup to verify lower voice preferences while Done stays fixed"
 "${ADB[@]}" shell input swipe 540 1450 540 650 450
 sleep 1
@@ -172,13 +162,9 @@ python3 .github/scripts/ui_smoke.py tap concept-selected.xml "Done"
 sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
+python3 .github/scripts/ui_smoke.py assert-tutor ready-to-teach.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
-# Start frame capture immediately after Teach, not after the polling loop. The
-# lesson may already reach its checkpoint by the time UIAutomator observes it;
-# starting capture only then produces 35 identical checkpoint frames and falsely
-# reports that word highlighting never rendered. Capture across preparation and
-# playback so frames include the moving active word.
 log "Waiting for a complete lesson caption (hard deadline 150s; each ADB call is separately bounded)"
 lesson_started=0
 lesson_deadline=$((SECONDS + 150))

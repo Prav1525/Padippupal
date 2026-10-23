@@ -922,7 +922,9 @@ internal fun TutorScreen(
     appLanguage: String,
     studentName: String,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    setupOnly: Boolean = false,
+    onStartTeaching: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val sessionPrefs = remember(context) { context.getSharedPreferences("padippupal_tutor_sessions", 0) }
@@ -965,7 +967,7 @@ internal fun TutorScreen(
     var topic by remember { mutableStateOf(savedSession.optString("topic", "")) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
     var topicMenuExpanded by remember { mutableStateOf(false) }
-    var showLessonSettings by remember { mutableStateOf(false) }
+    var showLessonSettings by remember(setupOnly) { mutableStateOf(setupOnly) }
     var chapterOptions by remember { mutableStateOf<List<Pair<String, List<String>>>>(emptyList()) }
     var outlineLoading by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
@@ -1182,12 +1184,12 @@ internal fun TutorScreen(
         if (messages.size == 1 && messages.firstOrNull()?.role == "assistant") {
             val greeting = when (selectedLanguage) {
                 "Tanglish" -> when {
-                    topic.isNotBlank() -> "Seri! Ippo $topic pathi padikkalaam. Indha topic-la enna therinjukkanum?"
+                    topic.isNotBlank() -> "Seri! Ippo $topic-a full-a examples-oda kathukkalaam. Edhaavadhu doubt irundha kelunga."
                     chapter.isNotBlank() -> "$chapter chapter open panniyachu. Endha topic-a first kathukkanum?"
                     else -> "Hi" + (if (studentName.isBlank()) "" else ", $studentName") + "! Namma onna konjam konjama kathukkalaam. Enna concept purinjukkanum?"
                 }
                 "தமிழ்" -> when {
-                    topic.isNotBlank() -> "சரி! இப்போது $topic பற்றி கற்கலாம். இந்தத் தலைப்பில் எதை முதலில் தெரிந்துகொள்ள விரும்புகிறாய்?"
+                    topic.isNotBlank() -> "சரி! இப்போது $topic-ஐ முழுமையாக எடுத்துக்காட்டுகளுடன் கற்போம். ஏதேனும் சந்தேகம் இருந்தால் கேளுங்கள்."
                     chapter.isNotBlank() -> "$chapter அத்தியாயத்தைத் தேர்ந்தெடுத்துள்ளோம். எந்தத் தலைப்பை முதலில் கற்கலாம்?"
                     else -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", $studentName") + "! நிதானமாக ஒவ்வொரு படியாகவும் கற்றுக்கொள்ளலாம். இன்று என்ன புரிந்துகொள்ள வேண்டும்?"
                 }
@@ -1933,7 +1935,7 @@ internal fun TutorScreen(
                 TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
                     Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
-            } else {
+            } else if (!setupOnly) {
                 Button(
                     onClick = { startLiveLesson() },
                     enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),
@@ -1999,7 +2001,7 @@ internal fun TutorScreen(
                         })
                     }
                     }
-                    Button(onClick = { showLessonSettings = false }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = subject.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("Done") }
+                    Button(onClick = { if (setupOnly) onStartTeaching() else showLessonSettings = false }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = subject.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("Done") }
                 }
             }
         }

@@ -197,6 +197,17 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         self.assertNotIn("TextButton(onClick = { showLessonSettings = true }", tutor)
         self.assertIn("onClick = { startLiveLesson() }", tutor)
 
+    def test_lesson_selection_precedes_tutor_in_app_and_smoke_flow(self):
+        root = Path(__file__).resolve().parents[2]
+        main = (root / "app/src/main/java/com/padippupal/app/MainActivity.kt").read_text()
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn("go(Page.LESSON_SETUP)", main)
+        self.assertIn("Page.LESSON_SETUP -> TutorScreen", main)
+        self.assertIn("setupOnly = true", main)
+        self.assertIn("assert-settings settings.xml", script)
+        self.assertIn("assert-tutor ready-to-teach.xml", script)
+        self.assertNotIn('tap tutor.xml "Change"', script)
+
 
 if __name__ == "__main__":
     unittest.main()

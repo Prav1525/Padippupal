@@ -1918,8 +1918,10 @@ internal fun TutorScreen(
                 )
             }
             if (liveLessonActive) {
-                TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
-                    Text(if (livePaused) "Resume" else "Pause", color = TutorAccentSoft, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                if (!liveLessonComplete) {
+                    TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                        Text(if (livePaused) "Resume" else "Pause", color = TutorAccentSoft, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                    }
                 }
                 TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
                     Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)

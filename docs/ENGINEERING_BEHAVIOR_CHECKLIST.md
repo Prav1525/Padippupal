@@ -10,6 +10,15 @@ Use this as the short enforcement checklist for every development task. The full
 - [ ] Trace the execution path and distinguish confirmed causes from hypotheses.
 - [ ] Define observable acceptance criteria and regression tests before patching.
 
+## Before every test run — mandatory
+
+- [ ] Read `docs/TESTING_ERROR_LOG.md` and `.github/testing-regression-checklist.md`.
+- [ ] Map relevant past mistakes to explicit safeguards/regression checks; confirm those checks are present before launching tests.
+- [ ] Confirm intended branch, exact HEAD SHA, command, environment, and acceptance criteria.
+- [ ] After any failure/new mistake, log evidence, root cause confidence, fix, and prevention **before rerunning**.
+- [ ] Do not repeat an unchanged failed run except as a clearly labelled diagnostic reproduction.
+- [ ] Rerun the failed check plus relevant regression checks against the new exact SHA; inspect evidence before reporting.
+
 ## While diagnosing and fixing
 - [ ] Think across the full system: UI, state, data contracts, API, database, async/lifecycle behaviour, fallbacks, and tests where relevant.
 - [ ] Fix the underlying cause, not just the visible symptom.

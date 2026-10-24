@@ -47,6 +47,7 @@ Premium and modern first; warm, welcoming and child-friendly second. The product
 - Provide practice questions with feedback and answers/solutions, plus a separate exam-paper builder with configurable selection/count and marks when supported by the question data.
 - Provide printable question papers and a separate parent/teacher answer key.
 - Track question source/provenance and avoid presenting generated or unverified questions as official past-board questions.
+- Diary-created tasks should flow into the daily planner, with per-subject completion progress and saved completion state.
 - Test that selected filters, question counts, marks, answer-key mapping, and print layout remain correct.
 
 ## Functional guardrails

@@ -39,6 +39,19 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
+class LiveViewportDistributionRegressionTests(unittest.TestCase):
+    def test_live_speaking_state_fills_viewport_instead_of_leaving_dead_zone(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        viewport_start = tutor.index("BoxWithConstraints(Modifier.weight(1f).fillMaxWidth())")
+        viewport_end = tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)", viewport_start)
+        viewport = tutor[viewport_start:viewport_end]
+        self.assertIn(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))", viewport)
+        self.assertIn("if (awaitingUnderstanding || speechActive) Arrangement.SpaceEvenly", viewport)
+        self.assertNotIn("if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp", viewport,
+                         "The minimum-height constraint must apply during live speech, not only checkpoints.")
+
+
 class TutorHeaderLayoutRegressionTests(unittest.TestCase):
     def test_tutor_header_uses_compact_spacing_and_icon(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

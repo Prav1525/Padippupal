@@ -272,7 +272,7 @@ python3 .github/scripts/ui_smoke.py tap live-complete.xml "I understand"
 sleep 1
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-feedback.xml
 "${ADB[@]}" pull /data/local/tmp/live-feedback.xml live-feedback.xml
-python3 .github/scripts/ui_smoke.py assert-checkpoint live-feedback.xml ui-screenshots/live-complete.png | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-feedback live-feedback.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py tap live-feedback.xml "Stop"
 sleep 2
 

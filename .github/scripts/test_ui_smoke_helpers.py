@@ -297,6 +297,14 @@ class SpeechHighlightSynchronizationRegressionTests(unittest.TestCase):
         # Live playback timing must use the audio position or actual TTS callbacks, not a fixed 24-second caption timer.
         self.assertNotIn("val perWord = (24000L / words.size)", tutor)
 
+    def test_screenshot_detector_matches_production_word_highlight_color(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        self.assertIn("background = Color(0xFFCDE9E2)", tutor)
+        self.assertIn("target = (205, 233, 226)", smoke)
+        self.assertNotIn("target = (220, 231, 255)", smoke)
+
 
 class SpeechPlaybackLeadRegressionTests(unittest.TestCase):
     def test_highlight_gate_waits_briefly_after_platform_playback_start(self):

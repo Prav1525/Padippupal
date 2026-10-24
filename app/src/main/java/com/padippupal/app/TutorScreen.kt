@@ -2175,7 +2175,8 @@ internal fun TutorScreen(
                 }
                 if (liveLessonComplete) {
                     Text("You have finished this topic. Scroll up to review any explanation, or use Stop when you are ready to leave the lesson.", modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = TutorGrey, fontSize = 14.sp, lineHeight = 21.sp)
-        if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete) {
+                }
+                if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete) {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, lineHeight = 26.sp)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

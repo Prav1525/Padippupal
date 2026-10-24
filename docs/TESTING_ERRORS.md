@@ -569,3 +569,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Re-run helper/script validation and the full emulator flow; require a real completed-topic accessibility snapshot and screenshot, then inspect that screenshot top-to-bottom. Do not loosen the completion assertion or treat a retry log as success.
 - **Evidence:** Failed emulator run [40054398708](https://github.com/Prav1525/Padippupal/actions/runs/40054398708); correction commit pending exact-head workflow results.
 - **Status:** Retry added; emulator rerun and screenshot verification pending.
+
+
+### TE-046 — Viewport regression tests contradicted the top-aligned production layout
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android UI helper preflight / tutor lesson layout.
+- **Symptom:** UI smoke run [40061682447](https://github.com/Prav1525/Padippupal/actions/runs/40061682447) on SHA `3141cd04281702b1fcfe86731cc1685be2574062` failed before emulator launch in two helper tests. Both required `.heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))`, but the current production layout intentionally removed that forced minimum-height modifier and uses `verticalArrangement = Arrangement.spacedBy(8.dp)` to avoid an artificial blank band above short lessons.
+- **Root cause:** The layout had evolved from vertically distributing content to natural top-aligned scrolling, but two regression assertions still encoded the previous implementation. The tests disagreed with the actual current source contract and prevented the emulator test from running.
+- **Corrective action:** Updated both assertions to require the scrollable lesson column, natural 8.dp spacing, and absence of forced minimum height, `Arrangement.SpaceEvenly`, and vertical centering. Kept checkpoint-in-scroll-flow and all-three-action assertions intact.
+- **Regression protection:** Helper tests must pass before emulator allocation; then the emulator smoke must still verify real live speech/highlight, checkpoint actions, completed topic, and back navigation. Do not count helper-test success as visual acceptance.
+- **Evidence:** Failure run [40061682447](https://github.com/Prav1525/Padippupal/actions/runs/40061682447); assertion correction commit `daccab059e3507b71a2aeeb459ebe42641b2e371`.
+- **Status:** Assertions corrected; automatic exact-head workflows and screenshot review pending.

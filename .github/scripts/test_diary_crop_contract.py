@@ -8,7 +8,7 @@ source = (ROOT / "app/src/main/java/com/padippupal/app/StudyFeatures.kt").read_t
 required = {
     "camera launcher": "ActivityResultContracts.TakePicturePreview()",
     "visible camera action": 'Text("  Take photo")',
-    "camera button invokes launcher": "onClick = { camera.launch() }",
+    "camera button invokes launcher": "onClick = { camera.launch(null) }",
     "gallery image decoded for crop": "BitmapFactory.decodeByteArray(bytes, 0, bytes.size)",
     "gallery image retained": "sourceBitmap = bitmap",
     "crop action visible": "Crop this photo and rescan",

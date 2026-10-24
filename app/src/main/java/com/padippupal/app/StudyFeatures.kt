@@ -206,7 +206,7 @@ internal fun DiaryScanScreen(
                     Icon(Icons.Default.CameraAlt, contentDescription = null, tint = FeatureGreen, modifier = Modifier.size(42.dp))
                     Text("Take or choose a diary photo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Text("Keep the page flat, in focus and well lit. Only the selected image is sent for homework extraction.", color = FeatureGrey, fontSize = 13.sp)
-                    Button(onClick = { camera.launch() }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { camera.launch(null) }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.CameraAlt, null); Text("  Take photo")
                     }
                     OutlinedButton(onClick = { picker.launch("image/*") }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {

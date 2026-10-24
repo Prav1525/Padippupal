@@ -234,102 +234,46 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml
 "${ADB[@]}" pull /data/local/tmp/live-resumed.xml live-resumed.xml
 python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playing | tee -a "$REPORT"
 
-log "Waiting for the lesson to reach its explicit understanding checkpoint (up to 150s; speech duration varies by voice engine)"
-checkpoint_seen=0
-for attempt in $(seq 1 50); do
-  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-checkpoint.xml >/dev/null 2>&1 || true
-  "${ADB[@]}" pull /data/local/tmp/live-checkpoint.xml live-checkpoint.xml >/dev/null 2>&1 || true
-  if [ -s live-checkpoint.xml ] && grep -Eqi "No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-checkpoint.xml; then
-    FAILURE_CLASS="APP_FAILURE"
-    log "FAIL: speech could not start, so checkpoint progression cannot be tested; captured the explicit voice error instead of waiting for the full timeout"
-    cat live-checkpoint.xml | tee -a "$REPORT"
-    exit 1
-  fi
-  if [ -s live-checkpoint.xml ] && grep -Eqi "Quick check|check your understanding|does that make sense so far" live-checkpoint.xml; then
-    checkpoint_seen=1
-    break
-  fi
-  sleep 3
-done
-if [ "$checkpoint_seen" -ne 1 ]; then
-  FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: live lesson did not reach the understanding checkpoint within 150 seconds after resume"
-  exit 1
-fi
-# Allow the checkpoint auto-scroll to settle before visual acceptance capture.
-sleep 1
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-checkpoint.png
-python3 .github/scripts/ui_smoke.py assert-checkpoint live-checkpoint.xml ui-screenshots/live-checkpoint.png | tee -a "$REPORT"
-log "Testing checkpoint continuation and next-segment progression"
-python3 .github/scripts/ui_smoke.py tap live-checkpoint.xml "I understand"
-continued=0
-# Page counters were deliberately removed. Prove the same scrollable transcript advanced
-# to the fixture's next teaching sentence while retaining the earlier explanation.
-checkpoint_caption=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-checkpoint.xml)
-for attempt in $(seq 1 120); do
-  sleep 0.25
-  timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-continued.xml >/dev/null 2>&1 || true
-  "${ADB[@]}" pull /data/local/tmp/live-continued.xml live-continued.xml >/dev/null 2>&1 || true
-  if [ -s live-continued.xml ]; then
-    current_caption=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-continued.xml)
-    if [[ "$current_caption" == *"Now look at the sequence."* && "$current_caption" == *"The All 1s pattern repeats the number 1"* && "$current_caption" != "$checkpoint_caption" ]]; then
-      continued=1
+log "Waiting for the complete five-segment lesson; feedback must not appear before TOPIC COMPLETE (up to 180s)"
+completed=0
+for attempt in $(seq 1 60); do
+  timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
+  if [ -s live-complete.xml ]; then
+    if grep -Eqi "Quick check|check your understanding|does that make sense so far|LET'S CHECK YOUR UNDERSTANDING" live-complete.xml && ! grep -Eqi "TOPIC COMPLETE" live-complete.xml; then
+      FAILURE_CLASS="APP_FAILURE"
+      log "FAIL: feedback/checkpoint appeared before topic completion"
+      cat live-complete.xml | tee -a "$REPORT"
+      exit 1
+    fi
+    if grep -Eqi "No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-complete.xml; then
+      FAILURE_CLASS="APP_FAILURE"
+      log "FAIL: speech could not start; full lesson progression cannot be verified"
+      cat live-complete.xml | tee -a "$REPORT"
+      exit 1
+    fi
+    if grep -Eqi "TOPIC COMPLETE" live-complete.xml; then
+      completed=1
       break
     fi
   fi
-done
-if [ "$continued" -ne 1 ]; then
-  FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: understanding response did not append the next teaching sentence to the existing lesson transcript within 30 seconds"
-  [ -s live-continued.xml ] && cat live-continued.xml | tee -a "$REPORT"
-  exit 1
-fi
-python3 .github/scripts/ui_smoke.py assert-continued live-continued.xml | tee -a "$REPORT"
-log "Checking the completed-topic screen from top to bottom"
-completed=0
-last_checkpoint_state=""
-checkpoint_stall_attempts=0
-for attempt in $(seq 1 50); do
-  timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
-  "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
-  if [ -s live-complete.xml ] && grep -Eqi "TOPIC COMPLETE" live-complete.xml; then
-    completed=1
-    break
-  fi
-  # A single tap is not proof Compose accepted a response. Retry a stalled
-  # checkpoint after a grace period instead of waiting out the whole timeout.
-  if [ -s live-complete.xml ] && grep -Eqi "I understand" live-complete.xml; then
-    current_checkpoint_state=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-complete.xml)
-    if [ "$current_checkpoint_state" != "$last_checkpoint_state" ]; then
-      last_checkpoint_state="$current_checkpoint_state"
-      checkpoint_stall_attempts=0
-      log "Advancing a new understanding checkpoint"
-      python3 .github/scripts/ui_smoke.py tap live-complete.xml "I understand"
-      sleep 2
-      continue
-    fi
-    checkpoint_stall_attempts=$((checkpoint_stall_attempts + 1))
-    if [ "$checkpoint_stall_attempts" -ge 3 ]; then
-      log "Checkpoint still visible after prior tap; retrying response"
-      python3 .github/scripts/ui_smoke.py tap live-complete.xml "I understand"
-      checkpoint_stall_attempts=0
-    fi
-  else
-    last_checkpoint_state=""
-    checkpoint_stall_attempts=0
-  fi
-  sleep 2
+  sleep 3
 done
 if [ "$completed" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: final topic-completion state was not visible after the final teaching segment"
+  log "FAIL: complete topic did not finish within 180 seconds without an intermediate feedback prompt"
   [ -s live-complete.xml ] && cat live-complete.xml | tee -a "$REPORT"
   exit 1
 fi
 sleep 1
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-complete.png
 python3 .github/scripts/ui_smoke.py assert-topic-complete live-complete.xml ui-screenshots/live-complete.png | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap live-complete.xml "Stop"
+python3 .github/scripts/ui_smoke.py tap live-complete.xml "I understand"
+sleep 1
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-feedback.xml
+"${ADB[@]}" pull /data/local/tmp/live-feedback.xml live-feedback.xml
+python3 .github/scripts/ui_smoke.py assert-checkpoint live-feedback.xml ui-screenshots/live-complete.png | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-feedback.xml "Stop"
 sleep 2
 
 log "Testing Android back navigation to Home"

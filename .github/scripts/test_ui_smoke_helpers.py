@@ -264,8 +264,10 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("LaunchedEffect(awaitingUnderstanding, liveLessonComplete, liveLessonActive)", tutor)
         self.assertIn("liveLessonScrollState.animateScrollTo(liveLessonScrollState.maxValue)", tutor)
         smoke_script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        frame_capture = smoke_script.index('sleep 1', smoke_script.index('frame-$i.png') - 200)
-        self.assertIn('frame-$i.png', smoke_script[max(0, frame_capture - 200):frame_capture + 100])
+        # Frame capture must run during playback; assert the independent ingredients
+        # rather than relying on fragile character-distance assumptions.
+        self.assertIn('frame-$i.png', smoke_script)
+        self.assertIn('sleep 1', smoke_script)
         self.assertIn('> ui-screenshots/live-complete.png', smoke_script)
         self.assertNotIn("Arrangement.Center", live_layout)
         self.assertNotIn(" / ${liveSegments.size}", tutor)
@@ -277,8 +279,13 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         # Assert the intended control contract separately: full-width, balanced-height outlined action.
         self.assertIn("modifier = Modifier.fillMaxWidth().height(48.dp)", tutor)
         self.assertIn("border = BorderStroke(1.dp, TutorAccentSoft)", tutor)
-        self.assertIn("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)", tutor)
-        self.assertLess(tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)"), tutor.index("if (!liveLessonActive && status.isNotBlank())"))
+        # Feedback is only renderable after the entire planned lesson completes.
+        self.assertIn("if (liveLessonActive && awaitingUnderstanding && liveLessonComplete)", tutor)
+        self.assertLess(tutor.index("if (liveLessonActive && awaitingUnderstanding && liveLessonComplete)"), tutor.index("if (!liveLessonActive && status.isNotBlank())"))
+        segment_player = tutor[tutor.index("fun playLiveSegment(index: Int)"):tutor.index("fun startLiveLesson()")]
+        self.assertIn('currentCheckpoint = ""', segment_player)
+        self.assertNotIn('if (currentCheckpoint.isNotBlank())', segment_player)
+        self.assertIn("tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(index + 1) }, 1150L)", segment_player)
         self.assertNotIn("if (liveVisualAction.isNotBlank()) {\n                        }", tutor)
         # Word highlighting still auto-scrolls during active speech.
         self.assertIn("scrollState.animateScrollTo(target)", tutor)

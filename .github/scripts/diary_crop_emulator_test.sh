@@ -76,13 +76,25 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   exit 1
 fi
 tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"
-sleep 5
+sleep 1
+dump_ui diary-picker-file-selected
+# DocumentsUI may require a second confirmation after highlighting a file.
+# Confirm only the real Open action; never treat the Gallery app tile as a file.
+if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
+  if grep -qi 'text="Open"\\|content-desc="Open"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
+    tap_label ui-screenshots/diary-test/diary-picker-file-selected.xml "Open"
+  else
+    log "FAIL: selected fixture but picker exposes no Open confirmation"
+    exit 1
+  fi
+fi
+sleep 3
 dump_ui diary-photo-selected
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/photo-selected.png
 # Prove the picker returned to our app before asserting crop UI. This guards
 # against the prior false positive where the Gallery provider was opened.
 if ! grep -q 'package="com.padippupal.app"' ui-screenshots/diary-test/diary-photo-selected.xml; then
-  log "FAIL: picker did not return to PadippuPal after selecting the fixture"
+  log "FAIL: picker did not return to PadippuPal after confirming the fixture"
   exit 1
 fi
 assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"

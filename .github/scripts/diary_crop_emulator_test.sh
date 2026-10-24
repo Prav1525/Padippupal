@@ -75,18 +75,32 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"
-sleep 1
+# In this AOSP DocumentsUI grid, the filename is a content-desc on a
+# non-clickable parent, so ui_smoke.py tap (which matches text nodes) is a no-op.
+# Tap the actual file tile using its bounds from the current accessibility tree.
+python3 - <<'PY'
+import re, subprocess, xml.etree.ElementTree as ET
+path = "ui-screenshots/diary-test/diary-picker-downloads.xml"
+root = ET.parse(path).getroot()
+node = next((n for n in root.iter("node") if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc", "") and n.attrib.get("package") == "com.android.documentsui"), None)
+if node is None:
+    raise SystemExit("Diary fixture card missing from picker tree")
+m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
+if not m:
+    raise SystemExit("Diary fixture card has invalid bounds")
+x1, y1, x2, y2 = map(int, m.groups())
+# Tap the left side of the tile, away from its separate preview icon.
+x, y = x1 + int((x2-x1)*0.25), y1 + int((y2-y1)*0.50)
+print(f"Tap diary fixture tile at {x},{y} within {node.attrib['bounds']}")
+subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=20)
+PY
+sleep 2
 dump_ui diary-picker-file-selected
-# DocumentsUI may require a second confirmation after highlighting a file.
-# Confirm only the real Open action; never treat the Gallery app tile as a file.
+# A successful ACTION_GET_CONTENT selection should return to PadippuPal.
 if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
-  if grep -qi 'text="Open"\\|content-desc="Open"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
-    tap_label ui-screenshots/diary-test/diary-picker-file-selected.xml "Open"
-  else
-    log "FAIL: selected fixture but picker exposes no Open confirmation"
-    exit 1
-  fi
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
+  log "FAIL: tapping the diary fixture tile did not return from the photo picker"
+  exit 1
 fi
 sleep 3
 dump_ui diary-photo-selected

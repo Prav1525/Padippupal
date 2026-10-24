@@ -283,7 +283,27 @@ if [ "$continued" -ne 1 ]; then
   exit 1
 fi
 python3 .github/scripts/ui_smoke.py assert-continued live-continued.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap live-continued.xml "Stop"
+log "Checking the completed-topic screen from top to bottom"
+completed=0
+for attempt in $(seq 1 50); do
+  timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
+  if [ -s live-complete.xml ] && grep -Eqi "TOPIC COMPLETE" live-complete.xml; then
+    completed=1
+    break
+  fi
+  sleep 2
+done
+if [ "$completed" -ne 1 ]; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: final topic-completion state was not visible after the final teaching segment"
+  [ -s live-complete.xml ] && cat live-complete.xml | tee -a "$REPORT"
+  exit 1
+fi
+sleep 1
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-complete.png
+python3 .github/scripts/ui_smoke.py assert-topic-complete live-complete.xml ui-screenshots/live-complete.png | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-complete.xml "Stop"
 sleep 2
 
 log "Testing Android back navigation to Home"

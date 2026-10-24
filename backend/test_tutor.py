@@ -931,14 +931,10 @@ def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):
         "message": "Teach me All 1s",
     })
 
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["provider"] == "textbook_extract_fallback"
-    assert body["grounded"] is True
-    assert len(body["segments"]) == 1
-    assert body["segments"][0]["spoken_text"] == passage
-    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
-    assert body["segments"][0]["visual_action"]["type"] == "none"
+    # A one-sentence excerpt is source-grounded but not a complete lesson.
+    # Do not silently present it as if the selected topic has been taught.
+    assert response.status_code == 503, response.text
+    assert "no safe textbook fallback" in response.json()["detail"].lower()
 
 def test_lesson_plan_does_not_fallback_to_off_topic_textbook_excerpt(monkeypatch):
     """A provider outage must not bypass topic validation through the excerpt fallback."""
@@ -1048,6 +1044,29 @@ def test_all_ones_lesson_allows_supporting_explanation_without_repeated_keyword(
         {"spoken_text": "A pattern can repeat without increasing or decreasing.", "caption_text": ""},
     ]
     assert curriculum._lesson_segments_match_topic("All 1s", segments)
+
+
+def test_all_ones_lesson_completeness_requires_four_segments_and_topic_coverage():
+    short = [
+        {"spoken_text": "The All 1s pattern repeats the number 1: 1, 1, 1.", "caption_text": ""},
+        {"spoken_text": "Each term stays the same.", "caption_text": ""},
+        {"spoken_text": "The pattern repeats.", "caption_text": ""},
+    ]
+    assert not curriculum._lesson_meets_completeness_bar("All 1s", short)
+
+    complete = [
+        {"spoken_text": "The All 1s sequence is 1, 1, 1, 1, 1.", "caption_text": ""},
+        {"spoken_text": "Every term stays the same because we repeat one.", "caption_text": ""},
+        {"spoken_text": "Unlike 1, 2, 3, 4, this sequence does not increase.", "caption_text": ""},
+        {"spoken_text": "For example, try adding one more term and notice the rule.", "caption_text": ""},
+    ]
+    assert curriculum._lesson_meets_completeness_bar("All 1s", complete)
+
+
+def test_generic_topic_completeness_gate_does_not_change_existing_lesson_contract():
+    assert curriculum._lesson_meets_completeness_bar("Magnet poles", [
+        {"spoken_text": "A magnet has two poles."}
+    ])
 
 
 def test_all_ones_lesson_rejects_off_topic_segment_even_when_other_steps_match():

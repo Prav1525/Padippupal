@@ -2521,7 +2521,7 @@ class DiaryParseRequest(BaseModel):
     class_level: int = Field(default=6, ge=1, le=12)
     medium: str = Field(default="English", max_length=40)
     app_language: str = Field(default="English", max_length=30)
-    today_date: str = Field(default="", max_length=10, pattern=r"^$|^\\d{4}-\\d{2}-\\d{2}$")
+    today_date: str = Field(default="", max_length=10)
 
 
 def _task_dict(row: Any) -> dict[str, Any]:

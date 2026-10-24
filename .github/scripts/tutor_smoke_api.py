@@ -18,29 +18,45 @@ LESSON = {
     "segments": [
         {
             "id": "all-ones-intro",
-            "spoken_text": "The All 1s pattern repeats the number 1: 1, 1, 1.",
-            "caption_text": "The All 1s pattern repeats the number 1: 1, 1, 1.",
+            "spoken_text": "Look at this sequence: 1, 1, 1, 1, 1.",
+            "caption_text": "Look at this sequence: 1, 1, 1, 1, 1.",
             "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "1, 1, 1"},
+            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "1, 1, 1, 1, 1"},
             "checkpoint": None,
         },
         {
             "id": "all-ones-rule",
-            "spoken_text": "Each term stays the same because the number 1 repeats.",
-            "caption_text": "Each term stays the same because the number 1 repeats.",
+            "spoken_text": "Every term is one, so the number stays the same each time.",
+            "caption_text": "Every term is one, so the number stays the same each time.",
             "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "1, 1, 1"},
-            "checkpoint": "Does that make sense so far?",
-        },
-        {
-            "id": "all-ones-practice",
-            "spoken_text": "Now look at the sequence.",
-            "caption_text": "Now look at the sequence.",
-            "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "1, 1, 1"},
+            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "same value"},
             "checkpoint": None,
         },
-    ],
+        {
+            "id": "all-ones-example",
+            "spoken_text": "If we add another term, we write one more 1; the value still does not change.",
+            "caption_text": "If we add another term, we write one more 1; the value still does not change.",
+            "source_chunk_ids": ["smoke-source"],
+            "visual_action": {"type": "reveal", "target": "repeated-ones", "value": "add one more 1"},
+            "checkpoint": None,
+        },
+        {
+            "id": "all-ones-compare",
+            "spoken_text": "Unlike 1, 2, 3, 4, this pattern does not increase; it repeats one.",
+            "caption_text": "Unlike 1, 2, 3, 4, this pattern does not increase; it repeats one.",
+            "source_chunk_ids": ["smoke-source"],
+            "visual_action": {"type": "compare", "target": "repeated-ones", "value": "repeats one"},
+            "checkpoint": None,
+        },
+        {
+            "id": "all-ones-recap",
+            "spoken_text": "Remember, an All 1s pattern repeats the same number in every position.",
+            "caption_text": "Remember, an All 1s pattern repeats the same number in every position.",
+            "source_chunk_ids": ["smoke-source"],
+            "visual_action": {"type": "highlight", "target": "repeated-ones", "value": "same number"},
+            "checkpoint": None,
+        },
+    ]
 }
 
 
@@ -109,12 +125,12 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def self_test() -> None:
-    assert len(LESSON["segments"]) == 3
+    assert len(LESSON["segments"]) == 5
     assert "All 1s" in LESSON["segments"][0]["spoken_text"]
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
-    assert LESSON["segments"][1]["checkpoint"]
+    assert all(segment["checkpoint"] is None for segment in LESSON["segments"])\n    assert "worked" not in json.dumps(LESSON).casefold()
     assert "square" not in json.dumps(LESSON).casefold()
-    print("smoke API fixture self-test passed: topic-valid sequence, checkpoint, no square-number content")
+    print("smoke API fixture self-test passed: five teaching segments, no mid-lesson checkpoint, no square-number content")
 
 
 def main() -> None:

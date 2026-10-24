@@ -288,6 +288,7 @@ python3 .github/scripts/ui_smoke.py assert-continued live-continued.xml | tee -a
 log "Checking the completed-topic screen from top to bottom"
 completed=0
 last_checkpoint_state=""
+checkpoint_stall_attempts=0
 for attempt in $(seq 1 50); do
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
@@ -295,17 +296,27 @@ for attempt in $(seq 1 50); do
     completed=1
     break
   fi
-  # The lesson contract may contain more than one checkpoint. Advance each distinct
-  # checkpoint instead of waiting for completion while leaving the tutor paused there.
+  # A single tap is not proof Compose accepted a response. Retry a stalled
+  # checkpoint after a grace period instead of waiting out the whole timeout.
   if [ -s live-complete.xml ] && grep -Eqi "I understand" live-complete.xml; then
     current_checkpoint_state=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-complete.xml)
     if [ "$current_checkpoint_state" != "$last_checkpoint_state" ]; then
       last_checkpoint_state="$current_checkpoint_state"
-      log "Advancing the next distinct understanding checkpoint"
+      checkpoint_stall_attempts=0
+      log "Advancing a new understanding checkpoint"
       python3 .github/scripts/ui_smoke.py tap live-complete.xml "I understand"
       sleep 2
       continue
     fi
+    checkpoint_stall_attempts=$((checkpoint_stall_attempts + 1))
+    if [ "$checkpoint_stall_attempts" -ge 3 ]; then
+      log "Checkpoint still visible after prior tap; retrying response"
+      python3 .github/scripts/ui_smoke.py tap live-complete.xml "I understand"
+      checkpoint_stall_attempts=0
+    fi
+  else
+    last_checkpoint_state=""
+    checkpoint_stall_attempts=0
   fi
   sleep 2
 done

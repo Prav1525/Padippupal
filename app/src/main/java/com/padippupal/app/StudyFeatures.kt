@@ -168,10 +168,14 @@ internal fun DiaryScanScreen(
                     val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                         ?: error("Could not open this image.")
                     val mime = context.contentResolver.getType(uri)?.takeIf { it in listOf("image/jpeg", "image/png", "image/webp") } ?: "image/jpeg"
-                    Pair(bytes, mime)
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: error("This image could not be decoded.")
+                    Triple(bytes, mime, bitmap)
                 }
                 featureMain.post {
-                    result.fold(onSuccess = { (bytes, mime) -> scanImage(bytes, mime, "Diary photo selected") },
+                    result.fold(onSuccess = { (bytes, mime, bitmap) ->
+                        sourceBitmap = bitmap
+                        scanImage(bytes, mime, "Diary photo selected")
+                    },
                         onFailure = { status = "Could not open photo: ${it.message ?: "please try again"}" })
                 }
             }
@@ -179,8 +183,9 @@ internal fun DiaryScanScreen(
     }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
         if (bitmap != null) {
+            sourceBitmap = bitmap
             val output = java.io.ByteArrayOutputStream()
-            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, output)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 88, output)
             scanImage(output.toByteArray(), "image/jpeg", "Photo captured with camera")
         } else {
             status = "Camera capture cancelled. You can try again or choose a photo."
@@ -201,7 +206,10 @@ internal fun DiaryScanScreen(
                     Icon(Icons.Default.CameraAlt, contentDescription = null, tint = FeatureGreen, modifier = Modifier.size(42.dp))
                     Text("Take or choose a diary photo", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Text("Keep the page flat, in focus and well lit. Only the selected image is sent for homework extraction.", color = FeatureGrey, fontSize = 13.sp)
-                    Button(onClick = { picker.launch("image/*") }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { camera.launch() }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Default.CameraAlt, null); Text("  Take photo")
+                    }
+                    OutlinedButton(onClick = { picker.launch("image/*") }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.UploadFile, null); Text("  Choose photo")
                     }
                     if (selectedName.isNotBlank()) Text("Photo selected", color = FeatureGrey, fontSize = 12.sp)

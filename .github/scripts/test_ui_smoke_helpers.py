@@ -252,7 +252,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertNotIn("Arrangement.Center", live_layout)
         # Checkpoint actions belong to the same scrollable lesson flow. Keeping them as
         # a sibling of the weighted transcript creates a large dead zone on phone screens.
-        checkpoint_start = live_layout.index("if (liveLessonActive && awaitingUnderstanding)")
+        checkpoint_start = live_layout.index("if (liveLessonActive && awaitingUnderstanding && liveLessonComplete)")
         checkpoint_controls = live_layout[checkpoint_start:]
         self.assertIn("verticalScroll(liveLessonScrollState)", live_layout)
         self.assertIn('Text(normalizedCheckpoint(currentCheckpoint)', checkpoint_controls)

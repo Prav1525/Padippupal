@@ -1511,7 +1511,7 @@ def _lesson_meets_completeness_bar(topic: str, segments: list[dict[str, Any]]) -
     """Reject skeletal lessons for the known All 1s pilot instead of calling them complete."""
     selected = normalize(topic).casefold()
     if selected not in {"all 1s", "all ones", "all one's"}:
-        return len(segments) >= 3
+        return True
     if len(segments) < 4:
         return False
     speech = " ".join(

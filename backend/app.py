@@ -1533,7 +1533,7 @@ def _lesson_meets_completeness_bar(topic: str, segments: list[dict[str, Any]]) -
 
 @app.post("/tutor/lesson-plan")
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
-    """Create short source-grounded lesson segments for synchronized playback."""
+    """Create a complete, source-grounded teaching sequence for synchronized playback; reject incomplete plans rather than presenting a fragment as a full lesson."""
     subject = infer_tutor_subject(payload.message, payload.subject)
 
     # Prefer the reviewed chapter sequence; this avoids regenerating a different
@@ -1685,6 +1685,15 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 result = json.loads(response.read().decode("utf-8"))
             raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
             candidate = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+            minimum_segments = min(4, payload.max_segments)
+            if len(candidate["segments"]) < minimum_segments:
+                if attempt == 0:
+                    logger.warning("Tutor lesson plan too short: got=%s required=%s topic=%s", len(candidate["segments"]), minimum_segments, payload.topic)
+                    retry_instruction += "\nThe previous plan was incomplete. Return at least " + str(minimum_segments) + " distinct, meaningful, source-grounded teaching segments covering introduction, explanation, worked example/application, and recap. Do not use filler or checkpoints."
+                    continue
+                logger.warning("Tutor lesson rejected as incomplete after retry: got=%s required=%s topic=%s", len(candidate["segments"]), minimum_segments, payload.topic)
+                return {"lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
+                        "warning": "The available textbook material could not support a complete lesson; no partial lesson was started."}
             if not _lesson_segments_match_topic(payload.topic, candidate["segments"]) or not _lesson_meets_completeness_bar(payload.topic, candidate["segments"]):
                 if attempt == 0:
                     logger.warning("Gemini lesson planner drifted from selected topic=%s; retrying once", payload.topic)

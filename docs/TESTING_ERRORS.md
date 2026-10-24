@@ -439,3 +439,18 @@ No new product/test failure was executed or observed while authoring the CI auto
 - **Regression protection:** `AGENTS.md` now explicitly requires a fresh full review before each batch. Before future edits, create a guide-review checklist for the exact branch and confirm each file was reviewed. Do not claim the guide process was followed if only excerpts were inspected.
 - **Evidence:** Automation branch `automation/padippupal-autofix-loop`; PR #18; files added/changed: `AGENTS.md`, `tools/padippupal_autopilot.py`, `.github/workflows/autopilot.yml`, `docs/CI_AUTOMATION.md`.
 - **Status:** **Open — full guide re-review and process verification required.** No tests were run as part of this incident entry.
+
+
+### TE-035 — Live tutor smoke captured no detectable speech-synchronized word highlight
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android live tutor playback/highlight synchronization and UI smoke evidence.
+- **Symptom/failure:** Android UI smoke run [40045309104](https://github.com/Prav1525/Padippupal/actions/runs/40045309104) failed on tutor PR SHA `e6417f14443f6e3bf474972c4f6e6889d8a0bcac`. JVM tests, APK build, helper/script validation, navigation, live lesson launch, and concept-matched animation checks passed. The highlight scan examined 100 captured frames and found zero exact highlight pixels / zero distinct highlight positions.
+- **Observed evidence:** Artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/40045309104/artifacts/12541317032), artifact ID `12541317032`. Manual inspection of `ui-screenshots/live-frames/frame-40.png` shows the inline All 1s animation uses mint-filled number tiles, but the spoken lesson sentence itself has no clearly visible active-word highlight in that frame.
+- **Root cause:** **Not confirmed.** Leading hypothesis: the live caption/highlight state is not being applied to the spoken sentence during the captured playback window. A second possibility is that the screenshot detector only recognizes a particular color/region and misses a valid highlight. The screenshot makes a real missing-word-highlight behavior plausible; the detector alone does not prove the playback callback is broken.
+- **Why it escaped:** Prior successful JVM/build checks did not prove a visible highlight during real emulator playback. The UI flow previously verified caption presence and concept animation, but the final scan now explicitly failed on actual captured frames.
+- **Corrective action:** Keep the failure open. Inspect `TutorScreen.kt`, the caption/highlight composable, and speech-start/range callbacks; determine whether Gemini-generated audio has real word-alignment timestamps or only phrase-level playback callbacks. Do not invent word timestamps or treat the number-tile animation as a word highlight. Preserve phrase-level highlighting if exact alignment is unavailable, and update the smoke assertion only if evidence proves the detector—not the UI behavior—is wrong.
+- **Regression protection:** Re-read this incident before the next tutor test cycle. Require a visible caption highlight synchronized to actual playback in fresh emulator frames, plus speech-start timing evidence; test the exact candidate SHA and inspect the resulting screenshots. Do not weaken the pixel assertion merely to obtain a green run.
+- **Evidence:** Failed UI run [40045309104](https://github.com/Prav1525/Padippupal/actions/runs/40045309104); tested SHA `e6417f14443f6e3bf474972c4f6e6889d8a0bcac`; artifact ID `12541317032`.
+- **Status:** **Open — tutor acceptance blocked.** No tutor code change made in this automation batch.
+

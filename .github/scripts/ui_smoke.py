@@ -103,9 +103,9 @@ def assert_feedback(path):
     _, texts = load(path)
     joined = "\n".join(texts)
     print("FEEDBACK TEXT:", " | ".join(texts[:100]))
-    if "great!" not in joined.lower():
-        raise SystemExit("Tapping I understand did not show supportive feedback")
-    print("PASS: I understand action shows supportive feedback")
+    if "thank you for your feedback" not in joined.lower():
+        raise SystemExit("Tapping I understand after topic completion did not acknowledge feedback")
+    print("PASS: post-completion I understand action acknowledges feedback")
 
 def assert_settings(path):
     nodes, texts = load(path)

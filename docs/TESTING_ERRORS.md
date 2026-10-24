@@ -532,3 +532,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Failure run [40058216858](https://github.com/Prav1525/Padippupal/actions/runs/40058216858), tested merge SHA `4234f3f502587b99f945b48624911cb28474f08f`; helper assertion correction commit `3cd42dd5f0b0ff5cd0e7f07293e3ef20f81c8693`.
 - **Status:** **Stale assertions corrected; rerun and screenshot verification pending.**
 
+
+
+### TE-043 — Checkpoint controls detached from the live lesson scroll flow
+
+- **Date discovered:** 2026-10-24
+- **Area:** Tutor live lesson layout / checkpoint state.
+- **Symptom:** The lesson transcript occupied a weighted, centered viewport while the checkpoint prompt and action buttons rendered as a separate sibling below it. On phone-sized screens this produced a conspicuous blank vertical region between lesson content and actions, even after child spacing was reduced.
+- **Root cause:** The transcript viewport and checkpoint footer were laid out as separate vertical regions. Padding-only changes could not fix the structural gap.
+- **Corrective action:** Move the checkpoint prompt and actions into the same scrollable lesson column as the transcript and inline animation, so the complete lesson flow is measured and scrolled as one unit.
+- **Regression protection:** Source-contract tests must assert that checkpoint prompt and all three actions occur inside the live scroll layout. Run the helper tests and Android emulator smoke; inspect fresh active-speech and checkpoint screenshots. A green build alone is not visual acceptance.
+- **Evidence:** Follow-up verification for this correction is pending; do not mark the tutor UI accepted until a fresh emulator artifact is inspected.
+- **Status:** Structural correction submitted for validation.

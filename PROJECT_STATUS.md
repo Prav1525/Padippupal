@@ -52,6 +52,16 @@ GitHub Actions already runs the configured CI workflow steps automatically after
 
 CI does **not** automatically mean an assistant is awake to inspect the results, fix failures, or start the next implementation batch. Until a persistent agent/runner is explicitly configured and verified, do not promise unattended coding or autonomous recovery. When working in an active session, poll the existing run, inspect logs/artifacts, fix issues, and continue through the planned verification cycle without asking the user for a new command at each step.
 
+## Current verification snapshot — 2026-10-24
+
+- Branch head at the start of this verification pass: `946df6259940ddcf717bfe91366e3326a2298a2a`.
+- Curriculum Engine Tests: **Passed** on that SHA.
+- Android APK: **Passed** on that SHA.
+- Android UI smoke: **Failed before emulator launch** because an existing helper assertion still expected the superseded checkpoint-only height rule; see TE-038 in `docs/TESTING_ERRORS.md`.
+- Corrective harness changes: update the obsolete assertion and extend the smoke flow to capture the **completed topic** screen from the exact tested APK, including the retained transcript and lower viewport.
+- Latest fixes to scripts/docs are committed separately after the above SHA; re-check all workflows against the new head before declaring any screenshot verified.
+- PR #13 remains **open and unmerged**.
+
 ## Next action
 
 Poll the current UI smoke run; once complete, inspect its logs and screenshot artifacts against the checklist. If the run failed, diagnose and fix the root cause. Keep PR #13 unmerged until all required acceptance criteria are verified.

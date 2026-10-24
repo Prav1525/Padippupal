@@ -271,7 +271,7 @@ private fun InteractiveLessonLab(
                 val w=maxWidth; val h=maxHeight
                 Canvas(Modifier.fillMaxSize()) {
                     drawLine(Color(0xFFD5DFD8),Offset(size.width*.05f,size.height*.84f),Offset(size.width*.95f,size.height*.84f),2.dp.toPx())
-                    drawCircle(Color(0xFF4169E1),7.dp.toPx(),Offset(size.width*(.10f+.78f*moving),size.height*.84f))
+                    drawCircle(Color(0xFF0F766E),7.dp.toPx(),Offset(size.width*(.10f+.78f*moving),size.height*.84f))
                 }
                 items.forEachIndexed { index, item ->
                     val p=positions[index]
@@ -659,7 +659,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         }
                         else -> {
                             drawLine(Color(0xFFD5DFD8),Offset(size.width*.05f,size.height*.86f),Offset(size.width*.95f,size.height*.86f),2.dp.toPx())
-                            drawCircle(Color(0xFF4169E1),6.dp.toPx(),Offset(size.width*(.1f+.78f*pulse),size.height*.86f))
+                            drawCircle(Color(0xFF0F766E),6.dp.toPx(),Offset(size.width*(.1f+.78f*pulse),size.height*.86f))
                         }
                     }
                 }
@@ -1950,7 +1950,7 @@ internal fun TutorScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = TutorGreen,
                         contentColor = Color.White,
-                        disabledContainerColor = Color(0xFF4169E1),
+                        disabledContainerColor = Color(0xFF0F766E),
                         disabledContentColor = Color.White
                     )
                 ) { Text("▶ Teach", color = Color.White, fontWeight = FontWeight.ExtraBold, maxLines = 1) }

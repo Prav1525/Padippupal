@@ -1520,13 +1520,13 @@ def _lesson_meets_completeness_bar(topic: str, segments: list[dict[str, Any]]) -
     ).casefold()
     coverage = (
         # Identify/show the repeated sequence.
-        r"\\b(?:1\\s*[,;]\\s*1|all\\s+1s?|all\\s+ones?)\\b",
+        r"\b(?:1\s*[,;]\s*1|all\s+1s?|all\s+ones?)\b",
         # Explain why the value is unchanged.
-        r"\\b(?:same|stays?|remains?|unchanged|repeat)\\w*\\b",
+        r"\b(?:same|stays?|remains?|unchanged|repeat)\w*\b",
         # Contrast with a changing/growing pattern.
-        r"\\b(?:unlike|compare|different|increas\\w*|grow\\w*|chang\\w*|2\\s*[,;]\\s*3)\\b",
+        r"\b(?:unlike|compare|different|increas\w*|grow\w*|chang\w*|2\s*[,;]\s*3)\b",
         # Include an example, learner reflection, or recap.
-        r"\\b(?:example|try|notice|remember|recap|rule|because)\\b",
+        r"\b(?:example|try|notice|remember|recap|rule|because)\b",
     )
     return all(re.search(pattern, speech) for pattern in coverage)
 

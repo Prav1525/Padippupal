@@ -73,3 +73,11 @@ Poll the current UI smoke run; once complete, inspect its logs and screenshot ar
 - **Implementation in this batch:** Change the checkpoint tile detector to production mint `#CDE9E2` while preserving the 350-pixel threshold; advance the repeated-ones animation through five stages so all five tiles can highlight; add regression tests for both.
 - **Verification:** Pending automatic GitHub Actions on the new exact head. Inspect the live lesson and checkpoint screenshots before marking visually verified.
 - **Release:** PR #13 remains open and unmerged.
+
+
+## Screenshot review and checkpoint spacing follow-up — 2026-10-24
+
+- **Finding:** Inspected fresh emulator screenshots from artifact [12543432314](https://github.com/Prav1525/Padippupal/actions/runs/40050844427/artifacts/12543432314), exact SHA `25f601b330990e0185d45595a60868536654426e`. Both live lesson and checkpoint show a large unused vertical region; the checkpoint controls remain visible above system navigation, but the content is not balanced through the viewport.
+- **Root cause:** The minimum-height modifier was applied outside `verticalScroll`, so it did not make the scroll content occupy the viewport. The existing helper test checked presence rather than modifier ordering and the screenshot assertions did not detect the vertical gap.
+- **Fix in this batch:** Move the min-height constraint inside the scroll content and distribute short content evenly only at the understanding checkpoint; keep the speaking transcript top-aligned with compact spacing.
+- **Verification:** Pending new exact-head CI and screenshot inspection. Do not mark Phase 1 visually verified or merge PR #13 until fresh screenshots confirm the correction.

@@ -46,12 +46,14 @@ class LiveViewportDistributionRegressionTests(unittest.TestCase):
         viewport_start = tutor.index("BoxWithConstraints(Modifier.weight(1f).fillMaxWidth())")
         viewport_end = tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)", viewport_start)
         viewport = tutor[viewport_start:viewport_end]
-        self.assertIn(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))", viewport)
-        self.assertIn("Arrangement.spacedBy(8.dp, Alignment.CenterVertically)", viewport)
+        self.assertIn(".verticalScroll(liveLessonScrollState)", viewport)
+        self.assertIn("verticalArrangement = Arrangement.spacedBy(8.dp)", viewport)
+        self.assertNotIn(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))", viewport,
+                         "Do not force short lesson content to fill the viewport with an artificial blank block.")
         self.assertNotIn("Arrangement.SpaceEvenly", viewport,
                          "Do not distribute large empty gaps between individual lesson elements.")
-        self.assertNotIn("if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp", viewport,
-                         "The minimum-height constraint must apply during live speech, not only checkpoints.")
+        self.assertNotIn("Arrangement.Center", viewport,
+                         "Keep the lesson naturally top-aligned rather than vertically centering short content.")
 
 
 class TutorHeaderLayoutRegressionTests(unittest.TestCase):
@@ -242,17 +244,12 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn('caption = "Watch the pattern change automatically as your teacher explains.", compact = true)', live_layout)
         self.assertIn("BoxWithConstraints(Modifier.weight(1f).fillMaxWidth())", live_layout)
         self.assertIn(".verticalScroll(liveLessonScrollState)", live_layout)
-        # The min-height constraint must be inside verticalScroll so the scroll content fills
-        # the checkpoint viewport; otherwise short content remains top-aligned with a blank block.
-        self.assertIn(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))", live_layout)
-        self.assertIn("Arrangement.spacedBy(8.dp, Alignment.CenterVertically)", live_layout)
+        # Keep the transcript naturally top-aligned. A forced minimum height and
+        # vertical centering previously created a large empty band above short lessons.
+        self.assertIn("verticalArrangement = Arrangement.spacedBy(8.dp)", live_layout)
+        self.assertNotIn(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))", live_layout)
         self.assertNotIn("Arrangement.SpaceEvenly", live_layout)
-        self.assertLess(
-            live_layout.index(".verticalScroll(liveLessonScrollState)"),
-            live_layout.index(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))"),
-            "The min-height modifier must constrain the scroll content, not the viewport",
-        )
-        self.assertIn("verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)", live_layout)
+        self.assertNotIn("Arrangement.Center", live_layout)
         # Checkpoint actions belong to the same scrollable lesson flow. Keeping them as
         # a sibling of the weighted transcript creates a large dead zone on phone screens.
         checkpoint_start = live_layout.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)")

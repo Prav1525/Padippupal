@@ -391,6 +391,40 @@ def assert_live_layout(path):
     print("PASS: live lesson uses a continuous canvas without a dominant green card")
 
 
+
+def assert_topic_complete(path, screenshot_path):
+    _, texts = load(path)
+    joined = "\n".join(texts)
+    lowered = joined.lower()
+    print("COMPLETED TOPIC TEXT:", " | ".join(texts[:160]))
+    required = ("topic complete", "you have finished this topic", "stop")
+    missing = [label for label in required if label not in lowered]
+    if missing:
+        raise SystemExit("Completed-topic screen is missing required lesson/completion UI: " + ", ".join(missing))
+    if "the all 1s pattern repeats the number 1" not in lowered:
+        raise SystemExit("Completed-topic transcript lost the original teaching explanation")
+    if not screenshot_path or not Path(screenshot_path).is_file():
+        raise SystemExit("Completed-topic screenshot is required; accessibility XML alone is insufficient")
+    try:
+        from PIL import Image, ImageStat
+    except ImportError as exc:
+        raise SystemExit("Pillow is required to inspect completed-topic screenshot") from exc
+    image = Image.open(screenshot_path).convert("RGB")
+    width, height = image.size
+    if width < 300 or height < 500:
+        raise SystemExit(f"Completed-topic screenshot has unexpected dimensions: {width}x{height}")
+    # Check visible information in both the upper teaching area and lower viewport.
+    # A completely blank lower half is a useful regression signal for the dead-zone bug.
+    upper = image.crop((0, int(height * .12), width, int(height * .55)))
+    lower = image.crop((0, int(height * .55), width, int(height * .92)))
+    upper_spread = max(ImageStat.Stat(upper).stddev)
+    lower_spread = max(ImageStat.Stat(lower).stddev)
+    print(f"Completed-topic screenshot {width}x{height}; upper visual spread={upper_spread:.1f}; lower visual spread={lower_spread:.1f}")
+    if upper_spread < 8 or lower_spread < 5:
+        raise SystemExit("Completed-topic screenshot appears visually empty or fails to show content through the lower viewport")
+    print("PASS: topic completion is visible, earlier teaching is retained, and screenshot content reaches the lower viewport")
+
+
 def exact_text_candidates(nodes, target):
     """Return only nodes whose visible label equals the requested control label."""
     normalized_target = target.strip().lower().lstrip("▶").strip()
@@ -497,6 +531,8 @@ def main():
         assert_highlight_frames(sys.argv[3])
     elif action == "assert-live-layout":
         assert_live_layout(path)
+    elif action == "assert-topic-complete" and len(sys.argv) >= 4:
+        assert_topic_complete(path, sys.argv[3])
     elif action == "assert-playback-state" and len(sys.argv) >= 4:
         assert_playback_state(path, sys.argv[3])
     elif action == "tap" and len(sys.argv) >= 4:

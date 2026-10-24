@@ -45,12 +45,22 @@ Use the platform's readable sans-serif font by default unless a tested, bundled 
 
 ## Color and contrast
 
-- Keep the existing PadippuPal navy, blue and light neutral identity unless a deliberate, reviewed palette change is approved.
+- **Approved PadippuPal identity (2026-10-24): premium teal + warm ivory.** Primary teal `#0F766E`; deep teal/ink `#203A38`; warm ivory background `#FAF8F1`; soft mint surface/highlight `#E5F1EC` / `#CDE9E2`; muted secondary text `#637873`; quiet borders `#D9E2DB`. Charcoal is for strong text. Use teal for primary actions and the currently spoken word; keep the highlight soft enough that the text remains highly readable. Do not default to indigo, electric blue or lavender accents. Use sand/amber only for a meaningful secondary emphasis, not as another competing brand color.
 - Define/reuse semantic roles (primary action, background, surface, primary text, secondary text, success, warning, error) rather than adding near-duplicate colors ad hoc.
 - Use a strong text/background contrast. Do not rely on color alone to convey state.
-- Use the accent color for active word highlighting and primary actions; avoid making every icon and label equally saturated.
+- Use teal for primary actions and soft mint for active word highlighting; avoid making every icon and label equally saturated. Keep the overall canvas warm ivory, with white surfaces only when they clarify content grouping.
 - Disabled states must remain legible and must not look active.
 - Check both light and dark system appearance if the app supports both.
+
+## PadippuPal art direction: calm editorial + living textbook
+
+- The product should feel like a premium, caring personal teacher: warm, composed, intelligent and human—not a generic AI dashboard or a children's game.
+- Use warm ivory as the calm canvas, deep teal/charcoal for readable text, teal for deliberate actions, and soft mint for quiet emphasis. Avoid indigo/purple as the default accent and avoid adding many competing saturated colours.
+- Keep teaching content as the hero. Use editorial typography and a clear reading rhythm: concept heading, explanation, relevant inline diagram/animation, worked example, then a checkpoint when appropriate.
+- Illustrations and animations belong inside the explanation flow, never in a detached floating overlay or decorative card. Motion should explain the current spoken concept and must not begin ahead of the tutor's speech.
+- Use organic forms sparingly and consistently. Nature-inspired motifs may support the brand, but do not force leaves or botanical decoration into unrelated topics.
+- Home and subject selection may feel welcoming and expressive; the live tutor screen should be quieter, focused and content-first. Use the same colour roles, type scale, corner system and motion timing throughout.
+- Premium means disciplined composition and details—not more shadows, gradients, cards or decoration.
 
 ## Spacing, shape and density
 

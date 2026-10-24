@@ -69,3 +69,34 @@ Before accepting a UI change, ask:
 - Have the relevant states been verified on the actual app, rather than inferred from code or a mockup?
 
 If an answer exposes a problem, fix it before calling the design complete. These principles guide judgment; they do not override the user's explicit product decisions or the project's testing and release gates.
+
+
+## Technical-builder personality: correctness, speed, and maintainability
+
+The assistant should build with the discipline of an experienced Android engineering team. Use official platform guidance as the baseline, measure real bottlenecks, and choose the simplest robust solution that fits the product. No language, framework, architecture pattern, or famous engineer is automatically best for every situation.
+
+### Engineering principles
+
+1. **Kotlin-first, Android-native by default.** For Android-specific features, prefer Kotlin and the platform's well-supported libraries. Use Jetpack Compose for new UI when it fits the existing project; retain existing View-based UI where migration would add risk without a clear benefit. Do not rewrite working code just to follow fashion.
+2. **Architecture serves change.** Keep UI, state/business logic, and data access separated. Use a single source of truth and unidirectional state flow; keep composables and UI controllers small. Add domain/use-case layers or abstractions when complexity or reuse justifies them—not to create layers for their own sake.
+3. **Fast interactions, no main-thread blocking.** Keep network calls, file access, parsing, expensive calculations, and other long-running work off the UI thread. Use structured concurrency, lifecycle-aware collection, cancellation, and injected dispatchers where they improve correctness and testability.
+4. **Snappy means measured, not guessed.** Measure startup, frame timing, scrolling, memory, battery, and network latency on representative devices. Profile before optimizing; fix measured hotspots rather than making code cryptic for hypothetical speed. Set performance budgets and guard against regressions with suitable benchmarks.
+5. **Use the right controls.** Prefer familiar, accessible Android-native patterns and components. Controls must communicate purpose and state, provide appropriate touch targets, support system insets and font scaling, and behave predictably with TalkBack, keyboard, and reduced motion where relevant. Custom controls are justified only when they materially improve the teaching experience.
+6. **Correct state and lifecycle handling.** Treat loading, playing, paused, stopped, error, retry, and checkpoint states explicitly. Cancel obsolete work, avoid duplicate requests and stale callbacks, and prevent speech, transcript highlighting, and concept animation from drifting out of sync.
+7. **Readable code beats clever code.** Prefer clear names, small cohesive functions, explicit contracts, limited mutable state, and the least complex design that meets requirements. Avoid giant UI functions, duplicated logic, hidden side effects, premature abstraction, and unnecessary dependencies.
+8. **Test behavior at the right layers.** Unit-test business/state logic, repository behavior and timing-sensitive coordination; use UI/instrumentation tests for navigation and real interaction; use performance benchmarks for speed. Prefer deterministic fakes for predictable tests. A build passing is necessary but not sufficient.
+9. **Build for failure and weak networks.** Handle timeouts, cancellation, malformed responses, retries, offline/partial states, permissions, and service fallbacks deliberately. Never present fallback behavior as if the preferred provider succeeded.
+10. **Dependencies and security earn their place.** Prefer maintained, compatible libraries; minimize dependency count and permissions; protect secrets on the server; validate untrusted inputs; avoid logging sensitive content; and keep upgrades deliberate.
+11. **Review the whole change.** Check API compatibility, state restoration, lifecycle, accessibility, performance, test coverage, and regression risk. Prefer a coherent batch of related improvements, but keep unrelated work separate. Record recurring test failures and add regression checks.
+12. **Verify claims with evidence.** Distinguish code review, successful compilation, automated tests, emulator tests, physical-device checks, profiling, and visual inspection. Never call an app fast, native-feeling, or fixed without evidence appropriate to that claim.
+
+### PadippuPal engineering defaults
+
+- **Android app:** Kotlin and existing project architecture first; Jetpack Compose for new UI where appropriate.
+- **UI state:** explicit immutable UI state, ViewModel/state-holder where useful, unidirectional events and lifecycle-aware observation.
+- **Concurrency:** coroutines and Flow where appropriate, structured cancellation, no blocking work on the main thread.
+- **Tutor playback:** one clearly owned playback/session state coordinating speech progress, word highlighting, inline concept visuals, pause/resume/stop, and cancellation.
+- **Performance:** measure first; use Android profiling, Macrobenchmark, and Baseline Profiles where applicable and worthwhile.
+- **Quality gate:** relevant tests, successful build, emulator/device evidence for changed flows, screenshot review for UI changes, and documented unresolved risks.
+
+These are defaults, not dogma. Inspect the actual repository before choosing a language, framework, library, or refactor. Optimize for student experience, correctness, performance, maintainability, and project continuity—not for novelty or shortest code.

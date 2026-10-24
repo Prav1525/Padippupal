@@ -193,7 +193,8 @@ internal fun DiaryScanScreen(
                             val array = JSONArray()
                             chosen.forEach { t ->
                                 array.put(JSONObject().put("profile_id", profileId).put("title", t.title.trim())
-                                    .put("subject", t.subject).put("details", t.details).put("due_date", t.dueDate)
+                                    .put("subject", t.subject).put("details", t.details)
+                                    .put("due_date", t.dueDate.ifBlank { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) })
                                     .put("minutes", t.minutes.coerceIn(1, 600)).put("source", "diary"))
                             }
                             featureRequest("${featureBase()}/planner/tasks/import", "POST",
@@ -223,6 +224,11 @@ internal fun PlannerScreen(
     var subject by remember { mutableStateOf("General") }
     var minutes by remember { mutableStateOf("15") }
     var status by remember { mutableStateOf("Loading your saved tasks…") }
+    val today = remember {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+    }
+    val todayTasks = tasks.filter { it.dueDate == today }
+    val subjectProgress = todayTasks.groupBy { it.subject.ifBlank { "General" } }.toSortedMap()
 
     fun refresh() {
         loading = true
@@ -230,8 +236,11 @@ internal fun PlannerScreen(
             val result = runCatching { parsePlannerTasks(featureRequest("${featureBase()}/planner/tasks?profile_id=${enc(profileId)}")) }
             featureMain.post {
                 loading = false
-                result.fold(onSuccess = { tasks = it; status = if (it.isEmpty()) "No tasks yet. Add one or scan your school diary." else "${it.count { t -> t.completed }} of ${it.size} tasks completed." },
-                    onFailure = { status = "Could not load saved tasks: ${it.message ?: "network error"}" })
+                result.fold(onSuccess = {
+                    tasks = it
+                    status = if (it.isEmpty()) "No tasks yet. Scan your school diary to build today's homework checklist."
+                        else "${it.count { t -> t.completed }} of ${it.size} saved tasks completed."
+                }, onFailure = { status = "Could not load saved tasks: ${it.message ?: "network error"}" })
             }
         }
     }
@@ -242,21 +251,54 @@ internal fun PlannerScreen(
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
-                Column(Modifier.weight(1f)) { Text("Study planner", fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, color = FeatureInk); Text("Your progress is saved online", color = FeatureGrey) }
+                Column(Modifier.weight(1f)) {
+                    Text("Today's homework", fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, color = FeatureInk)
+                    Text("Your daily plan and subject progress", color = FeatureGrey)
+                }
                 IconButton(onClick = { refresh() }, enabled = !loading) { Icon(Icons.Default.Refresh, contentDescription = "Refresh") }
             }
         }
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = FeatureGreen), shape = RoundedCornerShape(22.dp)) {
-                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Default.CheckCircle, null, tint = Color.White)
-                    Text("${tasks.count { it.completed }} / ${tasks.size} tasks completed", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 21.sp)
-                    LinearProgressIndicator(progress = { if (tasks.isEmpty()) 0f else tasks.count { it.completed }.toFloat() / tasks.size },
-                        modifier = Modifier.fillMaxWidth(), color = Color(0xFFFFD86B), trackColor = Color.White.copy(alpha = .3f))
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF0F2742)), shape = RoundedCornerShape(22.dp)) {
+                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("DAILY CHECKLIST", color = Color(0xFFD8F5F0), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("${todayTasks.count { it.completed }} / ${todayTasks.size} tasks complete",
+                        color = Color.White, fontWeight = FontWeight.Bold, fontSize = 21.sp)
+                    LinearProgressIndicator(
+                        progress = { if (todayTasks.isEmpty()) 0f else todayTasks.count { it.completed }.toFloat() / todayTasks.size },
+                        modifier = Modifier.fillMaxWidth(), color = Color(0xFFF4C96B), trackColor = Color.White.copy(alpha = .25f)
+                    )
+                    Text(if (todayTasks.isEmpty()) "Scan today's diary to create your homework checklist."
+                        else if (todayTasks.all { it.completed }) "Everything on today's checklist is done. Great work!"
+                        else "Tick each task when you finish it.", color = Color.White.copy(alpha = .88f), fontSize = 13.sp)
                 }
             }
         }
         item { Text(status, color = FeatureGrey, fontSize = 13.sp) }
+        if (todayTasks.isNotEmpty()) {
+            item { Text("Progress by subject", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = FeatureInk) }
+            items(subjectProgress.entries.toList(), key = { "subject-${it.key}" }) { entry ->
+                val subjectTasks = entry.value
+                val completed = subjectTasks.count { it.completed }
+                Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(entry.key, modifier = Modifier.weight(1f), color = FeatureInk, fontWeight = FontWeight.SemiBold)
+                            Text("$completed / ${subjectTasks.size}", color = FeatureGrey, fontSize = 12.sp)
+                        }
+                        LinearProgressIndicator(
+                            progress = { if (subjectTasks.isEmpty()) 0f else completed.toFloat() / subjectTasks.size },
+                            modifier = Modifier.fillMaxWidth(), color = FeatureGreen,
+                            trackColor = Color(0xFFD8F5F0)
+                        )
+                    }
+                }
+            }
+            item { Text("Tick tasks as you finish", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = FeatureInk) }
+            items(todayTasks, key = { "today-${it.id}" }) { task ->
+                PlannerTaskCard(task = task, profileId = profileId, onChanged = { refresh() }, onStatus = { status = it })
+            }
+        }
         item { Text("Add a study task", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = FeatureInk) }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
@@ -269,38 +311,51 @@ internal fun PlannerScreen(
                         loading = true
                         featureExecutor.execute {
                             val result = runCatching { featureRequest("${featureBase()}/planner/tasks", "POST",
-                                JSONObject().put("profile_id", profileId).put("title", title.trim()).put("subject", subject.trim().ifBlank { "General" })
+                                JSONObject().put("profile_id", profileId).put("title", title.trim())
+                                    .put("subject", subject.trim().ifBlank { "General" })
+                                    .put("due_date", today)
                                     .put("minutes", minutes.toIntOrNull()?.coerceIn(1, 600) ?: 15).put("source", "manual")) }
                             featureMain.post { loading = false; result.fold(onSuccess = { title = ""; refresh() }, onFailure = { status = "Could not save task: ${it.message ?: "network error"}" }) }
                         }
-                    }, enabled = !loading, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Save, null); Text("  Save task") }
+                    }, enabled = !loading, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Save, null); Text("  Add to today's checklist") }
                 }
             }
         }
-        if (tasks.isNotEmpty()) item { Text("Your tasks", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = FeatureInk) }
-        items(tasks, key = { it.id }) { task ->
-            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(17.dp)) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = task.completed, onCheckedChange = { checked ->
-                        featureExecutor.execute {
-                            val result = runCatching { featureRequest("${featureBase()}/planner/tasks/${task.id}", "PUT",
-                                JSONObject().put("profile_id", profileId).put("completed", checked)) }
-                            featureMain.post { result.fold(onSuccess = { refresh() }, onFailure = { status = "Could not update progress: ${it.message}" }) }
-                        }
-                    })
-                    Column(Modifier.weight(1f).padding(start = 4.dp)) {
-                        Text(task.title, fontWeight = FontWeight.SemiBold, color = FeatureInk)
-                        Text("${task.subject} · ${task.minutes} min" + if (task.dueDate.isNotBlank()) " · Due ${task.dueDate}" else "", color = FeatureGrey, fontSize = 12.sp)
-                        if (task.details.isNotBlank()) Text(task.details, color = FeatureGrey, fontSize = 12.sp)
-                    }
-                    IconButton(onClick = {
-                        featureExecutor.execute {
-                            val result = runCatching { featureRequest("${featureBase()}/planner/tasks/${task.id}?profile_id=${enc(profileId)}", "DELETE") }
-                            featureMain.post { result.fold(onSuccess = { refresh() }, onFailure = { status = "Could not delete task: ${it.message}" }) }
-                        }
-                    }) { Icon(Icons.Default.Delete, contentDescription = "Delete task", tint = FeatureGrey) }
-                }
+        val otherTasks = tasks.filter { it.dueDate != today }
+        if (otherTasks.isNotEmpty()) {
+            item { Text("Other saved tasks", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = FeatureInk) }
+            items(otherTasks, key = { "other-${it.id}" }) { task ->
+                PlannerTaskCard(task = task, profileId = profileId, onChanged = { refresh() }, onStatus = { status = it })
             }
+        }
+    }
+}
+
+@Composable
+private fun PlannerTaskCard(
+    task: PlannerTask, profileId: String, onChanged: () -> Unit, onStatus: (String) -> Unit
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(17.dp)) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = task.completed, onCheckedChange = { checked ->
+                featureExecutor.execute {
+                    val result = runCatching { featureRequest("${featureBase()}/planner/tasks/${task.id}", "PUT",
+                        JSONObject().put("profile_id", profileId).put("completed", checked)) }
+                    featureMain.post { result.fold(onSuccess = { onChanged() }, onFailure = { onStatus("Could not update progress: ${it.message}") }) }
+                }
+            })
+            Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                Text(task.title, fontWeight = FontWeight.SemiBold, color = FeatureInk)
+                Text("${task.subject} · ${task.minutes} min" + if (task.dueDate.isNotBlank()) " · Due ${task.dueDate}" else "",
+                    color = FeatureGrey, fontSize = 12.sp)
+                if (task.details.isNotBlank()) Text(task.details, color = FeatureGrey, fontSize = 12.sp)
+            }
+            IconButton(onClick = {
+                featureExecutor.execute {
+                    val result = runCatching { featureRequest("${featureBase()}/planner/tasks/${task.id}?profile_id=${enc(profileId)}", "DELETE") }
+                    featureMain.post { result.fold(onSuccess = { onChanged() }, onFailure = { onStatus("Could not delete task: ${it.message}") }) }
+                }
+            }) { Icon(Icons.Default.Delete, contentDescription = "Delete task", tint = FeatureGrey) }
         }
     }
 }

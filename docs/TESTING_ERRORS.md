@@ -605,3 +605,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Require fixture self-test, helper tests, and the full emulator flow on the exact commit. The live-lesson assertion must reject premature feedback; completion assertion and fresh screenshot inspection remain mandatory.
 - **Evidence:** Failed run [40068386712](https://github.com/Prav1525/Padippupal/actions/runs/40068386712); fix commits: `b50b901cf3d2fc9ca01d5611042a548d71e76793`, `f59191b90286a72f7bcdaa6f158f3f0b922babe4`, `bddf472aac62d64fe76c69fa3d8c308e8aacf47a`.
 - **Status:** Fixes committed; exact-head CI and emulator screenshot verification pending.
+
+
+### TE-049 — New completion-state regression fixture omitted required animation labels
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android UI smoke helper tests.
+- **Symptom:** UI run [40068847686](https://github.com/Prav1525/Padippupal/actions/runs/40068847686) passed APK compilation and Python syntax validation but failed one of 25 helper tests. The new “feedback after topic complete” XML fixture did not include the required passive animation labels, so `assert_live` correctly rejected the incomplete fixture. Emulator launch was skipped and no screenshot artifact was produced.
+- **Root cause:** The new test fixture represented completion and feedback but not the complete live lesson contract (the “WATCH THE PATTERN” label and repeated-ones animation).
+- **Corrective action:** Add the required animation label and repeated-ones content to the fixture; keep the production assertion intact.
+- **Regression protection:** Rerun all helper tests, API fixture self-test, and full emulator workflow on the new exact SHA. Screenshot review is still required.
+- **Status:** Fixture corrected in `d545bcab06798d5f1700426267b1430f80927f82`; CI pending.

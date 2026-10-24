@@ -55,3 +55,15 @@ CI does **not** automatically mean an assistant is awake to inspect the results,
 ## Next action
 
 Poll the current UI smoke run; once complete, inspect its logs and screenshot artifacts against the checklist. If the run failed, diagnose and fix the root cause. Keep PR #13 unmerged until all required acceptance criteria are verified.
+
+
+## CI automation implementation batch
+
+- **Objective:** Add mandatory guide review, enforce status/error-record updates, and automate CI result recording plus bounded AI repair proposals.
+- **Branch:** `automation/padippupal-autofix-loop`
+- **Implementation status:** Files committed on the automation branch; review and workflow execution are still pending.
+- **Added:** `AGENTS.md`, `.github/pull_request_template.md`, `.github/workflows/change-governance.yml`, `.github/workflows/failure-triage.yml`, `.github/workflows/ai-autofix-main.yml`, and `docs/CI_AUTOMATION.md`.
+- **Recordkeeping behavior:** Completed configured CI runs are recorded with run URL, exact SHA, result, job outcomes, and timestamp. Failed runs get an open testing-error entry and a GitHub issue. A root cause remains marked undiagnosed until evidence is reviewed.
+- **AI repair boundary:** The optional Codex repair worker is limited to failures on trusted main; it requires the repository secret OPENAI_API_KEY and creates a separate PR. It does not merge, deploy, or publish. PR/fork failures are recorded without exposing the API key.
+- **Verification:** No CI run of the newly added workflows has completed in this batch. YAML/workflow behavior is **not yet verified**. After this branch is incorporated into the active tutor PR, inspect the workflow runs and fix any failures.
+- **Next action:** Review the full diff, validate workflow syntax and event/permission behavior, then inspect GitHub Actions evidence. Do not merge the automation PR without explicit user approval.

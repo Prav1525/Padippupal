@@ -2,6 +2,17 @@ package com.padippupal.app
 
 import android.content.Context
 import android.graphics.Paint
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Handler
@@ -101,6 +112,10 @@ internal fun DiaryScanScreen(
 ) {
     val context = LocalContext.current
     var selectedName by remember { mutableStateOf("") }
+    var sourceBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var showCropEditor by remember { mutableStateOf(false) }
+    var cropStart by remember { mutableStateOf<Offset?>(null) }
+    var cropEnd by remember { mutableStateOf<Offset?>(null) }
     var diaryDate by remember { mutableStateOf("") }
     var drafts by remember { mutableStateOf<List<DiaryDraft>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }

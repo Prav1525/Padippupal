@@ -89,15 +89,14 @@ if node is None:
 bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
 if not bounds:
     raise SystemExit("Diary fixture card has invalid bounds")
-desc = list(node.iter("node"))
-clickable = next((n for n in desc if n is not node and n.attrib.get("clickable") == "true" and re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds", ""))), None)
-target = clickable or node
-m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", target.attrib.get("bounds", ""))
+# Tap the file card itself, not its clickable "Preview the file" overlay.
+# That overlay only opens preview mode and leaves the picker active.
+m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
 if not m:
-    raise SystemExit("Diary fixture has no valid tap bounds")
+    raise SystemExit("Diary fixture card has no valid tap bounds")
 x1,y1,x2,y2 = map(int,m.groups())
 x,y=(x1+x2)//2,(y1+y2)//2
-print(f"Tap diary fixture preview at {x},{y} ({target.attrib['bounds']})")
+print(f"Tap diary file card at {x},{y} ({node.attrib['bounds']})")
 subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY
 sleep 2
@@ -147,12 +146,12 @@ else:
     if card is None: raise SystemExit("Cannot recover diary fixture card for double-tap")
     bounds=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",card.attrib.get("bounds",""))
     if not bounds: raise SystemExit("Diary fixture card bounds invalid during double-tap")
-    children=list(card.iter("node"))
-    target=next((n for n in children if n is not card and n.attrib.get("clickable")=="true" and re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))),card)
-    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
-    if not m: raise SystemExit("Diary fixture preview bounds invalid during double-tap")
+    # Double-tap the file card body, never the smaller "Preview the file"
+    # overlay (that opens a preview and leaves DocumentsUI active).
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",card.attrib.get("bounds",""))
+    if not m: raise SystemExit("Diary fixture card bounds invalid during double-tap")
     x1,y1,x2,y2=map(int,m.groups()); x,y=(x1+x2)//2,(y1+y2)//2
-    print(f"No confirmation control; double-tapping image preview at {x},{y}")
+    print(f"No confirmation control; double-tapping diary file card at {x},{y}")
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY

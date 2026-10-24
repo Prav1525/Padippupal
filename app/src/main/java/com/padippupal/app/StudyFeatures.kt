@@ -212,6 +212,9 @@ internal fun DiaryScanScreen(
             if (loading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             Text(status, color = FeatureGrey, fontSize = 13.sp, lineHeight = 19.sp)
         }
+        if (sourceBitmap != null && !loading) {
+            item { OutlinedButton(onClick = { showCropEditor = true; cropStart = null; cropEnd = null }, modifier = Modifier.fillMaxWidth()) { Text("Crop this photo and rescan") } }
+        }
         if (drafts.isNotEmpty()) {
             item {
                 Text("Review extracted homework", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = FeatureInk)
@@ -266,6 +269,43 @@ internal fun DiaryScanScreen(
             }
         }
     }
+    if (showCropEditor && sourceBitmap != null) {
+        val bitmap = sourceBitmap!!
+        Dialog(onDismissRequest = { showCropEditor = false }) {
+            Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Crop today's diary row", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text("Drag across the date and homework for today. Include the date so it can be checked again.", color = FeatureGrey, fontSize = 13.sp)
+                    Image(bitmap.asImageBitmap(), contentDescription = "Diary crop", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat()/bitmap.height).pointerInput(bitmap) { detectDragGestures(onDragStart = { cropStart = it; cropEnd = it }, onDrag = { change, _ -> cropEnd = change.position }) })
+                    Canvas(Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat()/bitmap.height)) {
+                        val a = cropStart; val b = cropEnd
+                        if (a != null && b != null) {
+                            val l = minOf(a.x,b.x).coerceIn(0f,size.width); val t = minOf(a.y,b.y).coerceIn(0f,size.height)
+                            val rr = maxOf(a.x,b.x).coerceIn(0f,size.width); val bb = maxOf(a.y,b.y).coerceIn(0f,size.height)
+                            drawRect(Color(0x3334D399), topLeft=Offset(l,t), size=androidx.compose.ui.geometry.Size(rr-l,bb-t))
+                            drawRect(Color(0xFF0F766E), topLeft=Offset(l,t), size=androidx.compose.ui.geometry.Size(rr-l,bb-t), style=Stroke(3.dp.toPx()))
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { showCropEditor = false }, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                        Button(enabled = cropStart != null && cropEnd != null, onClick = {
+                            val a = cropStart; val b = cropEnd
+                            if (a != null && b != null) {
+                                val l = minOf(a.x,b.x).coerceIn(0f,bitmap.width.toFloat()).toInt().coerceIn(0,bitmap.width-1)
+                                val t = minOf(a.y,b.y).coerceIn(0f,bitmap.height.toFloat()).toInt().coerceIn(0,bitmap.height-1)
+                                val rr = maxOf(a.x,b.x).coerceIn(0f,bitmap.width.toFloat()).toInt().coerceIn(l+1,bitmap.width)
+                                val bb = maxOf(a.y,b.y).coerceIn(0f,bitmap.height.toFloat()).toInt().coerceIn(t+1,bitmap.height)
+                                val cropped = Bitmap.createBitmap(bitmap,l,t,rr-l,bb-t)
+                                val out = java.io.ByteArrayOutputStream(); cropped.compress(Bitmap.CompressFormat.JPEG,92,out)
+                                showCropEditor = false; scanImage(out.toByteArray(),"image/jpeg","Cropped diary row")
+                            }
+                        }, modifier = Modifier.weight(1f)) { Text("Rescan crop") }
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 @Composable

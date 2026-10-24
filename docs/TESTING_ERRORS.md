@@ -556,3 +556,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Do not treat a successful source-layout assertion as proof of Kotlin validity. Require the APK build and UI smoke on the exact resulting head SHA, then inspect fresh screenshots.
 - **Evidence:** Android APK run [40059913798](https://github.com/Prav1525/Padippupal/actions/runs/40059913798) failed compilation at line 2288. Syntax correction commit: `733f4a2267e9c5461672a2b4962208ea243132b7`.
 - **Status:** Syntax correction committed; rebuild and emulator verification pending.
+
+
+### TE-045 — Completion smoke loop stopped advancing a checkpoint after one unsuccessful tap
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android UI smoke / multiple understanding checkpoints.
+- **Symptom:** UI smoke run [40054398708](https://github.com/Prav1525/Padippupal/actions/runs/40054398708) passed lesson startup, pause/resume, moving word highlight, first checkpoint, and continuation to “Now look at the sequence.” It then timed out waiting for “TOPIC COMPLETE”; the final accessibility dump still showed “Does that make sense so far?” and the three checkpoint actions.
+- **Root cause:** The completion loop tapped “I understand” once for a distinct accessibility snapshot, then never retried if the same checkpoint remained visible. The loop treated an attempted tap as if it had necessarily advanced Compose state, and spent the rest of its timeout polling the unchanged checkpoint.
+- **Why it escaped:** Earlier smoke coverage checked the first checkpoint and the next teaching segment, but the final completion loop did not explicitly handle a response tap that failed to register or a delayed state transition.
+- **Corrective action:** Add a bounded retry for a checkpoint that remains visible after the initial tap, while preserving the hard requirement that the actual “TOPIC COMPLETE” state must appear. This is a test-harness correction, not evidence that the app's completion state has already passed.
+- **Regression protection:** Re-run helper/script validation and the full emulator flow; require a real completed-topic accessibility snapshot and screenshot, then inspect that screenshot top-to-bottom. Do not loosen the completion assertion or treat a retry log as success.
+- **Evidence:** Failed emulator run [40054398708](https://github.com/Prav1525/Padippupal/actions/runs/40054398708); correction commit pending exact-head workflow results.
+- **Status:** Retry added; emulator rerun and screenshot verification pending.

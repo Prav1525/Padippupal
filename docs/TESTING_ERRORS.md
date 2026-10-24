@@ -628,3 +628,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Run the helper suite and API fixture self-test, then the full UI workflow on the resulting exact SHA. A successful helper run is not equivalent to emulator acceptance; screenshots from the same successful emulator run must still be inspected and displayed inline.
 - **Evidence:** Failed run [40068847686](https://github.com/Prav1525/Padippupal/actions/runs/40068847686); current fixture inspected in `.github/scripts/test_ui_smoke_helpers.py`.
 - **Status:** Failure documented; current branch fixture contains the required labels. A new exact-head workflow run is required to verify this correction.
+
+
+### TE-049 — New post-completion regression fixture omitted required animation labels
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android UI smoke helper tests.
+- **Symptom:** UI smoke run [40068847686](https://github.com/Prav1525/Padippupal/actions/runs/40068847686) built the APK and passed script compilation, but helper tests failed because the new “feedback after topic complete” XML fixture omitted the required passive animation labels (`WATCH THE PATTERN` and `1, 1, 1, 1, 1`). The emulator was correctly not launched while helper validation failed.
+- **Root cause:** The new test focused on feedback timing but did not preserve the other invariants required by `assert_live`; the test fixture was incomplete, not evidence of an app animation defect.
+- **Corrective action:** Add the expected passive-animation labels to the post-completion fixture without relaxing production assertions.
+- **Regression protection:** Keep the mid-topic feedback negative test and the post-completion positive test; both must satisfy all unrelated live-screen invariants. Re-run helper tests, API self-test, and the complete emulator workflow on the exact new SHA.
+- **Evidence:** Failed run [40068847686](https://github.com/Prav1525/Padippupal/actions/runs/40068847686); fixture correction commit `7ca311817f0a68538db9dd15a2b0ece480598b75`.
+- **Status:** Corrected; exact-head CI and emulator screenshot verification pending.

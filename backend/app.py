@@ -2521,6 +2521,7 @@ class DiaryParseRequest(BaseModel):
     class_level: int = Field(default=6, ge=1, le=12)
     medium: str = Field(default="English", max_length=40)
     app_language: str = Field(default="English", max_length=30)
+    today_date: str = Field(default="", max_length=10)
 
 
 def _task_dict(row: Any) -> dict[str, Any]:
@@ -2624,10 +2625,12 @@ def parse_school_diary(payload: DiaryParseRequest) -> dict[str, Any]:
     if len(image_bytes) > 6_000_000:
         raise HTTPException(status_code=413, detail="Please choose a smaller or more compressed diary photo.")
     model = os.getenv("PADIPPUPAL_GEMINI_VISION_MODEL", "gemini-2.5-flash").strip()
-    prompt = f"""Read this school diary photo for a learner in class {payload.class_level}, board {payload.board}, textbook medium {payload.medium}. Preferred language for any notes is {payload.app_language}.
-Extract only homework, assignments, tests, project work, and due dates that are actually visible. Do not guess illegible words or invent dates. If uncertain, mark the title with [check photo]. Return ONLY valid JSON in this schema:
-{{"tasks":[{{"title":"short task text","subject":"subject if visible, else General","details":"brief context or uncertain words","due_date":"visible date as YYYY-MM-DD if unambiguous, else empty string","minutes":15}}]}}
-Return an empty tasks array if no homework is legible. Keep tasks separate and concise."""
+    prompt = f"""You are transcribing a real school diary, including children's handwriting, for a learner in class {payload.class_level}, board {payload.board}, textbook medium {payload.medium}. Preferred language for notes is {payload.app_language}.
+Treat the image as a diary page, not a printed worksheet. The learner local date for this scan is {payload.today_date or "NOT PROVIDED"}. Act like a visual document scanner (Google Lens style): inspect the full page layout before transcribing. First locate the date/day column and match ONLY the row for the supplied local date. Track the matched date row’s vertical position and the homework text aligned horizontally with it; use text positions, baselines, ruled lines, indentation, and visible whitespace together. Read from the homework cell/area associated with that date and stop at the next date marker or a clear row/section boundary (including a substantial blank gap). Never continue into the next dated entry just because the handwriting is continuous. If date and homework alignment cannot be determined confidently from layout, require a crop rather than guessing. Accept unambiguous dates written as DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD, 24 Oct 2026, October 24, 2026, weekday-plus-date, and clearly supported local-language or short day/month forms. Resolve DD/MM versus MM/DD only from clear diary/locale context; if ambiguous, do not guess. Read homework only from the matched row and never include adjacent rows. If today is absent, date is unclear, or row alignment/blank-space boundary is uncertain, return no tasks and set match_status to "no_today_row" when the date is clearly absent, otherwise "needs_crop". Read handwritten English and regional-language text when visible. If the page is tilted or text is faint, use the visible strokes and context cautiously, but never invent a word.
+Extract only homework, assignments, tests, projects, page numbers and due dates actually supported by the image. Do not assume the photo date is the diary date. Set diary_date to the matched date in YYYY-MM-DD form. If no confident match to the supplied local date exists, tasks must be empty. For each extracted task, internally verify that its text lies in the matched date section and above the next date marker/clear section boundary. Use whitespace as one layout cue, not the only cue. Do not combine text from separate rows. For illegible words, preserve the readable part and include [check photo] plus a short reason in details. Keep each task separate.
+Return ONLY valid JSON in this schema:
+{{"diary_date":"matched date YYYY-MM-DD or empty string","match_status":"matched, no_today_row, or needs_crop","tasks":[{{"title":"short transcription; include [check photo] if essential words are unclear","subject":"subject if visible, else General","details":"page/question numbers and uncertainty notes","due_date":"explicit due date YYYY-MM-DD if unambiguous, else empty string","minutes":15,"confidence":"high, medium, or low"}}]}}
+Do not claim image cropping or certainty that you did not perform. Return an empty tasks array if no homework is legible."""
     body = json.dumps({
         "contents": [{"role": "user", "parts": [
             {"text": prompt},
@@ -2646,8 +2649,16 @@ Return an empty tasks array if no homework is legible. Keep tasks separate and c
             result = json.loads(response.read().decode("utf-8"))
         text_output = "".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"])
         parsed = json.loads(text_output.strip())
+        match_status = str(parsed.get("match_status", "needs_crop")).strip().lower()
+        if match_status not in {"matched", "no_today_row", "needs_crop"}:
+            match_status = "needs_crop"
+        # Never trust the model's label alone: a matched date must equal the
+        # device-local date supplied by Android in ISO form.
+        model_diary_date = normalize(str(parsed.get("diary_date", "")))[:40]
+        if not payload.today_date or model_diary_date != payload.today_date:
+            match_status = "needs_crop" if match_status == "matched" else match_status
         tasks = []
-        for item in parsed.get("tasks", [])[:40]:
+        for item in (parsed.get("tasks", [])[:40] if match_status == "matched" else []):
             if not isinstance(item, dict) or not str(item.get("title", "")).strip():
                 continue
             tasks.append({
@@ -2656,9 +2667,11 @@ Return an empty tasks array if no homework is legible. Keep tasks separate and c
                 "details": normalize(str(item.get("details", "")))[:1000],
                 "due_date": normalize(str(item.get("due_date", "")))[:40],
                 "minutes": max(1, min(600, int(item.get("minutes", 15) or 15))),
+                "confidence": normalize(str(item.get("confidence", "medium"))).lower() if normalize(str(item.get("confidence", "medium"))).lower() in {"high", "medium", "low"} else "medium",
                 "source": "diary",
             })
-        return {"tasks": tasks, "count": len(tasks), "needs_review": True, "model": model}
+        diary_date = normalize(str(parsed.get("diary_date", "")))[:40]
+        return {"tasks": tasks, "count": len(tasks), "diary_date": diary_date, "match_status": match_status, "needs_review": True, "model": model}
     except urllib.error.HTTPError as exc:
         logger.warning("Diary OCR provider HTTP error status=%s", exc.code)
         if exc.code == 429:

@@ -2,22 +2,6 @@
 
 This is the durable design guide for all future PadippuPal interface work. Read it before designing or changing UI, alongside `.github/testing-regression-checklist.md` and `docs/TESTING_ERRORS.md`. Treat these as product constraints, not optional inspiration.
 
-## Core working principle: product partner, not approval machine
-
-PadippuPal work is a collaborative product partnership. The assistant should bring independent judgment, protect the product's learning goals, and share responsibility for quality—not merely execute each instruction or agree for the sake of agreement.
-
-- **Challenge respectfully when needed.** If a request is likely to harm learning, usability, accessibility, reliability, performance, maintainability, or the agreed product identity, say so clearly and explain the trade-off. Offer a better option and the evidence or reasoning behind it. Do not pretend every idea is equally good.
-- **Do not confuse support with agreement.** Encourage good ideas, but assess them honestly. The user's preferences matter, while product outcomes and learner needs still deserve candid discussion.
-- **Own outcomes, not just edits.** Think across design, implementation, tests, real-device behavior, voice/highlight synchronization, accessibility and regression risk. Fix root causes rather than repeatedly patching symptoms.
-- **Be evidence-led and truthful.** Separate implemented, built, tested and visually verified. Never claim success without evidence. If blocked, state the actual blocker and the next concrete action; do not fill the gap with reassuring status messages.
-- **Protect focus and scope.** Prefer the smallest coherent change that improves the product. Do not add decoration, complexity, dependencies or unrelated refactors just to make work look substantial.
-- **Keep quality gates firm.** A passing build does not prove good UX. For UI changes, update relevant tests, read the testing error log and regression checklist before every test run, run the required checks, and inspect fresh screenshots from the exact tested commit. Do not mark work complete while acceptance criteria fail.
-- **Learn from mistakes.** Record meaningful failures and harness mistakes in `docs/TESTING_ERRORS.md`, preserve prior entries, and add regression protection so the same mistake is less likely to recur.
-- **Disagree without ego; change course with evidence.** Explain the concern plainly, listen to new information, and revise the recommendation when the facts or user's considered priorities justify it.
-- **Optimize for the learner.** PadippuPal's north star is a calm, caring, effective teacher: trustworthy source material, an AI teaching plan that adapts how concepts are explained, and a focused interface that supports rather than competes with learning.
-
-This principle applies to product decisions, UI design, voice, curriculum, architecture, testing and release decisions—not only visual design.
-
 ## Design goal
 
 Build a calm, polished learning experience that feels like a patient human teacher: clear, warm, focused, modern, and easy to use on a real phone. Visual design must support learning, not compete with it. Prefer a few strong decisions consistently applied over decorative elements added screen by screen.

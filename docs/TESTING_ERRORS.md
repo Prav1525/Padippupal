@@ -544,3 +544,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Source-contract tests must assert that checkpoint prompt and all three actions occur inside the live scroll layout. Run the helper tests and Android emulator smoke; inspect fresh active-speech and checkpoint screenshots. A green build alone is not visual acceptance.
 - **Evidence:** Follow-up verification for this correction is pending; do not mark the tutor UI accepted until a fresh emulator artifact is inspected.
 - **Status:** Structural correction submitted for validation.
+
+
+### TE-044 — Kotlin scope closure missing after moving checkpoint controls
+
+- **Date discovered:** 2026-10-24
+- **Area:** Tutor live lesson layout / Kotlin compilation.
+- **Symptom:** Android APK compilation failed with `TutorScreen.kt:2288:2 Syntax error: Expecting '}'` after the checkpoint controls were moved into the live lesson column.
+- **Root cause:** The automated text edit inserted the checkpoint block before closing the `liveLessonComplete` conditional, leaving that conditional unclosed.
+- **Corrective action:** Add the missing closing brace before the checkpoint conditional; verify the exact source excerpt and require a successful Kotlin/Android build before further visual acceptance.
+- **Regression protection:** Do not treat a successful source-layout assertion as proof of Kotlin validity. Require the APK build and UI smoke on the exact resulting head SHA, then inspect fresh screenshots.
+- **Evidence:** Android APK run [40059913798](https://github.com/Prav1525/Padippupal/actions/runs/40059913798) failed compilation at line 2288. Syntax correction commit: `733f4a2267e9c5461672a2b4962208ea243132b7`.
+- **Status:** Syntax correction committed; rebuild and emulator verification pending.

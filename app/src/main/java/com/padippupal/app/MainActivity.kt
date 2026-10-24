@@ -25,14 +25,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import java.util.UUID
 
-private val Green=Color(0xFF24734B)
-private val Deep=Color(0xFF173D2A)
-private val Mint=Color(0xFFE5F5E9)
-private val Paper=Color(0xFFF7F9F5)
-private val Grey=Color(0xFF718075)
+private val Green=Color(0xFF4169E1)
+private val Deep=Color(0xFF172033)
+private val Mint=Color(0xFFEAF0FF)
+private val Paper=Color(0xFFFFFFFF)
+private val Grey=Color(0xFF64748B)
 private val Yellow=Color(0xFFFFD86B)
 private val Peach=Color(0xFFFFE9D9)
-private val Lilac=Color(0xFFEDE8FF)
+private val Lilac=Color(0xFFEAF0FF)
 
 class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState)
@@ -42,7 +42,7 @@ class MainActivity:ComponentActivity(){
  setContent{PadippuPalApp()}
  }
 }
-private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESSON,QUESTIONS,PDF,EXAM_MASTER,SETUP}
+private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,LESSON_SETUP,TUTOR,SCAN,LESSON,QUESTIONS,PDF,EXAM_MASTER,SETUP}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun PadippuPalApp(){
@@ -65,11 +65,11 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
  var lesson by remember{mutableStateOf("Crop Production and Management")}
  var done by remember{mutableStateOf(setOf<String>())}
  val tamil=language=="தமிழ்"
- MaterialTheme(colorScheme = lightColorScheme(primary = Green, onPrimary = Color.White, secondary = Color(0xFFD8C08A), onSecondary = Deep, background = Paper, surface = Color(0xFFFFFDF8), onSurface = Deep, surfaceVariant = Color(0xFFECE8DE), onSurfaceVariant = Grey, outline = Color(0xFFD9D3C6))) {
+ MaterialTheme(colorScheme = lightColorScheme(primary = Green, onPrimary = Color.White, secondary = Color(0xFFD8C08A), onSecondary = Deep, background = Paper, surface = Color(0xFFFFFFFF), onSurface = Deep, surfaceVariant = Color(0xFFE2E8F0), onSurfaceVariant = Grey, outline = Color(0xFFDCE3ED))) {
   Scaffold(
     containerColor = Paper,
     topBar = {
-      if (page !in listOf(Page.TUTOR, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.EXAM_MASTER, Page.SETUP)) {
+      if (page !in listOf(Page.TUTOR, Page.LESSON_SETUP, Page.SCAN, Page.LESSON, Page.QUESTIONS, Page.PDF, Page.EXAM_MASTER, Page.SETUP)) {
         TopAppBar(
           title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -134,6 +134,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
       Page.PLANNER -> PlannerScreen(profileId = profileId, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.PROFILE -> Profile(name, grade, board, medium, language, { page = Page.SETUP }, Modifier.padding(padding))
       Page.CURRICULUM -> CurriculumConnectionScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
+      Page.LESSON_SETUP -> TutorScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, appLanguage = language, studentName = name, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding), setupOnly = true, onStartTeaching = { page = Page.TUTOR })
       Page.TUTOR -> TutorScreen(grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, appLanguage = language, studentName = name, onBack = { page = Page.HOME }, modifier = Modifier.padding(padding))
       Page.SCAN -> DiaryScanScreen(profileId = profileId, grade = grade.toIntOrNull() ?: 6, board = board, medium = medium, language = language, onBack = { page = Page.HOME }, onSaved = { page = Page.PLANNER })
       Page.LESSON -> Lesson(lesson, { page = Page.QUESTIONS }, { page = Page.SUBJECTS })
@@ -146,7 +147,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
  }
 }
 
-@Composable private fun Logo(size:Int){Box(Modifier.size(size.dp).background(Deep,RoundedCornerShape((size/3).dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.MenuBook,null,tint=Color(0xFFF6F2E9),modifier=Modifier.size((size*.62f).dp));Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size((size*.25f).dp).background(Color(0xFFD8C08A),CircleShape),contentAlignment=Alignment.Center){Icon(Icons.Default.AutoAwesome,null,tint=Deep,modifier=Modifier.size((size*.15f).dp))}}}
+@Composable private fun Logo(size:Int){Box(Modifier.size(size.dp).background(Deep,RoundedCornerShape((size/3).dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.MenuBook,null,tint=Color(0xFFF8FAFC),modifier=Modifier.size((size*.62f).dp));Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size((size*.25f).dp).background(Color(0xFFD8C08A),CircleShape),contentAlignment=Alignment.Center){Icon(Icons.Default.AutoAwesome,null,tint=Deep,modifier=Modifier.size((size*.15f).dp))}}}
 @Composable private fun Home(tamil:Boolean,name:String,done:Set<String>,go:(Page)->Unit,modifier:Modifier=Modifier){
  LazyColumn(
    modifier.fillMaxSize().background(Paper).padding(horizontal=22.dp),
@@ -167,7 +168,7 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
    }
    item {
      Card(
-       Modifier.fillMaxWidth().clickable { go(Page.TUTOR) },
+       Modifier.fillMaxWidth().clickable { go(Page.LESSON_SETUP) },
        shape=RoundedCornerShape(24.dp),
        colors=CardDefaults.cardColors(containerColor=Deep),
        elevation=CardDefaults.cardElevation(defaultElevation=0.dp)
@@ -185,11 +186,11 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
          Text(if(tamil) "புரியும் வரை கற்போம்." else "Let’s make it\nmake sense.",fontSize=29.sp,lineHeight=33.sp,fontWeight=FontWeight.Normal,fontFamily=androidx.compose.ui.text.font.FontFamily.Serif,color=Color.White)
          Text(if(tamil) "கேள், பேசு, உன் வேகத்தில் கற்றுக்கொள்." else "Ask in English, Tamil or Tanglish. Learn at your own pace, with gentle explanations.",fontSize=13.sp,lineHeight=20.sp,color=Color.White.copy(alpha=.82f))
          Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-           Row(Modifier.background(Color(0xFF315447),RoundedCornerShape(50)).padding(horizontal=11.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+           Row(Modifier.background(Color(0xFF263A73),RoundedCornerShape(50)).padding(horizontal=11.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
              Icon(Icons.Default.GraphicEq,null,tint=Color(0xFFD8C08A),modifier=Modifier.size(16.dp))
              Text(if(tamil) "குரல் அல்லது உரை" else "Voice or text",fontSize=11.sp,color=Color.White,fontWeight=FontWeight.Medium)
            }
-           Text(if(tamil) "தொடங்கு  →" else "Begin lesson  →",fontSize=13.sp,color=Color(0xFFE8D6A9),fontWeight=FontWeight.SemiBold)
+           Text(if(tamil) "தொடங்கு  →" else "Begin lesson  →",fontSize=13.sp,color=Color(0xFFDCE7FF),fontWeight=FontWeight.SemiBold)
          }
        }
      }
@@ -206,20 +207,20 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,TUTOR,SCAN,LESS
    item {
      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(11.dp)) {
        Tile("My subjects","Chapters & concepts",Icons.Default.MenuBook,Mint,Modifier.weight(1f)){go(Page.SUBJECTS)}
-       Tile("Study planner","A plan that fits",Icons.Default.CalendarMonth,Color(0xFFF0E7D6),Modifier.weight(1f)){go(Page.PLANNER)}
+       Tile("Study planner","A plan that fits",Icons.Default.CalendarMonth,Color(0xFFF1F5F9),Modifier.weight(1f)){go(Page.PLANNER)}
      }
    }
    item {
      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(11.dp)) {
        Tile("Scan homework","Turn diary notes into a plan",Icons.Default.DocumentScanner,Color(0xFFF2E4E0),Modifier.weight(1f)){go(Page.SCAN)}
-       Tile("Exam practice","Build a question paper",Icons.Default.Quiz,Color(0xFFE6E9F4),Modifier.weight(1f)){go(Page.EXAM_MASTER)}
+       Tile("Exam practice","Build a question paper",Icons.Default.Quiz,Color(0xFFEAF0FF),Modifier.weight(1f)){go(Page.EXAM_MASTER)}
      }
    }
    item {
      Card(
        Modifier.fillMaxWidth().clickable { go(Page.CURRICULUM) },
        shape=RoundedCornerShape(19.dp),
-       colors=CardDefaults.cardColors(containerColor=Color(0xFFECEFE5)),
+       colors=CardDefaults.cardColors(containerColor=Color(0xFFF1F5F9)),
        elevation=CardDefaults.cardElevation(defaultElevation=0.dp)
      ) {
        Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=15.dp),verticalAlignment=Alignment.CenterVertically) {

@@ -14,6 +14,7 @@ import java.io.File
 import android.os.Handler
 import android.os.Build
 import android.os.Looper
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -77,16 +78,25 @@ import java.util.Locale
 import java.time.LocalDate
 import java.util.concurrent.Executors
 
-private val TutorGreen = Color(0xFF24734B)
-private val TutorDeep = Color(0xFF173D2A)
-private val TutorGrey = Color(0xFF718075)
-private val TutorPaper = Color(0xFFF7F9F5)
+// Cool, high-contrast palette: midnight navy + electric teal for a modern learning interface.
+private val TutorGreen = Color(0xFF4169E1)
+private val TutorDeep = Color(0xFF172033)
+private val TutorGrey = Color(0xFF64748B)
+private val TutorPaper = Color(0xFFFFFFFF)
+private val TutorNight = Color(0xFF0B1220)
+private val TutorMutedOnNight = Color(0xFFB8C7D9)
+private val TutorAccentSoft = Color(0xFFEAF0FF)
 private val tutorExecutor = Executors.newSingleThreadExecutor()
 private val tutorMainHandler = Handler(Looper.getMainLooper())
 
 
 private data class TutorMessage(val role: String, val content: String, val visualLesson: JSONObject? = null, val interactiveLesson: JSONObject? = null)
 private data class TutorSource(val title: String, val url: String)
+
+private fun normalizedCheckpoint(raw: String?): String {
+    val value = raw.orEmpty().trim()
+    return if (value.isBlank() || value.equals("null", ignoreCase = true) || value.equals("undefined", ignoreCase = true) || value == "{}" || value == "[]") "Does that make sense so far?" else value
+}
 
 private fun cleanTutorDisplayText(raw: String): String {
     return raw
@@ -117,11 +127,14 @@ private fun WordByWordCaption(
     val wordStarts = remember(text) {
         buildList {
             var offset = 0
+            var sentencesInParagraph = 0
             words.forEachIndexed { index, word ->
                 add(offset)
                 offset += word.length
                 if (index < words.lastIndex) {
-                    offset += if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) 2 else 1
+                    val endsSentence = word.endsWith(".") || word.endsWith("?") || word.endsWith("!")
+                    if (endsSentence) sentencesInParagraph += 1
+                    offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1
                 }
             }
         }
@@ -131,14 +144,22 @@ private fun WordByWordCaption(
     val density = LocalDensity.current
     val caption = remember(text, active, currentWordIndex) {
         buildAnnotatedString {
+            var sentencesInParagraph = 0
             words.forEachIndexed { index, pair ->
                 val word = pair
-                if (index > 0) append(if (words[index - 1].endsWith(".") || words[index - 1].endsWith("?") || words[index - 1].endsWith("!")) "\n\n" else " ")
+                if (index > 0) {
+                    val previous = words[index - 1]
+                    val endsSentence = previous.endsWith(".") || previous.endsWith("?") || previous.endsWith("!")
+                    if (endsSentence) sentencesInParagraph += 1
+                    // Keep several sentences together like a natural tutor explanation;
+                    // separate paragraphs only after every third sentence.
+                    append(if (endsSentence && sentencesInParagraph % 3 == 0) "\n\n" else " ")
+                }
                 val start = length
                 append(word)
                 val end = length
                 if (active && index == currentWordIndex.coerceIn(0, (words.size - 1).coerceAtLeast(0))) {
-                    addStyle(SpanStyle(background = Color(0xFFD8E8B7), fontWeight = FontWeight.ExtraBold), start, end)
+                    addStyle(SpanStyle(background = Color(0xFFDCE7FF), fontWeight = FontWeight.ExtraBold), start, end)
                 }
                 addStringAnnotation("word", word.trimEnd(',', '.', ';', ':', '?', '!'), start, end)
             }
@@ -183,6 +204,9 @@ private fun InteractiveLessonLab(
     visualTarget: String = "",
     segmentIndex: Int = 0
 ) {
+    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
+    return
+
     val key = "$chapter $topic $explanation".lowercase()
     val title: String
     val hint: String
@@ -247,8 +271,7 @@ private fun InteractiveLessonLab(
     var positions by remember(key) { mutableStateOf(items.map { Offset(it.x,it.y) }) }
     val motion = rememberInfiniteTransition(label = "lab-motion")
     val moving by motion.animateFloat(0f,1f,infiniteRepeatable(tween(2200),RepeatMode.Reverse),label="moving-particle")
-    Surface(Modifier.fillMaxWidth().padding(top=8.dp), color=Color(0xFFEAF5EE), shape=RoundedCornerShape(18.dp), border=BorderStroke(1.dp,Color(0xFFD1E7D8))) {
-        Column(Modifier.padding(12.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("TOUCH & EXPLORE",color=TutorGreen,fontSize=10.sp,fontWeight=FontWeight.Bold)
@@ -259,8 +282,8 @@ private fun InteractiveLessonLab(
             BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White,RoundedCornerShape(14.dp))) {
                 val w=maxWidth; val h=maxHeight
                 Canvas(Modifier.fillMaxSize()) {
-                    drawLine(Color(0xFFB8D7C3),Offset(size.width*.05f,size.height*.84f),Offset(size.width*.95f,size.height*.84f),2.dp.toPx())
-                    drawCircle(Color(0xFF58A66C),7.dp.toPx(),Offset(size.width*(.10f+.78f*moving),size.height*.84f))
+                    drawLine(Color(0xFFCBD5E1),Offset(size.width*.05f,size.height*.84f),Offset(size.width*.95f,size.height*.84f),2.dp.toPx())
+                    drawCircle(Color(0xFF4169E1),7.dp.toPx(),Offset(size.width*(.10f+.78f*moving),size.height*.84f))
                 }
                 items.forEachIndexed { index, item ->
                     val p=positions[index]
@@ -281,11 +304,11 @@ private fun InteractiveLessonLab(
                         horizontalAlignment=Alignment.CenterHorizontally
                     ) {
                         Surface(
-                            color = if (index in activeVisualIndexes) Color(0xFFDDF4A8) else Color(0xFFF4FAF6),
+                            color = if (index in activeVisualIndexes) Color(0xFFDCE7FF) else Color(0xFFF8FAFC),
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(
                                 if (index in activeVisualIndexes) 2.dp else 1.dp,
-                                if (index in activeVisualIndexes) TutorGreen else Color(0xFFD1E7D8)
+                                if (index in activeVisualIndexes) TutorGreen else Color(0xFFDCE3ED)
                             )
                         ) {
                             Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=25.sp)
@@ -297,12 +320,20 @@ private fun InteractiveLessonLab(
             Text(hint,color=TutorGrey,fontSize=12.sp,lineHeight=16.sp)
             Text("Touch and hold an object, then drag it. Use Reset to start again.",color=TutorGreen,fontSize=10.sp)
         }
-    }
 }
 
 
 @Composable
-private fun ChapterOneMathAnimation(scene: String, title: String, topic: String, caption: String) {
+private fun ChapterOneMathAnimation(
+    scene: String,
+    title: String,
+    topic: String,
+    caption: String,
+    compact: Boolean = false
+) {
+    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
+    return
+
     var stage by remember(scene, title) { mutableIntStateOf(0) }
     LaunchedEffect(scene, title) {
         stage = 0
@@ -318,48 +349,38 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "pattern-pulse"
     )
-    Surface(
-        Modifier.fillMaxWidth().padding(top = 8.dp),
-        color = Color(0xFFEAF5EE),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, Color(0xFFD1E7D8))
-    ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = if (compact) 3.dp else 6.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 9.dp)) {
             Text("WATCH THE PATTERN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text(title, color = TutorDeep, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = TutorDeep, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Bold)
             when (scene) {
-                "number_pattern" -> {
-                    Text("Square numbers grow in a pattern", color = TutorGrey, fontSize = 12.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        val nums = listOf("1", "4", "9", "16", "25")
-                        nums.forEachIndexed { index, number ->
-                            if (index > 0) Text("→", color = TutorGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Column(
-                                Modifier.weight(1f).background(
-                                    if (index < stage + 1) Color(0xFFDDF4A8) else Color.White,
-                                    RoundedCornerShape(10.dp)
-                                ).padding(vertical = 10.dp, horizontal = 2.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                "repeated_ones" -> {
+                    if (!compact) Text("The number stays the same each time", color = TutorGrey, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { index ->
+                            Box(
+                                Modifier.weight(1f).then(if (compact) Modifier.height(38.dp) else Modifier.aspectRatio(1f)).background(
+                                    if (index <= stage) Color(0xFFDCE7FF) else Color.White,
+                                    RoundedCornerShape(12.dp)
+                                ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text(number, color = TutorDeep, fontSize = if (index == stage) (18 * pulse).sp else 17.sp, fontWeight = FontWeight.ExtraBold)
-                                Text(listOf("1²", "2²", "3²", "4²", "5²")[index], color = TutorGreen, fontSize = 10.sp)
+                                Text("1", color = TutorDeep, fontSize = (if (compact) 18f else 22f * if (index == stage) pulse else 1f).sp, fontWeight = FontWeight.ExtraBold)
                             }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        listOf("+3", "+5", "+7", "+9").forEachIndexed { index, gap ->
-                            Text(gap, color = if (index < stage) TutorGreen else TutorGrey, fontSize = 12.sp, fontWeight = if (index < stage) FontWeight.Bold else FontWeight.Normal)
+                    Text("1, 1, 1, 1, 1 …", color = TutorGreen, fontSize = if (compact) 14.sp else 17.sp, fontWeight = FontWeight.Bold)
+                    if (!compact) Text("Each term is 1. The pattern repeats the same number; it does not grow.", color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
+                }
+                "number_pattern" -> {
+                    Text("Numbers can follow a rule", color = TutorGrey, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf("1", "2", "3", "4", "5").forEachIndexed { index, number ->
+                            Column(Modifier.weight(1f).background(if (index <= stage) Color(0xFFDCE7FF) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(number, color = TutorDeep, fontSize = if (index == stage) (18 * pulse).sp else 17.sp, fontWeight = FontWeight.ExtraBold)
+                            }
                         }
                     }
-                    Text(
-                        when (stage) {
-                            0 -> "1 = 1 × 1. Watch the first square number appear."
-                            1 -> "4 − 1 = 3, then 9 − 4 = 5. The gaps are growing."
-                            2 -> "16 − 9 = 7. Each new gap increases by 2."
-                            else -> "Next gap is +9, so 16 + 9 = 25. Five times five is 25!"
-                        },
-                        color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp
-                    )
+                    Text("Look for the rule that connects each number to the next.", color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
                 }
                 "shape_pattern" -> {
                     Text("A repeating unit makes a shape pattern", color = TutorGrey, fontSize = 12.sp)
@@ -368,7 +389,7 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
                         symbols.forEachIndexed { index, symbol ->
                             Box(
                                 Modifier.weight(1f).aspectRatio(1f).background(
-                                    if (index / 3 <= stage) Color(0xFFDDF4A8) else Color.White,
+                                    if (index / 3 <= stage) Color(0xFFDCE7FF) else Color.White,
                                     RoundedCornerShape(7.dp)
                                 ),
                                 contentAlignment = Alignment.Center
@@ -407,7 +428,7 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                         values.forEachIndexed { index, number ->
                             Column(
-                                Modifier.weight(1f).background(if (index <= stage + 1) Color(0xFFDDF4A8) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 12.dp, horizontal = 2.dp),
+                                Modifier.weight(1f).background(if (index <= stage + 1) Color(0xFFDCE7FF) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 12.dp, horizontal = 2.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(number, color = TutorDeep, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
@@ -419,19 +440,23 @@ private fun ChapterOneMathAnimation(scene: String, title: String, topic: String,
                     Text(explanation, color = TutorDeep, fontSize = 13.sp, lineHeight = 18.sp)
                 }
             }
-            Text(caption, color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                repeat(4) { index ->
-                    Box(Modifier.weight(1f).height(3.dp).background(if (index == stage) TutorGreen else Color(0xFFD1E7D8), RoundedCornerShape(3.dp)))
+            if (!compact) {
+                Text(caption, color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    repeat(4) { index ->
+                        Box(Modifier.weight(1f).height(3.dp).background(if (index == stage) TutorGreen else Color(0xFFDCE3ED), RoundedCornerShape(3.dp)))
+                    }
+                    Text("AUTO", color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 }
-                Text("AUTO", color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         }
-    }
 }
 
 @Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String) {
+    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
+    return
+
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
@@ -439,7 +464,11 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val raw = lesson.optJSONArray("objects")
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {
         val topicKey = lesson.optString("topic").lowercase()
-        val mappedScene = if (scene == "pattern_builder" || topicKey.contains("shape")) "shape_pattern" else scene
+        val mappedScene = when {
+            topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+            scene == "pattern_builder" || topicKey.contains("shape") -> "shape_pattern"
+            else -> scene
+        }
         ChapterOneMathAnimation(mappedScene, title, lesson.optString("topic"), caption)
         return
     }
@@ -520,7 +549,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             (label.contains("iron") || label.contains("steel") || label.contains("metal")) &&
                 kotlin.math.sqrt((p.x-positions[0].x)*(p.x-positions[0].x)+(p.y-positions[0].y)*(p.y-positions[0].y)) < .20f
         }
-    Surface(Modifier.fillMaxWidth().padding(top=8.dp), color=Color(0xFFEAF5EE), shape=RoundedCornerShape(18.dp), border=BorderStroke(1.dp, Color(0xFFD1E7D8))) {
+    Surface(Modifier.fillMaxWidth().padding(top=8.dp), color=Color(0xFFF8FAFC), shape=RoundedCornerShape(18.dp), border=BorderStroke(1.dp, Color(0xFFDCE3ED))) {
         Column(Modifier.padding(12.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -548,7 +577,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         "orbit_lab", "day_night", "moon_phase" -> {
                             val center = Offset(size.width*.5f, size.height*.48f)
                             val radius = minOf(size.width, size.height)*.34f
-                            drawCircle(Color(0xFFB9DCC5), radius, center, style=androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                            drawCircle(Color(0xFFCBD5E1), radius, center, style=androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
                             if (scene=="day_night") {
                                 drawCircle(Color(0xFF3C91D6), radius*.55f, center)
                                 drawArc(Color(0xFF23415F), 90f, 180f, true, Offset(center.x-radius*.55f,center.y-radius*.55f), androidx.compose.ui.geometry.Size(radius*1.1f,radius*1.1f))
@@ -564,7 +593,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                             val heights=listOf(.36f,.58f,chartValue)
                             for(i in 0..2) {
                                 val left=size.width*(.18f+i*.28f)
-                                drawRect(Color(0xFF7CB58E),Offset(left,baseY-size.height*heights[i]),androidx.compose.ui.geometry.Size(barWidth,size.height*heights[i]))
+                                drawRect(Color(0xFF6B8DE3),Offset(left,baseY-size.height*heights[i]),androidx.compose.ui.geometry.Size(barWidth,size.height*heights[i]))
                             }
                             drawLine(Color(0xFF578368),Offset(size.width*.08f,baseY),Offset(size.width*.94f,baseY),2.dp.toPx())
                         }
@@ -643,12 +672,12 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         }
                         "symmetry_mirror" -> drawLine(Color(0xFF7F9BFF), Offset(size.width*.5f,0f), Offset(size.width*.5f,size.height), 2.dp.toPx())
                         "area_grid" -> {
-                            for (i in 1..8) drawLine(Color(0xFFE1E9E3),Offset(size.width*i/9f,0f),Offset(size.width*i/9f,size.height),1.dp.toPx())
-                            for (i in 1..4) drawLine(Color(0xFFE1E9E3),Offset(0f,size.height*i/5f),Offset(size.width,size.height*i/5f),1.dp.toPx())
+                            for (i in 1..8) drawLine(Color(0xFFE2E8F0),Offset(size.width*i/9f,0f),Offset(size.width*i/9f,size.height),1.dp.toPx())
+                            for (i in 1..4) drawLine(Color(0xFFE2E8F0),Offset(0f,size.height*i/5f),Offset(size.width,size.height*i/5f),1.dp.toPx())
                         }
                         else -> {
-                            drawLine(Color(0xFFB8D7C3),Offset(size.width*.05f,size.height*.86f),Offset(size.width*.95f,size.height*.86f),2.dp.toPx())
-                            drawCircle(Color(0xFF58A66C),6.dp.toPx(),Offset(size.width*(.1f+.78f*pulse),size.height*.86f))
+                            drawLine(Color(0xFFCBD5E1),Offset(size.width*.05f,size.height*.86f),Offset(size.width*.95f,size.height*.86f),2.dp.toPx())
+                            drawCircle(Color(0xFF4169E1),6.dp.toPx(),Offset(size.width*(.1f+.78f*pulse),size.height*.86f))
                         }
                     }
                 }
@@ -684,7 +713,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                             },
                         horizontalAlignment=Alignment.CenterHorizontally
                     ) {
-                        Surface(color=if(scene=="fraction_builder" && item.name=="1/4") Color(0xFFB9E2C5) else Color(0xFFF4FAF6),shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,Color(0xFFD1E7D8))) {
+                        Surface(color=if(scene=="fraction_builder" && item.name=="1/4") Color(0xFFCBD5E1) else Color(0xFFF8FAFC),shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,Color(0xFFDCE3ED))) {
                             Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=24.sp)
                         }
                         Text(item.name,color=TutorDeep,fontSize=10.sp,maxLines=1)
@@ -741,6 +770,9 @@ private fun chooseLessonVisual(text: String): LessonVisualKind {
 
 @Composable
 private fun DatabaseLessonVisual(lesson: JSONObject) {
+    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
+    return
+
     val array = lesson.optJSONArray("steps")
     val steps = remember(lesson) {
         if (array == null) emptyList() else (0 until array.length()).mapNotNull { array.optJSONObject(it) }
@@ -757,9 +789,9 @@ private fun DatabaseLessonVisual(lesson: JSONObject) {
     val activeIndex = (progress * visibleSteps.size).toInt().coerceIn(0, visibleSteps.lastIndex)
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        color = Color(0xFFEAF5EE),
+        color = Color(0xFFF8FAFC),
         shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+        border = BorderStroke(1.dp, Color(0xFFDCE3ED))
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Text("SEE IT HAPPEN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -768,7 +800,7 @@ private fun DatabaseLessonVisual(lesson: JSONObject) {
                 visibleSteps.forEachIndexed { index, step ->
                     if (index > 0) Text("→", color = TutorGreen, fontSize = 13.sp)
                     Column(
-                        Modifier.weight(1f).background(if (index == activeIndex) Color.White else Color(0xFFDDEDE2), RoundedCornerShape(10.dp)).padding(horizontal = 3.dp, vertical = 7.dp),
+                        Modifier.weight(1f).background(if (index == activeIndex) Color.White else Color(0xFFEAF0FF), RoundedCornerShape(10.dp)).padding(horizontal = 3.dp, vertical = 7.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(step.optString("icon", "✦"), fontSize = 20.sp, maxLines = 1)
@@ -798,9 +830,9 @@ private fun LessonVisual(explanation: String, subject: String) {
     )
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        color = Color(0xFFEAF5EE),
+        color = Color(0xFFF8FAFC),
         shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+        border = BorderStroke(1.dp, Color(0xFFDCE3ED))
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("SEE IT HAPPEN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -888,7 +920,7 @@ private fun SpeakingCaption(text: String, active: Boolean, segmentKey: Int) {
     Text(buildAnnotatedString {
         words.forEachIndexed { index, word ->
             if (index > 0) append(" ")
-            if (active && index == currentWord) withStyle(SpanStyle(background = Color(0xFFD8EACB), color = TutorDeep, fontWeight = FontWeight.Bold)) { append(word) } else append(word)
+            if (active && index == currentWord) withStyle(SpanStyle(background = Color(0xFFEAF0FF), color = TutorDeep, fontWeight = FontWeight.Bold)) { append(word) } else append(word)
         }
     }, color = TutorDeep, fontSize = 16.sp, lineHeight = 24.sp)
 }
@@ -901,7 +933,9 @@ internal fun TutorScreen(
     appLanguage: String,
     studentName: String,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    setupOnly: Boolean = false,
+    onStartTeaching: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val sessionPrefs = remember(context) { context.getSharedPreferences("padippupal_tutor_sessions", 0) }
@@ -931,9 +965,9 @@ internal fun TutorScreen(
         }
         if (restored.isEmpty()) {
             restored.add(TutorMessage("assistant", when (appLanguage) {
-                "Tanglish" -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! Namma onna konjam konjama kathukkalaam. Enna concept purinjukkanum?"
-                "தமிழ்" -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", " + studentName) + "! நிதானமாக ஒவ்வொரு படியாகவும் கற்றுக்கொள்ளலாம். இன்று என்ன புரிந்துகொள்ள வேண்டும்?"
-                else -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! I'm here to help. We'll take it one small step at a time. What would you like to understand today?"
+                "Tanglish" -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! Namma selected topic-a clear-a examples-oda kathukkalaam. Eppo venaalum kelvi kelunga."
+                "தமிழ்" -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", " + studentName) + "! தேர்ந்தெடுத்த தலைப்பை எளிய விளக்கங்களும் எடுத்துக்காட்டுகளும் கொண்டு கற்றுக்கொள்வோம். எப்போது வேண்டுமானாலும் கேள்வி கேளுங்கள்."
+                else -> "Hi" + (if (studentName.isBlank()) "" else ", " + studentName) + "! I'll explain the selected topic clearly with examples. You can ask me questions whenever you need."
             }))
         }
         restored
@@ -944,6 +978,7 @@ internal fun TutorScreen(
     var topic by remember { mutableStateOf(savedSession.optString("topic", "")) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
     var topicMenuExpanded by remember { mutableStateOf(false) }
+    var showLessonSettings by remember(setupOnly) { mutableStateOf(setupOnly) }
     var chapterOptions by remember { mutableStateOf<List<Pair<String, List<String>>>>(emptyList()) }
     var outlineLoading by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
@@ -953,13 +988,23 @@ internal fun TutorScreen(
         mutableStateOf(context.getSharedPreferences("padippupal_settings", 0).getBoolean("prefer_on_device_voice", false))
     }
     var speechActive by remember { mutableStateOf(false) }
+    var speechGeneration by remember { mutableIntStateOf(0) }
+    var speechPlaybackObserved by remember { mutableStateOf(false) }
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
-    var nativeWordTiming by remember { mutableStateOf(false) }
+    // A stopped/replaced TTS utterance may still deliver a late callback. Only the
+    // currently active utterance is allowed to move highlights or advance a lesson.
+    var activeTtsUtteranceId by remember { mutableStateOf("") }
+    // Index in the original displayed segment when device TTS resumes from a cloud
+    // audio failure. Native TTS range offsets are relative to the resumed suffix.
+    var speechWordIndexOffset by remember { mutableIntStateOf(0) }
+    // Some Android TTS engines emit only an initial onRangeStart callback.
+    // Keep a timestamp so elapsed-time highlighting can take over if callbacks stall.
+    var lastNativeRangeAt by remember { mutableLongStateOf(0L) }
     var hostedWordTimings by remember { mutableStateOf<List<Pair<Long, Long>>>(emptyList()) }
     var liveVisualAction by remember { mutableStateOf("") }
     var liveVisualActionType by remember { mutableStateOf("none") }
@@ -1043,7 +1088,7 @@ internal fun TutorScreen(
             speechRecognizer?.destroy()
         }
     }
-    fun loadCurriculumOutline(forSubject: String) {
+    fun loadCurriculumOutline(forSubject: String, attempt: Int = 1) {
         if (forSubject == "General") {
             chapterOptions = emptyList()
             outlineLoading = false
@@ -1096,8 +1141,26 @@ internal fun TutorScreen(
                 }
             }
             tutorMainHandler.post {
-                chapterOptions = result.getOrDefault(emptyList())
-                outlineLoading = false
+                // A cold backend can briefly return an error/empty body while waking.
+                // Retry boundedly instead of presenting a transient network failure as
+                // a valid curriculum with no chapters. Ignore stale results if the
+                // learner has changed subjects while the request was in flight.
+                if (subject != forSubject) return@post
+                val loaded = result.getOrNull().orEmpty()
+                if (loaded.isNotEmpty()) {
+                    chapterOptions = loaded
+                    outlineLoading = false
+                } else if (attempt < 3) {
+                    outlineLoading = true
+                    status = "Reconnecting to the curriculum…"
+                    tutorMainHandler.postDelayed({
+                        if (subject == forSubject) loadCurriculumOutline(forSubject, attempt + 1)
+                    }, 700L * attempt)
+                } else {
+                    chapterOptions = emptyList()
+                    outlineLoading = false
+                    status = "Couldn't load the chapter list. Check your connection and tap Change to try again."
+                }
             }
         }
     }
@@ -1132,12 +1195,12 @@ internal fun TutorScreen(
         if (messages.size == 1 && messages.firstOrNull()?.role == "assistant") {
             val greeting = when (selectedLanguage) {
                 "Tanglish" -> when {
-                    topic.isNotBlank() -> "Seri! Ippo $topic pathi padikkalaam. Indha topic-la enna therinjukkanum?"
+                    topic.isNotBlank() -> "Seri! Ippo $topic-a full-a examples-oda kathukkalaam. Edhaavadhu doubt irundha kelunga."
                     chapter.isNotBlank() -> "$chapter chapter open panniyachu. Endha topic-a first kathukkanum?"
                     else -> "Hi" + (if (studentName.isBlank()) "" else ", $studentName") + "! Namma onna konjam konjama kathukkalaam. Enna concept purinjukkanum?"
                 }
                 "தமிழ்" -> when {
-                    topic.isNotBlank() -> "சரி! இப்போது $topic பற்றி கற்கலாம். இந்தத் தலைப்பில் எதை முதலில் தெரிந்துகொள்ள விரும்புகிறாய்?"
+                    topic.isNotBlank() -> "சரி! இப்போது $topic-ஐ முழுமையாக எடுத்துக்காட்டுகளுடன் கற்போம். ஏதேனும் சந்தேகம் இருந்தால் கேளுங்கள்."
                     chapter.isNotBlank() -> "$chapter அத்தியாயத்தைத் தேர்ந்தெடுத்துள்ளோம். எந்தத் தலைப்பை முதலில் கற்கலாம்?"
                     else -> "வணக்கம்" + (if (studentName.isBlank()) "" else ", $studentName") + "! நிதானமாக ஒவ்வொரு படியாகவும் கற்றுக்கொள்ளலாம். இன்று என்ன புரிந்துகொள்ள வேண்டும்?"
                 }
@@ -1156,6 +1219,9 @@ internal fun TutorScreen(
     val audioPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
 
     fun finishSpeechSegment() {
+        // Invalidate the per-utterance watchdog before invoking progression.
+        activeTtsUtteranceId = ""
+        speechGeneration += 1
         speechActive = false
         val callback = speechCompletion
         speechCompletion = null
@@ -1163,41 +1229,95 @@ internal fun TutorScreen(
     }
 
     DisposableEffect(context) {
-        val engine = TextToSpeech(context) { result ->
-            tutorMainHandler.post { voiceReady = result == TextToSpeech.SUCCESS }
+        // A third-party or misconfigured TTS service can throw synchronously while
+        // TextToSpeech binds to it. Never let an optional voice engine crash the
+        // entire tutor screen; report the failure and keep the lesson UI usable.
+        val engine = try {
+            TextToSpeech(context) { result ->
+                tutorMainHandler.post {
+                    voiceReady = result == TextToSpeech.SUCCESS
+                    if (result != TextToSpeech.SUCCESS) {
+                        status = "Voice engine could not initialize. Check Android text-to-speech settings and try again."
+                    }
+                }
+            }
+        } catch (error: SecurityException) {
+            voiceReady = false
+            status = "Voice engine could not initialize. Check Android text-to-speech settings and try again."
+            null
+        } catch (error: RuntimeException) {
+            voiceReady = false
+            status = "Voice engine could not initialize. Check Android text-to-speech settings and try again."
+            null
         }
-        engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+        if (engine != null) engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                tutorMainHandler.post { val callback = speechStartCallback; speechStartCallback = null; callback?.invoke() }
+                tutorMainHandler.post {
+                    if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
+                    speechPlaybackObserved = true
+                    val callback = speechStartCallback
+                    speechStartCallback = null
+                    callback?.invoke()
+                }
             }
             override fun onDone(utteranceId: String?) {
-                tutorMainHandler.post { finishSpeechSegment() }
+                tutorMainHandler.post {
+                    if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
+                    activeTtsUtteranceId = ""
+                    finishSpeechSegment()
+                }
             }
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                 if (Build.VERSION.SDK_INT >= 26) {
                     tutorMainHandler.post {
+                        if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
                         val index = speechWordStarts.indexOfLast { it <= start }.coerceAtLeast(0)
-                        liveWordIndex = index
-                        nativeWordTiming = true
+                        speechPlaybackObserved = true
+                        liveWordIndex = speechWordIndexOffset + index
+                        lastNativeRangeAt = System.currentTimeMillis()
                     }
                 }
             }
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
-                tutorMainHandler.post { speechActive = false }
+                tutorMainHandler.post {
+                    if (utteranceId != activeTtsUtteranceId || !speechActive) return@post
+                    activeTtsUtteranceId = ""
+                    // A failed utterance must not be treated as completed speech:
+                    // doing so auto-advances the live lesson and skips its teaching.
+                    speechActive = false
+                    speechStartCallback = null
+                    speechCompletion = null
+                    speechGeneration += 1
+                    if (liveLessonActive) {
+                        livePaused = true
+                        status = "Voice playback failed. Check the selected speech engine, then tap Resume to retry this step."
+                    } else {
+                        status = "Voice playback failed. Check the selected speech engine and try again."
+                    }
+                }
             }
         })
         ttsState.value = engine
         onDispose {
-            engine.stop()
-            engine.shutdown()
+            runCatching { engine?.stop() }
+            runCatching { engine?.shutdown() }
             ttsState.value = null
             audioPlayer.value?.release()
             audioPlayer.value = null
         }
     }
 
-    fun speakWithDeviceTts(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
+    fun speakWithDeviceTts(
+        text: String,
+        onStarted: (() -> Unit)? = null,
+        onFinished: (() -> Unit)? = null,
+        initWaitStartedAt: Long = SystemClock.elapsedRealtime()
+    ) {
+        // Reset observations from a failed hosted-audio attempt before observing
+        // the device engine's own start/completion lifecycle.
+        speechPlaybackObserved = false
+        activeTtsUtteranceId = ""
         speechStartCallback = onStarted
         speechCompletion = onFinished
         status = if (preferOnDeviceVoice) {
@@ -1205,26 +1325,131 @@ internal fun TutorScreen(
         } else {
             "Natural voice unavailable; using this phone's TTS engine."
         }
-        val engine = ttsState.value ?: run { finishSpeechSegment(); return }
-        val candidateLocales = when (selectedLanguage) {
-            "Tanglish" -> listOf(Locale("en", "IN"), Locale.US)
-            "தமிழ்" -> listOf(Locale("ta", "IN"))
-            else -> listOf(Locale("en", "IN"), Locale.US)
+        val engine = ttsState.value
+        // TextToSpeech(context) is asynchronous. A hosted-TTS quota failure can
+        // send us to this fallback before Android has bound its TTS service.
+        // Querying availableLanguages before onInit completes returns no locale
+        // and falsely reports that the phone has no voice. Wait briefly for the
+        // engine to become ready; never treat a not-yet-bound engine as a finished
+        // utterance (which would skip the student's lesson segment).
+        if (!voiceReady || engine == null) {
+            val elapsed = SystemClock.elapsedRealtime() - initWaitStartedAt
+            if (elapsed < 8_000L) {
+                val generation = speechGeneration
+                status = "Preparing this phone's voice…"
+                tutorMainHandler.postDelayed({
+                    if (speechActive && speechGeneration == generation) {
+                        speakWithDeviceTts(text, onStarted, onFinished, initWaitStartedAt)
+                    }
+                }, 250L)
+            } else {
+                speechStartCallback = null
+                speechCompletion = null
+                speechActive = false
+                speechGeneration += 1
+                if (liveLessonActive) livePaused = true
+                status = "The phone's speech engine did not finish starting. Check Android text-to-speech settings, then tap Resume to retry this step."
+            }
+            return
         }
-        val locale = candidateLocales.firstOrNull { engine.isLanguageAvailable(it) >= TextToSpeech.LANG_AVAILABLE }
+        // Prefer a natural British English voice when installed, then Indian
+        // English and US English. Do not assume those three are the only English
+        // locales a device engine can provide: Android engines may expose en-AU,
+        // en-CA, or another downloaded English voice.
+        val preferredLocales = when (selectedLanguage) {
+            "Tanglish" -> listOf(Locale("en", "IN"), Locale.UK, Locale.US)
+            "தமிழ்" -> listOf(Locale("ta", "IN"))
+            else -> listOf(Locale.UK, Locale("en", "IN"), Locale.US)
+        }
+        val requiredLanguage = if (selectedLanguage == "தமிழ்") "ta" else "en"
+        val installedLocales = engine.availableLanguages
+            .orEmpty()
+            .filter { it.language.equals(requiredLanguage, ignoreCase = true) }
+            .sortedBy {
+                when {
+                    it == Locale.UK -> 0
+                    it == Locale("en", "IN") -> 1
+                    it == Locale.US -> 2
+                    else -> 3
+                }
+            }
+        val candidateLocales = (preferredLocales + installedLocales).distinct()
+        val locale = candidateLocales.firstOrNull {
+            engine.isLanguageAvailable(it) >= TextToSpeech.LANG_AVAILABLE
+        }
         if (locale == null) {
             status = if (selectedLanguage == "தமிழ்") {
                 "This selected voice engine has no Tamil voice. Choose Tanglish or install a Tamil-capable engine."
             } else {
-                "No compatible English voice is available in the selected phone TTS engine."
+                "No compatible English voice is available in the selected phone TTS engine. Install an English voice, then tap Resume to retry this step."
             }
-            finishSpeechSegment()
+            // Do not call finishSpeechSegment here: its completion callback would
+            // skip every segment without audio and can make the whole lesson vanish.
+            speechStartCallback = null
+            speechCompletion = null
+            speechActive = false
+            if (liveLessonActive) livePaused = true
+            speechGeneration += 1
             return
         }
         engine.language = locale
         engine.setSpeechRate(0.76f)
         engine.setPitch(1.02f)
-        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "padippupal-tutor")
+        val utteranceId = "padippupal-tutor-$speechGeneration"
+        activeTtsUtteranceId = utteranceId
+        val result = engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+        if (result == TextToSpeech.ERROR) {
+            activeTtsUtteranceId = ""
+            speechActive = false
+            speechStartCallback = null
+            speechCompletion = null
+            speechGeneration += 1
+            if (liveLessonActive) livePaused = true
+            status = "The phone's speech engine rejected this step. Check Android text-to-speech settings, then tap Resume to retry."
+        }
+    }
+
+    fun scheduleSpeechCompletionWatchdog(generation: Int, text: String) {
+        val startedAt = SystemClock.elapsedRealtime()
+        val estimatedSpeechMs = (Regex("\\S+").findAll(text).count() * 280L).coerceIn(4000L, 30000L)
+        val hardDeadlineMs = (estimatedSpeechMs + 25000L).coerceAtMost(55000L)
+        val check = object : Runnable {
+            override fun run() {
+                if (generation != speechGeneration || !speechActive) return
+                // A paused MediaPlayer is intentionally not completion. Re-check
+                // after the learner resumes instead of advancing while paused.
+                if (liveLessonActive && livePaused) {
+                    tutorMainHandler.postDelayed(this, 750L)
+                    return
+                }
+                val player = audioPlayer.value
+                val playerPlaying = runCatching { player?.isPlaying == true }.getOrDefault(false)
+                val playerReachedEnd = player != null && runCatching {
+                    !player.isPlaying && player.duration > 0 && player.currentPosition >= player.duration - 500
+                }.getOrDefault(false)
+                val ttsSpeaking = runCatching { ttsState.value?.isSpeaking == true }.getOrDefault(false)
+                if (playerPlaying || ttsSpeaking) speechPlaybackObserved = true
+                val elapsed = SystemClock.elapsedRealtime() - startedAt
+                val ttsFinishedWithoutMedia = player == null && !ttsSpeaking
+                if (speechPlaybackObserved && (playerReachedEnd || ttsFinishedWithoutMedia) && elapsed >= estimatedSpeechMs) {
+                    // Recover only after playback was observed and the engine now
+                    // reports it stopped; never skip merely because start was delayed.
+                    finishSpeechSegment()
+                    return
+                }
+                if (elapsed >= hardDeadlineMs && !speechPlaybackObserved) {
+                    speechActive = false
+                    speechStartCallback = null
+                    speechCompletion = null
+                    if (liveLessonActive) livePaused = true
+                    status = "Voice playback did not start. Tap Resume to retry this step."
+                    speechGeneration += 1
+                    return
+                }
+                tutorMainHandler.postDelayed(this, 750L)
+            }
+        }
+        tutorMainHandler.postDelayed(check, 1000L)
     }
 
     fun speak(text: String, onStarted: (() -> Unit)? = null, onFinished: (() -> Unit)? = null) {
@@ -1232,9 +1457,14 @@ internal fun TutorScreen(
         // Gemini requests/players, which can sound like a stuck repeating tutor.
         if (speechActive || text.isBlank()) return
         speechActive = true
+        speechGeneration += 1
+        speechPlaybackObserved = false
+        val generation = speechGeneration
+        scheduleSpeechCompletionWatchdog(generation, text)
+        speechWordIndexOffset = 0
         speechWordStarts = Regex("\\S+").findAll(text).map { it.range.first }.toList()
         liveWordIndex = 0
-        nativeWordTiming = false
+        lastNativeRangeAt = 0L
         hostedWordTimings = emptyList()
         speechStartCallback = onStarted ?: { if (liveLessonActive) liveCaption = text }
         speechCompletion = onFinished
@@ -1304,14 +1534,51 @@ internal fun TutorScreen(
                                 finishSpeechSegment()
                             }
                             player.setOnErrorListener { failedPlayer, _, _ ->
+                                // Continue at the current spoken word instead of replaying
+                                // the entire segment after a mid-playback decoder/audio error.
+                                val positionMs = runCatching { failedPlayer.currentPosition }.getOrDefault(0).toLong()
+                                val durationMs = runCatching { failedPlayer.duration }.getOrDefault(0).toLong()
+                                val words = Regex("\\S+").findAll(text).map { it.value }.toList()
+                                val nextWordIndex = if (words.isEmpty() || positionMs <= 0L) {
+                                    0
+                                } else if (hostedWordTimings.isNotEmpty()) {
+                                    hostedWordTimings.indexOfLast { it.first <= positionMs }
+                                        .coerceIn(0, words.lastIndex)
+                                } else if (durationMs > 0L) {
+                                    val weights = words.map { word ->
+                                        word.trimEnd(',', '.', ';', ':', '?', '!').length.coerceAtLeast(1).toFloat() +
+                                            if (word.endsWith(",") || word.endsWith(";") || word.endsWith(":")) 1.8f
+                                            else if (word.endsWith(".") || word.endsWith("?") || word.endsWith("!")) 3.2f else 0f
+                                    }
+                                    val targetWeight = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) * weights.sum().coerceAtLeast(1f)
+                                    var accumulated = 0f
+                                    var index = 0
+                                    while (index < weights.lastIndex && accumulated + weights[index] < targetWeight) {
+                                        accumulated += weights[index]
+                                        index++
+                                    }
+                                    index
+                                } else {
+                                    0
+                                }
                                 failedPlayer.release()
                                 if (audioPlayer.value === failedPlayer) audioPlayer.value = null
                                 audioFile.delete()
-                                speakWithDeviceTts(text, onStarted, onFinished)
+                                val remainingText = words.drop(nextWordIndex).joinToString(" ")
+                                if (remainingText.isBlank()) {
+                                    finishSpeechSegment()
+                                } else {
+                                    speechWordIndexOffset = nextWordIndex
+                                    speechWordStarts = Regex("\\S+").findAll(remainingText).map { it.range.first }.toList()
+                                    hostedWordTimings = emptyList()
+                                    liveWordIndex = nextWordIndex
+                                    speakWithDeviceTts(remainingText, onStarted, onFinished)
+                                }
                                 true
                             }
                             player.prepare()
                             player.start()
+                            speechPlaybackObserved = true
                             val startedCallback = speechStartCallback
                             speechStartCallback = null
                             startedCallback?.invoke()
@@ -1333,20 +1600,44 @@ internal fun TutorScreen(
 
     fun playLiveSegment(index: Int) {
         if (!liveLessonActive || livePaused) return
-        if (index >= liveSegments.size) { liveLessonActive = false; status = "Live lesson complete."; return }
+        if (index >= liveSegments.size) {
+            // Keep the completed explanation in chat history so the learner can reread it
+            // and follow up after playback; otherwise it vanishes when the full-screen player closes.
+            val completedLesson = liveCaption.trim()
+            if (completedLesson.isNotBlank() && messages.none { it.role == "assistant" && it.content == completedLesson }) {
+                messages.add(TutorMessage("assistant", completedLesson))
+            }
+            liveLessonActive = false
+            livePaused = false
+            awaitingUnderstanding = false
+            currentCheckpoint = ""
+            status = "Live lesson complete."
+            return
+        }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        currentCheckpoint = if ((index + 1) % 2 == 0) segment.optString("checkpoint").trim().ifBlank { "Does that make sense so far?" } else ""
+        // Normalize nullable API data before it enters UI state; optString may yield literal "null".
+        // Complete-lesson mode never interrupts playback with per-segment feedback.
+        currentCheckpoint = ""
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
         status = "Preparing segment ${index + 1} of ${liveSegments.size}…"
         val words = segment.optString("spoken_text").trim()
         if (words.isBlank()) { playLiveSegment(index + 1); return }
-        // Some hosted voice paths do not invoke onStarted; do not leave loading text over audio.
+        // Publish the full lesson before starting audio. Hosted audio can finish or fall
+        // back without reliably delivering onStarted; initialize the caption before playback.
+        // The word index still advances only with speech.
+        liveCaption = words
+        liveWordIndex = 0
+        liveVisualAction = visualCue
+        liveVisualActionType = action?.optString("type", "none") ?: "none"
+        liveVisualTarget = action?.optString("target", "").orEmpty()
+        liveSegmentIndex = index
         status = "Playing segment ${index + 1} of ${liveSegments.size}…"
         speak(words, onStarted = {
-            // Display the exact text being spoken so word highlighting matches the audio.
+            // Audio has actually started: keep the exact same segment caption so
+            // inline highlighting follows the spoken words rather than a separate overlay.
             liveCaption = words
             liveWordIndex = 0
             liveVisualAction = visualCue
@@ -1373,12 +1664,22 @@ internal fun TutorScreen(
         tutorExecutor.execute {
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
-                require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
+                require(base.startsWith("https://") || (BuildConfig.DEBUG && base == "http://10.0.2.2:8765")) { "The secure PadippuPal API URL is not configured." }
+                val allOnesTopic = topic.equals("All 1s", ignoreCase = true) ||
+                    topic.equals("All ones", ignoreCase = true) ||
+                    topic.equals("All one's", ignoreCase = true)
+                val topicGuardrail = if (allOnesTopic) {
+                    " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
+                } else ""
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
-                    .put("message", "Teach this as a patient primary-school teacher. Begin by naming chapter " + chapter + " and topic " + topic + ". Split the explanation into small modules, one idea per module. Each module should use only 2-3 short spoken sentences, simple child-friendly language, and one familiar example where useful. Avoid long paragraphs, lists read aloud, and rushing. Put a natural pause between modules. End suitable modules with one simple understanding-check question and include a supportive checkpoint. Stay grounded only in retrieved textbook passages.").put("max_segments", 5)
+                    .put("message", lessonPrompt).put("max_segments", 6)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
-                connection.requestMethod = "POST"; connection.connectTimeout = 8000; connection.readTimeout = 50000
+                // The backend may retry Gemini once after schema validation; its two 45s
+                // upstream attempts can exceed 50s in total. Keep the UI waiting for the
+                // bounded backend response instead of reporting a false client timeout.
+                connection.requestMethod = "POST"; connection.connectTimeout = 8000; connection.readTimeout = 120000
                 connection.setRequestProperty("Accept", "application/json"); connection.setRequestProperty("Content-Type", "application/json; charset=utf-8"); connection.doOutput = true
                 try {
                     connection.outputStream.use { it.write(body.toString().toByteArray(StandardCharsets.UTF_8)) }
@@ -1391,13 +1692,36 @@ internal fun TutorScreen(
                     val array = response.optJSONArray("segments") ?: JSONArray()
                     val lessonSegments = (0 until array.length()).mapNotNull { array.optJSONObject(it) }
                     if (lessonSegments.isEmpty()) throw IllegalStateException("No textbook-backed lesson segments were returned.")
-                    // Orient the learner before the curriculum lesson begins.
-                    val opening = JSONObject()
-                        .put("id", "lesson-opening")
-                        .put("spoken_text", "Today, we are going to learn the chapter $chapter, focusing on $topic.")
-                        .put("caption_text", "Today, we are going to learn the chapter $chapter, focusing on $topic.")
+                    // Fail closed on the device too: a hosted API may be on an older
+                    // deployment, so never let an unrelated segment reach speech playback.
+                    if (topic.equals("All 1s", ignoreCase = true) ||
+                        topic.equals("All ones", ignoreCase = true) ||
+                        topic.equals("All one's", ignoreCase = true)) {
+                        val validationError = AllOnesTopicValidator.failureReason(
+                            lessonSegments.map { segment ->
+                                segment.optString("spoken_text") to segment.optString("caption_text")
+                            }
+                        )
+                        if (validationError != null) {
+                            throw IllegalStateException(
+                                "The lesson content did not stay on All 1s ($validationError). Please try again; no incorrect lesson was started."
+                            )
+                        }
+                    }
+                    // The API segments are transport chunks, not separate learner-facing steps.
+                    // Join them into one caption/audio response so no checkpoint interrupts the explanation.
+                    val completeText = lessonSegments.map { it.optString("spoken_text").trim() }
+                        .filter { it.isNotBlank() }.joinToString(" ")
+                    if (completeText.length < 220) {
+                        throw IllegalStateException("The lesson was too short to explain the selected topic completely. Please try again.")
+                    }
+                    val completeLesson = JSONObject()
+                        .put("id", "complete-lesson")
+                        .put("spoken_text", completeText)
+                        .put("caption_text", completeText)
                         .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-                    listOf(opening) + lessonSegments
+                        .put("checkpoint", JSONObject.NULL)
+                    listOf(completeLesson)
                 } finally { connection.disconnect() }
             }
             tutorMainHandler.post {
@@ -1463,7 +1787,7 @@ internal fun TutorScreen(
         tutorExecutor.execute {
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
-                require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
+                require(base.startsWith("https://") || (BuildConfig.DEBUG && base == "http://10.0.2.2:8765")) { "The secure PadippuPal API URL is not configured." }
                 val history = JSONArray()
                 previous.forEach { (role, content) ->
                     history.put(JSONObject().put("role", role).put("content", content.take(2500)))
@@ -1532,17 +1856,6 @@ internal fun TutorScreen(
         }
     }
 
-    // Starting a selected concept should teach first, not ask the child what to learn.
-    // Only auto-start before the conversation has moved beyond the initial greeting.
-    LaunchedEffect(chapter, topic) {
-        if (topic.isNotBlank() && messages.size == 1 && !loading) {
-            sendMessage(
-                 "START LESSON as a warm, patient teacher. Begin by naming the chapter $chapter and topic $topic in the opening sentence. Say what we are going to learn, then preview 2-3 key ideas. Teach the first concept in small steps with a familiar everyday example, explain why it works, and ask one easy check question at the end. Do not jump straight into a question or write one dense paragraph. Use simple child-friendly spoken language in $selectedLanguage."
-            )
-        }
-    }
-
-    var showLessonSettings by remember { mutableStateOf(false) }
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
     LaunchedEffect(messages.size, loading, liveLessonActive) {
         // The live-teaching panel occupies list index 0 while it is visible.
@@ -1551,16 +1864,19 @@ internal fun TutorScreen(
         if (itemCount > 0) chatListState.animateScrollToItem(itemCount - 1)
     }
 
-    // Hosted audio has no word timestamps, so align to its real playback position
-    // with word-length and punctuation weighting. Android TTS uses exact onRangeStart
-    // character offsets and must not be overwritten by this fallback loop.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, audioPlayer.value, nativeWordTiming) {
-        if (!speechActive || !liveLessonActive || liveCaption.isBlank() || nativeWordTiming) {
+    // Hosted audio uses playback position; Android TTS normally supplies exact
+    // character offsets. Some engines emit only one range callback, however, so
+    // keep a weighted elapsed-time fallback ready and use it whenever native ranges
+    // stop arriving. This prevents a single callback freezing the inline highlight.
+    LaunchedEffect(speechActive, liveCaption, liveLessonActive, livePaused, audioPlayer.value, hostedWordTimings, speechWordIndexOffset) {
+        if (!speechActive || !liveLessonActive || liveCaption.isBlank()) {
             if (!speechActive) liveWordIndex = 0
             return@LaunchedEffect
         }
-        val tokens = Regex("\\S+").findAll(liveCaption).map { it.value }.toList()
-        if (tokens.isEmpty()) return@LaunchedEffect
+        val allTokens = Regex("\\S+").findAll(liveCaption).map { it.value }.toList()
+        if (allTokens.isEmpty()) return@LaunchedEffect
+        val offset = speechWordIndexOffset.coerceIn(0, allTokens.lastIndex)
+        val tokens = allTokens.drop(offset)
         val weights = tokens.map { word ->
             word.trimEnd(',', '.', ';', ':', '?', '!').length.coerceAtLeast(1).toFloat() +
                 if (word.endsWith(",") || word.endsWith(";") || word.endsWith(":")) 1.8f
@@ -1568,7 +1884,12 @@ internal fun TutorScreen(
         }
         val totalWeight = weights.sum().coerceAtLeast(1f)
         var elapsedMs = 0L
-        while (speechActive && liveLessonActive && !nativeWordTiming) {
+        while (speechActive && liveLessonActive) {
+            // Keep the active-word highlight frozen while playback is paused.
+            if (livePaused) {
+                delay(45L)
+                continue
+            }
             val player = audioPlayer.value
             val duration = if (player != null) runCatching { player.duration }.getOrDefault(0).coerceAtLeast(0) else 0
             val position = if (player != null) runCatching { player.currentPosition }.getOrDefault(0).coerceAtLeast(0).toLong() else elapsedMs
@@ -1587,9 +1908,11 @@ internal fun TutorScreen(
                     sum += weights[weightedIndex]
                     weightedIndex++
                 }
-                weightedIndex
+                weightedIndex + offset
             }
-            liveWordIndex = index
+            val nativeRangeIsFresh = lastNativeRangeAt > 0L &&
+                System.currentTimeMillis() - lastNativeRangeAt < 900L
+            if (!nativeRangeIsFresh) liveWordIndex = index
             delay(45L)
             elapsedMs += 45L
         }
@@ -1606,147 +1929,108 @@ internal fun TutorScreen(
         modifier = modifier.fillMaxSize().background(TutorPaper).imePadding(),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Compact, persistent header
+        // Midnight command bar: persistent context and clear lesson controls.
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().background(TutorNight)
+                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TutorDeep) }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("PadippuPal Tutor", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = TutorDeep, maxLines = 1)
+            IconButton(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+            Box(
+                modifier = Modifier.size(38.dp).background(TutorAccentSoft, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.GraphicEq, contentDescription = "PadippuPal AI tutor", tint = TutorNight, modifier = Modifier.size(23.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("PadippuPal", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1)
                 Text(
-                    if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "Class $grade · $board",
-                    fontSize = 11.sp, color = TutorGrey, maxLines = 1
+                    if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "CLASS $grade  ·  $board",
+                    fontSize = 10.sp, color = TutorMutedOnNight, maxLines = 1
                 )
             }
-            Surface(color = if (liveLessonActive) Color(0xFFDDF4A8) else Color(0xFFE7EFE8), shape = CircleShape) {
-                Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Box(Modifier.size(7.dp).background(if (liveLessonActive) TutorGreen else TutorGrey, CircleShape))
-                    Text(if (liveLessonActive) "LIVE" else "READY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TutorDeep)
-                }
-            }
             if (liveLessonActive) {
-                TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
-                    Text(if (livePaused) "Resume" else "Pause", color = TutorGreen, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                    Text(if (livePaused) "Resume" else "Pause", color = TutorAccentSoft, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
-                TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
-                    Text("Stop", color = Color(0xFF9E3D35), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                TextButton(onClick = { stopLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                    Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
+            } else if (!setupOnly) {
+                Button(
+                    onClick = { startLiveLesson() },
+                    enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = TutorGreen, contentColor = TutorNight)
+                ) { Text("▶ Teach", fontWeight = FontWeight.ExtraBold, maxLines = 1) }
             }
         }
 
-        // Selection controls are setup UI, not part of the full-screen live teaching surface.
-        if (!liveLessonActive) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-            color = Color.White,
-            shape = RoundedCornerShape(18.dp),
-            border = BorderStroke(1.dp, Color(0xFFE2EAE3))
-        ) {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            listOf(subject, chapter, topic).filter { it.isNotBlank() && it != "General" }.joinToString("  ·  ").ifBlank { "Choose what to learn" },
-                            color = TutorDeep, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2
-                        )
-                        Text("Explain in $selectedLanguage", color = TutorGrey, fontSize = 10.sp)
-                    }
-                    TextButton(onClick = { showLessonSettings = !showLessonSettings }) {
-                        Text(if (showLessonSettings) "Done" else "Change", color = TutorGreen, fontWeight = FontWeight.SemiBold)
-                    }
-                    Button(
-                        onClick = { if (liveLessonActive) stopLiveLesson() else startLiveLesson() },
-                        enabled = !loading && (liveLessonActive || chapter.isNotBlank() || topic.isNotBlank()),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (liveLessonActive) Color(0xFF9E3D35) else TutorGreen),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text(if (liveLessonActive) "Stop" else "▶ Teach", fontSize = 12.sp)
-                    }
-                }
-                if (showLessonSettings) {
-                    Divider(color = Color(0xFFE7EEE8))
-                    Text("SUBJECT", color = TutorGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("Mathematics", "Science", "English", "Tamil", "Social Science", "Computer Science", "General").forEach { option ->
-                            FilterChip(
-                                selected = subject == option,
-                                onClick = { if (subject != option) subject = option },
-                                label = { Text(option, fontSize = 11.sp) }
-                            )
+        if (showLessonSettings && !liveLessonActive) {
+            Surface(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 6.dp), color = Color.White, shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Set up your lesson", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TutorDeep)
+                    Text("Choose what you want to learn. Your tutor will start when you tap Teach.", fontSize = 12.sp, color = TutorGrey)
+                    Text("Subject", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Mathematics", "Science", "English", "Tamil", "Social Science", "Computer Science").forEach { option ->
+                            FilterChip(selected = subject == option, onClick = { subject = option; chapter = ""; topic = "" }, label = { Text(option, maxLines = 1) })
                         }
                     }
-                    Box(Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { chapterMenuExpanded = true }, modifier = Modifier.fillMaxWidth(),
-                            enabled = !outlineLoading && chapterOptions.isNotEmpty(),
-                            shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
-                        ) {
-                            Text(if (chapter.isBlank()) "Choose chapter" else chapter, modifier = Modifier.weight(1f), color = TutorDeep, maxLines = 2)
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Choose chapter", modifier = Modifier.size(16.dp))
+                    Text("Chapter", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
+                    Box {
+                        OutlinedButton(onClick = { chapterMenuExpanded = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                            Text(chapter.ifBlank { if (outlineLoading) "Loading chapters…" else "Choose chapter" }, maxLines = 1)
                         }
-                        DropdownMenu(expanded = chapterMenuExpanded, onDismissRequest = { chapterMenuExpanded = false }, modifier = Modifier.fillMaxWidth(.9f).heightIn(max = 300.dp)) {
+                        DropdownMenu(expanded = chapterMenuExpanded, onDismissRequest = { chapterMenuExpanded = false }) {
                             chapterOptions.forEachIndexed { index, option ->
-                                DropdownMenuItem(text = { Text("${index + 1}. ${option.first}", maxLines = 2) }, onClick = {
-                                    chapter = option.first; topic = ""; chapterMenuExpanded = false
-                                })
+                                DropdownMenuItem(text = { Text("${index + 1}. ${option.first}") }, onClick = { chapter = option.first; topic = option.second.firstOrNull().orEmpty(); chapterMenuExpanded = false })
                             }
+                            if (!outlineLoading && chapterOptions.isEmpty()) DropdownMenuItem(text = { Text("No chapter list is available") }, onClick = { chapterMenuExpanded = false }, enabled = false)
                         }
                     }
-                    val topicOptions = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
-                    Box(Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { topicMenuExpanded = true }, modifier = Modifier.fillMaxWidth(),
-                            enabled = chapter.isNotBlank() && topicOptions.isNotEmpty(),
-                            shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
-                        ) {
-                            Text(if (topic.isBlank()) "Choose concept" else topic, modifier = Modifier.weight(1f), color = TutorDeep, maxLines = 2)
+                    Text("Topic / concept", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
+                    Box {
+                        OutlinedButton(onClick = { topicMenuExpanded = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                            Text(topic.ifBlank { "Choose concept" }, maxLines = 1)
                         }
-                        DropdownMenu(expanded = topicMenuExpanded, onDismissRequest = { topicMenuExpanded = false }, modifier = Modifier.fillMaxWidth(.9f).heightIn(max = 300.dp)) {
-                            topicOptions.forEachIndexed { index, topicTitle ->
-                                DropdownMenuItem(text = { Text("${index + 1}. $topicTitle", maxLines = 2) }, onClick = {
-                                    topic = topicTitle; topicMenuExpanded = false
-                                })
+                        DropdownMenu(expanded = topicMenuExpanded, onDismissRequest = { topicMenuExpanded = false }) {
+                            val topics = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
+                            topics.forEachIndexed { index, option ->
+                                DropdownMenuItem(text = { Text("${index + 1}. $option") }, onClick = { topic = option; topicMenuExpanded = false })
                             }
+                            if (topics.isEmpty()) DropdownMenuItem(text = { Text("Choose a chapter first") }, onClick = { topicMenuExpanded = false }, enabled = false)
                         }
                     }
-                    if (outlineLoading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = TutorGreen)
-                    else if (chapterOptions.isEmpty() && subject != "General") Text("No chapter list is available yet for this subject and class.", color = TutorGrey, fontSize = 11.sp)
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Language", color = TutorGrey, fontSize = 11.sp)
+                    Text("Language", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("English", "Tanglish", "தமிழ்").forEach { option ->
-                            FilterChip(selected = selectedLanguage == option, onClick = { selectedLanguage = option }, label = { Text(option, fontSize = 11.sp) })
+                            FilterChip(selected = selectedLanguage == option, onClick = { selectedLanguage = option }, label = { Text(option) })
                         }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Read replies aloud", color = TutorDeep, fontSize = 12.sp)
-                            Text("Natural voice when available", color = TutorGrey, fontSize = 10.sp)
-                        }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Read replies aloud", modifier = Modifier.weight(1f), color = TutorDeep, fontSize = 13.sp)
                         Switch(checked = speakReplies, onCheckedChange = { speakReplies = it })
-                        IconButton(onClick = {
-                            val lastAnswer = messages.lastOrNull { it.role == "assistant" }?.content
-                            if (lastAnswer != null) speak(lastAnswer)
-                        }) { Icon(if (speakReplies) Icons.Default.VolumeUp else Icons.Default.VolumeOff, contentDescription = "Speak latest reply", tint = TutorGreen) }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Prefer on-device voice", color = TutorDeep, fontSize = 12.sp)
-                            Text("Uses your selected phone TTS engine (Kokoro if installed)", color = TutorGrey, fontSize = 10.sp)
-                        }
-                        Switch(checked = preferOnDeviceVoice, onCheckedChange = { enabled ->
-                            preferOnDeviceVoice = enabled
-                            context.getSharedPreferences("padippupal_settings", 0).edit().putBoolean("prefer_on_device_voice", enabled).apply()
-                            status = if (enabled) "On-device voice enabled. Select Sherpa-ONNX Kokoro in Android text-to-speech settings." else "Hosted natural voice enabled when available."
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Prefer on-device voice", modifier = Modifier.weight(1f), color = TutorDeep, fontSize = 13.sp)
+                        Switch(checked = preferOnDeviceVoice, onCheckedChange = {
+                            preferOnDeviceVoice = it
+                            context.getSharedPreferences("padippupal_settings", 0).edit().putBoolean("prefer_on_device_voice", it).apply()
                         })
                     }
+                    }
+                    Button(onClick = { if (setupOnly) onStartTeaching() else showLessonSettings = false }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp), enabled = subject.isNotBlank(), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("Done") }
                 }
             }
         }
 
-        }
-
+        if (!liveLessonActive && !showLessonSettings) {
         // The chat owns the flexible space and scrolls independently of the fixed composer.
         LazyColumn(
             state = chatListState,
@@ -1757,28 +2041,33 @@ internal fun TutorScreen(
             if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
                 item(key = "live-teaching-passage") {
                     Surface(
-                        Modifier.fillMaxWidth().fillParentMaxHeight(),
-                        color = Color(0xFFEAF5EE), shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFD1E7D8))
+                        Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 390.dp),
+                        color = Color(0xFFF8FAFC), shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color(0xFFDCE3ED))
                     ) {
                         Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LAST SPOKEN SEGMENT", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LESSON EXPLANATION", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.weight(1f))
-                                if (liveLessonActive) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
+                                if (liveLessonActive && liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                             }
                             if (liveCaption.isNotBlank()) {
                                 WordByWordCaption(
                                     liveCaption, speechActive, liveWordIndex,
-                                    modifier = Modifier.weight(1f),
-                                    expandToAvailableHeight = true
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp, max = 170.dp),
+                                    expandToAvailableHeight = false
                                 )
                             }
                             if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
                             if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
-                                val scene = if (topic.contains("shape", ignoreCase = true) || topic.contains("repeating", ignoreCase = true)) "shape_pattern" else "number_pattern"
+                                val topicKey = topic.lowercase(Locale.ROOT)
+                                val scene = when {
+                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                                    else -> "number_pattern"
+                                }
                                 ChapterOneMathAnimation(
                                     scene = scene,
                                     title = topic.ifBlank { "Patterns in Mathematics" },
@@ -1800,7 +2089,7 @@ internal fun TutorScreen(
                             bottomEnd = if (message.role == "user") 5.dp else 18.dp
                         ),
                         shadowElevation = 1.dp,
-                        border = if (message.role == "assistant") BorderStroke(1.dp, Color(0xFFE5ECE6)) else null,
+                        border = if (message.role == "assistant") BorderStroke(1.dp, Color(0xFFE2E8F0)) else null,
                         modifier = Modifier.widthIn(max = 340.dp)
                     ) {
                         Column(Modifier.padding(14.dp)) {
@@ -1814,31 +2103,8 @@ internal fun TutorScreen(
                                 if (message.content == latestAssistant?.content && message.visualLesson != null) {
                                     DatabaseLessonVisual(message.visualLesson)
                                 }
-                                if (message.content == latestAssistant?.content && !liveLessonActive && !loading) {
-                                    Spacer(Modifier.height(8.dp))
-                                    Text("How did that explanation feel?", color = TutorGrey, fontSize = 11.sp)
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        TextButton(
-                                            onClick = { status = "Great! We’ll build on this one small step at a time." },
-                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
-                                        ) { Text("I understand", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
-                                        TextButton(
-                                            onClick = { sendMessage("Please explain the last idea more simply, in smaller steps, with an example.") },
-                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
-                                        ) { Text("Explain again", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
-                                        TextButton(
-                                            onClick = {
-                                                input = "I have a question about " + topic.ifBlank { chapter.ifBlank { "this explanation" } } + ": "
-                                                status = "Type your question in the box below, then tap send."
-                                            },
-                                            contentPadding = PaddingValues(horizontal = 5.dp, vertical = 2.dp)
-                                        ) { Text("Ask", color = TutorGreen, fontSize = 11.sp, maxLines = 1) }
-                                    }
-                                }
+                                // Feedback is intentionally deferred until the complete lesson flow is implemented.
+
                             }
                         }
                     }
@@ -1846,7 +2112,7 @@ internal fun TutorScreen(
             }
             if (loading) {
                 item {
-                    Surface(color = Color.White, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFE5ECE6))) {
+                    Surface(color = Color.White, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
                         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
                             Text("  Your tutor is preparing an explanation…", color = TutorGrey, fontSize = 13.sp)
@@ -1856,62 +2122,121 @@ internal fun TutorScreen(
             }
         }
 
-        // Fixed checkpoint: never hidden below the scrollable passage.
-        if (awaitingUnderstanding && liveLessonActive) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
-                color = Color.White,
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFFD1E7D8)),
-                shadowElevation = 2.dp
+        }
+
+        if (liveLessonActive) {
+            // One continuous teaching canvas: no inset green card or floating lesson overlay.
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Quick check", color = TutorGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(currentCheckpoint.ifBlank { "Does that make sense so far?" }, color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            awaitingUnderstanding = false
-                            status = "Great! Let’s take the next small step."
-                            tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(liveSegmentIndex + 1) }, 350L)
-                        }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand") }
-                        OutlinedButton(onClick = {
-                            awaitingUnderstanding = false
-                            val segment = liveSegments.getOrNull(liveSegmentIndex)
-                            if (segment != null) {
-                                val original = segment.optString("spoken_text")
-                                speak("That is okay. Let me explain it more simply. " + original, onStarted = {
-                                    liveCaption = "Let me explain it more simply. " + original
-                                    liveWordIndex = 0
-                                }) {
-                                    awaitingUnderstanding = true
-                                    currentCheckpoint = "Was that explanation clearer?"
-                                    status = "Tell your teacher whether that helped."
-                                }
-                            } else {
-                                awaitingUnderstanding = true
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(7.dp))
+                            Text(if (speechActive) "YOUR TEACHER IS SPEAKING" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else "LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.weight(1f))
+                            if (liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
+                        }
+                        if (liveCaption.isNotBlank()) {
+                            WordByWordCaption(
+                                liveCaption, speechActive, liveWordIndex,
+                                // At checkpoints, don't let the caption consume all remaining height:
+                                // the compact concept animation and fixed answer card must stay visible.
+                                modifier = if (awaitingUnderstanding) {
+                                    Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
+                                } else {
+                                    Modifier.weight(1f).fillMaxWidth()
+                                },
+                                expandToAvailableHeight = !awaitingUnderstanding
+                            )
+                        } else {
+                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = TutorGreen)
                             }
-                        }, modifier = Modifier.weight(1f)) { Text("Explain again") }
+                        }
+                        if (liveVisualAction.isNotBlank()) {
+                            Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
+                        }
+                        // Keep the concept animation mounted during the checkpoint; compact it so
+                        // the student can see both the pattern and the response choices together.
+                        if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
+                            val topicKey = topic.lowercase(Locale.ROOT)
+                            val scene = when {
+                                topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                                topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                                else -> "number_pattern"
+                            }
+                            ChapterOneMathAnimation(
+                                scene = scene,
+                                title = topic.ifBlank { "Patterns in Mathematics" },
+                                topic = topic,
+                                caption = "Watch the pattern change automatically as your teacher explains.",
+                                compact = awaitingUnderstanding
+                            )
+                        }
                     }
-                    TextButton(
-                        onClick = {
-                            input = "I have a question about this part: " + currentCheckpoint
-                            stopLiveLesson()
-                            status = "Your question is ready below. Send it and I’ll explain this part."
-                        },
-                        modifier = Modifier.align(Alignment.End)
-                    ) { Text("I have a question", color = TutorGreen) }
-                }
             }
         }
 
-        if (status.isNotBlank()) {
+        // Inline learner checkpoint: part of the teaching flow, not a floating card.
+        if (awaitingUnderstanding && liveLessonActive) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        val nextIndex = liveSegmentIndex + 1
+                        awaitingUnderstanding = false
+                        currentCheckpoint = ""
+                        livePaused = false
+                        status = "Great! Let’s take the next small step."
+                        tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
+                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand", maxLines = 1) }
+                    OutlinedButton(onClick = {
+                        awaitingUnderstanding = false
+                        val segment = liveSegments.getOrNull(liveSegmentIndex)
+                        if (segment != null) {
+                            val original = segment.optString("spoken_text")
+                            speak("That is okay. Let me explain it more simply. " + original, onStarted = {
+                                liveCaption = "Let me explain it more simply. " + original
+                                liveWordIndex = 0
+                            }) {
+                                awaitingUnderstanding = true
+                                currentCheckpoint = "Was that explanation clearer?"
+                                status = "Tell your teacher whether that helped."
+                            }
+                        } else {
+                            awaitingUnderstanding = true
+                        }
+                    }, modifier = Modifier.weight(1f)) { Text("Explain again", maxLines = 1) }
+                }
+                TextButton(
+                    onClick = {
+                        input = "I have a question about this part: " + currentCheckpoint
+                        stopLiveLesson()
+                        status = "Your question is ready below. Send it and I’ll explain this part."
+                    },
+                    modifier = Modifier.align(Alignment.End)
+                ) { Text("I have a question", color = TutorGreen) }
+            }
+        }
+
+        if (!liveLessonActive && status.isNotBlank()) {
             Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)
         }
-        if (lastSources.isNotEmpty()) {
+        if (!liveLessonActive && lastSources.isNotEmpty()) {
             Text("Textbook sources · " + lastSources.joinToString { it.title }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGreen, fontSize = 10.sp, maxLines = 1)
         }
 
-        // Fixed composer: independent from chat scrolling and responsive to the IME.
+        // Keep setup focused; show the question composer only after selection.
+        if (!showLessonSettings && !liveLessonActive) {
+        // Keep the question composer for regular tutor chat, not setup or full-screen teaching.
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
@@ -1934,9 +2259,9 @@ internal fun TutorScreen(
                     keyboardActions = KeyboardActions(onSend = { sendMessage() }),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = TutorGreen,
-                        unfocusedBorderColor = Color(0xFFD7E2D9),
-                        focusedContainerColor = Color(0xFFFBFDFB),
-                        unfocusedContainerColor = Color(0xFFFBFDFB)
+                        unfocusedBorderColor = Color(0xFFDCE3ED),
+                        focusedContainerColor = Color(0xFFFFFFFF),
+                        unfocusedContainerColor = Color(0xFFFFFFFF)
                     )
                 )
                 FilledIconButton(
@@ -1947,7 +2272,7 @@ internal fun TutorScreen(
                     },
                     enabled = !loading,
                     modifier = Modifier.size(50.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (listening) Color(0xFFB3261E) else Color(0xFFE7F1E9), contentColor = if (listening) Color.White else TutorGreen)
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (listening) Color(0xFFB3261E) else Color(0xFFEAF0FF), contentColor = if (listening) Color.White else TutorGreen)
                 ) {
                     Icon(if (listening) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = if (listening) "Stop voice input" else "Ask by voice")
                 }
@@ -1956,6 +2281,7 @@ internal fun TutorScreen(
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = TutorGreen, contentColor = Color.White)
                 ) { Icon(Icons.Default.Send, contentDescription = "Send question") }
             }
+        }
         }
     }
 }

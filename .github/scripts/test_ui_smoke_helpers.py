@@ -49,7 +49,7 @@ class TutorHeaderLayoutRegressionTests(unittest.TestCase):
         self.assertIn("heightIn(min = 48.dp, max = 52.dp)", header)
         self.assertIn("Modifier.size(26.dp).background(TutorAccentSoft, CircleShape)", header)
         self.assertIn('Text("PadippuPal", fontSize = 14.sp', header)
-        self.assertIn('fontSize = 8.sp, color = TutorMutedOnNight', header)
+        self.assertIn('fontSize = 11.sp, color = TutorMutedOnNight', header)
         # Keep essential tutor actions available while compacting the visual chrome.
         for action in ('contentDescription = "Back"', 'Text(if (livePaused) "Resume" else "Pause"', 'Text("Stop"', 'Text("▶ Teach"'):
             self.assertIn(action, header)

@@ -108,20 +108,17 @@ while ancestor is not None:
     ancestor=parents.get(ancestor)
 m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
 if not m: raise SystemExit("Diary filename/row has no valid bounds")
-# In this AOSP DocumentsUI picker, a single tap selects/highlights the row
-# but does not open it (confirmed by the captured hierarchy: the filename is
-# selected while the activity remains in Downloads). Double-tap the filename
-# node itself to activate the document; do not send ENTER to an unfocused row.
-fm=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",file_node.attrib.get("bounds",""))
-if not fm: raise SystemExit("Diary filename node has invalid bounds")
-fx1,fy1,fx2,fy2=map(int,fm.groups())
-x=(fx1+fx2)//2
-y=(fy1+fy2)//2
-print(f"Double-tap diary filename at {x},{y}; filename bounds={fm.group(0)}, row bounds={m.group(0)}")
-for _ in range(2):
-    subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
-    import time
-    time.sleep(0.18)
+# DocumentsUI exposes the filename TextView as non-clickable. Activate the
+# focusable item_root row (not the text child), then use the explicit Open action
+# if this API-level picker presents one.
+x1,y1,x2,y2=map(int,m.groups())
+x=(x1+x2)//2
+y=(y1+y2)//2
+print(f"Tap focusable diary row at {x},{y}; row bounds={m.group(0)}")
+subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+import time
+time.sleep(0.5)
+
 PY
 sleep 1
 dump_ui diary-picker-row-selected

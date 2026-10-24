@@ -285,12 +285,25 @@ fi
 python3 .github/scripts/ui_smoke.py assert-continued live-continued.xml | tee -a "$REPORT"
 log "Checking the completed-topic screen from top to bottom"
 completed=0
+last_checkpoint_state=""
 for attempt in $(seq 1 50); do
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
   "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
   if [ -s live-complete.xml ] && grep -Eqi "TOPIC COMPLETE" live-complete.xml; then
     completed=1
     break
+  fi
+  # The lesson contract may contain more than one checkpoint. Advance each distinct
+  # checkpoint instead of waiting for completion while leaving the tutor paused there.
+  if [ -s live-complete.xml ] && grep -Eqi "I understand" live-complete.xml; then
+    current_checkpoint_state=$(python3 -c 'import sys,xml.etree.ElementTree as E; r=E.parse(sys.argv[1]).getroot(); print(" ".join(n.attrib.get("text","") for n in r.iter() if n.attrib.get("text")))' live-complete.xml)
+    if [ "$current_checkpoint_state" != "$last_checkpoint_state" ]; then
+      last_checkpoint_state="$current_checkpoint_state"
+      log "Advancing the next distinct understanding checkpoint"
+      python3 .github/scripts/ui_smoke.py tap live-complete.xml "I understand"
+      sleep 2
+      continue
+    fi
   fi
   sleep 2
 done

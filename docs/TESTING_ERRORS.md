@@ -485,3 +485,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Failed run [40053691110](https://github.com/Prav1525/Padippupal/actions/runs/40053691110), commit `946df6259940ddcf717bfe91366e3326a2298a2a`; harness corrections are being tested on the subsequent branch head.
 - **Status:** **Harness corrections implemented; verification pending.**
 
+
+
+### TE-039 — Live lesson used excessive vertical gaps and an oversized stacked header
+- **Date discovered:** 2026-10-24
+- **Area:** Android tutor live-lesson composition and screenshot acceptance.
+- **Symptom/failure:** Fresh screenshot from UI smoke run [40054398708](https://github.com/Prav1525/Padippupal/actions/runs/40054398708), exact SHA `541b356ee09609ae15753ac545f9aa01ff88db85`, showed a tall header with stacked branding/context and `Arrangement.SpaceEvenly` distributing the introduction, spoken segments, and animation far apart. The resulting screen looked fragmented rather than like one continuous lesson.
+- **Root cause:** The live lesson filled its viewport by distributing every child across all available height. The header also used two text rows plus a logo, consuming more vertical space than the lesson needed.
+- **Why it escaped:** Earlier assertions checked that the viewport filled available height and that the header was present, but did not reject the screenshot-visible gaps or enforce a single-line live header.
+- **Corrective action:** Keep the minimum-height scroll content, center the lesson cluster as a unit with consistent 14dp spacing, and replace the stacked header with a fixed 56dp single-line concept header while retaining Back and playback controls.
+- **Regression protection:** Update source-level tests to forbid `Arrangement.SpaceEvenly` in the live viewport and require the compact header. Keep screenshot checks for live speech and checkpoint states, and drive every distinct checkpoint in the smoke journey before asserting topic completion.
+- **Evidence:** Screenshot and report from artifact [12544783462](https://github.com/Prav1525/Padippupal/actions/runs/40054398708/artifacts/12544783462); UI smoke currently fails at the final completion assertion because the script does not advance a subsequent checkpoint.
+- **Status:** Fix and regression updates prepared in the current tutor PR batch; exact-head CI and screenshot review pending.

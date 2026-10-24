@@ -1909,27 +1909,31 @@ internal fun TutorScreen(
     ) {
         // Midnight command bar: persistent context and clear lesson controls.
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp, max = 52.dp)
+            modifier = Modifier.fillMaxWidth().height(56.dp)
                 .background(TutorNight).padding(start = 4.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Box(
-                modifier = Modifier.size(26.dp).background(TutorAccentSoft, CircleShape),
+                modifier = Modifier.size(24.dp).background(TutorAccentSoft, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.GraphicEq, contentDescription = "PadippuPal AI tutor", tint = TutorNight, modifier = Modifier.size(17.dp))
+                Icon(Icons.Default.GraphicEq, contentDescription = "PadippuPal AI tutor", tint = TutorNight, modifier = Modifier.size(16.dp))
             }
-            Spacer(Modifier.width(6.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                Text("PadippuPal", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
-                Text(
-                    if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "CLASS $grade  ·  $board",
-                    fontSize = 11.sp, color = TutorMutedOnNight, maxLines = 1
-                )
-            }
+            Spacer(Modifier.width(8.dp))
+            // In teaching mode the selected concept is the title. Removing the stacked
+            // brand + chapter lines gives the lesson viewport back its vertical space.
+            Text(
+                text = if (topic.isNotBlank()) topic else if (chapter.isNotBlank()) chapter else "PadippuPal · Class $grade",
+                modifier = Modifier.weight(1f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
             if (liveLessonActive) {
                 if (!liveLessonComplete) {
                     TextButton(onClick = { if (livePaused) resumeLiveLesson() else pauseLiveLesson() }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
@@ -2140,7 +2144,9 @@ internal fun TutorScreen(
                     // The live state must fill the lesson viewport too; otherwise the
                     // animation and caption cluster at the top and leave a dead zone.
                     // Checkpoint actions remain in the fixed footer outside this scroll area.
-                    verticalArrangement = if (awaitingUnderstanding || speechActive) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)
+                    // Center the complete lesson cluster as one unit when it fits. SpaceEvenly
+                    // spread every sentence/animation apart and creates the visible dead zones.
+                    verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)
                 ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))

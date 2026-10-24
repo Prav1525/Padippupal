@@ -47,7 +47,9 @@ class LiveViewportDistributionRegressionTests(unittest.TestCase):
         viewport_end = tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)", viewport_start)
         viewport = tutor[viewport_start:viewport_end]
         self.assertIn(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))", viewport)
-        self.assertIn("if (awaitingUnderstanding || speechActive) Arrangement.SpaceEvenly", viewport)
+        self.assertIn("Arrangement.spacedBy(14.dp, Alignment.CenterVertically)", viewport)
+        self.assertNotIn("Arrangement.SpaceEvenly", viewport,
+                         "Do not distribute large empty gaps between individual lesson elements.")
         self.assertNotIn("if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp", viewport,
                          "The minimum-height constraint must apply during live speech, not only checkpoints.")
 
@@ -59,10 +61,12 @@ class TutorHeaderLayoutRegressionTests(unittest.TestCase):
         header_start = tutor.index("// Midnight command bar: persistent context and clear lesson controls.")
         header_end = tutor.index("if (showLessonSettings && !liveLessonActive)", header_start)
         header = tutor[header_start:header_end]
-        self.assertIn("heightIn(min = 48.dp, max = 52.dp)", header)
-        self.assertIn("Modifier.size(26.dp).background(TutorAccentSoft, CircleShape)", header)
-        self.assertIn('Text("PadippuPal", fontSize = 14.sp', header)
-        self.assertIn('fontSize = 11.sp, color = TutorMutedOnNight', header)
+        self.assertIn("height(56.dp)", header)
+        self.assertIn("Modifier.size(24.dp).background(TutorAccentSoft, CircleShape)", header)
+        self.assertIn('text = if (topic.isNotBlank()) topic', header)
+        self.assertIn("TextOverflow.Ellipsis", header)
+        self.assertNotIn('Text("PadippuPal", fontSize = 14.sp', header)
+        self.assertNotIn('fontSize = 11.sp, color = TutorMutedOnNight', header)
         # Keep essential tutor actions available while compacting the visual chrome.
         for action in ('contentDescription = "Back"', 'Text(if (livePaused) "Resume" else "Pause"', 'Text("Stop"', 'Text("▶ Teach"'):
             self.assertIn(action, header)
@@ -241,13 +245,14 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         # The min-height constraint must be inside verticalScroll so the scroll content fills
         # the checkpoint viewport; otherwise short content remains top-aligned with a blank block.
         self.assertIn(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))", live_layout)
-        self.assertIn("if (awaitingUnderstanding || speechActive) Arrangement.SpaceEvenly", live_layout)
+        self.assertIn("Arrangement.spacedBy(14.dp, Alignment.CenterVertically)", live_layout)
+        self.assertNotIn("Arrangement.SpaceEvenly", live_layout)
         self.assertLess(
             live_layout.index(".verticalScroll(liveLessonScrollState)"),
             live_layout.index(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))"),
             "The min-height modifier must constrain the scroll content, not the viewport",
         )
-        self.assertIn("verticalArrangement = if (awaitingUnderstanding || speechActive) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)", live_layout)
+        self.assertIn("verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)", live_layout)
         # Checkpoint actions are outside the scrollable transcript and remain pinned below its weighted viewport.
         checkpoint_controls = tutor[tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)"):tutor.index("if (!liveLessonActive && status.isNotBlank())")]
         self.assertNotIn("verticalScroll(liveLessonScrollState)", checkpoint_controls)

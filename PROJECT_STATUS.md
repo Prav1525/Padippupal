@@ -91,3 +91,10 @@ Poll the current UI smoke run; once complete, inspect its logs and screenshot ar
 - **Root cause:** The minimum-height modifier was applied outside `verticalScroll`, so it did not make the scroll content occupy the viewport. The existing helper test checked presence rather than modifier ordering and the screenshot assertions did not detect the vertical gap.
 - **Fix in this batch:** Move the min-height constraint inside the scroll content and distribute short content evenly only at the understanding checkpoint; keep the speaking transcript top-aligned with compact spacing.
 - **Verification:** Pending new exact-head CI and screenshot inspection. Do not mark Phase 1 visually verified or merge PR #13 until fresh screenshots confirm the correction.
+
+
+## Layout correction batch — 2026-10-24
+- **Observed screenshot issue:** The latest emulator screenshot shows a tall two-line header and excessive empty gaps between the lesson introduction, active explanation, and inline repeated-ones animation.
+- **Root-cause change:** Center the lesson elements as a compact group with consistent spacing rather than using `Arrangement.SpaceEvenly`; make the live header a single-line selected-concept title in a 56dp bar while preserving Back/Pause/Resume/Stop.
+- **Verification harness:** The latest run built the APK and passed curriculum/JVM and script preflight checks; emulator navigation, playback/highlight, and checkpoint continuation passed. Final completion validation failed because the smoke loop did not advance a later checkpoint. The harness now advances each distinct checkpoint before checking the completed-topic screen.
+- **Acceptance gate:** Re-run all checks against the new exact SHA and inspect fresh live-speaking, checkpoint, and completed-topic screenshots. PR #13 remains open and unmerged until all acceptance checks pass.

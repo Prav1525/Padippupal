@@ -85,3 +85,10 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 - [ ] After selecting Chapter 1, inspect the accessibility snapshot and assert the expected default concept (`All 1s`) is selected.
 - [ ] Continue directly through Done -> Teach when that default is already selected; do not assume the topic picker must expose numbered rows.
 - [ ] Treat a missing/wrong default concept as an app failure; do not bypass the assertion to make UI smoke pass.
+
+
+### Multi-checkpoint topic-completion regression
+
+- [ ] Smoke flow advances every understanding checkpoint until the real `TOPIC COMPLETE` state appears.
+- [ ] If a response tap does not leave the checkpoint, the harness retries only after a bounded grace period and still fails if completion never appears.
+- [ ] Capture and inspect `live-complete.png` from the exact tested SHA; do not accept a checkpoint screenshot as topic completion.

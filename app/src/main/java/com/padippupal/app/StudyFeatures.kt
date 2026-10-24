@@ -121,12 +121,23 @@ internal fun DiaryScanScreen(
                     val mime = context.contentResolver.getType(uri)?.takeIf { it in listOf("image/jpeg", "image/png", "image/webp") } ?: "image/jpeg"
                     featureRequest("${featureBase()}/diary/parse", "POST",
                         JSONObject().put("image_base64", encoded).put("mime_type", mime)
-                            .put("board", board).put("class_level", grade).put("medium", medium).put("app_language", language))
+                            .put("board", board).put("class_level", grade).put("medium", medium).put("app_language", language)
+                            .put("today_date", java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())))
                 }
                 featureMain.post {
                     loading = false
                     result.fold(onSuccess = { response ->
                         diaryDate = response.optString("diary_date").trim()
+                        val matchStatus = response.optString("match_status", "needs_crop")
+                        if (matchStatus != "matched") {
+                            drafts = emptyList()
+                            status = if (matchStatus == "no_today_row") {
+                                "Today's date was not found in the diary. No homework was imported. Please crop the section showing today's date and its homework row, then scan again."
+                            } else {
+                                "The date or row is unclear, so no homework was imported. Please crop the date column together with today's homework row, then scan again."
+                            }
+                            return@fold
+                        }
                         val array = response.optJSONArray("tasks") ?: JSONArray()
                         drafts = (0 until array.length()).mapNotNull { i ->
                             val o = array.optJSONObject(i) ?: return@mapNotNull null

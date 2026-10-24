@@ -90,5 +90,11 @@ def test_diary_scan_extracts_reviewable_tasks(monkeypatch, client):
     assert body["needs_review"] is True
     assert body["count"] == 1
     assert body["tasks"][0]["title"] == "Complete exercise 2"
+    assert body["tasks"][0]["confidence"] == "medium"
+    assert body["diary_date"] == ""
+    prompt = captured["payload"]["contents"][0]["parts"][0]["text"].lower()
+    assert "children's handwriting" in prompt
+    assert "date/day column" in prompt
+    assert "do not assume the photo date" in prompt
     assert captured["payload"]["contents"][0]["parts"][1]["inlineData"]["mimeType"] == "image/jpeg"
     assert captured["timeout"] == 35

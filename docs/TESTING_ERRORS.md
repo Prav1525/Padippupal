@@ -347,4 +347,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Corrective action:** Added an Android camera-preview launcher and routed captured JPEG bytes and gallery-selected image bytes through one shared scan request path. The camera path currently uses Android's preview-sized capture, not full-resolution capture.
 - **Regression protection:** Compile the APK; exercise the scanner camera and gallery controls on a device/emulator with camera support; keep date-mismatch and unclear-row backend tests asserting zero imported tasks. Verify the real mock diary image separately before claiming OCR accuracy.
 - **Evidence:** Camera-input implementation commit `597dae3785cb3d74f9a5dc335fcd5a2c1b3aabba`; CI and device verification are pending.
-- **Status:** **Implemented; verification pending.** Crop editor/rescan is not implemented yet; until then, parents must retake a closer photo or choose a cropped image from the gallery.
+- **Status:** Camera action and crop/rescan are now wired on `feature/diary-crop-rescan`; Android APK, backend regression suite, and general emulator smoke passed on commit `7205ded522030313232c1d24d873b52185d8667b` (runs [APK](https://github.com/Prav1525/Padippupal/actions/runs/40081220381), [backend](https://github.com/Prav1525/Padippupal/actions/runs/40081220374), [emulator](https://github.com/Prav1525/Padippupal/actions/runs/40081220390)). A source inspection then found the camera launcher was still not exposed by a button; corrected on follow-up commit. A dedicated interactive diary-screen emulator test and live Gemini OCR validation remain pending.
+
+
+### TE-039 — Crop/rescan UI was not covered by the existing emulator journey
+
+- **Date discovered:** 2026-10-24
+- **Area:** Diary crop/rescan UI and regression coverage.
+- **Symptom/failure:** The APK and general emulator smoke passed, but the smoke journey only exercises tutor navigation and never opens the diary scanner. Source inspection also found the camera launcher was not connected to a visible button, and selected image bytes were not retained for later cropping.
+- **Root cause:** The smoke harness had no diary navigation/assertion path, and the camera/crop feature was added outside the exercised route.
+- **Corrective action:** Wire a visible camera button; decode and retain gallery images and retain camera images so the crop dialog can rescan a selected row through the existing date guard.
+- **Regression protection:** Add a focused diary UI contract test and keep the separate emulator screenshot/navigation check. A passing tutor smoke must not be reported as proof that camera/crop UI was exercised.
+- **Evidence:** Initial checks on commit `7205ded522030313232c1d24d873b52185d8667b`: [APK](https://github.com/Prav1525/Padippupal/actions/runs/40081220381), [backend tests](https://github.com/Prav1525/Padippupal/actions/runs/40081220374), [emulator smoke](https://github.com/Prav1525/Padippupal/actions/runs/40081220390). Follow-up fix is being verified on this branch.
+- **Status:** Camera action wiring corrected; dedicated interactive diary emulator test still required before feature acceptance.

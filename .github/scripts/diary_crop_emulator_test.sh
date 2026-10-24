@@ -22,8 +22,11 @@ assert_has(){
 }
 log "Preparing deterministic diary image fixture"
 python3 .github/scripts/create_diary_test_fixture.py
-"${ADB[@]}" push ui-screenshots/padippupal-diary-fixture.jpg /sdcard/Pictures/PadippuPal-diary-test.jpg >/dev/null
-"${ADB[@]}" shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/PadippuPal-diary-test.jpg >/dev/null
+# Put the fixture in Downloads so Android's document picker can select it
+# directly even when the emulator's MediaStore index is cold or empty.
+"${ADB[@]}" shell mkdir -p /sdcard/Download
+"${ADB[@]}" push ui-screenshots/padippupal-diary-fixture.jpg /sdcard/Download/PadippuPal-diary-test.jpg >/dev/null
+"${ADB[@]}" shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Download/PadippuPal-diary-test.jpg >/dev/null || true
 sleep 2
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity >/dev/null
@@ -53,40 +56,35 @@ tap_label ui-screenshots/diary-test/diary-scanner-return.xml "Choose photo"
 sleep 3
 dump_ui diary-picker
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/photo-picker.png
-# Prefer a labelled image/thumbnail; Android Photo Picker versions expose slightly different trees.
-python3 - <<'PY'
-import re, subprocess, xml.etree.ElementTree as ET
-path="ui-screenshots/diary-test/diary-picker.xml"
-root=ET.parse(path).getroot()
-nodes=list(root.iter("node"))
-chosen=None
-for n in nodes:
-    label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()
-    b=n.attrib.get("bounds","")
-    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",b)
-    if m and ("padippupal-diary-test" in label or "diary" in label or "image" in n.attrib.get("class","").lower()):
-        chosen=m; break
-if chosen is None:
-    # In the standard Android photo picker, the newest/only image is the first
-    # thumbnail in the grid near the upper-left quadrant.
-    for n in nodes:
-        b=n.attrib.get("bounds","")
-        m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",b)
-        label=n.attrib.get("text","").strip().lower()
-        if m:
-            x1,y1,x2,y2=map(int,m.groups())
-            if x2-x1>80 and y2-y1>80 and 160<y1<850 and label not in {"photos","albums","browse","cancel"}:
-                chosen=m; break
-if chosen is None:
-    raise SystemExit("No photo thumbnail found in photo picker. Inspect diary-picker.xml and screenshot.")
-x1,y1,x2,y2=map(int,chosen.groups())
-x,y=(x1+x2)//2,(y1+y2)//2
-print(f"Selecting gallery image at {x},{y}")
-subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=45)
-PY
+# The AOSP picker can show "No items" under Recent even when a file was pushed
+# successfully. Open its storage roots and select the fixture from Downloads;
+# never tap the Gallery provider tile as if it were an image.
+"${ADB[@]}" shell input tap 94 147
+sleep 1
+dump_ui diary-picker-roots
+if grep -qi "Downloads" ui-screenshots/diary-test/diary-picker-roots.xml; then
+  tap_label ui-screenshots/diary-test/diary-picker-roots.xml "Downloads"
+else
+  log "FAIL: Downloads root not exposed by Android photo picker"
+  exit 1
+fi
+sleep 2
+dump_ui diary-picker-downloads
+if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker-downloads.xml; then
+  log "FAIL: diary fixture is not listed in Downloads; refusing to tap a provider/app tile"
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
+  exit 1
+fi
+tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"
 sleep 5
 dump_ui diary-photo-selected
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/photo-selected.png
+# Prove the picker returned to our app before asserting crop UI. This guards
+# against the prior false positive where the Gallery provider was opened.
+if ! grep -q 'package="com.padippupal.app"' ui-screenshots/diary-test/diary-photo-selected.xml; then
+  log "FAIL: picker did not return to PadippuPal after selecting the fixture"
+  exit 1
+fi
 assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"
 log "Opening crop editor and dragging a selection across the diary page"
 tap_label ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"

@@ -324,3 +324,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Run the complete emulator journey and require a tutor answer after sending a follow-up question; retain the release HTTPS restriction. Run JVM tests, APK build, and helper tests before inspecting the emulator result.
 - **Evidence:** Failing run [39937227421](https://github.com/Prav1525/Padippupal/actions/runs/39937227421), tested SHA `29235debe2482a8499c2921aa0ac4ed1b4552bdd`; fix commit `0ca8b4c7a14ddce6cb6b9f50214d6a2a8a860194`.
 - **Status:** **Fix committed to PR #17; exact-head verification pending.** Do not merge until the new CI run and screenshot review pass.
+
+
+## TE-037 — UI smoke navigation assertion used the wrong Back action
+
+- **Date:** 2026-10-24
+- **Area:** Android emulator UI smoke test; tutor-to-home navigation.
+- **Symptom/failure:** UI smoke run [40072020082](https://github.com/Prav1525/Padippupal/actions/runs/40072020082) failed after the lesson completed and the follow-up question and tutor answer were both visible. The final screen dump still showed the tutor chat, so the home-screen assertion correctly failed.
+- **Root cause:** The harness tapped the non-clickable PadippuPal title to dismiss the keyboard and then sent Android system Back. The captured screen showed an explicit app-level Back arrow (content-desc="Back"); tapping the title did not navigate. The test therefore never reliably exercised the app's own navigation control.
+- **Corrective action:** Updated the smoke script to tap the visible app-level Back control directly and removed the extra system Back event, which could otherwise navigate away from Home.
+- **Regression protection:** Keep the final assert-home check and inspect the resulting screenshot/UI tree. Do not weaken the home assertion; exercise the actual visible navigation affordance.
+- **Evidence:** Run [40072020082](https://github.com/Prav1525/Padippupal/actions/runs/40072020082), artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/40072020082/artifacts/12552365092). The run passed lesson completion, moving inline highlight, playback pause/resume, and follow-up question/answer; it failed only at the final return-to-home assertion.
+- **Status:** Harness fix committed to PR #17; CI verification pending.

@@ -93,7 +93,7 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 - [ ] If a response tap does not leave the checkpoint, the harness retries only after a bounded grace period and still fails if completion never appears.
 - [ ] Capture and inspect `live-complete.png` from the exact tested SHA; do not accept a checkpoint screenshot as topic completion.
 
-### Screenshot evidence delivery — mandatory
+### Test-fixture wording and selector drift — mandatory\n\n- [ ] When a UI helper asserts visible lesson copy, trace the expected text to the current deterministic fixture and current UI behavior. Do not assert a phrase against the shell smoke script unless that phrase is actually part of the script.\n- [ ] If lesson copy changes, update the source fixture, end-to-end expectations, and helper assertions together; keep semantic coverage for all five planned segments and the true `TOPIC COMPLETE` gate.\n- [ ] Before accepting script validation, run `python3 .github/scripts/test_ui_smoke_helpers.py` and `python3 .github/scripts/tutor_smoke_api.py --self-test` on the exact commit; a successful APK build does not cover these checks.\n- [ ] When validation fails before emulator launch, record the exact assertion and root cause in `docs/TESTING_ERRORS.md`, fix it without deleting meaningful coverage, and rerun the full workflow.\n\n### Screenshot evidence delivery — mandatory
 
 - [ ] After every emulator/UI test run, retrieve the screenshot artifact from that exact workflow run and exact tested commit SHA.
 - [ ] Open and visually inspect the actual image files; confirm the screen state and commit/run match the claim. A green CI result or accessibility tree alone is not screenshot verification.

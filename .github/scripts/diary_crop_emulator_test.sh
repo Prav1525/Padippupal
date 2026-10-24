@@ -110,24 +110,36 @@ if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-p
 import re, subprocess, xml.etree.ElementTree as ET
 path="ui-screenshots/diary-test/diary-picker-file-selected.xml"
 root=ET.parse(path).getroot()
+parent={child: node for node in root.iter() for child in node}
 pattern=re.compile(r"^(select|open|done|use|choose)(\b|\s)",re.I)
 candidates=[]
 for n in root.iter("node"):
     label=" ".join((n.attrib.get("text",""),n.attrib.get("content-desc",""))).strip()
-    if not label or not pattern.search(label):
+    if not label or not pattern.search(label) or n.attrib.get("enabled","true")!="true":
         continue
-    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
-    if m and n.attrib.get("enabled","true")=="true":
+    # Accessibility labels are often non-clickable children of a clickable
+    # toolbar/button container. Walk ancestors and tap the nearest actionable
+    # node rather than requiring the label node itself to be clickable.
+    target=n
+    while target is not None:
+        m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
+        if m and target.attrib.get("enabled","true")=="true" and target.attrib.get("clickable")=="true":
+            break
+        target=parent.get(target)
+    if target is not None and m:
         x1,y1,x2,y2=map(int,m.groups())
-        # Prefer actionable controls in the bottom action area; avoid root labels.
-        if x2>x1 and y2>y1 and n.attrib.get("clickable")=="true":
-            candidates.append((y2, x1,y1,x2,y2,label))
-if not candidates:
-    raise SystemExit("Picker still open after thumbnail tap and no enabled Select/Open confirmation control is exposed")
-_,x1,y1,x2,y2,label=max(candidates)
-x,y=(x1+x2)//2,(y1+y2)//2
-print(f"Confirm selected diary image using '{label}' at {x},{y}")
-subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+        if x2>x1 and y2>y1:
+            candidates.append((y2,x1,y1,x2,y2,label))
+if candidates:
+    _,x1,y1,x2,y2,label=max(candidates)
+    x,y=(x1+x2)//2,(y1+y2)//2
+    print(f"Confirm selected diary image using '{label}' at {x},{y}")
+    subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+else:
+    # AOSP DocumentsUI can expose selection without an accessible Open button;
+    # Enter activates the selected file through the picker itself.
+    print("No clickable confirmation ancestor found; sending ENTER to selected file")
+    subprocess.run(["adb","-s","emulator-5554","shell","input","keyevent","KEYCODE_ENTER"],check=True,timeout=20)
 PY
   sleep 2
   dump_ui diary-picker-confirmed

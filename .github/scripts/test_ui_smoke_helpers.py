@@ -44,7 +44,7 @@ class LiveViewportDistributionRegressionTests(unittest.TestCase):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
         viewport_start = tutor.index("BoxWithConstraints(Modifier.weight(1f).fillMaxWidth())")
-        viewport_end = tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)", viewport_start)
+        viewport_end = tutor.index('if (!liveLessonActive && status.isNotBlank())', viewport_start)
         viewport = tutor[viewport_start:viewport_end]
         self.assertIn(".verticalScroll(liveLessonScrollState)", viewport)
         self.assertIn("verticalArrangement = Arrangement.spacedBy(8.dp)", viewport)
@@ -252,7 +252,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertNotIn("Arrangement.Center", live_layout)
         # Checkpoint actions belong to the same scrollable lesson flow. Keeping them as
         # a sibling of the weighted transcript creates a large dead zone on phone screens.
-        checkpoint_start = live_layout.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)")
+        checkpoint_start = live_layout.index("if (liveLessonActive && awaitingUnderstanding)")
         checkpoint_controls = live_layout[checkpoint_start:]
         self.assertIn("verticalScroll(liveLessonScrollState)", live_layout)
         self.assertIn('Text(normalizedCheckpoint(currentCheckpoint)', checkpoint_controls)

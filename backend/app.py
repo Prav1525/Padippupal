@@ -2658,9 +2658,11 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
                 "details": normalize(str(item.get("details", "")))[:1000],
                 "due_date": normalize(str(item.get("due_date", "")))[:40],
                 "minutes": max(1, min(600, int(item.get("minutes", 15) or 15))),
+                "confidence": normalize(str(item.get("confidence", "medium"))).lower() if normalize(str(item.get("confidence", "medium"))).lower() in {"high", "medium", "low"} else "medium",
                 "source": "diary",
             })
-        return {"tasks": tasks, "count": len(tasks), "needs_review": True, "model": model}
+        diary_date = normalize(str(parsed.get("diary_date", "")))[:40]
+        return {"tasks": tasks, "count": len(tasks), "diary_date": diary_date, "needs_review": True, "model": model}
     except urllib.error.HTTPError as exc:
         logger.warning("Diary OCR provider HTTP error status=%s", exc.code)
         if exc.code == 429:

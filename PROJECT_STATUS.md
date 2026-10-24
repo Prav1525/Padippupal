@@ -67,3 +67,13 @@ Poll the current UI smoke run; once complete, inspect its logs and screenshot ar
 - **AI repair boundary:** The optional Codex repair worker is limited to failures on trusted main; it requires the repository secret OPENAI_API_KEY and creates a separate PR. It does not merge, deploy, or publish. PR/fork failures are recorded without exposing the API key.
 - **Verification:** No CI run of the newly added workflows has completed in this batch. YAML/workflow behavior is **not yet verified**. The automation PR is draft. After the workflow files are incorporated into the base branch, inspect workflow runs and fix any failures.
 - **Next action:** Review the full diff, validate workflow syntax and event/permission behavior, then inspect GitHub Actions evidence. Do not merge the automation PR without explicit user approval.
+
+## Free-first AutoPilot implementation batch — 2026-10-24
+
+- **Objective:** Build hybrid GitHub Actions + optional free local model workflow, with only predefined deterministic triage and human review for every code change.
+- **Branch:** `automation/padippupal-autofix-loop` (automation PR #18; tutor PR #13 remains separate and unmerged).
+- **Implemented:** Updated `AGENTS.md`; added `tools/padippupal_autopilot.py` with dynamic guide readability check, deterministic log classification, and optional Ollama local-model advisory; added `.github/workflows/autopilot.yml`; updated `docs/CI_AUTOMATION.md`.
+- **Safety:** No model-generated code is applied. No API key is required for local Ollama review. The workflow does not mutate the tested SHA, merge, deploy, or publish.
+- **Guide inventory:** Reviewed README, project status, testing error log, regression checklist, all discovered `docs/*.md` guide paths, and relevant existing workflow files. Some large guide contents were not fully re-read before the initial edits; that process gap is recorded as TE-034 and must be corrected by reviewing full guide contents before the next code batch.
+- **Verification:** No tests or newly added workflow runs have been executed/observed in this batch. Python syntax, workflow validity, end-to-end CI event behavior, and Ollama connectivity are **Unverified**.
+- **Next:** Review the full guide documents and full diff; run the AutoPilot guide check and Python syntax/classifier tests; inspect the resulting GitHub Actions run on the exact head SHA. Keep this PR draft and do not merge without explicit user approval.

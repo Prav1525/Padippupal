@@ -944,7 +944,7 @@ def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):
 
     # A one-sentence excerpt is source-grounded but not a complete lesson.
     # Do not silently present it as if the selected topic has been taught.
-    assert response.status_code == 502, response.text
+    assert response.status_code == 503, response.text
     assert "no safe textbook fallback" in response.json()["detail"].lower()
 
 def test_lesson_plan_does_not_fallback_to_off_topic_textbook_excerpt(monkeypatch):

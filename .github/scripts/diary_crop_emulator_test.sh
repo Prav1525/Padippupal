@@ -139,13 +139,20 @@ else:
     # Some DocumentsUI builds treat a single tap as focus only and expose no
     # accessible confirmation action. Double-tap the actual fixture card to
     # open it, as the system picker expects for this grid interaction.
+    # Repeat the tap on the actual image preview bounds used in the first
+    # selection attempt. The filename parent can span the whole row and its
+    # center may land outside the thumbnail's hit target.
     source=ET.parse("ui-screenshots/diary-test/diary-picker-downloads.xml").getroot()
     card=next((n for n in source.iter("node") if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","") and n.attrib.get("package")=="com.android.documentsui"),None)
     if card is None: raise SystemExit("Cannot recover diary fixture card for double-tap")
-    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",card.attrib.get("bounds",""))
-    if not m: raise SystemExit("Diary fixture card bounds invalid during double-tap")
+    bounds=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",card.attrib.get("bounds",""))
+    if not bounds: raise SystemExit("Diary fixture card bounds invalid during double-tap")
+    children=list(card.iter("node"))
+    target=next((n for n in children if n is not card and n.attrib.get("clickable")=="true" and re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))),card)
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
+    if not m: raise SystemExit("Diary fixture preview bounds invalid during double-tap")
     x1,y1,x2,y2=map(int,m.groups()); x,y=(x1+x2)//2,(y1+y2)//2
-    print(f"No confirmation control; double-tapping fixture card at {x},{y}")
+    print(f"No confirmation control; double-tapping image preview at {x},{y}")
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY

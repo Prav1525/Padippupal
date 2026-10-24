@@ -98,8 +98,8 @@ def test_diary_scan_extracts_reviewable_tasks(monkeypatch, client):
     assert "date/day column" in prompt
     assert "do not assume the photo date" in prompt
     assert "only the row for that local date" in prompt
-    assert "DD/MM/YYYY" in prompt
-    assert "DD.MM.YYYY" in prompt
+    assert "dd/mm/yyyy" in prompt
+    assert "dd.mm.yyyy" in prompt
     assert captured["payload"]["contents"][0]["parts"][1]["inlineData"]["mimeType"] == "image/jpeg"
     assert captured["timeout"] == 35
 

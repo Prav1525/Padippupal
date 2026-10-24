@@ -99,11 +99,27 @@ root=ET.parse(path).getroot()
 parents={child:node for node in root.iter() for child in node}
 file_node=next((n for n in root.iter("node") if "PadippuPal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc",""))),None)
 if file_node is None: raise SystemExit("Diary fixture missing from DocumentsUI list view")
+# Some DocumentsUI versions expose the filename and row as non-clickable
+# accessibility nodes even though coordinate taps on the row work. Prefer the
+# clickable ancestor when present, but fall back to the filename node's own
+# bounds instead of failing solely because the accessibility flag is absent.
 target=file_node
-while target is not None and target.attrib.get("clickable")!="true": target=parents.get(target)
-if target is None: raise SystemExit("Diary fixture has no clickable list-row ancestor")
-m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
-if not m: raise SystemExit("Diary fixture row has invalid bounds")
+ancestor=file_node
+while ancestor is not None:
+    if ancestor.attrib.get("clickable")=="true":
+        target=ancestor
+        break
+    ancestor=parents.get(ancestor)
+m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",target.attrib.get("bounds",""))
+if not m:
+    ancestor=parents.get(file_node)
+    while ancestor is not None:
+        m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",ancestor.attrib.get("bounds",""))
+        if m:
+            target=ancestor
+            break
+        ancestor=parents.get(ancestor)
+if not m: raise SystemExit("Diary fixture filename and its ancestors have no valid bounds")
 x1,y1,x2,y2=map(int,m.groups())
 x,y=(x1+x2)//2,(y1+y2)//2
 print(f"Tap clickable Downloads file row at {x},{y}: {file_node.attrib.get('text') or file_node.attrib.get('content-desc')}")
@@ -119,7 +135,7 @@ if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-p
 import re, subprocess, xml.etree.ElementTree as ET
 p="ui-screenshots/diary-test/diary-picker-file-selected.xml"
 r=ET.parse(p).getroot(); parents={c:n for n in r.iter() for c in n}
-pat=re.compile(r"^(open|select|done|use|choose)(\\b|\\s)",re.I)
+pat=re.compile(r"^(open|select|done|use|choose)(\b|\s)",re.I)
 for n in r.iter("node"):
  label=" ".join((n.attrib.get("text",""),n.attrib.get("content-desc",""))).strip()
  if not pat.search(label): continue

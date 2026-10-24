@@ -1,0 +1,110 @@
+name: PadippuPal AutoPilot
+
+on:
+  pull_request:
+    branches: ["main", "fix/live-lesson-coordinated-flow"]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Android APK"
+      - "Android UI smoke test"
+      - "Curriculum Engine Tests"
+      - "Deployed API smoke"
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+jobs:
+  guide-and-record-gate:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout current candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Check guide inventory and required records
+        run: |
+          set -euo pipefail
+          python tools/padippupal_autopilot.py check-guides
+          git diff --check
+      - name: Compile and test free AutoPilot helpers
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/padippupal_autopilot.py tools/test_padippupal_autopilot.py
+          python tools/test_padippupal_autopilot.py
+      - name: Require record updates for code-bearing changes
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > /tmp/changed.txt
+          cat /tmp/changed.txt
+          if grep -Eq '^(app/|backend/|tools/|\.github/scripts/|\.github/workflows/|.*\.(kt|kts|java|py|sh)$)' /tmp/changed.txt; then
+            for required in PROJECT_STATUS.md docs/TESTING_ERRORS.md; do
+              grep -Fxq "$required" /tmp/changed.txt || {
+                echo "::error::Code/automation changes must update $required in this PR."
+                exit 1
+              }
+            done
+          fi
+          for guide in AGENTS.md PROJECT_STATUS.md docs/TESTING_ERRORS.md .github/testing-regression-checklist.md; do
+            test -r "$guide" || { echo "::error::Missing required guide $guide"; exit 1; }
+          done
+          echo "Guide presence and record-update gate passed. Presence does not prove comprehension; follow AGENTS.md."
+
+  run-summary:
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Summarize CI run without modifying tested commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            let jobs = [];
+            try {
+              const response = await github.rest.actions.listJobsForWorkflowRun({
+                owner, repo, run_id: run.id, per_page: 100
+              });
+              jobs = response.data.jobs || [];
+            } catch (error) {
+              core.warning("Could not list jobs: " + error.message);
+            }
+            const failures = jobs.filter(j => j.conclusion && j.conclusion !== "success" && j.conclusion !== "skipped");
+            await core.summary
+              .addHeading("PadippuPal AutoPilot — CI record")
+              .addTable([
+                [{data:"Field",header:true},{data:"Value",header:true}],
+                ["Workflow", run.name],
+                ["Conclusion", run.conclusion || run.status],
+                ["Branch", run.head_branch || "unknown"],
+                ["Exact tested SHA", run.head_sha || "unknown"],
+                ["Run", run.html_url],
+                ["Failed/non-success jobs", failures.map(j => j.name + " — " + j.conclusion).join("; ") || "none reported"],
+                ["Artifact review", "Still required for UI acceptance; a green run is not visual verification."]
+              ])
+              .addLink("Open exact run", run.html_url)
+              .write();
+            core.setOutput("conclusion", run.conclusion || run.status);
+
+  local-agent-info:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain optional local model setup
+        run: |
+          echo "This cloud runner intentionally does not download a local LLM."
+          echo "Use tools/padippupal_autopilot.py local-review <logfile> with Ollama on your own computer."
+          echo "Local model output is advisory only; it never writes code or bypasses PR review."

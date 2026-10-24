@@ -1,0 +1,121 @@
+name: CI failure triage and run summary
+
+on:
+  workflow_run:
+    workflows:
+      - "Android APK"
+      - "Android UI smoke test"
+      - "Curriculum Engine Tests"
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+# Do not check out or execute code from the completed workflow's commit.
+# Keep run records in the Actions summary/issues so this observer does not mutate
+# the tested branch and invalidate the SHA whose checks just completed.
+jobs:
+  record-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Summarize run and open a failure record when needed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            if (!run) {
+              core.setFailed("workflow_run payload is missing.");
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = run.head_branch || "";
+            const runUrl = run.html_url;
+            const attempt = run.run_attempt || 1;
+            const marker = "<!-- padippupal-ci-record:" + run.id + ":" + attempt + " -->";
+            const conclusion = run.conclusion || "unknown";
+            const title = "[CI " + conclusion + "] " + run.name + " — run " + run.id + " attempt " + attempt;
+            const sha = run.head_sha || "unknown";
+            const headRepo = run.head_repository && run.head_repository.full_name || "";
+            const stamp = new Date().toISOString();
+
+            let jobs = [];
+            try {
+              const response = await github.rest.actions.listJobsForWorkflowRun({
+                owner, repo, run_id: run.id, per_page: 100
+              });
+              jobs = response.data.jobs || [];
+            } catch (error) {
+              core.warning("Could not list job details: " + error.message);
+            }
+
+            const failedJobs = jobs.filter(j =>
+              ["failure", "timed_out", "cancelled", "action_required"].includes(j.conclusion)
+            );
+            const jobLines = jobs.map(j =>
+              "- " + j.name + ": " + (j.conclusion || j.status) + " (" + j.html_url + ")"
+            ).join("\n") || "- Job details unavailable.";
+            const failureLines = failedJobs.map(j =>
+              "- **" + j.name + "** — " + j.conclusion + " (" + j.html_url + ")"
+            ).join("\n") || "- No failed jobs reported.";
+
+            const summary = [
+              marker,
+              "## " + title,
+              "- Recorded: " + stamp,
+              "- Result: **" + conclusion + "**",
+              "- Branch: " + branch,
+              "- Commit: " + sha,
+              "- Source repository: " + headRepo,
+              "- Workflow run: " + runUrl,
+              "",
+              "### Jobs",
+              jobLines,
+              "",
+              "### Failure details",
+              failureLines,
+              "",
+              "This record describes CI only. It does not mean the product is visually or end-to-end verified."
+            ].join("\n");
+
+            let issueUrl = "";
+            if (conclusion !== "success") {
+              const existing = await github.rest.issues.listForRepo({
+                owner, repo, state: "all", per_page: 100
+              });
+              const prior = existing.data.find(i => i.body && i.body.includes(marker));
+              if (prior) {
+                issueUrl = prior.html_url;
+              } else {
+                const issue = await github.rest.issues.create({
+                  owner, repo, title,
+                  body: summary + "\n\n## Required follow-up\n- Treat this issue as the durable record for this failed run until it is incorporated into docs/TESTING_ERRORS.md.\n- Read AGENTS.md, PROJECT_STATUS.md, docs/TESTING_ERRORS.md, and .github/testing-regression-checklist.md before a new test cycle.\n- Inspect full logs and artifacts from the exact SHA.\n- Confirm the root cause before changing code; clearly label hypotheses.\n- Add regression protection and update PROJECT_STATUS.md and docs/TESTING_ERRORS.md in the repair PR.\n- Do not weaken assertions, skip acceptance criteria, or merge automatically."
+                });
+                issueUrl = issue.data.html_url;
+              }
+            }
+
+            await core.summary
+              .addHeading("PadippuPal CI record")
+              .addTable([
+                [{data:"Field",header:true},{data:"Value",header:true}],
+                ["Workflow", run.name],
+                ["Recorded at", stamp],
+                ["Result", conclusion],
+                ["Commit", sha],
+                ["Branch", branch],
+                ["Source repository", headRepo],
+                ["Run", runUrl],
+                ["Failed jobs", failedJobs.map(j => j.name + "=" + j.conclusion).join("; ") || "none reported"],
+                ["Failure record", issueUrl || "not required for successful run"],
+                ["Documentation", conclusion === "success" ? "Actions summary is the run record; update project docs at meaningful milestones." : "Issue opened/deduplicated; update docs during diagnosis/fix."]
+              ])
+              .addLink("Open run", runUrl)
+              .write();
+
+            core.setOutput("conclusion", conclusion);
+            core.setOutput("issue_url", issueUrl);

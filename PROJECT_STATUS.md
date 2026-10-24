@@ -55,3 +55,35 @@ CI does **not** automatically mean an assistant is awake to inspect the results,
 ## Next action
 
 Poll the current UI smoke run; once complete, inspect its logs and screenshot artifacts against the checklist. If the run failed, diagnose and fix the root cause. Keep PR #13 unmerged until all required acceptance criteria are verified.
+
+
+## CI automation implementation batch
+
+- **Objective:** Add mandatory guide review, enforce status/error-record updates, and automate CI result recording plus bounded AI repair proposals.
+- **Branch:** `automation/padippupal-autofix-loop`
+- **Implementation status:** Files committed on the automation branch; review and workflow execution are still pending.
+- **Added:** `AGENTS.md`, `.github/pull_request_template.md`, `.github/workflows/change-governance.yml`, `.github/workflows/failure-triage.yml`, `.github/workflows/ai-autofix-main.yml`, and `docs/CI_AUTOMATION.md`.
+- **Recordkeeping behavior:** Completed configured CI runs get a structured Actions summary with run URL, exact SHA, result, job outcomes, and timestamp. Failed runs get a durable GitHub issue. The fix/handoff PR must update PROJECT_STATUS.md and docs/TESTING_ERRORS.md. The triage workflow deliberately does not commit after tests, because that would invalidate the tested SHA.
+- **AI repair boundary (superseded):** The original `.github/workflows/ai-autofix-main.yml` Codex workflow required `OPENAI_API_KEY`; it has now been deleted from this automation branch. No paid AI API path remains intentionally configured.
+- **Verification:** The free-first helper unit tests and workflow syntax/behavior have not yet run on the updated head. Do not describe AutoPilot as tested until the new PR-triggered checks finish.
+- **Next action:** Inspect the exact-head AutoPilot workflow run, fix failures without weakening assertions, and verify the free-only triage path. Do not merge the automation PR without explicit user approval.
+
+## Free-first AutoPilot implementation batch — 2026-10-24
+
+- **Objective:** Build hybrid GitHub Actions + optional free local model workflow, with only predefined deterministic triage and human review for every code change.
+- **Branch:** `automation/padippupal-autofix-loop` (automation PR #18; tutor PR #13 remains separate and unmerged).
+- **Implemented:** Updated `AGENTS.md`; added `tools/padippupal_autopilot.py` with dynamic guide readability check, deterministic log classification, and optional Ollama local-model advisory; added `.github/workflows/autopilot.yml`; updated `docs/CI_AUTOMATION.md`.
+- **Safety:** No model-generated code is applied. No API key is required for local Ollama review. The workflow does not mutate the tested SHA, merge, deploy, or publish.
+- **Guide inventory:** Reviewed README, project status, testing error log, regression checklist, all discovered `docs/*.md` guide paths, and relevant existing workflow files. Some large guide contents were not fully re-read before the initial edits; that process gap is recorded as TE-034 and must be corrected by reviewing full guide contents before the next code batch.
+- **Verification:** No tests or newly added workflow runs have been executed/observed in this batch. Python syntax, workflow validity, end-to-end CI event behavior, and Ollama connectivity are **Unverified**.
+- **Next:** Review the full guide documents and full diff; run the AutoPilot guide check and Python syntax/classifier tests; inspect the resulting GitHub Actions run on the exact head SHA. Keep this PR draft and do not merge without explicit user approval.
+
+
+## Free-first AutoPilot validation update — 2026-10-24
+
+- **Objective:** Remove the paid-key repair workflow and test the deterministic free automation.
+- **Branch / PR:** `automation/padippupal-autofix-loop`, [PR #18](https://github.com/Prav1525/Padippupal/pull/18); tutor PR #13 remains separate and unmerged.
+- **Changed:** Deleted `.github/workflows/ai-autofix-main.yml` (deletion commit `2aeefd16d8548512cdc0f2d1419f71bcaf1440b1`); added `tools/test_padippupal_autopilot.py` (commit `f6c0d0af1fad6bf257ca8f11e1d0abc18ee4757e`); wired Python syntax checks and helper unit tests into `.github/workflows/autopilot.yml` (commit `a5eb3aa3e837de054fcc8e244810d19e60996fc9`).
+- **Safety:** deterministic classifications only; local Ollama review remains optional and advisory. No generated patches, automatic merge, deployment, or release. No `OPENAI_API_KEY` required by the free-first path.
+- **Verification:** **Pending**. Test execution has not yet been confirmed for the updated head. Tutor PR #13 exact-head UI smoke failed at speech/highlight detection on `e6417f14443f6e3bf474972c4f6e6889d8a0bcac`; APK and JVM checks passed, but highlight detection reported zero pixels in 100 frames. See TE-035 in the testing error log.
+- **Next:** Confirm AutoPilot helper/workflow tests on the new head, then handle the tutor highlight failure as a separate tutor-PR batch. No merge authorized.

@@ -1,0 +1,63 @@
+name: Change governance
+
+on:
+  pull_request:
+    branches: ["main"]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  documentation-gate:
+    name: Require current project records for code changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Check guide review and durable records
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > /tmp/changed-files.txt
+          echo "Changed files:"
+          cat /tmp/changed-files.txt
+
+          # Code-bearing changes require both durable project records in the same PR.
+          if grep -Eq '^(app/|backend/|\.github/scripts/|\.github/workflows/|.*\.(kt|kts|java|py|sh)$)' /tmp/changed-files.txt; then
+            for required in PROJECT_STATUS.md docs/TESTING_ERRORS.md; do
+              if ! grep -Fxq "$required" /tmp/changed-files.txt; then
+                echo "::error::Code/automation changes must update $required in the same PR."
+                exit 1
+              fi
+            done
+          fi
+
+          for required in AGENTS.md PROJECT_STATUS.md docs/TESTING_ERRORS.md .github/testing-regression-checklist.md; do
+            if [ ! -f "$required" ]; then
+              echo "::error::Required project guide/record is missing: $required"
+              exit 1
+            fi
+          done
+          for checkbox in \
+            "- [x] Read AGENTS.md." \
+            "- [x] Read PROJECT_STATUS.md." \
+            "- [x] Read docs/TESTING_ERRORS.md." \
+            "- [x] Read .github/testing-regression-checklist.md." \
+            "- [x] Read every current Markdown guide under docs/." \
+            "- [x] Read relevant workflow and test scripts for CI/test changes." \
+            "- [x] Reviewed current guides again before this code-change batch; no stale assumptions carried forward."; do
+            if ! grep -Fqi -- "$checkbox" <<< "$PR_BODY"; then
+              echo "::error::PR checklist must confirm guide review: $checkbox"
+              exit 1
+            fi
+          done
+          echo "Required project records are present and PR guide-review attestations are checked."

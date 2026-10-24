@@ -449,3 +449,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add helper tests that compare the checkpoint detector RGB to the production tile fill and assert the repeated-ones stage count wraps across five stages. Run the helper suite, JVM tests, APK build, and full emulator smoke; inspect live-lesson and checkpoint screenshots from the resulting exact SHA.
 - **Evidence:** Failing run [40047675587](https://github.com/Prav1525/Padippupal/actions/runs/40047675587), job `120733340635`, checkpoint pixel count 0; the same run's word-highlight scan passed with 100 frames and 14 distinct positions.
 - **Status:** **Fix prepared in this batch; exact-head verification pending.** Keep PR #13 open and unmerged until the full release gate passes.
+
+
+### TE-036 — Checkpoint transcript viewport constraint was applied outside the scroll content
+
+- **Date discovered:** 2026-10-24
+- **Area:** Live tutor vertical layout / checkpoint screenshot acceptance.
+- **Symptom:** Exact-head screenshots from UI smoke run [40050844427](https://github.com/Prav1525/Padippupal/actions/runs/40050844427), SHA `25f601b330990e0185d45595a60868536654426e`, show the lesson text and repeated-ones animation at the top, a large unused vertical block, and checkpoint actions at the bottom. The live-lesson capture also shows the checkpoint heading, so visual state needs review after the layout correction.
+- **Root cause:** The minimum-height constraint was chained before `.verticalScroll()`, constraining the scroll viewport rather than ensuring the scroll content fills the available height. The checkpoint used fixed spacing, so the short content did not distribute through the viewport.
+- **Why it escaped:** Existing source tests checked that a height constraint and spacing policy existed, while screenshot automation only asserted visibility/pixel thresholds. Neither checked modifier ordering or the vertical distribution in the actual rendered checkpoint.
+- **Corrective action:** Move the conditional minimum-height modifier after `.verticalScroll()` so it applies to the scroll content, and use `Arrangement.SpaceEvenly` only at the understanding checkpoint; preserve compact fixed spacing while speaking.
+- **Regression protection:** Strengthen `CheckpointLayoutRegressionTests` to assert modifier order, the conditional minimum height on the scroll content, and checkpoint-only vertical distribution. Re-run helper/JVM tests, APK build, full emulator smoke, and inspect fresh screenshots from the resulting exact SHA.
+- **Evidence:** Screenshots `ui-screenshots/live-lesson.png` and `ui-screenshots/live-checkpoint.png` from artifact `12543432314`; automated checks passed on the baseline SHA but screenshot inspection found the layout defect.
+- **Status:** **Fix prepared; exact-head verification pending.** Keep PR #13 open and unmerged.

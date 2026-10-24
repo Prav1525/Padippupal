@@ -86,13 +86,13 @@ root = ET.parse(path).getroot()
 node = next((n for n in root.iter("node") if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc", "") and n.attrib.get("package") == "com.android.documentsui"), None)
 if node is None:
     raise SystemExit("Diary fixture card missing from picker tree")
-bounds = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", node.attrib.get("bounds", ""))
+bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
 if not bounds:
     raise SystemExit("Diary fixture card has invalid bounds")
 desc = list(node.iter("node"))
-clickable = next((n for n in desc if n is not node and n.attrib.get("clickable") == "true" and re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", n.attrib.get("bounds", ""))), None)
+clickable = next((n for n in desc if n is not node and n.attrib.get("clickable") == "true" and re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds", ""))), None)
 target = clickable or node
-m = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", target.attrib.get("bounds", ""))
+m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", target.attrib.get("bounds", ""))
 if not m:
     raise SystemExit("Diary fixture has no valid tap bounds")
 x1,y1,x2,y2 = map(int,m.groups())
@@ -110,13 +110,13 @@ if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-p
 import re, subprocess, xml.etree.ElementTree as ET
 path="ui-screenshots/diary-test/diary-picker-file-selected.xml"
 root=ET.parse(path).getroot()
-pattern=re.compile(r"^(select|open|done|use|choose)(\\b|\\s)",re.I)
+pattern=re.compile(r"^(select|open|done|use|choose)(\b|\s)",re.I)
 candidates=[]
 for n in root.iter("node"):
     label=" ".join((n.attrib.get("text",""),n.attrib.get("content-desc",""))).strip()
     if not label or not pattern.search(label):
         continue
-    m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
     if m and n.attrib.get("enabled","true")=="true":
         x1,y1,x2,y2=map(int,m.groups())
         # Prefer actionable controls in the bottom action area; avoid root labels.

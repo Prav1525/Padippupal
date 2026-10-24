@@ -89,12 +89,18 @@ m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""
 if not m:
     raise SystemExit("Diary fixture card has invalid bounds")
 x1, y1, x2, y2 = map(int, m.groups())
-# Tap the center of the file card. The previous left-quarter tap landed
-# in the card's non-interactive padding on this AOSP DocumentsUI layout.
-# The center is inside the card's actual hit target and avoids the preview
-# thumbnail's top-right overlay.
-x, y = x1 + int((x2-x1)*0.50), y1 + int((y2-y1)*0.65)
-print(f"Tap diary fixture card center at {x},{y} within {node.attrib['bounds']}")
+# The card parent itself is not clickable in this DocumentsUI build.
+# Find its clickable descendant (the preview icon) and tap that node's
+# bounds rather than guessing a point in the parent's padding/text area.
+desc = list(node.iter("node"))
+clickable = next((n for n in desc if n is not node and n.attrib.get("clickable") == "true" and re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds", ""))), None)
+target = clickable or node
+tm = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", target.attrib.get("bounds", ""))
+if not tm:
+    raise SystemExit("No tappable diary fixture node has valid bounds")
+tx1, ty1, tx2, ty2 = map(int, tm.groups())
+x, y = (tx1+tx2)//2, (ty1+ty2)//2
+print(f"Tap diary fixture {'clickable descendant' if clickable else 'card'} at {x},{y} within {target.attrib['bounds']}")
 subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=20)
 PY
 sleep 2

@@ -914,7 +914,7 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     assert body["chapter_overview"] == "Plants make food using light."
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "reveal"
-    assert body["segments"][0]["checkpoint"] == "What does the plant need?"
+    assert body["segments"][0]["checkpoint"] is None  # feedback waits until topic completion
 
 
 def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):

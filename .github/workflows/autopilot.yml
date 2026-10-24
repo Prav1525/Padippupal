@@ -32,9 +32,12 @@ jobs:
         run: |
           set -euo pipefail
           python tools/padippupal_autopilot.py check-guides
+          git diff --check
+      - name: Compile and test free AutoPilot helpers
+        run: |
+          set -euo pipefail
           python -m py_compile tools/padippupal_autopilot.py tools/test_padippupal_autopilot.py
           python tools/test_padippupal_autopilot.py
-          git diff --check
       - name: Require record updates for code-bearing changes
         if: github.event_name == 'pull_request'
         env:

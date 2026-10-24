@@ -1507,6 +1507,30 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
     return has_relevant_speech
 
 
+def _lesson_meets_completeness_bar(topic: str, segments: list[dict[str, Any]]) -> bool:
+    """Reject skeletal lessons for the known All 1s pilot instead of calling them complete."""
+    selected = normalize(topic).casefold()
+    if selected not in {"all 1s", "all ones", "all one's"}:
+        return len(segments) >= 3
+    if len(segments) < 4:
+        return False
+    speech = " ".join(
+        str(segment.get("spoken_text", "")) + " " + str(segment.get("caption_text", ""))
+        for segment in segments
+    ).casefold()
+    coverage = (
+        # Identify/show the repeated sequence.
+        r"\\b(?:1\\s*[,;]\\s*1|all\\s+1s?|all\\s+ones?)\\b",
+        # Explain why the value is unchanged.
+        r"\\b(?:same|stays?|remains?|unchanged|repeat)\\w*\\b",
+        # Contrast with a changing/growing pattern.
+        r"\\b(?:unlike|compare|different|increas\\w*|grow\\w*|chang\\w*|2\\s*[,;]\\s*3)\\b",
+        # Include an example, learner reflection, or recap.
+        r"\\b(?:example|try|notice|remember|recap|rule|because)\\b",
+    )
+    return all(re.search(pattern, speech) for pattern in coverage)
+
+
 @app.post("/tutor/lesson-plan")
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     """Create short source-grounded lesson segments for synchronized playback."""
@@ -1576,7 +1600,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             # Approval verifies source provenance, not that every step still matches
             # the learner's selected topic. Treat stored lessons like generated lessons:
             # validate the actual playable segments before returning them.
-            if segments and _lesson_segments_match_topic(payload.topic, segments):
+            if segments and _lesson_segments_match_topic(payload.topic, segments) and _lesson_meets_completeness_bar(payload.topic, segments):
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",
@@ -1625,9 +1649,9 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     system_prompt = ("You are PadippuPal lesson planner for class " + str(payload.class_level) + ", subject " + subject + ", chapter " + (payload.chapter or "not selected") + ", topic " + (payload.topic or payload.message) + ", language " + payload.app_language + ".\n"
         + "Use ONLY retrieved PadippuPal database passages for factual claims. Return JSON only: {segments:[{id,spoken_text,caption_text,source_chunk_ids,visual_action:{type,target,value},checkpoint}]}. "
         + "Teach like a patient, kind primary-school teacher sitting beside one child. Use very simple everyday words, one idea at a time, and explain any new term before using it. "
-        + "Create at most " + str(payload.max_segments) + " short sequential spoken segments, usually one sentence and no more than 18 spoken words each. "
+        + "Create at least 4 and at most " + str(payload.max_segments) + " short sequential spoken segments, usually one sentence and no more than 18 spoken words each. For the All 1s topic, cover the sequence, why every term stays 1, a contrast with a changing sequence, and a worked example or learner reflection. Never return a skeletal lesson. "
         + "Use natural spoken punctuation: short sentences, commas for gentle breaths, and occasional ellipses only where a real pause helps. Avoid robotic lists, rushed phrasing, repeated filler, and exaggerated baby talk. "
-        + "After explaining a key idea or worked example, set checkpoint to a warm, short understanding question such as Does that make sense so far? or Would you like me to show that another way? Set checkpoint on at least every second segment, especially after examples. Do not put the checkpoint question inside spoken_text; the app will pause and ask it separately. "
+        + "Set checkpoint to null on every teaching segment. Do not interrupt teaching with a feedback question; the app must teach the complete topic first and ask for feedback only after the final topic-complete state. "
         + "When explaining an example, make visual_action point to the exact number, shape, or step being spoken about; reveal or compare one step at a time. "
         + "Each segment must cite exact chunk_id values shown in the passages. visual_action type must be one of highlight,reveal,move,compare,label,draw-line,show-result,none. Never return code or invent unsupported visuals. Use none if no matching visual is supported.")
     model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
@@ -1661,13 +1685,13 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 result = json.loads(response.read().decode("utf-8"))
             raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
             candidate = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
-            if not _lesson_segments_match_topic(payload.topic, candidate["segments"]):
+            if not _lesson_segments_match_topic(payload.topic, candidate["segments"]) or not _lesson_meets_completeness_bar(payload.topic, candidate["segments"]):
                 if attempt == 0:
                     logger.warning("Gemini lesson planner drifted from selected topic=%s; retrying once", payload.topic)
                     retry_instruction += (
                         "\nThe previous valid JSON was rejected because its teaching content or visual action "
                         "did not match the selected topic '" + payload.topic + "'. Rewrite every segment for that topic only. "
-                        "For All 1s, explain the repeated ones; do not discuss counting up/down, square numbers, or "
+                        "For All 1s, return at least four substantive segments covering the repeated sequence, why every term stays 1, a contrast with a changing sequence, and a worked example or learner reflection. Set every checkpoint to null. Do not discuss counting up/down, square numbers, or "
                         "the equation 1 + 2 + 1 = 4. Keep the same approved source chunk IDs."
                     )
                     continue
@@ -1696,7 +1720,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                             break
                     if fallback_segment:
                         break
-                if fallback_segment and fallback_source_ids:
+                if fallback_segment and fallback_source_ids and _lesson_meets_completeness_bar(payload.topic, [fallback_segment]):
                     return {
                         "lesson_id": str(uuid.uuid4()),
                         "segments": [{
@@ -1761,7 +1785,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 # Provider-error fallback is still a teaching path: it must pass
                 # exactly the same topic gate as generated and approved lessons.
                 fallback_matches_topic = _lesson_segments_match_topic(payload.topic, [fallback_segment])
-                if spoken and source_ids and fallback_matches_topic:
+                if spoken and source_ids and fallback_matches_topic and _lesson_meets_completeness_bar(payload.topic, [fallback_segment]):
                     logger.warning(
                         "Starting source-extract lesson fallback after Gemini failure status=%s topic=%s",
                         exc.code, payload.topic,
@@ -1806,7 +1830,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             raise HTTPException(status_code=502, detail="The lesson planner returned an invalid response.") from exc
     if validated is None:
         raise HTTPException(status_code=502, detail="The lesson planner could not produce a valid grounded lesson.")
-    if not _lesson_segments_match_topic(payload.topic, validated["segments"]):
+    if not _lesson_segments_match_topic(payload.topic, validated["segments"]) or not _lesson_meets_completeness_bar(payload.topic, validated["segments"]):
         logger.warning("Tutor lesson rejected: generated segments do not match selected topic=%s", payload.topic)
         return {
             "lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],

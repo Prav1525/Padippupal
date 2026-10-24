@@ -258,15 +258,23 @@ def assert_live(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
-    # The lesson has state labels, not page counters. Accept the live teaching,
-    # checkpoint, or completion state while checking actual topic content below.
+    # A live snapshot is only valid while teaching or after full topic completion.
+    # Feedback/checkpoint labels before TOPIC COMPLETE are a product regression,
+    # not an alternate valid live-lesson state.
+    completed = "topic complete" in joined
+    checkpoint_labels = (
+        "quick check", "let's check your understanding",
+        "does that make sense so far?", "i understand",
+        "explain again", "i have a question",
+    )
+    premature = [label for label in checkpoint_labels if label in joined and not completed]
+    if premature:
+        raise SystemExit("Feedback/checkpoint appeared before TOPIC COMPLETE: " + ", ".join(premature))
     has_lesson_state = any(label in joined for label in (
         "your teacher is speaking", "your lesson", "topic complete",
-        "quick check", "let's check your understanding",
-        "does that make sense so far?",
     ))
     if not has_lesson_state:
-        raise SystemExit("Live lesson is missing its teaching, checkpoint, or completion state")
+        raise SystemExit("Live lesson is missing its teaching or completed-topic state")
     lesson_words = ("one", "all 1s", "pattern", "number")
     if not any(term in joined for term in lesson_words):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")

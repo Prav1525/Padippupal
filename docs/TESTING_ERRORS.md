@@ -520,3 +520,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Actual emulator screenshot from the UI smoke artifact for run [40057379049](https://github.com/Prav1525/Padippupal/actions/runs/40057379049).
 - **Status:** Spacing correction committed in d3ab0916e86608870c60fa3f11ab91e54897655e; new emulator verification pending.
 
+### TE-042 — UI helper tests retained the pre-compaction 14dp spacing assertion
+
+- **Date discovered:** 2026-10-24
+- **Area:** UI smoke helper validation / live lesson spacing.
+- **Symptom/failure:** UI smoke run [40058216858](https://github.com/Prav1525/Padippupal/actions/runs/40058216858) failed in script validation before emulator allocation. Two helper tests still expected `Arrangement.spacedBy(14.dp, Alignment.CenterVertically)` after the intended spacing change to 8dp.
+- **Root cause:** The production layout was updated, but two source-contract assertions in `.github/scripts/test_ui_smoke_helpers.py` were not updated to match the new intended spacing contract.
+- **Why it escaped:** The helper suite was not run successfully on the exact post-spacing commit before launching the UI workflow.
+- **Corrective action:** Updated both viewport and checkpoint-layout assertions to require 8dp spacing; did not remove the assertions or change production code to satisfy stale tests.
+- **Regression protection:** Run the full helper validation before emulator allocation, then require a successful emulator run and inspect real screenshots for speaking, checkpoint, continued lesson, and topic completion. Ensure screenshot artifacts are actually uploaded; do not treat a source-only pass as visual acceptance.
+- **Evidence:** Failure run [40058216858](https://github.com/Prav1525/Padippupal/actions/runs/40058216858), tested merge SHA `4234f3f502587b99f945b48624911cb28474f08f`; helper assertion correction commit `3cd42dd5f0b0ff5cd0e7f07293e3ef20f81c8693`.
+- **Status:** **Stale assertions corrected; rerun and screenshot verification pending.**
+

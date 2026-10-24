@@ -497,3 +497,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Update source-level tests to forbid `Arrangement.SpaceEvenly` in the live viewport and require the compact header. Keep screenshot checks for live speech and checkpoint states, and drive every distinct checkpoint in the smoke journey before asserting topic completion.
 - **Evidence:** Screenshot and report from artifact [12544783462](https://github.com/Prav1525/Padippupal/actions/runs/40054398708/artifacts/12544783462); UI smoke currently fails at the final completion assertion because the script does not advance a subsequent checkpoint.
 - **Status:** Fix and regression updates prepared in the current tutor PR batch; exact-head CI and screenshot review pending.
+
+
+### TE-040 — UI smoke reopened an already-selected concept picker and expected numbered rows
+- **Date discovered:** 2026-10-24
+- **Area:** Android UI smoke test navigation / setup screen.
+- **Symptom/failure:** UI smoke run [40056364712](https://github.com/Prav1525/Padippupal/actions/runs/40056364712) failed after selecting Chapter 1: the accessibility tree showed `Topic / concept | All 1s` and `Done`, but no numbered concept row existed for the helper to tap.
+- **Root cause:** The setup screen automatically selected the fixture's first concept (`All 1s`) when the chapter was selected. The smoke script redundantly reopened the topic picker and assumed options would have numbered labels.
+- **Why it escaped:** The script's chapter assertion checked the chapter but did not assert the resulting selected concept or model the setup screen's default-selection behavior.
+- **Corrective action:** Assert that `All 1s` is visibly selected in the chapter-selected accessibility snapshot and continue directly to `Done`; retain a hard app-failure if the expected concept is missing.
+- **Regression protection:** The UI smoke flow must verify chapter selection, default concept selection, setup completion, and then Teach. Do not weaken selection checks or depend on a numbered label that is not part of the UI contract.
+- **Evidence:** Failed UI smoke run [40056364712](https://github.com/Prav1525/Padippupal/actions/runs/40056364712), SHA `49fcf79150ebedc46ea885598fe3855498a9ac6a`.
+- **Status:** Root cause confirmed from accessibility output; correction committed in the current batch, exact-head workflow and screenshot verification pending.

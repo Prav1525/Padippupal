@@ -78,3 +78,10 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 - [ ] The lesson transcript scrolls independently and fills the flexible space; checkpoint controls are in-flow below it, pinned to the bottom of the tutor screen rather than inside the transcript scroll container.
 - [ ] Fresh screenshots from the exact tested SHA show all three checkpoint actions above system navigation with no large unused region beneath them.
 - [ ] Helper tests, JVM tests, APK build, and emulator flow pass after any layout change; inspect both live lesson and checkpoint screenshots before marking verified.
+
+
+### Setup-screen default-topic navigation regression
+
+- [ ] After selecting Chapter 1, inspect the accessibility snapshot and assert the expected default concept (`All 1s`) is selected.
+- [ ] Continue directly through Done -> Teach when that default is already selected; do not assume the topic picker must expose numbered rows.
+- [ ] Treat a missing/wrong default concept as an app failure; do not bypass the assertion to make UI smoke pass.

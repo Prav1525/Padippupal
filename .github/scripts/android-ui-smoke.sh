@@ -160,15 +160,17 @@ sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
 python3 .github/scripts/ui_smoke.py assert-chapter-selected chapter-selected.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap-topic-picker chapter-selected.xml
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
-"${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
-python3 .github/scripts/ui_smoke.py tap-first-concept concept-menu.xml
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
-"${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml
-python3 .github/scripts/ui_smoke.py tap concept-selected.xml "Done"
+# Chapter selection auto-selects the first available concept (All 1s for this fixture).
+# Do not reopen the picker and require numbered labels when a single concept is
+# already selected; accessibility labels are not guaranteed to be numbered.
+if ! grep -Eqi 'All 1s' chapter-selected.xml; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: expected default concept All 1s was not selected after choosing the chapter"
+  cat chapter-selected.xml | tee -a "$REPORT"
+  exit 1
+fi
+log "Default concept All 1s is already selected; completing setup without reopening the picker"
+python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Done"
 sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml

@@ -98,3 +98,12 @@ Poll the current UI smoke run; once complete, inspect its logs and screenshot ar
 - **Root-cause change:** Center the lesson elements as a compact group with consistent spacing rather than using `Arrangement.SpaceEvenly`; make the live header a single-line selected-concept title in a 56dp bar while preserving Back/Pause/Resume/Stop.
 - **Verification harness:** The latest run built the APK and passed curriculum/JVM and script preflight checks; emulator navigation, playback/highlight, and checkpoint continuation passed. Final completion validation failed because the smoke loop did not advance a later checkpoint. The harness now advances each distinct checkpoint before checking the completed-topic screen.
 - **Acceptance gate:** Re-run all checks against the new exact SHA and inspect fresh live-speaking, checkpoint, and completed-topic screenshots. PR #13 remains open and unmerged until all acceptance checks pass.
+
+
+## UI smoke setup-navigation correction — 2026-10-24
+
+- **Finding:** UI smoke run [40056364712](https://github.com/Prav1525/Padippupal/actions/runs/40056364712), SHA `49fcf79150ebedc46ea885598fe3855498a9ac6a`, failed before Teach because chapter selection had already selected `All 1s`; the script then reopened the concept picker and expected numbered rows that were not present.
+- **Correction:** The smoke script now requires `All 1s` in the post-chapter accessibility snapshot and proceeds to Done without reopening the picker. Missing default concept remains a hard failure.
+- **Regression record:** TE-040 added to `docs/TESTING_ERRORS.md`; checklist updated to cover the actual chapter -> default concept -> Done -> Teach journey.
+- **Verification:** Pending automatic workflows on the new exact branch head. APK/curriculum checks passing on the previous SHA do not verify this change; inspect the new UI-smoke report and screenshots before marking the tutor layout verified.
+- **Release:** PR #13 remains open and unmerged.

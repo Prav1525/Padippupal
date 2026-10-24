@@ -247,7 +247,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
             live_layout.index(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))"),
             "The min-height modifier must constrain the scroll content, not the viewport",
         )
-        self.assertIn("verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)", live_layout)
+        self.assertIn("verticalArrangement = if (awaitingUnderstanding || speechActive) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)", live_layout)
         # Checkpoint actions are outside the scrollable transcript and remain pinned below its weighted viewport.
         checkpoint_controls = tutor[tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)"):tutor.index("if (!liveLessonActive && status.isNotBlank())")]
         self.assertNotIn("verticalScroll(liveLessonScrollState)", checkpoint_controls)

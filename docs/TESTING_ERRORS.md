@@ -436,3 +436,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Failed baseline run [40045309104](https://github.com/Prav1525/Padippupal/actions/runs/40045309104), tested SHA `e6417f14443f6e3bf474972c4f6e6889d8a0bcac`, artifact `12541317032`; detector fix commit `2ea7f0e4c06ae397973eb8bd7786406152d121c0`; regression test commit `bc4a2fb5aeb7dc16a8154adbf2c796a3278ad5e3`.
 - **Status:** **Root cause confirmed; detector/test fix implemented; exact-head verification pending.** Do not weaken the pixel threshold or merge PR #13 until the corrected detector and full release gate pass.
 
+
+
+### TE-035 — Checkpoint animation visibility detector still searched for retired blue tiles
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android checkpoint screenshot acceptance / repeated-ones animation progression.
+- **Symptom/failure:** UI smoke run [40047675587](https://github.com/Prav1525/Padippupal/actions/runs/40047675587), tested SHA `eb4a8baef93038395e360ae127a08d332c469c0e`, reached the understanding checkpoint with the All 1s animation labels present but reported zero repeated-ones tile pixels in the teaching viewport.
+- **Root cause:** The prior TE-034 correction updated the word-highlight detector to mint but missed a separate checkpoint-tile detector in `.github/scripts/ui_smoke.py`, which still counted retired blue RGB `(220, 231, 255)`. Production repeated-ones tiles use mint `#CDE9E2` / RGB `(205, 233, 226)`. Source inspection also confirmed the animation stage wrapped modulo 4 despite rendering five tiles, so the fifth tile could never enter the highlighted state.
+- **Why it escaped:** The TE-034 regression test only compared the word-highlight detector with `WordByWordCaption`; it did not cover the independent checkpoint screenshot detector or the animation's five-stage progression.
+- **Corrective action:** Update the checkpoint detector to count the production mint fill without changing its 350-pixel visibility threshold; give the repeated-ones scene five animation stages while leaving other scenes at four.
+- **Regression protection:** Add helper tests that compare the checkpoint detector RGB to the production tile fill and assert the repeated-ones stage count wraps across five stages. Run the helper suite, JVM tests, APK build, and full emulator smoke; inspect live-lesson and checkpoint screenshots from the resulting exact SHA.
+- **Evidence:** Failing run [40047675587](https://github.com/Prav1525/Padippupal/actions/runs/40047675587), job `120733340635`, checkpoint pixel count 0; the same run's word-highlight scan passed with 100 frames and 14 distinct positions.
+- **Status:** **Fix prepared in this batch; exact-head verification pending.** Keep PR #13 open and unmerged until the full release gate passes.

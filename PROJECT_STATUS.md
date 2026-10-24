@@ -64,3 +64,12 @@ Poll the current UI smoke run; once complete, inspect its logs and screenshot ar
 - **Implemented on tutor branch:** Updated `.github/scripts/ui_smoke.py` to scan the actual mint highlight; added a helper regression test that compares the detector color with the production caption color. Commits: `2ea7f0e4c06ae397973eb8bd7786406152d121c0`, `bc4a2fb5aeb7dc16a8154adbf2c796a3278ad5e3`.
 - **Verification:** Not yet run on these commits. The prior run's APK build and JVM/helper preflight passed, but its final pixel scan failed due to the stale detector color. The corrected detector, new regression assertion, emulator progression, and fresh screenshots must pass on the latest head before the tutor PR is accepted.
 - **Next:** Inspect latest-head workflow results and review live-lesson/checkpoint screenshots. Keep PR #13 open and unmerged.
+
+
+## Checkpoint tile detector and repeated-ones progression — 2026-10-24
+
+- **Objective:** Fix the actual latest-head emulator failure without weakening visual acceptance.
+- **Failure evidence:** UI smoke run [40047675587](https://github.com/Prav1525/Padippupal/actions/runs/40047675587), SHA `eb4a8baef93038395e360ae127a08d332c469c0e`. The word-highlight scan passed (100 frames, 14 distinct positions); the checkpoint screenshot detector failed with 0 tile pixels because it still searched for retired blue `#DCE7FF`.
+- **Implementation in this batch:** Change the checkpoint tile detector to production mint `#CDE9E2` while preserving the 350-pixel threshold; advance the repeated-ones animation through five stages so all five tiles can highlight; add regression tests for both.
+- **Verification:** Pending automatic GitHub Actions on the new exact head. Inspect the live lesson and checkpoint screenshots before marking visually verified.
+- **Release:** PR #13 remains open and unmerged.

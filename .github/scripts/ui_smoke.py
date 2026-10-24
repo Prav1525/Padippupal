@@ -74,12 +74,12 @@ def assert_checkpoint(path, screenshot_path=None):
         raise SystemExit("Pillow is required to inspect checkpoint screenshot") from exc
     image = Image.open(screenshot_path).convert("RGB")
     width, height = image.size
-    # The five repeated-one tiles use exact fill #DCE7FF. Exclude the top header
+    # Repeated-one tiles use the production mint fill #CDE9E2. Exclude the top header
     # and search only the teaching viewport so the LIVE badge cannot pass this check.
     pixels = image.load()
     x1, x2 = int(width * .08), int(width * .92)
     y1, y2 = int(height * .18), int(height * .76)
-    tile_pixels = sum(1 for y in range(y1, y2) for x in range(x1, x2) if pixels[x, y] == (220, 231, 255))
+    tile_pixels = sum(1 for y in range(y1, y2) for x in range(x1, x2) if pixels[x, y] == (205, 233, 226))
     print(f"Checkpoint repeated-ones tile pixels in teaching viewport: {tile_pixels}")
     if tile_pixels < 350:
         raise SystemExit("Checkpoint XML exists, but the repeated-ones animation is not visibly rendered in the teaching viewport")

@@ -306,6 +306,23 @@ class SpeechHighlightSynchronizationRegressionTests(unittest.TestCase):
         self.assertNotIn("target = (220, 231, 255)", smoke)
 
 
+class RepeatedOnesAnimationRegressionTests(unittest.TestCase):
+    def test_checkpoint_tile_detector_matches_production_mint_fill(self):
+        root = Path(__file__).resolve().parents[2]
+        tutor = (root / "app" / "src" / "main" / "java" / "com" / "padippupal" /
+                 "app" / "TutorScreen.kt").read_text()
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        self.assertIn("if (index <= stage) Color(0xFFCDE9E2)", tutor)
+        self.assertIn("pixels[x, y] == (205, 233, 226)", smoke)
+        self.assertNotIn("pixels[x, y] == (220, 231, 255)", smoke)
+
+    def test_repeated_ones_animation_reaches_all_five_tiles(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn('val stageCount = if (scene == "repeated_ones") 5 else 4', tutor)
+        self.assertIn("stage = (stage + 1) % stageCount", tutor)
+
+
 class SpeechPlaybackLeadRegressionTests(unittest.TestCase):
     def test_highlight_gate_waits_briefly_after_platform_playback_start(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

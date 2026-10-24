@@ -320,11 +320,12 @@ private fun ChapterOneMathAnimation(
     compact: Boolean = false
 ) {
     var stage by remember(scene, title) { mutableIntStateOf(0) }
-    LaunchedEffect(scene, title) {
+    val stageCount = if (scene == "repeated_ones") 5 else 4
+    LaunchedEffect(scene, title, stageCount) {
         stage = 0
         while (true) {
             delay(3000L)
-            stage = (stage + 1) % 4
+            stage = (stage + 1) % stageCount
         }
     }
     val transition = rememberInfiniteTransition(label = "chapter-one-maths")

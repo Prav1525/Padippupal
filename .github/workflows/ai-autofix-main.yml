@@ -84,6 +84,10 @@ jobs:
             checks that are already available without network access. Do not access secrets
             or attempt to bypass the sandbox. Summarize changed files and verification limits.
 
+      - name: Remove temporary failure log from the worktree
+        if: steps.secret.outputs.configured == 'true'
+        run: rm -f failure-context.txt
+
       - name: Check whether a patch was produced
         id: patch
         if: steps.secret.outputs.configured == 'true'

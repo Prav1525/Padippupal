@@ -78,14 +78,14 @@ import java.util.Locale
 import java.time.LocalDate
 import java.util.concurrent.Executors
 
-// Cool, high-contrast palette: midnight navy + electric teal for a modern learning interface.
-private val TutorGreen = Color(0xFF4169E1)
-private val TutorDeep = Color(0xFF172033)
-private val TutorGrey = Color(0xFF64748B)
-private val TutorPaper = Color(0xFFFFFFFF)
-private val TutorNight = Color(0xFF0B1220)
-private val TutorMutedOnNight = Color(0xFFB8C7D9)
-private val TutorAccentSoft = Color(0xFFEAF0FF)
+// PadippuPal premium palette: deep teal, warm ivory, soft mint and charcoal. Avoid indigo/blue accents.
+private val TutorGreen = Color(0xFF0F766E)
+private val TutorDeep = Color(0xFF203A38)
+private val TutorGrey = Color(0xFF637873)
+private val TutorPaper = Color(0xFFFAF8F1)
+private val TutorNight = Color(0xFF142B2A)
+private val TutorMutedOnNight = Color(0xFFD4E3DD)
+private val TutorAccentSoft = Color(0xFFE5F1EC)
 private val tutorExecutor = Executors.newSingleThreadExecutor()
 private val tutorMainHandler = Handler(Looper.getMainLooper())
 
@@ -148,7 +148,7 @@ private fun WordByWordCaption(
                 append(word)
                 val end = length
                 if (active && index == currentWordIndex.coerceIn(0, (words.size - 1).coerceAtLeast(0))) {
-                    addStyle(SpanStyle(background = Color(0xFFDCE7FF), fontWeight = FontWeight.ExtraBold), start, end)
+                    addStyle(SpanStyle(background = Color(0xFFCDE9E2), fontWeight = FontWeight.ExtraBold), start, end)
                 }
                 addStringAnnotation("word", word.trimEnd(',', '.', ';', ':', '?', '!'), start, end)
             }
@@ -270,7 +270,7 @@ private fun InteractiveLessonLab(
             BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White,RoundedCornerShape(14.dp))) {
                 val w=maxWidth; val h=maxHeight
                 Canvas(Modifier.fillMaxSize()) {
-                    drawLine(Color(0xFFCBD5E1),Offset(size.width*.05f,size.height*.84f),Offset(size.width*.95f,size.height*.84f),2.dp.toPx())
+                    drawLine(Color(0xFFD5DFD8),Offset(size.width*.05f,size.height*.84f),Offset(size.width*.95f,size.height*.84f),2.dp.toPx())
                     drawCircle(Color(0xFF4169E1),7.dp.toPx(),Offset(size.width*(.10f+.78f*moving),size.height*.84f))
                 }
                 items.forEachIndexed { index, item ->
@@ -292,11 +292,11 @@ private fun InteractiveLessonLab(
                         horizontalAlignment=Alignment.CenterHorizontally
                     ) {
                         Surface(
-                            color = if (index in activeVisualIndexes) Color(0xFFDCE7FF) else Color(0xFFF8FAFC),
+                            color = if (index in activeVisualIndexes) Color(0xFFCDE9E2) else Color(0xFFFAF8F1),
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(
                                 if (index in activeVisualIndexes) 2.dp else 1.dp,
-                                if (index in activeVisualIndexes) TutorGreen else Color(0xFFDCE3ED)
+                                if (index in activeVisualIndexes) TutorGreen else Color(0xFFD9E2DB)
                             )
                         ) {
                             Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=25.sp)
@@ -344,7 +344,7 @@ private fun ChapterOneMathAnimation(
                         repeat(5) { index ->
                             Box(
                                 Modifier.weight(1f).then(if (compact) Modifier.height(38.dp) else Modifier.aspectRatio(1f)).background(
-                                    if (index <= stage) Color(0xFFDCE7FF) else Color.White,
+                                    if (index <= stage) Color(0xFFCDE9E2) else Color.White,
                                     RoundedCornerShape(12.dp)
                                 ),
                                 contentAlignment = Alignment.Center
@@ -360,7 +360,7 @@ private fun ChapterOneMathAnimation(
                     Text("Numbers can follow a rule", color = TutorGrey, fontSize = 12.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         listOf("1", "2", "3", "4", "5").forEachIndexed { index, number ->
-                            Column(Modifier.weight(1f).background(if (index <= stage) Color(0xFFDCE7FF) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(Modifier.weight(1f).background(if (index <= stage) Color(0xFFCDE9E2) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(number, color = TutorDeep, fontSize = if (index == stage) (18 * pulse).sp else 17.sp, fontWeight = FontWeight.ExtraBold)
                             }
                         }
@@ -374,7 +374,7 @@ private fun ChapterOneMathAnimation(
                         symbols.forEachIndexed { index, symbol ->
                             Box(
                                 Modifier.weight(1f).aspectRatio(1f).background(
-                                    if (index / 3 <= stage) Color(0xFFDCE7FF) else Color.White,
+                                    if (index / 3 <= stage) Color(0xFFCDE9E2) else Color.White,
                                     RoundedCornerShape(7.dp)
                                 ),
                                 contentAlignment = Alignment.Center
@@ -413,7 +413,7 @@ private fun ChapterOneMathAnimation(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                         values.forEachIndexed { index, number ->
                             Column(
-                                Modifier.weight(1f).background(if (index <= stage + 1) Color(0xFFDCE7FF) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 12.dp, horizontal = 2.dp),
+                                Modifier.weight(1f).background(if (index <= stage + 1) Color(0xFFCDE9E2) else Color.White, RoundedCornerShape(10.dp)).padding(vertical = 12.dp, horizontal = 2.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(number, color = TutorDeep, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
@@ -429,7 +429,7 @@ private fun ChapterOneMathAnimation(
                 Text(caption, color = TutorGrey, fontSize = 11.sp, lineHeight = 16.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                     repeat(4) { index ->
-                        Box(Modifier.weight(1f).height(3.dp).background(if (index == stage) TutorGreen else Color(0xFFDCE3ED), RoundedCornerShape(3.dp)))
+                        Box(Modifier.weight(1f).height(3.dp).background(if (index == stage) TutorGreen else Color(0xFFD9E2DB), RoundedCornerShape(3.dp)))
                     }
                     Text("AUTO", color = TutorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 }
@@ -531,7 +531,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             (label.contains("iron") || label.contains("steel") || label.contains("metal")) &&
                 kotlin.math.sqrt((p.x-positions[0].x)*(p.x-positions[0].x)+(p.y-positions[0].y)*(p.y-positions[0].y)) < .20f
         }
-    Surface(Modifier.fillMaxWidth().padding(top=8.dp), color=Color(0xFFF8FAFC), shape=RoundedCornerShape(18.dp), border=BorderStroke(1.dp, Color(0xFFDCE3ED))) {
+    Surface(Modifier.fillMaxWidth().padding(top=8.dp), color=Color(0xFFFAF8F1), shape=RoundedCornerShape(18.dp), border=BorderStroke(1.dp, Color(0xFFD9E2DB))) {
         Column(Modifier.padding(12.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -559,7 +559,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         "orbit_lab", "day_night", "moon_phase" -> {
                             val center = Offset(size.width*.5f, size.height*.48f)
                             val radius = minOf(size.width, size.height)*.34f
-                            drawCircle(Color(0xFFCBD5E1), radius, center, style=androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                            drawCircle(Color(0xFFD5DFD8), radius, center, style=androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
                             if (scene=="day_night") {
                                 drawCircle(Color(0xFF3C91D6), radius*.55f, center)
                                 drawArc(Color(0xFF23415F), 90f, 180f, true, Offset(center.x-radius*.55f,center.y-radius*.55f), androidx.compose.ui.geometry.Size(radius*1.1f,radius*1.1f))
@@ -654,11 +654,11 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         }
                         "symmetry_mirror" -> drawLine(Color(0xFF7F9BFF), Offset(size.width*.5f,0f), Offset(size.width*.5f,size.height), 2.dp.toPx())
                         "area_grid" -> {
-                            for (i in 1..8) drawLine(Color(0xFFE2E8F0),Offset(size.width*i/9f,0f),Offset(size.width*i/9f,size.height),1.dp.toPx())
-                            for (i in 1..4) drawLine(Color(0xFFE2E8F0),Offset(0f,size.height*i/5f),Offset(size.width,size.height*i/5f),1.dp.toPx())
+                            for (i in 1..8) drawLine(Color(0xFFE3E8E0),Offset(size.width*i/9f,0f),Offset(size.width*i/9f,size.height),1.dp.toPx())
+                            for (i in 1..4) drawLine(Color(0xFFE3E8E0),Offset(0f,size.height*i/5f),Offset(size.width,size.height*i/5f),1.dp.toPx())
                         }
                         else -> {
-                            drawLine(Color(0xFFCBD5E1),Offset(size.width*.05f,size.height*.86f),Offset(size.width*.95f,size.height*.86f),2.dp.toPx())
+                            drawLine(Color(0xFFD5DFD8),Offset(size.width*.05f,size.height*.86f),Offset(size.width*.95f,size.height*.86f),2.dp.toPx())
                             drawCircle(Color(0xFF4169E1),6.dp.toPx(),Offset(size.width*(.1f+.78f*pulse),size.height*.86f))
                         }
                     }
@@ -695,7 +695,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                             },
                         horizontalAlignment=Alignment.CenterHorizontally
                     ) {
-                        Surface(color=if(scene=="fraction_builder" && item.name=="1/4") Color(0xFFCBD5E1) else Color(0xFFF8FAFC),shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,Color(0xFFDCE3ED))) {
+                        Surface(color=if(scene=="fraction_builder" && item.name=="1/4") Color(0xFFD5DFD8) else Color(0xFFFAF8F1),shape=RoundedCornerShape(12.dp),border=BorderStroke(1.dp,Color(0xFFD9E2DB))) {
                             Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=24.sp)
                         }
                         Text(item.name,color=TutorDeep,fontSize=10.sp,maxLines=1)
@@ -768,9 +768,9 @@ private fun DatabaseLessonVisual(lesson: JSONObject) {
     val activeIndex = (progress * visibleSteps.size).toInt().coerceIn(0, visibleSteps.lastIndex)
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        color = Color(0xFFF8FAFC),
+        color = Color(0xFFFAF8F1),
         shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, Color(0xFFDCE3ED))
+        border = BorderStroke(1.dp, Color(0xFFD9E2DB))
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             Text("SEE IT HAPPEN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -779,7 +779,7 @@ private fun DatabaseLessonVisual(lesson: JSONObject) {
                 visibleSteps.forEachIndexed { index, step ->
                     if (index > 0) Text("→", color = TutorGreen, fontSize = 13.sp)
                     Column(
-                        Modifier.weight(1f).background(if (index == activeIndex) Color.White else Color(0xFFEAF0FF), RoundedCornerShape(10.dp)).padding(horizontal = 3.dp, vertical = 7.dp),
+                        Modifier.weight(1f).background(if (index == activeIndex) Color.White else Color(0xFFE5F1EC), RoundedCornerShape(10.dp)).padding(horizontal = 3.dp, vertical = 7.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(step.optString("icon", "✦"), fontSize = 20.sp, maxLines = 1)
@@ -809,9 +809,9 @@ private fun LessonVisual(explanation: String, subject: String) {
     )
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        color = Color(0xFFF8FAFC),
+        color = Color(0xFFFAF8F1),
         shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, Color(0xFFDCE3ED))
+        border = BorderStroke(1.dp, Color(0xFFD9E2DB))
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("SEE IT HAPPEN", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -1958,7 +1958,7 @@ internal fun TutorScreen(
         }
 
         if (showLessonSettings && !liveLessonActive) {
-            Surface(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 6.dp), color = Color.White, shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
+            Surface(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp, vertical = 6.dp), color = Color.White, shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, Color(0xFFE3E8E0))) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Set up your lesson", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TutorDeep)
@@ -2067,7 +2067,7 @@ internal fun TutorScreen(
                             bottomEnd = if (message.role == "user") 5.dp else 18.dp
                         ),
                         shadowElevation = 1.dp,
-                        border = if (message.role == "assistant") BorderStroke(1.dp, Color(0xFFE2E8F0)) else null,
+                        border = if (message.role == "assistant") BorderStroke(1.dp, Color(0xFFE3E8E0)) else null,
                         modifier = Modifier.widthIn(max = 340.dp)
                     ) {
                         Column(Modifier.padding(14.dp)) {
@@ -2113,7 +2113,7 @@ internal fun TutorScreen(
             }
             if (loading) {
                 item {
-                    Surface(color = Color.White, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFE2E8F0))) {
+                    Surface(color = Color.White, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Color(0xFFE3E8E0))) {
                         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
                             Text("  Your tutor is preparing an explanation…", color = TutorGrey, fontSize = 13.sp)
@@ -2249,7 +2249,7 @@ internal fun TutorScreen(
                     keyboardActions = KeyboardActions(onSend = { sendMessage() }),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = TutorGreen,
-                        unfocusedBorderColor = Color(0xFFDCE3ED),
+                        unfocusedBorderColor = Color(0xFFD9E2DB),
                         focusedContainerColor = Color(0xFFFFFFFF),
                         unfocusedContainerColor = Color(0xFFFFFFFF)
                     )
@@ -2262,7 +2262,7 @@ internal fun TutorScreen(
                     },
                     enabled = !loading,
                     modifier = Modifier.size(50.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (listening) Color(0xFFB3261E) else Color(0xFFEAF0FF), contentColor = if (listening) Color.White else TutorGreen)
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (listening) Color(0xFFB3261E) else Color(0xFFE5F1EC), contentColor = if (listening) Color.White else TutorGreen)
                 ) {
                     Icon(if (listening) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = if (listening) "Stop voice input" else "Ask by voice")
                 }

@@ -107,3 +107,12 @@ Poll the current UI smoke run; once complete, inspect its logs and screenshot ar
 - **Regression record:** TE-040 added to `docs/TESTING_ERRORS.md`; checklist updated to cover the actual chapter -> default concept -> Done -> Teach journey.
 - **Verification:** Pending automatic workflows on the new exact branch head. APK/curriculum checks passing on the previous SHA do not verify this change; inspect the new UI-smoke report and screenshots before marking the tutor layout verified.
 - **Release:** PR #13 remains open and unmerged.
+
+
+## Multi-checkpoint completion-loop correction — 2026-10-24
+
+- **Failure evidence:** UI smoke run [40054398708](https://github.com/Prav1525/Padippupal/actions/runs/40054398708) reached the second teaching segment and then timed out with the understanding prompt still visible. The APK, curriculum tests, first checkpoint, playback pause/resume, and moving highlight had passed; topic completion had not.
+- **Analysis:** The completion loop issued one tap per distinct accessibility snapshot but had no recovery if the response tap did not trigger a state transition. A still-visible checkpoint could therefore consume the entire timeout without another response attempt.
+- **Fix:** Added a bounded retry after a grace period for a checkpoint that remains visible; the smoke flow still requires the genuine `TOPIC COMPLETE` state and a full-topic screenshot. Added TE-045 and a checklist regression gate.
+- **Verification:** Not yet verified. Wait for workflows on the resulting exact branch head; inspect the final screenshot and logs. Do not mark Phase 1 complete or merge PR #13 until the emulator completion flow passes and the screenshot is visually reviewed.
+- **Release:** PR #13 remains open and unmerged.

@@ -2136,7 +2136,7 @@ internal fun TutorScreen(
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 Column(
                     modifier = Modifier.fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .padding(horizontal = 16.dp, vertical = 2.dp)
                         .verticalScroll(liveLessonScrollState)
                         // Apply the minimum height to the scroll content, not its viewport.
                         // Otherwise short checkpoint content stays top-aligned and leaves a blank block.
@@ -2146,7 +2146,7 @@ internal fun TutorScreen(
                     // Checkpoint actions remain in the fixed footer outside this scroll area.
                     // Center the complete lesson cluster as one unit when it fits. SpaceEvenly
                     // spread every sentence/animation apart and creates the visible dead zones.
-                    verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically)
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
                 ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))

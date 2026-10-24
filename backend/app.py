@@ -1255,11 +1255,9 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
                 "target": visual_target[:100] if isinstance(visual_target, str) else "",
                 "value": visual_value[:160] if isinstance(visual_value, str) else "",
             }
-            raw_checkpoint = item.get("checkpoint")
-            if not isinstance(raw_checkpoint, str) or not raw_checkpoint.strip():
-                item["checkpoint"] = None
-            else:
-                item["checkpoint"] = raw_checkpoint[:240]
+            # Feedback is a post-topic action, never an interruption inside teaching.
+            # Ignore planner-supplied checkpoint text even if the model returns it.
+            item["checkpoint"] = None
         try:
             segment = LessonSegment.model_validate(item)
         except Exception as exc:
@@ -1598,7 +1596,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "target": str(objects[0])[:100] if isinstance(objects, list) and objects else "",
                         "value": str(visual.get("actions") or visual.get("narration_sync") or "")[:160],
                     },
-                    "checkpoint": str(step.get("checkpoint"))[:240] if step.get("checkpoint") else None,
+                    # Approved lessons obey the same no-interruption teaching contract.
+                    "checkpoint": None,
                 })
             # Approval verifies source provenance, not that every step still matches
             # the learner's selected topic. Treat stored lessons like generated lessons:

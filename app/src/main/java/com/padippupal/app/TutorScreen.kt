@@ -1787,7 +1787,7 @@ internal fun TutorScreen(
         tutorExecutor.execute {
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
-                require(base.startsWith("https://")) { "The secure PadippuPal API URL is not configured." }
+                require(base.startsWith("https://") || (BuildConfig.DEBUG && base == "http://10.0.2.2:8765")) { "The secure PadippuPal API URL is not configured." }
                 val history = JSONArray()
                 previous.forEach { (role, content) ->
                     history.put(JSONObject().put("role", role).put("content", content.take(2500)))

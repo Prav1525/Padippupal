@@ -534,14 +534,9 @@ def test_lesson_plan_falls_back_to_matched_source_when_gemini_drifts_from_all_on
         "message": "Teach me All 1s",
     })
 
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["grounded"] is True
-    assert body["provider"] == "textbook_extract_fallback"
-    assert len(body["segments"]) == 1
-    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
-    assert "The All 1s pattern repeats the number 1" in body["segments"][0]["spoken_text"]
-    assert "off-topic" in body["warning"].lower()
+    # The only source excerpt is far too short to replace a complete lesson.
+    assert response.status_code == 503, response.text
+    assert "no safe textbook fallback" in response.json()["detail"].lower()
 
 
 
@@ -562,7 +557,7 @@ def test_lesson_plan_retries_when_a_later_segment_is_generic_not_all_ones(monkey
              "checkpoint": "Does that make sense so far?"},
         ]},
         {"segments": [
-            {"id": "intro", "spoken_text": "Today we will learn All 1s: 1, 1, 1.",
+            {"id": "intro", "spoken_text": "Today we will learn the All 1s pattern: 1, 1, 1.",
              "caption_text": "All 1s: 1, 1, 1.", "source_chunk_ids": [chunk_id],
              "visual_action": {"type": "highlight", "target": "ones", "value": ""},
              "checkpoint": None},
@@ -570,7 +565,17 @@ def test_lesson_plan_retries_when_a_later_segment_is_generic_not_all_ones(monkey
              "caption_text": "The number 1 repeats, so each term stays the same.",
              "source_chunk_ids": [chunk_id],
              "visual_action": {"type": "highlight", "target": "repeated-ones", "value": ""},
-             "checkpoint": "Does that make sense so far?"},
+             "checkpoint": None},
+            {"id": "contrast", "spoken_text": "The All 1s pattern does not increase like 1, 2, 3, 4.",
+             "caption_text": "Unlike 1, 2, 3, 4, the All 1s pattern does not increase.",
+             "source_chunk_ids": [chunk_id],
+             "visual_action": {"type": "compare", "target": "sequence", "value": ""},
+             "checkpoint": None},
+            {"id": "practice", "spoken_text": "Try one more term and notice how the rule repeats one.",
+             "caption_text": "Try one more term and notice the repeated rule.",
+             "source_chunk_ids": [chunk_id],
+             "visual_action": {"type": "reveal", "target": "next-one", "value": ""},
+             "checkpoint": None},
         ]},
     ]
     requests = []
@@ -608,7 +613,8 @@ def test_lesson_plan_retries_when_a_later_segment_is_generic_not_all_ones(monkey
     body = response.json()
     assert len(requests) == 2, "generic later segment must trigger the one allowed retry"
     assert body["grounded"] is True
-    assert [segment["id"] for segment in body["segments"]] == ["intro", "repeat"]
+    assert [segment["id"] for segment in body["segments"]] == ["intro", "repeat", "contrast", "practice"]
+    assert all(segment["checkpoint"] is None for segment in body["segments"])
     assert "repeats" in body["segments"][1]["spoken_text"].lower()
 
 def test_lesson_plan_retries_once_after_malformed_json(monkeypatch):

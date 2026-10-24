@@ -136,10 +136,18 @@ if candidates:
     print(f"Confirm selected diary image using '{label}' at {x},{y}")
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 else:
-    # AOSP DocumentsUI can expose selection without an accessible Open button;
-    # Enter activates the selected file through the picker itself.
-    print("No clickable confirmation ancestor found; sending ENTER to selected file")
-    subprocess.run(["adb","-s","emulator-5554","shell","input","keyevent","KEYCODE_ENTER"],check=True,timeout=20)
+    # Some DocumentsUI builds treat a single tap as focus only and expose no
+    # accessible confirmation action. Double-tap the actual fixture card to
+    # open it, as the system picker expects for this grid interaction.
+    source=ET.parse("ui-screenshots/diary-test/diary-picker-downloads.xml").getroot()
+    card=next((n for n in source.iter("node") if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","") and n.attrib.get("package")=="com.android.documentsui"),None)
+    if card is None: raise SystemExit("Cannot recover diary fixture card for double-tap")
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",card.attrib.get("bounds",""))
+    if not m: raise SystemExit("Diary fixture card bounds invalid during double-tap")
+    x1,y1,x2,y2=map(int,m.groups()); x,y=(x1+x2)//2,(y1+y2)//2
+    print(f"No confirmation control; double-tapping fixture card at {x},{y}")
+    subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+    subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY
   sleep 2
   dump_ui diary-picker-confirmed

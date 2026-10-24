@@ -594,3 +594,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** `.github/testing-regression-checklist.md` now requires fixture/script wording alignment, helper and fixture self-tests on the exact commit, a `docs/TESTING_ERRORS.md` entry for pre-emulator failures, and inline display of visually inspected screenshots from the exact successful run/SHA.
 - **Evidence:** Failure run [40067982703](https://github.com/Prav1525/Padippupal/actions/runs/40067982703); fix and guide update commits are being validated by the next exact-head workflow.
 - **Status:** Assertion and guide updated; required CI rerun and emulator screenshot verification pending.
+
+### TE-048 — Fixture wording drift exposed a deeper false-positive for mid-topic feedback
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android UI smoke assertions / lesson-completion contract.
+- **Symptom:** UI smoke run [40068386712](https://github.com/Prav1525/Padippupal/actions/runs/40068386712) on SHA `8787da59f427c74185d5f7b49589f7f54d42cf73` passed the APK build and 24 helper tests but failed fixture self-test because it expected `repeats` in segment 2, whose real wording is “Every term is one, so the number stays the same each time.” Emulator launch was skipped.
+- **Deeper root cause:** The stale fixture assertion was only the immediate failure. More seriously, `ui_smoke.py::assert_live` and its regression test explicitly accepted “Does that make sense so far?” and the three feedback actions as a valid live lesson state. This could normalize the exact mid-topic interruption the product must prevent.
+- **Corrective action:** Align the fixture self-test with the actual rule segment and recap segment. Tighten `assert_live` so feedback/checkpoint labels fail unless “TOPIC COMPLETE” is present, and replace the old checkpoint-acceptance test with negative and post-completion cases.
+- **Regression protection:** Require fixture self-test, helper tests, and the full emulator flow on the exact commit. The live-lesson assertion must reject premature feedback; completion assertion and fresh screenshot inspection remain mandatory.
+- **Evidence:** Failed run [40068386712](https://github.com/Prav1525/Padippupal/actions/runs/40068386712); fix commits: `b50b901cf3d2fc9ca01d5611042a548d71e76793`, `f59191b90286a72f7bcdaa6f158f3f0b922babe4`, `bddf472aac62d64fe76c69fa3d8c308e8aacf47a`.
+- **Status:** Fixes committed; exact-head CI and emulator screenshot verification pending.

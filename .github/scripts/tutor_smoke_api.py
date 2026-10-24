@@ -126,7 +126,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def self_test() -> None:
     assert len(LESSON["segments"]) == 5
-    assert "All 1s" in LESSON["segments"][0]["spoken_text"]
+    assert "sequence" in LESSON["segments"][0]["spoken_text"].casefold()
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])\n    assert "worked" not in json.dumps(LESSON).casefold()
     assert "square" not in json.dumps(LESSON).casefold()

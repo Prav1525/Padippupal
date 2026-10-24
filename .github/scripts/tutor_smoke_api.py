@@ -5,8 +5,12 @@ from __future__ import annotations
 import argparse
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
+import uuid
 
+
+DIARY_TASKS: dict[str, list[dict]] = {}
+DIARY_PARSE_REQUESTS: list[dict] = []
 
 LESSON = {
     "lesson_id": "smoke-all-ones",
@@ -80,12 +84,53 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/health/voice":
             self._send(200, {"configured": False, "provider": "android-tts", "fallback": "android-tts"})
             return
+        if path == "/planner/tasks":
+            profile_id = parse_qs(urlparse(self.path).query).get("profile_id", [""])[0]
+            self._send(200, {"tasks": DIARY_TASKS.get(profile_id, [])})
+            return
         self._send(404, {"detail": "Not found in deterministic smoke fixture"})
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", "0"))
         body = json.loads(self.rfile.read(length) or b"{}")
+        if path == "/diary/parse":
+            image = str(body.get("image_base64", ""))
+            today_date = str(body.get("today_date", ""))
+            if len(image) < 100 or len(today_date) != 10:
+                self._send(422, {"detail": "Diary test request is missing image bytes or device-local today_date"})
+                return
+            DIARY_PARSE_REQUESTS.append({"today_date": today_date, "image_chars": len(image), "mime_type": body.get("mime_type")})
+            # Deterministic mock of the Gemini contract: only today's tasks are returned.
+            self._send(200, {
+                "diary_date": today_date,
+                "match_status": "matched",
+                "tasks": [
+                    {"title": "Learn chapter 5", "subject": "Science", "details": "From today's diary row", "due_date": today_date, "minutes": 15, "confidence": "high"},
+                    {"title": "Write page 18", "subject": "Tamil", "details": "From today's diary row", "due_date": today_date, "minutes": 15, "confidence": "high"},
+                ],
+                "count": 2,
+                "model": "deterministic-diary-fixture",
+            })
+            return
+        if path == "/planner/tasks/import":
+            profile_id = str(body.get("profile_id", ""))
+            saved = []
+            for task in body.get("tasks", []):
+                if task.get("profile_id") != profile_id:
+                    self._send(400, {"detail": "profile_id mismatch"})
+                    return
+                item = {
+                    "id": str(uuid.uuid4()), "profile_id": profile_id,
+                    "title": str(task.get("title", "")), "subject": str(task.get("subject", "General")),
+                    "details": str(task.get("details", "")), "due_date": str(task.get("due_date", "")),
+                    "minutes": int(task.get("minutes", 15)), "completed": False, "source": "diary",
+                    "created_at": 0,
+                }
+                saved.append(item)
+            DIARY_TASKS.setdefault(profile_id, []).extend(saved)
+            self._send(201, {"saved": len(saved), "tasks": saved})
+            return
         if path == "/tutor/lesson-plan":
             if str(body.get("topic", "")).casefold() not in {"all 1s", "all ones", "all one's"}:
                 self._send(200, {

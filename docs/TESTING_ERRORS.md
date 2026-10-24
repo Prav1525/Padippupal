@@ -462,3 +462,26 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Strengthen `CheckpointLayoutRegressionTests` to assert modifier order, the conditional minimum height on the scroll content, and checkpoint-only vertical distribution. Re-run helper/JVM tests, APK build, full emulator smoke, and inspect fresh screenshots from the resulting exact SHA.
 - **Evidence:** Screenshots `ui-screenshots/live-lesson.png` and `ui-screenshots/live-checkpoint.png` from artifact `12543432314`; automated checks passed on the baseline SHA but screenshot inspection found the layout defect.
 - **Status:** **Fix prepared; exact-head verification pending.** Keep PR #13 open and unmerged.
+
+### TE-037 — Live viewport fix did not cover the speaking state
+- **Date discovered:** 2026-10-24
+- **Area:** Tutor Compose layout and screenshot-based acceptance.
+- **Symptom/failure:** Screenshot from run [40052525877](https://github.com/Prav1525/Padippupal/actions/runs/40052525877), artifact `12543358886`, showed the live lesson's explanation and animation clustered near the top with a large blank region below. The checkpoint screenshot looked better, so checking only that state missed the repeated UI defect.
+- **Root cause:** The minimum content height and distributed vertical spacing were conditional on `awaitingUnderstanding`; they did not apply during active speech.
+- **Why it escaped:** Existing visual acceptance focused on the checkpoint and source assertions did not require the live-speaking state to fill the viewport.
+- **Corrective action:** Apply the viewport minimum-height rule in all live states and use distributed spacing during speech as well as at checkpoints. Add a source regression assertion and capture the exact-head live screen.
+- **Regression protection:** UI smoke must inspect both active speaking and checkpoint screenshots. The latest smoke run [40053691110](https://github.com/Prav1525/Padippupal/actions/runs/40053691110) exposed a stale test expectation before emulator launch; that harness failure is tracked separately below.
+- **Evidence:** Layout commit `e1ed82d6c74e7e0e073297d76763691ab68ca200`; regression-test commit `946df6259940ddcf717bfe91366e3326a2298a2a`; screenshot evidence from run `40052525877`.
+- **Status:** **Layout fix implemented; visual verification pending.** Do not claim the dead zone is fixed until screenshots from a successful emulator run confirm it.
+
+### TE-038 — A source regression test still required the superseded checkpoint-only layout rule
+- **Date discovered:** 2026-10-24
+- **Area:** UI smoke helper validation.
+- **Symptom/failure:** UI smoke run [40053691110](https://github.com/Prav1525/Padippupal/actions/runs/40053691110) failed in `test_checkpoint_caption_wraps_naturally_without_debug_visual_focus_row` before emulator allocation.
+- **Root cause:** The test asserted the old conditional `.heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)` even after the implementation correctly changed to a viewport minimum for all live states.
+- **Why it escaped:** The new focused regression test was added without updating the pre-existing source assertion that encoded the old behavior.
+- **Corrective action:** Update the assertion to require the new unconditional minimum-height rule and `SpaceEvenly` during speech/checkpoint states. Extend the emulator flow to capture and validate the final topic-completion screen, not only an intermediate checkpoint.
+- **Regression protection:** Script syntax/compile checks and the full helper test suite must pass before emulator allocation; final-topic screenshot and accessibility checks are required for visual acceptance.
+- **Evidence:** Failed run [40053691110](https://github.com/Prav1525/Padippupal/actions/runs/40053691110), commit `946df6259940ddcf717bfe91366e3326a2298a2a`; harness corrections are being tested on the subsequent branch head.
+- **Status:** **Harness corrections implemented; verification pending.**
+

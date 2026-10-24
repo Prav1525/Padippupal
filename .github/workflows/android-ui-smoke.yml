@@ -47,7 +47,8 @@ jobs:
         run: |
           bash -n .github/scripts/android-ui-smoke.sh
           bash -n .github/scripts/android-tts-preflight.sh
-          python3 -m py_compile .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py
+          python3 -m py_compile .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py .github/scripts/test_diary_crop_contract.py
+          python3 .github/scripts/test_diary_crop_contract.py
           python3 .github/scripts/test_ui_smoke_helpers.py
           python3 .github/scripts/tutor_smoke_api.py --self-test
 

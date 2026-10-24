@@ -1823,7 +1823,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "word_timestamps_available": False,
                     }
             raise HTTPException(
-                status_code=503 if exc.code == 429 else 502,
+                status_code=503 if exc.code in (429, 503) else 502,
                 detail="The lesson planner could not answer right now and no safe textbook fallback was available.",
             ) from exc
         except HTTPException as exc:

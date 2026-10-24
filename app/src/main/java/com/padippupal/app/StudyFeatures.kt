@@ -106,49 +106,69 @@ internal fun DiaryScanScreen(
     var loading by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Choose a clear photo of the diary page. Check every extracted task before saving.") }
+    fun scanImage(bytes: ByteArray, mime: String, name: String) {
+        selectedName = name
+        loading = true
+        status = "Reading the diary photo with AI…"
+        drafts = emptyList()
+        featureExecutor.execute {
+            val result = runCatching {
+                require(bytes.size <= 6_000_000) { "Please use a photo smaller than 6 MB." }
+                val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                featureRequest("${featureBase()}/diary/parse", "POST",
+                    JSONObject().put("image_base64", encoded).put("mime_type", mime)
+                        .put("board", board).put("class_level", grade).put("medium", medium).put("app_language", language)
+                        .put("today_date", java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())))
+            }
+            featureMain.post {
+                loading = false
+                result.fold(onSuccess = { response ->
+                    diaryDate = response.optString("diary_date").trim()
+                    val matchStatus = response.optString("match_status", "needs_crop")
+                    if (matchStatus != "matched") {
+                        drafts = emptyList()
+                        status = if (matchStatus == "no_today_row") {
+                            "Today's date was not found in the diary. No homework was imported. Please choose a closer photo showing today's date and its homework row, then scan again."
+                        } else {
+                            "The date or row is unclear, so no homework was imported. Choose a closer photo showing the date and homework row, then scan again."
+                        }
+                        return@fold
+                    }
+                    val array = response.optJSONArray("tasks") ?: JSONArray()
+                    drafts = (0 until array.length()).mapNotNull { i ->
+                        val o = array.optJSONObject(i) ?: return@mapNotNull null
+                        val title = o.optString("title").trim()
+                        if (title.isBlank()) null else DiaryDraft(title, o.optString("subject", "General"),
+                            o.optString("details"), o.optString("due_date"), o.optInt("minutes", 15), o.optString("confidence", "medium"))
+                    }
+                    status = if (drafts.isEmpty()) "No clear homework was detected. Try a closer, brighter photo or type the task into your planner." else "Found ${drafts.size} possible task(s). Review them carefully before saving."
+                }, onFailure = { status = "Could not scan: ${it.message ?: "please try again"}" })
+            }
+        }
+    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
-            selectedName = uri.lastPathSegment ?: "Diary photo selected"
-            loading = true
-            status = "Reading the diary photo with AI…"
-            drafts = emptyList()
             featureExecutor.execute {
                 val result = runCatching {
                     val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                         ?: error("Could not open this image.")
-                    require(bytes.size <= 6_000_000) { "Please select a photo smaller than 6 MB." }
-                    val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
                     val mime = context.contentResolver.getType(uri)?.takeIf { it in listOf("image/jpeg", "image/png", "image/webp") } ?: "image/jpeg"
-                    featureRequest("${featureBase()}/diary/parse", "POST",
-                        JSONObject().put("image_base64", encoded).put("mime_type", mime)
-                            .put("board", board).put("class_level", grade).put("medium", medium).put("app_language", language)
-                            .put("today_date", java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())))
+                    Pair(bytes, mime)
                 }
                 featureMain.post {
-                    loading = false
-                    result.fold(onSuccess = { response ->
-                        diaryDate = response.optString("diary_date").trim()
-                        val matchStatus = response.optString("match_status", "needs_crop")
-                        if (matchStatus != "matched") {
-                            drafts = emptyList()
-                            status = if (matchStatus == "no_today_row") {
-                                "Today's date was not found in the diary. No homework was imported. Please crop the section showing today's date and its homework row, then scan again."
-                            } else {
-                                "The date or row is unclear, so no homework was imported. Please crop the date column together with today's homework row, then scan again."
-                            }
-                            return@fold
-                        }
-                        val array = response.optJSONArray("tasks") ?: JSONArray()
-                        drafts = (0 until array.length()).mapNotNull { i ->
-                            val o = array.optJSONObject(i) ?: return@mapNotNull null
-                            val title = o.optString("title").trim()
-                            if (title.isBlank()) null else DiaryDraft(title, o.optString("subject", "General"),
-                                o.optString("details"), o.optString("due_date"), o.optInt("minutes", 15), o.optString("confidence", "medium"))
-                        }
-                        status = if (drafts.isEmpty()) "No clear homework was detected. Try a closer, brighter photo or type the task into your planner." else "Found ${drafts.size} possible task(s). Review them carefully before saving."
-                    }, onFailure = { status = "Could not scan: ${it.message ?: "please try again"}" })
+                    result.fold(onSuccess = { (bytes, mime) -> scanImage(bytes, mime, "Diary photo selected") },
+                        onFailure = { status = "Could not open photo: ${it.message ?: "please try again"}" })
                 }
             }
+        }
+    }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) {
+            val output = java.io.ByteArrayOutputStream()
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, output)
+            scanImage(output.toByteArray(), "image/jpeg", "Photo captured with camera")
+        } else {
+            status = "Camera capture cancelled. You can try again or choose a photo."
         }
     }
 

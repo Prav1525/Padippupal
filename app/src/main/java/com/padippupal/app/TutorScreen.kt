@@ -2136,8 +2136,11 @@ internal fun TutorScreen(
                         .verticalScroll(liveLessonScrollState)
                         // Apply the minimum height to the scroll content, not its viewport.
                         // Otherwise short checkpoint content stays top-aligned and leaves a blank block.
-                        .heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp),
-                    verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)
+                        .heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp)),
+                    // The live state must fill the lesson viewport too; otherwise the
+                    // animation and caption cluster at the top and leave a dead zone.
+                    // Checkpoint actions remain in the fixed footer outside this scroll area.
+                    verticalArrangement = if (awaitingUnderstanding || speechActive) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)
                 ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))

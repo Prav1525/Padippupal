@@ -265,9 +265,10 @@ if [ "$followup_received" -ne 1 ]; then
   exit 1
 fi
 python3 .github/scripts/ui_smoke.py assert-followup follow-up.xml | tee -a "$REPORT"
-# Tap the header to dismiss the keyboard before testing Back navigation.
-python3 .github/scripts/ui_smoke.py tap follow-up.xml "PadippuPal"
-log "Testing Android back navigation to Home"
+# Navigate with the app's visible Back control. The title is not clickable,
+# and a system Back event may only dismiss the IME or leave the tutor screen active.
+log "Testing app Back control navigation to Home"
+python3 .github/scripts/ui_smoke.py tap follow-up.xml "Back"
 timeout 10s "${ADB[@]}" shell input keyevent 4
 sleep 5
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/home-return.png

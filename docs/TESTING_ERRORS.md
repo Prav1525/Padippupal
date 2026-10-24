@@ -336,3 +336,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep the final assert-home check and inspect the resulting screenshot/UI tree. Do not weaken the home assertion; exercise the actual visible navigation affordance.
 - **Evidence:** Run [40072020082](https://github.com/Prav1525/Padippupal/actions/runs/40072020082), artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/40072020082/artifacts/12552365092). The run passed lesson completion, moving inline highlight, playback pause/resume, and follow-up question/answer; it failed only at the final return-to-home assertion.
 - **Status:** Harness fix committed to PR #17; CI verification pending.
+
+
+### TE-038 — Diary scan screen advertised camera capture without launching a camera
+- **Date discovered:** 2026-10-24
+- **Area:** Android diary scanner input path.
+- **Symptom/failure:** The diary screen heading said “Take or choose a diary photo”, but the only action opened the gallery picker. The camera icon was decorative, so a parent could not take a photo directly.
+- **Root cause:** The UI wired only `GetContent`; there was no camera activity-result launcher.
+- **Why it escaped:** The existing CI emulator journey focused on the tutor flow and did not exercise the diary scanner's input controls.
+- **Corrective action:** Added an Android camera-preview launcher and routed captured JPEG bytes and gallery-selected image bytes through one shared scan request path. The camera path currently uses Android's preview-sized capture, not full-resolution capture.
+- **Regression protection:** Compile the APK; exercise the scanner camera and gallery controls on a device/emulator with camera support; keep date-mismatch and unclear-row backend tests asserting zero imported tasks. Verify the real mock diary image separately before claiming OCR accuracy.
+- **Evidence:** Camera-input implementation commit `597dae3785cb3d74f9a5dc335fcd5a2c1b3aabba`; CI and device verification are pending.
+- **Status:** **Implemented; verification pending.** Crop editor/rescan is not implemented yet; until then, parents must retake a closer photo or choose a cropped image from the gallery.

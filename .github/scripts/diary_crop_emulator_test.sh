@@ -114,7 +114,7 @@ m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
 if not m:
     ancestor=parents.get(file_node)
     while ancestor is not None:
-m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",ancestor.attrib.get("bounds",""))
+        m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",ancestor.attrib.get("bounds",""))
         if m:
             target=ancestor
             break

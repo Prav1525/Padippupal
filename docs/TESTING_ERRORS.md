@@ -423,3 +423,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep the compact header bounds/icon/action assertions; assert 14sp brand title and 11sp context metadata; keep the 16dp checkpoint/12dp speaking spacing assertion. Run helper tests, JVM tests, APK build, emulator navigation/checkpoint flow, and inspect exact-head screenshots before claiming completion.
 - **Evidence:** Failure run [40043958637](https://github.com/Prav1525/Padippupal/actions/runs/40043958637), commit before fix `99f6cd91348e3b4129cafb72f1a5641460a98732`. Corrective commits: source `584cf72632dab3d8d9b5e61bb3f127cf92503a64`; regression assertion `7315120c2120f61fd89827f541b1d1fc0962306a`. Verification pending.
 - **Status:** **Fix implemented; exact-head verification pending.**
+
+### TE-034 — Highlight pixel detector searched for a retired color
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android UI smoke screenshot analysis / speech-highlight regression gate.
+- **Symptom/failure:** UI smoke run [40045309104](https://github.com/Prav1525/Padippupal/actions/runs/40045309104) reached the live All 1s lesson, but the screenshot scan reported zero highlight pixels across 100 frames and failed the job.
+- **Confirmed root cause:** The screenshot detector searched for RGB `(220, 231, 255)` / `#DCE7FF`, a retired blue highlight. The current `WordByWordCaption` production style applies mint `Color(0xFFCDE9E2)` (RGB `(205, 233, 226)`). Manual inspection of artifact `12541317032`, `ui-screenshots/live-frames/frame-10.png`, shows the final word in the active spoken sentence visibly highlighted in that mint color while the speaking status is present.
+- **Why it escaped:** The UI palette changed, but the screenshot detector's hard-coded expected RGB value was not updated alongside the production style. Build and source-contract tests do not compare the detector color to the rendered caption color.
+- **Corrective action:** Changed the detector to search for the actual mint RGB and added a regression test asserting that the detector target matches the production `WordByWordCaption` background and rejects the stale RGB.
+- **Regression protection:** `SpeechHighlightSynchronizationRegressionTests.test_screenshot_detector_matches_production_word_highlight_color`; rerun helper tests, JVM tests, APK build, and full emulator smoke on the latest SHA. Confirm the pixel detector sees at least 12 pixels and two distinct word positions, and inspect fresh live-lesson/checkpoint screenshots.
+- **Evidence:** Failed baseline run [40045309104](https://github.com/Prav1525/Padippupal/actions/runs/40045309104), tested SHA `e6417f14443f6e3bf474972c4f6e6889d8a0bcac`, artifact `12541317032`; detector fix commit `2ea7f0e4c06ae397973eb8bd7786406152d121c0`; regression test commit `bc4a2fb5aeb7dc16a8154adbf2c796a3278ad5e3`.
+- **Status:** **Root cause confirmed; detector/test fix implemented; exact-head verification pending.** Do not weaken the pixel threshold or merge PR #13 until the corrected detector and full release gate pass.
+

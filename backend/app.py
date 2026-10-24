@@ -1535,6 +1535,9 @@ def _lesson_meets_completeness_bar(topic: str, segments: list[dict[str, Any]]) -
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     """Create a complete, source-grounded teaching sequence for synchronized playback; reject incomplete plans rather than presenting a fragment as a full lesson."""
     subject = infer_tutor_subject(payload.message, payload.subject)
+    is_all_ones = normalize(payload.topic).casefold() in {"all 1s", "all ones", "all one's"}
+    # Do not let a small caller-supplied limit make a complete pilot lesson impossible.
+    segment_limit = max(payload.max_segments, 4) if is_all_ones else payload.max_segments
 
     # Prefer the reviewed chapter sequence; this avoids regenerating a different
     # lesson on every visit. Only an exact curriculum profile/chapter is eligible.
@@ -1573,7 +1576,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                           "table": "label", "diagram": "label", "none": "none"}
             segments = []
             for index, step in enumerate(lesson.get("teaching_sequence", [])):
-                if len(segments) >= payload.max_segments:
+                if len(segments) >= segment_limit:
                     break
                 if not isinstance(step, dict):
                     continue
@@ -1649,7 +1652,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     system_prompt = ("You are PadippuPal lesson planner for class " + str(payload.class_level) + ", subject " + subject + ", chapter " + (payload.chapter or "not selected") + ", topic " + (payload.topic or payload.message) + ", language " + payload.app_language + ".\n"
         + "Use ONLY retrieved PadippuPal database passages for factual claims. Return JSON only: {segments:[{id,spoken_text,caption_text,source_chunk_ids,visual_action:{type,target,value},checkpoint}]}. "
         + "Teach like a patient, kind primary-school teacher sitting beside one child. Use very simple everyday words, one idea at a time, and explain any new term before using it. "
-        + "Create at least 4 and at most " + str(payload.max_segments) + " short sequential spoken segments, usually one sentence and no more than 18 spoken words each. For the All 1s topic, cover the sequence, why every term stays 1, a contrast with a changing sequence, and a worked example or learner reflection. Never return a skeletal lesson. "
+        + "Create at least 4 and at most " + str(segment_limit) + " short sequential spoken segments, usually one sentence and no more than 18 spoken words each. For the All 1s topic, cover the sequence, why every term stays 1, a contrast with a changing sequence, and a worked example or learner reflection. Never return a skeletal lesson. "
         + "Use natural spoken punctuation: short sentences, commas for gentle breaths, and occasional ellipses only where a real pause helps. Avoid robotic lists, rushed phrasing, repeated filler, and exaggerated baby talk. "
         + "Set checkpoint to null on every teaching segment. Do not interrupt teaching with a feedback question; the app must teach the complete topic first and ask for feedback only after the final topic-complete state. "
         + "When explaining an example, make visual_action point to the exact number, shape, or step being spoken about; reveal or compare one step at a time. "
@@ -1684,8 +1687,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             with urllib.request.urlopen(req, timeout=45) as response:
                 result = json.loads(response.read().decode("utf-8"))
             raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
-            candidate = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
-            minimum_segments = min(4, payload.max_segments)
+            candidate = _validate_lesson_plan(raw, allowed_ids, segment_limit)
+            minimum_segments = min(4, segment_limit)
             if len(candidate["segments"]) < minimum_segments:
                 if attempt == 0:
                     logger.warning("Tutor lesson plan too short: got=%s required=%s topic=%s", len(candidate["segments"]), minimum_segments, payload.topic)

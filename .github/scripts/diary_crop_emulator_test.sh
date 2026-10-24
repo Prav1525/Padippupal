@@ -112,7 +112,7 @@ if not m: raise SystemExit("Diary filename/row has no valid bounds")
 # but does not open it (confirmed by the captured hierarchy: the filename is
 # selected while the activity remains in Downloads). Double-tap the filename
 # node itself to activate the document; do not send ENTER to an unfocused row.
-fm=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",file_node.attrib.get("bounds",""))
+fm=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",file_node.attrib.get("bounds",""))
 if not fm: raise SystemExit("Diary filename node has invalid bounds")
 fx1,fy1,fx2,fy2=map(int,fm.groups())
 x=(fx1+fx2)//2
@@ -122,6 +122,7 @@ for _ in range(2):
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
     import time
     time.sleep(0.18)
+PY
 sleep 1
 dump_ui diary-picker-row-selected
 # Give DocumentsUI time to return the selected content URI to PadippuPal.

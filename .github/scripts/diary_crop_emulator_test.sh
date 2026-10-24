@@ -75,91 +75,44 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# AOSP DocumentsUI's grid thumbnail is a non-clickable LinearLayout; the
-# only clickable child is the preview affordance, which opens preview mode and
-# never returns a URI. Switch to list view and tap the actual file row instead.
+# DocumentsUI's accessibility tree exposes the filename as a non-clickable
+# TextView and the row as non-clickable too. A single coordinate tap is ignored
+# by this API-30 picker; double-tap the file's actual list row (not the preview
+# affordance) and verify that the activity returns to PadippuPal.
 python3 - <<'PY'
-import re, subprocess, xml.etree.ElementTree as ET
-adb=["adb","-s","emulator-5554","shell","input","tap"]
-path="ui-screenshots/diary-test/diary-picker-downloads.xml"
-root=ET.parse(path).getroot()
-button=next((n for n in root.iter("node") if n.attrib.get("content-desc")=="List view"),None)
-if button is None: raise SystemExit("DocumentsUI list-view control missing")
-m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",button.attrib.get("bounds",""))
-if not m: raise SystemExit("DocumentsUI list-view control has invalid bounds")
-x1,y1,x2,y2=map(int,m.groups())
-subprocess.run(adb+[str((x1+x2)//2),str((y1+y2)//2)],check=True,timeout=20)
-PY
-sleep 1
-dump_ui diary-picker-list
-python3 - <<'PY'
-import re, subprocess, xml.etree.ElementTree as ET
+import re, subprocess, time, xml.etree.ElementTree as ET
 path="ui-screenshots/diary-test/diary-picker-list.xml"
 root=ET.parse(path).getroot()
-parents={child:node for node in root.iter() for child in node}
 file_node=next((n for n in root.iter("node") if "PadippuPal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc",""))),None)
 if file_node is None: raise SystemExit("Diary fixture missing from DocumentsUI list view")
-# Some DocumentsUI versions expose the filename and row as non-clickable
-# accessibility nodes even though coordinate taps on the row work. Prefer the
-# clickable ancestor when present, but fall back to the filename node's own
-# bounds instead of failing solely because the accessibility flag is absent.
-target=file_node
-ancestor=file_node
+parents={child:node for node in root.iter() for child in node}
+# Tap the full row; filename-only bounds may be too narrow for DocumentsUI's
+# row touch listener. Stop before the preview-icon column at x >= 891.
+row=file_node
+ancestor=parents.get(file_node)
 while ancestor is not None:
-    if ancestor.attrib.get("clickable")=="true":
-        target=ancestor
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",ancestor.attrib.get("bounds",""))
+    if ancestor.attrib.get("resource-id")=="com.android.documentsui:id/item_root" and m:
+        row=ancestor
         break
     ancestor=parents.get(ancestor)
-m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
-if not m:
-    ancestor=parents.get(file_node)
-    while ancestor is not None:
-        m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",ancestor.attrib.get("bounds",""))
-        if m:
-            target=ancestor
-            break
-        ancestor=parents.get(ancestor)
-if not m: raise SystemExit("Diary fixture filename and its ancestors have no valid bounds")
+m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
+if not m: raise SystemExit("Diary file row has no valid bounds")
 x1,y1,x2,y2=map(int,m.groups())
-x,y=(x1+x2)//2,(y1+y2)//2
-print(f"Tap clickable Downloads file row at {x},{y}: {file_node.attrib.get('text') or file_node.attrib.get('content-desc')}")
-subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+x=min(x2-40, max(x1+40, (x1+x2)//2))
+y=(y1+y2)//2
+print(f"Double-tap diary file row at {x},{y}")
+cmd=["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]
+subprocess.run(cmd,check=True,timeout=20)
+time.sleep(.25)
+subprocess.run(cmd,check=True,timeout=20)
 PY
 sleep 2
 dump_ui diary-picker-confirmed
 cp ui-screenshots/diary-test/diary-picker-confirmed.xml ui-screenshots/diary-test/diary-picker-file-selected.xml
 if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
-  # If the row selected rather than opened the file, use the accessible Open/Select
-  # control; do not keep tapping the same dead thumbnail coordinates.
-  python3 - <<'PY'
-import re, subprocess, xml.etree.ElementTree as ET
-p="ui-screenshots/diary-test/diary-picker-file-selected.xml"
-r=ET.parse(p).getroot(); parents={c:n for n in r.iter() for c in n}
-pat=re.compile(r"^(open|select|done|use|choose)(\b|\s)",re.I)
-for n in r.iter("node"):
- label=" ".join((n.attrib.get("text",""),n.attrib.get("content-desc",""))).strip()
- if not pat.search(label): continue
- t=n
- while t is not None and t.attrib.get("clickable")!="true": t=parents.get(t)
- if t is None: continue
- m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",t.attrib.get("bounds",""))
- if not m: continue
- x1,y1,x2,y2=map(int,m.groups())
- if x2<=x1 or y2<=y1: continue
- x,y=(x1+x2)//2,(y1+y2)//2
- print(f"Confirm file selection via '{label}' at {x},{y}")
- subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
- break
-else:
- raise SystemExit("Picker remained open but exposed no accessible Open/Select action")
-PY
-  sleep 2
-  dump_ui diary-picker-confirmed
-  cp ui-screenshots/diary-test/diary-picker-confirmed.xml ui-screenshots/diary-test/diary-picker-file-selected.xml
-fi
-if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
-  log "FAIL: diary image selection did not return from the photo picker after selecting the file row"
+  log "FAIL: double-tapping the diary file row did not return from DocumentsUI"
   exit 1
 fi
 sleep 3

@@ -227,8 +227,12 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn(".verticalScroll(liveLessonScrollState)", live_layout)
         # The min-height constraint must be inside verticalScroll so the scroll content fills
         # the checkpoint viewport; otherwise short content remains top-aligned with a blank block.
-        self.assertIn(".verticalScroll(liveLessonScrollState)\\n                        // Apply the minimum height to the scroll content", live_layout)
         self.assertIn(".heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)", live_layout)
+        self.assertLess(
+            live_layout.index(".verticalScroll(liveLessonScrollState)"),
+            live_layout.index(".heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)"),
+            "The min-height modifier must constrain the scroll content, not the viewport",
+        )
         self.assertIn("verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)", live_layout)
         # Checkpoint actions are outside the scrollable transcript and remain pinned below its weighted viewport.
         checkpoint_controls = tutor[tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)"):tutor.index("if (!liveLessonActive && status.isNotBlank())")]

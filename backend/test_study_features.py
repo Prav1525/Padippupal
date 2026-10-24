@@ -97,7 +97,13 @@ def test_diary_scan_extracts_reviewable_tasks(monkeypatch, client):
     assert "children's handwriting" in prompt
     assert "date/day column" in prompt
     assert "do not assume the photo date" in prompt
-    assert "only the row for that local date" in prompt
+    assert "only the row for the supplied local date" in prompt
+    assert "google lens style" in prompt
+    assert "vertical position" in prompt
+    assert "baselines" in prompt
+    assert "substantial blank gap" in prompt
+    assert "next date marker" in prompt
+    assert "whitespace as one layout cue, not the only cue" in prompt
     assert "dd/mm/yyyy" in prompt
     assert "dd.mm.yyyy" in prompt
     assert captured["payload"]["contents"][0]["parts"][1]["inlineData"]["mimeType"] == "image/jpeg"
@@ -118,6 +124,36 @@ def test_diary_scan_discards_tasks_when_today_row_needs_crop(monkeypatch, client
             return json.dumps({"candidates": [{"content": {"parts": [{
                 "text": json.dumps({"diary_date": "", "match_status": "needs_crop", "tasks": [
                     {"title": "WRONG ROW MUST NOT IMPORT", "subject": "Maths"}
+                ]})
+            }]}}]}).encode()
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", lambda request, timeout: FakeResponse())
+    response = client.post("/diary/parse", json={
+        "image_base64": base64.b64encode(b"fake-image-content" * 10).decode(),
+        "mime_type": "image/jpeg", "today_date": "2026-10-24",
+    })
+    assert response.status_code == 200
+    body = response.json()
+    assert body["match_status"] == "needs_crop"
+    assert body["tasks"] == []
+    assert body["count"] == 0
+
+
+
+def test_diary_scan_rejects_model_match_for_wrong_date(monkeypatch, client):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps({"candidates": [{"content": {"parts": [{
+                "text": json.dumps({"diary_date": "2026-10-23", "match_status": "matched", "tasks": [
+                    {"title": "WRONG DATE MUST NOT IMPORT", "subject": "Maths"}
                 ]})
             }]}}]}).encode()
 

@@ -2624,10 +2624,12 @@ def parse_school_diary(payload: DiaryParseRequest) -> dict[str, Any]:
     if len(image_bytes) > 6_000_000:
         raise HTTPException(status_code=413, detail="Please choose a smaller or more compressed diary photo.")
     model = os.getenv("PADIPPUPAL_GEMINI_VISION_MODEL", "gemini-2.5-flash").strip()
-    prompt = f"""Read this school diary photo for a learner in class {payload.class_level}, board {payload.board}, textbook medium {payload.medium}. Preferred language for any notes is {payload.app_language}.
-Extract only homework, assignments, tests, project work, and due dates that are actually visible. Do not guess illegible words or invent dates. If uncertain, mark the title with [check photo]. Return ONLY valid JSON in this schema:
-{{"tasks":[{{"title":"short task text","subject":"subject if visible, else General","details":"brief context or uncertain words","due_date":"visible date as YYYY-MM-DD if unambiguous, else empty string","minutes":15}}]}}
-Return an empty tasks array if no homework is legible. Keep tasks separate and concise."""
+    prompt = f"""You are transcribing a real school diary, including children's handwriting, for a learner in class {payload.class_level}, board {payload.board}, textbook medium {payload.medium}. Preferred language for notes is {payload.app_language}.
+Treat the image as a diary page, not a printed worksheet. First locate the date/day column and determine which date or dated row the homework belongs to. Then read the handwriting in the homework/remarks column for that same row. Use visual context and line spacing to associate text with the correct date; do not merge adjacent rows. Read handwritten English and regional-language text when visible. If the page is tilted or text is faint, use the visible strokes and context cautiously, but never invent a word.
+Extract only homework, assignments, tests, projects, page numbers and due dates actually supported by the image. Do not assume the photo date is the diary date. Use YYYY-MM-DD only when the written date is unambiguous; otherwise leave due_date empty and explain the uncertainty in details. For illegible words, preserve the readable part and include [check photo] plus a short reason in details. Keep each task separate.
+Return ONLY valid JSON in this schema:
+{{"diary_date":"YYYY-MM-DD if unambiguous, else empty string","tasks":[{{"title":"short transcription; include [check photo] if essential words are unclear","subject":"subject if visible, else General","details":"page/question numbers and uncertainty notes","due_date":"explicit due date YYYY-MM-DD if unambiguous, else empty string","minutes":15,"confidence":"high, medium, or low"}}]}}
+Do not claim image cropping or certainty that you did not perform. Return an empty tasks array if no homework is legible."""
     body = json.dumps({
         "contents": [{"role": "user", "parts": [
             {"text": prompt},

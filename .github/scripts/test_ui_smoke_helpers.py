@@ -253,10 +253,16 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
             "The min-height modifier must constrain the scroll content, not the viewport",
         )
         self.assertIn("verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)", live_layout)
-        # Checkpoint actions are outside the scrollable transcript and remain pinned below its weighted viewport.
-        checkpoint_controls = tutor[tutor.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)"):tutor.index("if (!liveLessonActive && status.isNotBlank())")]
-        self.assertNotIn("verticalScroll(liveLessonScrollState)", checkpoint_controls)
-        self.assertIn("modifier = Modifier.fillMaxWidth().height(48.dp)", checkpoint_controls)
+        # Checkpoint actions belong to the same scrollable lesson flow. Keeping them as
+        # a sibling of the weighted transcript creates a large dead zone on phone screens.
+        checkpoint_start = live_layout.index("if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete)")
+        checkpoint_controls = live_layout[checkpoint_start:]
+        self.assertIn("verticalScroll(liveLessonScrollState)", live_layout)
+        self.assertIn('Text(normalizedCheckpoint(currentCheckpoint)', checkpoint_controls)
+        self.assertIn('Text("I understand"', checkpoint_controls)
+        self.assertIn('Text("Explain again"', checkpoint_controls)
+        self.assertIn('Text("I have a question"', checkpoint_controls)
+        self.assertLess(live_layout.index("WordByWordCaption("), checkpoint_start)
         # When a checkpoint appears, auto-scroll must reveal all feedback controls.
         self.assertIn("LaunchedEffect(awaitingUnderstanding, liveLessonComplete, liveLessonActive)", tutor)
         self.assertIn("liveLessonScrollState.animateScrollTo(liveLessonScrollState.maxValue)", tutor)

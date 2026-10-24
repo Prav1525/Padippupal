@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import java.util.UUID
 
-private val Green=Color(0xFF14B8A6)
+private val Green=Color(0xFF0F766E)
 private val Deep=Color(0xFF0F2742)
 private val Mint=Color(0xFFD8F5F0)
 private val Paper=Color(0xFFF7FAFC)

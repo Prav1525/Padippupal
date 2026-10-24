@@ -581,3 +581,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Helper tests must pass before emulator allocation; then the emulator smoke must still verify real live speech/highlight, checkpoint actions, completed topic, and back navigation. Do not count helper-test success as visual acceptance.
 - **Evidence:** Failure run [40061682447](https://github.com/Prav1525/Padippupal/actions/runs/40061682447); assertion correction commit `daccab059e3507b71a2aeeb459ebe42641b2e371`.
 - **Status:** Assertions corrected; automatic exact-head workflows and screenshot review pending.
+
+
+### TE-047 — UI helper asserted obsolete lesson wording against the shell smoke script
+
+- **Date discovered:** 2026-10-24
+- **Area:** Android UI helper preflight / deterministic tutor fixture.
+- **Symptom:** UI smoke run [40067982703](https://github.com/Prav1525/Padippupal/actions/runs/40067982703) on commit `f7173090a90b5c673eb7fc3643ebff1cb42627cc` built the APK and passed the other helper checks, but failed `CheckpointLayoutRegressionTests.test_checkpoint_caption_wraps_naturally_without_debug_visual_focus_row` at `self.assertIn('Now look at the sequence.', smoke)`. The emulator was skipped and no screenshot artifact was uploaded.
+- **Root cause:** The assertion expected wording from an older lesson-fixture revision in `.github/scripts/android-ui-smoke.sh`, although the deterministic five-segment lesson wording is defined in `.github/scripts/tutor_smoke_api.py`. The test checked the wrong source of truth.
+- **Why it escaped:** The fixture wording and smoke assertions evolved independently, and the required pre-emulator helper suite was not green on the earlier exact commit. Build success was incorrectly easy to mistake for overall validation.
+- **Corrective action:** Changed the regression test to assert the intro and recap phrases against the deterministic API fixture, while separately asserting that the smoke script retains the All 1s concept and five-segment completion gate. Added mandatory guide steps to trace expected lesson wording to the current fixture and log validation failures before rerunning.
+- **Regression protection:** `.github/testing-regression-checklist.md` now requires fixture/script wording alignment, helper and fixture self-tests on the exact commit, a `docs/TESTING_ERRORS.md` entry for pre-emulator failures, and inline display of visually inspected screenshots from the exact successful run/SHA.
+- **Evidence:** Failure run [40067982703](https://github.com/Prav1525/Padippupal/actions/runs/40067982703); fix and guide update commits are being validated by the next exact-head workflow.
+- **Status:** Assertion and guide updated; required CI rerun and emulator screenshot verification pending.

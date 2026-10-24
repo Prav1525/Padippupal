@@ -108,44 +108,23 @@ while ancestor is not None:
     ancestor=parents.get(ancestor)
 m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
 if not m: raise SystemExit("Diary filename/row has no valid bounds")
-# Tap the filename node itself, not the far-right side of the row.
-# On this DocumentsUI build, tapping the row's right side can select/check
-# the row without opening the file, leaving the test stuck in Downloads.
-fm=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",file_node.attrib.get("bounds",""))
+# In this AOSP DocumentsUI picker, a single tap selects/highlights the row
+# but does not open it (confirmed by the captured hierarchy: the filename is
+# selected while the activity remains in Downloads). Double-tap the filename
+# node itself to activate the document; do not send ENTER to an unfocused row.
+fm=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",file_node.attrib.get("bounds",""))
 if not fm: raise SystemExit("Diary filename node has invalid bounds")
 fx1,fy1,fx2,fy2=map(int,fm.groups())
 x=(fx1+fx2)//2
 y=(fy1+fy2)//2
-print(f"Tap diary filename at {x},{y}; filename bounds={fm.group(0)}, row bounds={m.group(0)}")
-subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
-PY
+print(f"Double-tap diary filename at {x},{y}; filename bounds={fm.group(0)}, row bounds={m.group(0)}")
+for _ in range(2):
+    subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+    import time
+    time.sleep(0.18)
 sleep 1
 dump_ui diary-picker-row-selected
-# DocumentsUI's Open/Select action is more reliable than a fast double-tap,
-# which can be interpreted as a row selection on some emulator/API versions.
-python3 - <<'PY'
-import re, subprocess, xml.etree.ElementTree as ET
-p="ui-screenshots/diary-test/diary-picker-row-selected.xml"
-root=ET.parse(p).getroot()
-actions=[]
-for n in root.iter("node"):
-    label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip()
-    if re.search(r"^(Open|Select|Use this file)$",label,re.I):
-        m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
-        if m:
-            x1,y1,x2,y2=map(int,m.groups())
-            if x2>x1 and y2>y1: actions.append((label,(x1+x2)//2,(y1+y2)//2))
-if actions:
-    label,x,y=actions[-1]
-    print(f"Confirm selected diary image using {label} at {x},{y}")
-    subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
-else:
-    # On API 30 DocumentsUI, tapping the filename may only focus/select the row.
-    # Press Enter to activate that focused document instead of repeating a tap
-    # (which can toggle selection or hit the row checkbox on some builds).
-    print("No explicit Open/Select action exposed; activating focused file with ENTER")
-    subprocess.run(["adb","-s","emulator-5554","shell","input","keyevent","KEYCODE_ENTER"],check=True,timeout=20)
-PY
+# Give DocumentsUI time to return the selected content URI to PadippuPal.
 sleep 2
 dump_ui diary-picker-confirmed
 cp ui-screenshots/diary-test/diary-picker-confirmed.xml ui-screenshots/diary-test/diary-picker-file-selected.xml

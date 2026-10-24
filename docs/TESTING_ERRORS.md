@@ -509,3 +509,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** The UI smoke flow must verify chapter selection, default concept selection, setup completion, and then Teach. Do not weaken selection checks or depend on a numbered label that is not part of the UI contract.
 - **Evidence:** Failed UI smoke run [40056364712](https://github.com/Prav1525/Padippupal/actions/runs/40056364712), SHA `49fcf79150ebedc46ea885598fe3855498a9ac6a`.
 - **Status:** Root cause confirmed from accessibility output; correction committed in the current batch, exact-head workflow and screenshot verification pending.
+
+### TE-041 — Live lesson still has excessive vertical gaps on real emulator screenshot
+- **Date discovered:** 2026-10-24
+- **Area:** Tutor live lesson layout / visual regression.
+- **Symptom:** Actual emulator screenshot showed too much unused vertical space between the spoken explanation, inline pattern animation, and understanding controls.
+- **Root cause:** The live lesson content used 14dp spacing between every child plus 6dp vertical viewport padding. Even though the cluster was centered as a unit, this compounded spacing made the lesson feel fragmented on a phone screen.
+- **Corrective action:** Reduced live lesson child spacing from 14dp to 8dp and vertical padding from 6dp to 2dp. Kept the animation inline and preserved the scrollable full-topic lesson flow.
+- **Regression protection:** Run the Android emulator smoke flow and inspect fresh screenshots for active speech, checkpoint, continued lesson, and completed topic. Build/test success alone does not satisfy visual acceptance; compare content gaps and confirm the lesson remains readable from top to bottom.
+- **Evidence:** Actual emulator screenshot from the UI smoke artifact for run [40057379049](https://github.com/Prav1525/Padippupal/actions/runs/40057379049).
+- **Status:** Spacing correction committed in d3ab0916e86608870c60fa3f11ab91e54897655e; new emulator verification pending.
+

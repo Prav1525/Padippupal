@@ -92,14 +92,12 @@ PY
 sleep 1
 dump_ui diary-picker-list
 python3 - <<'PY'
-import re, subprocess, time, xml.etree.ElementTree as ET
+import re, subprocess, xml.etree.ElementTree as ET
 path="ui-screenshots/diary-test/diary-picker-list.xml"
 root=ET.parse(path).getroot()
 file_node=next((n for n in root.iter("node") if "PadippuPal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc",""))),None)
 if file_node is None: raise SystemExit("Diary fixture missing from DocumentsUI list view")
 parents={child:node for node in root.iter() for child in node}
-# Prefer the full item row; if this Android build has no item_root resource id,
-# use the filename node's bounds. Avoid the rightmost preview-icon column.
 row=file_node
 ancestor=parents.get(file_node)
 while ancestor is not None:
@@ -111,12 +109,34 @@ while ancestor is not None:
 m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
 if not m: raise SystemExit("Diary filename/row has no valid bounds")
 x1,y1,x2,y2=map(int,m.groups())
-x=min(x2-40,max(x1+10,(x1+x2)//2)); y=(y1+y2)//2
-print(f"Double-tap diary file row at {x},{y}")
-cmd=["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]
-subprocess.run(cmd,check=True,timeout=20)
-time.sleep(.3)
-subprocess.run(cmd,check=True,timeout=20)
+x=min(x2-90,max(x1+20,(x1+x2)//2)); y=(y1+y2)//2
+print(f"Select diary file row at {x},{y}")
+subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+PY
+sleep 1
+dump_ui diary-picker-row-selected
+# DocumentsUI's Open/Select action is more reliable than a fast double-tap,
+# which can be interpreted as a row selection on some emulator/API versions.
+python3 - <<'PY'
+import re, subprocess, xml.etree.ElementTree as ET
+p="ui-screenshots/diary-test/diary-picker-row-selected.xml"
+root=ET.parse(p).getroot()
+actions=[]
+for n in root.iter("node"):
+    label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip()
+    if re.search(r"^(Open|Select|Use this file)$",label,re.I):
+        m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
+        if m:
+            x1,y1,x2,y2=map(int,m.groups())
+            if x2>x1 and y2>y1: actions.append((label,(x1+x2)//2,(y1+y2)//2))
+if actions:
+    label,x,y=actions[-1]
+    print(f"Confirm selected diary image using {label} at {x},{y}")
+    subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+else:
+    # Some DocumentsUI builds immediately open on row tap; do not issue a
+    # blind second tap. The caller verifies whether the picker actually closed.
+    print("No explicit Open/Select action exposed; relying on picker state assertion")
 PY
 sleep 2
 dump_ui diary-picker-confirmed

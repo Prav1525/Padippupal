@@ -410,3 +410,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Update `.github/scripts/test_ui_smoke_helpers.py::CheckpointLayoutRegressionTests` to assert the bounded spacing policy and rerun helper tests, JVM tests, APK build, emulator flow, and inspect a fresh checkpoint screenshot.
 - **Evidence:** Baseline emulator run [40038927517](https://github.com/Prav1525/Padippupal/actions/runs/40038927517), screenshot artifact [12538666569](https://github.com/Prav1525/Padippupal/actions/runs/40038927517/artifacts/12538666569). Fix commit and verification pending.
 - **Status:** **Fix implemented; exact-head verification pending.**
+
+
+### TE-033 — Tutor header and checkpoint spacing drifted from the design contract
+
+- **Date discovered:** 2026-10-24
+- **Area:** Tutor header typography; checkpoint transcript spacing; UI smoke helper assertions.
+- **Symptom:** Android UI smoke run [40043958637](https://github.com/Prav1525/Padippupal/actions/runs/40043958637) passed JVM tests and APK build, but failed script validation on two helper tests. The header title was 16sp while the compact-header contract expected 14sp. The checkpoint transcript used 10dp spacing while the previously documented layout contract required 16dp when awaiting understanding.
+- **Root cause:** UI spacing/type values drifted from the documented design contract, and the helper suite also retained a stale 8sp metadata expectation that contradicted the design guide's minimum 11sp for dense metadata.
+- **Why it escaped:** The last run stopped before emulator allocation, so the source-level regression assertions were the first checks to catch the drift. Earlier APK compilation could not catch these visual-contract mismatches.
+- **Corrective action:** Set the brand title to 14sp; restore 16dp vertical spacing at the understanding checkpoint while retaining 12dp during speech; update the stale metadata assertion to 11sp rather than shrinking meaningful context to 8sp.
+- **Regression protection:** Keep the compact header bounds/icon/action assertions; assert 14sp brand title and 11sp context metadata; keep the 16dp checkpoint/12dp speaking spacing assertion. Run helper tests, JVM tests, APK build, emulator navigation/checkpoint flow, and inspect exact-head screenshots before claiming completion.
+- **Evidence:** Failure run [40043958637](https://github.com/Prav1525/Padippupal/actions/runs/40043958637), commit before fix `99f6cd91348e3b4129cafb72f1a5641460a98732`. Corrective commits: source `584cf72632dab3d8d9b5e61bb3f127cf92503a64`; regression assertion `7315120c2120f61fd89827f541b1d1fc0962306a`. Verification pending.
+- **Status:** **Fix implemented; exact-head verification pending.**

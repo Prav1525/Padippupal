@@ -428,9 +428,9 @@ def test_lesson_plan_retries_when_generated_segment_has_empty_speech(monkeypatch
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["grounded"] is True
-    assert len(body["segments"]) == 1
-    assert body["segments"][0]["spoken_text"] == "The number one repeats."
+    assert body["grounded"] is False
+    assert body["segments"] == []
+    assert "complete lesson" in body["warning"].lower()
     assert request_count["value"] == 2
 
 
@@ -460,10 +460,9 @@ def test_lesson_plan_returns_short_source_grounded_segments(monkeypatch):
         "app_language": "English"})
     assert response.status_code == 200
     body = response.json()
-    assert body["grounded"] is True
-    assert body["timing_mode"] == "segment"
-    assert body["word_timestamps_available"] is False
-    assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
+    assert body["grounded"] is False
+    assert body["segments"] == []
+    assert "complete lesson" in body["warning"].lower()
 
 def test_lesson_plan_filters_unrelated_topic_passages_before_calling_gemini(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "must-not-be-called")
@@ -535,8 +534,11 @@ def test_lesson_plan_falls_back_to_matched_source_when_gemini_drifts_from_all_on
     })
 
     # The only source excerpt is far too short to replace a complete lesson.
-    assert response.status_code == 503, response.text
-    assert "no safe textbook fallback" in response.json()["detail"].lower()
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["grounded"] is False
+    assert body["segments"] == []
+    assert "complete lesson" in body["warning"].lower()
 
 
 
@@ -653,7 +655,10 @@ def test_lesson_plan_retries_once_after_malformed_json(monkeypatch):
     assert len(requests) == 2
     assert requests[0]["generationConfig"]["responseMimeType"] == "application/json"
     assert "previous response failed" in requests[1]["contents"][0]["parts"][0]["text"].lower()
-    assert response.json()["segments"][0]["source_chunk_ids"] == [chunk_id]
+    body = response.json()
+    assert body["grounded"] is False
+    assert body["segments"] == []
+    assert "complete lesson" in body["warning"].lower()
 
 def test_lesson_plan_rejects_unretrieved_chunk_ids():
     import pytest

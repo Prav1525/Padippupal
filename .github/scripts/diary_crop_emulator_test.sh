@@ -83,20 +83,23 @@ python3 - <<'PY'
 import re, subprocess, xml.etree.ElementTree as ET
 path = "ui-screenshots/diary-test/diary-picker-downloads.xml"
 root = ET.parse(path).getroot()
-node = next((n for n in root.iter("node") if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc", "") and n.attrib.get("package") == "com.android.documentsui"), None)
+# Match the filename card, explicitly excluding the clickable "Preview the file"
+# overlay. On API 30 DocumentsUI the overlay occupies the card's right side;
+# tapping its center opens preview mode instead of returning a URI to GetContent.
+node = next((n for n in root.iter("node")
+    if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc", "")
+    and "Preview the file" not in n.attrib.get("content-desc", "")
+    and n.attrib.get("package") == "com.android.documentsui"), None)
 if node is None:
     raise SystemExit("Diary fixture card missing from picker tree")
-bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
-if not bounds:
-    raise SystemExit("Diary fixture card has invalid bounds")
-# Tap the file card itself, not its clickable "Preview the file" overlay.
-# That overlay only opens preview mode and leaves the picker active.
 m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
 if not m:
-    raise SystemExit("Diary fixture card has no valid tap bounds")
+    raise SystemExit("Diary fixture card has invalid bounds")
 x1,y1,x2,y2 = map(int,m.groups())
-x,y=(x1+x2)//2,(y1+y2)//2
-print(f"Tap diary file card at {x},{y} ({node.attrib['bounds']})")
+# Tap the left-center of the actual thumbnail, safely outside preview_icon.
+x = x1 + int((x2-x1)*0.30)
+y = y1 + int((y2-y1)*0.50)
+print(f"Tap diary thumbnail body at {x},{y} (card {node.attrib['bounds']}; preview overlay starts at x=240)")
 subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY
 sleep 2
@@ -142,16 +145,16 @@ else:
     # selection attempt. The filename parent can span the whole row and its
     # center may land outside the thumbnail's hit target.
     source=ET.parse("ui-screenshots/diary-test/diary-picker-downloads.xml").getroot()
-    card=next((n for n in source.iter("node") if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","") and n.attrib.get("package")=="com.android.documentsui"),None)
+    card=next((n for n in source.iter("node")
+        if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","")
+        and "Preview the file" not in n.attrib.get("content-desc","")
+        and n.attrib.get("package")=="com.android.documentsui"),None)
     if card is None: raise SystemExit("Cannot recover diary fixture card for double-tap")
-    bounds=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",card.attrib.get("bounds",""))
-    if not bounds: raise SystemExit("Diary fixture card bounds invalid during double-tap")
-    # Double-tap the file card body, never the smaller "Preview the file"
-    # overlay (that opens a preview and leaves DocumentsUI active).
     m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",card.attrib.get("bounds",""))
     if not m: raise SystemExit("Diary fixture card bounds invalid during double-tap")
-    x1,y1,x2,y2=map(int,m.groups()); x,y=(x1+x2)//2,(y1+y2)//2
-    print(f"No confirmation control; double-tapping diary file card at {x},{y}")
+    # Use the same thumbnail-body point, outside the preview overlay.
+    x1,y1,x2,y2=map(int,m.groups()); x=x1+int((x2-x1)*.30); y=y1+int((y2-y1)*.50)
+    print(f"No confirmation control; double-tapping thumbnail body at {x},{y}")
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY

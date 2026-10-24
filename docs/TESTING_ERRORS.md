@@ -312,3 +312,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Added helper tests requiring the smoke flow to focus the EditText, assert the question in the composer, and only then tap Send; added a negative test proving an empty composer is rejected before submission. Keep the existing post-send assertion that both the submitted learner question and deterministic tutor response appear in chat history.
 - **Evidence:** Failing run [39934595131](https://github.com/Prav1525/Padippupal/actions/runs/39934595131), commit `fd3e0d9f7b4791566d1ace20247296804cf7978d`; correction commits begin at `8e5c317184ae1d21c0b1b0952f0bca2a18793fe4`. Verification on the latest head is pending.
 - **Status:** **Fix and regression coverage committed; not yet verified.** Keep PR #17 open until helper tests and the complete emulator follow-up flow pass on the same commit.
+
+
+### TE-036 — Follow-up chat rejected the deterministic debug API URL
+- **Date discovered:** 2026-10-24
+- **Area:** Android tutor follow-up after full lesson playback; emulator smoke API configuration.
+- **Symptom/failure:** Android UI smoke run [39937227421](https://github.com/Prav1525/Padippupal/actions/runs/39937227421) on combined tutor PR #17 passed JVM tests, APK build, curriculum navigation, lesson playback/completion, visible moving word highlighting (40 frames; 34 distinct positions), and composer typing. It failed when sending the follow-up question. The UI showed “The secure PadippuPal API URL is not configured.”
+- **Root cause:** The lesson-start request explicitly allows the workflow's debug-only emulator URL `http://10.0.2.2:8765`, but the separate follow-up chat request required HTTPS unconditionally. The test fixture was healthy and configured; the client-side guard prevented the chat request from reaching it.
+- **Why it escaped:** Lesson start and follow-up chat had duplicated URL-validation rules, and the UI smoke did not reach the follow-up submission until earlier lesson-flow defects were resolved.
+- **Corrective action:** Updated the follow-up chat URL guard to allow the exact `http://10.0.2.2:8765` endpoint only when `BuildConfig.DEBUG` is true, matching the lesson-start guard. Release builds still require HTTPS.
+- **Regression protection:** Run the complete emulator journey and require a tutor answer after sending a follow-up question; retain the release HTTPS restriction. Run JVM tests, APK build, and helper tests before inspecting the emulator result.
+- **Evidence:** Failing run [39937227421](https://github.com/Prav1525/Padippupal/actions/runs/39937227421), tested SHA `29235debe2482a8499c2921aa0ac4ed1b4552bdd`; fix commit `0ca8b4c7a14ddce6cb6b9f50214d6a2a8a860194`.
+- **Status:** **Fix committed to PR #17; exact-head verification pending.** Do not merge until the new CI run and screenshot review pass.

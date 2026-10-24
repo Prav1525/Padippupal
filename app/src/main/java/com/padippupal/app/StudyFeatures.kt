@@ -78,6 +78,7 @@ private data class DiaryDraft(
     val details: String,
     val dueDate: String,
     val minutes: Int,
+    val confidence: String = "medium",
     val checked: Boolean = true
 )
 private data class PlannerTask(
@@ -100,6 +101,7 @@ internal fun DiaryScanScreen(
 ) {
     val context = LocalContext.current
     var selectedName by remember { mutableStateOf("") }
+    var diaryDate by remember { mutableStateOf("") }
     var drafts by remember { mutableStateOf<List<DiaryDraft>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
@@ -124,12 +126,13 @@ internal fun DiaryScanScreen(
                 featureMain.post {
                     loading = false
                     result.fold(onSuccess = { response ->
+                        diaryDate = response.optString("diary_date").trim()
                         val array = response.optJSONArray("tasks") ?: JSONArray()
                         drafts = (0 until array.length()).mapNotNull { i ->
                             val o = array.optJSONObject(i) ?: return@mapNotNull null
                             val title = o.optString("title").trim()
                             if (title.isBlank()) null else DiaryDraft(title, o.optString("subject", "General"),
-                                o.optString("details"), o.optString("due_date"), o.optInt("minutes", 15))
+                                o.optString("details"), o.optString("due_date"), o.optInt("minutes", 15), o.optString("confidence", "medium"))
                         }
                         status = if (drafts.isEmpty()) "No clear homework was detected. Try a closer, brighter photo or type the task into your planner." else "Found ${drafts.size} possible task(s). Review them carefully before saving."
                     }, onFailure = { status = "Could not scan: ${it.message ?: "please try again"}" })
@@ -164,7 +167,11 @@ internal fun DiaryScanScreen(
             Text(status, color = FeatureGrey, fontSize = 13.sp, lineHeight = 19.sp)
         }
         if (drafts.isNotEmpty()) {
-            item { Text("Review extracted homework", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = FeatureInk) }
+            item {
+                Text("Review extracted homework", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = FeatureInk)
+                if (diaryDate.isNotBlank()) Text("Diary date detected: $diaryDate · Please verify", color = FeatureGrey, fontSize = 13.sp)
+                Text("Check low-confidence words against the original diary before saving.", color = FeatureGrey, fontSize = 12.sp)
+            }
             items(drafts) { draft ->
                 val index = drafts.indexOf(draft)
                 Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp)) {
@@ -178,6 +185,7 @@ internal fun DiaryScanScreen(
                             }, modifier = Modifier.weight(1f), label = { Text("Homework task") })
                         }
                         Text("${draft.subject} · ${draft.minutes} min" + if (draft.dueDate.isNotBlank()) " · Due ${draft.dueDate}" else "", color = FeatureGreen, fontSize = 12.sp)
+                        Text("Handwriting confidence: ${draft.confidence.uppercase()}" + if (draft.confidence == "low") " · Please check the photo" else "", color = if (draft.confidence == "low") Color(0xFF9A3412) else FeatureGrey, fontSize = 12.sp)
                         if (draft.details.isNotBlank()) Text(draft.details, color = FeatureGrey, fontSize = 12.sp)
                     }
                 }

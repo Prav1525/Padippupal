@@ -98,7 +98,9 @@ class LiveCheckpointLabelRegressionTests(unittest.TestCase):
           <node text="Pause" bounds="[0,60][100,110]"/>
           <node text="Stop" bounds="[100,60][200,110]"/>
           <node text="TOPIC COMPLETE" bounds="[0,110][400,150]"/>
-          <node text="Did you understand the topic?" bounds="[0,150][400,210]"/>
+          <node text="WATCH THE PATTERN" bounds="[0,150][400,190]"/>
+          <node text="1, 1, 1, 1, 1" bounds="[0,190][400,230]"/>
+          <node text="Did you understand the topic?" bounds="[0,230][400,280]"/>
           <node text="I understand" bounds="[0,210][200,260]"/>
         </hierarchy>"""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", encoding="utf-8") as handle:

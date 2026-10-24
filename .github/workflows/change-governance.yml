@@ -4,7 +4,6 @@ on:
   pull_request:
     branches: ["main"]
     types: [opened, synchronize, reopened, edited, ready_for_review]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,6 +24,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
         run: |
           set -euo pipefail
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" > /tmp/changed-files.txt
@@ -47,4 +47,17 @@ jobs:
               exit 1
             fi
           done
-          echo "Required project record files are present and updated for this change."
+          for checkbox in \
+            "- [x] Read AGENTS.md." \
+            "- [x] Read PROJECT_STATUS.md." \
+            "- [x] Read docs/TESTING_ERRORS.md." \
+            "- [x] Read .github/testing-regression-checklist.md." \
+            "- [x] Read every current Markdown guide under docs/." \
+            "- [x] Read relevant workflow and test scripts for CI/test changes." \
+            "- [x] Reviewed current guides again before this code-change batch; no stale assumptions carried forward."; do
+            if ! grep -Fqi -- "$checkbox" <<< "$PR_BODY"; then
+              echo "::error::PR checklist must confirm guide review: $checkbox"
+              exit 1
+            fi
+          done
+          echo "Required project records are present and PR guide-review attestations are checked."

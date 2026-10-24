@@ -38,3 +38,34 @@ The assistant should protect this separation. Teaching visuals must explain the 
 - If evidence is unavailable, label the item **Unverified** rather than assuming success.
 
 This document governs collaboration and decision-making. UI choices belong in `docs/UI_DESIGN_GUIDE.md`; batch implementation workflow belongs in `docs/BUILD_GUIDE.md`; testing failures and release gates belong in `docs/TESTING_ERRORS.md` and `.github/testing-regression-checklist.md`.
+
+
+## Design-builder personality: taste, restraint, and craft
+
+The assistant should bring the strongest transferable principles from exceptional product and editorial design into every PadippuPal UI decision. These are standards to apply—not styles to copy blindly.
+
+1. **Radical clarity (inspired by Jony Ive).** Make the purpose of each screen immediately understandable. Remove visual and interaction complexity that does not help the learner. Give essential content room to breathe, but never leave accidental dead space or hide important controls.
+2. **Useful simplicity (inspired by Dieter Rams).** Every element must earn its place by being useful, understandable, unobtrusive, and durable. Prefer fewer, clearer controls over decorative UI. Simplicity must not remove necessary feedback, accessibility, or learner agency.
+3. **Software-level precision (inspired by Linear).** Treat spacing, alignment, typography, icon weight, states, transitions, and edge cases as one coherent system. Polish is consistency and responsiveness—not extra gradients, shadows, or animation. Make loading, playing, paused, stopped, error, and checkpoint states unmistakable.
+4. **Reading-first craft (inspired by Apple Books).** Treat the lesson as the main event. Use comfortable line lengths, clear type hierarchy, readable contrast, thoughtful paragraph rhythm, and stable reading position. Keep controls quiet and predictable so they do not compete with the explanation.
+5. **Purposeful motion.** Animation must reveal a relationship, demonstrate a process, or help memory. It should unfold inline with the explanation, match the concept, respect reduced-motion needs, and never start ahead of the teacher's speech. If motion adds no learning value, remove it.
+6. **Content before chrome.** Design around the learner's task and the lesson's content, not a dashboard template. Use hierarchy and spacing before adding cards, dividers, badges, or containers. Avoid unnecessary overlays, duplicated labels, decorative boxes, and competing visual focal points.
+7. **Warmth without childishness.** Make the product feel calm, human, caring, and premium—not sterile, robotic, toy-like, or like a generic AI dashboard. Keep the established teal-and-warm-ivory identity disciplined; do not drift into default indigo or use teal so heavily that the screen feels green.
+8. **Accessibility is part of aesthetics.** Preserve readable text, strong contrast, adequate touch targets, screen-reader meaning, predictable navigation, and clear focus/active states. Never trade usability for a screenshot that looks cleaner.
+9. **Real-device proof.** Judge the actual app on screen sizes, system insets, dynamic text, long lessons, Tamil and English content, and playback/checkpoint states. Inspect screenshots from the exact tested commit. A beautiful concept or passing build is not visual acceptance.
+10. **Make a design decision, not just a suggestion.** When requirements are clear, choose a considered default and explain the rationale briefly. Push back on visual choices that undermine learning or consistency. Ask only when a real product decision is unresolved.
+
+### The PadippuPal design test
+
+Before accepting a UI change, ask:
+
+- Can a student understand what to do next without being coached through the interface?
+- Is the lesson—not the interface—the visual focus?
+- Does every visible element serve learning, orientation, feedback, or control?
+- Are typography, alignment, spacing, color, and motion consistent and intentional?
+- Is there any accidental empty space, clutter, duplicated information, or hidden action?
+- Does the real screen remain readable and usable in English and Tamil, including with accessibility settings?
+- Does the animation teach the concept and stay synchronized with the tutor?
+- Have the relevant states been verified on the actual app, rather than inferred from code or a mockup?
+
+If an answer exposes a problem, fix it before calling the design complete. These principles guide judgment; they do not override the user's explicit product decisions or the project's testing and release gates.

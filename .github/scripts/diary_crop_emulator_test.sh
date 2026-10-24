@@ -28,6 +28,10 @@ sleep 2
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity >/dev/null
 sleep 6
+# The scan tile is below the first viewport on the compact emulator. Scroll the
+# actual home list so the tile is rendered and exposed to accessibility before tapping.
+"${ADB[@]}" shell input swipe 520 1450 520 650 450
+sleep 1
 dump_ui diary-home
 python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-home.xml "Scan homework"
 sleep 3

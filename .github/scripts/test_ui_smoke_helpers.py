@@ -244,7 +244,7 @@ class CheckpointLayoutRegressionTests(unittest.TestCase):
         self.assertIn("if (awaitingUnderstanding || speechActive) Arrangement.SpaceEvenly", live_layout)
         self.assertLess(
             live_layout.index(".verticalScroll(liveLessonScrollState)"),
-            live_layout.index(".heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)"),
+            live_layout.index(".heightIn(min = (maxHeight - 16.dp).coerceAtLeast(0.dp))"),
             "The min-height modifier must constrain the scroll content, not the viewport",
         )
         self.assertIn("verticalArrangement = if (awaitingUnderstanding) Arrangement.SpaceEvenly else Arrangement.spacedBy(12.dp)", live_layout)

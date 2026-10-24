@@ -85,7 +85,7 @@ path="ui-screenshots/diary-test/diary-picker-downloads.xml"
 root=ET.parse(path).getroot()
 button=next((n for n in root.iter("node") if n.attrib.get("content-desc")=="List view"),None)
 if button is None: raise SystemExit("DocumentsUI list-view control missing")
-m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",button.attrib.get("bounds",""))
+m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",button.attrib.get("bounds",""))
 if not m: raise SystemExit("DocumentsUI list-view control has invalid bounds")
 x1,y1,x2,y2=map(int,m.groups())
 subprocess.run(adb+[str((x1+x2)//2),str((y1+y2)//2)],check=True,timeout=20)
@@ -102,7 +102,7 @@ if file_node is None: raise SystemExit("Diary fixture missing from DocumentsUI l
 target=file_node
 while target is not None and target.attrib.get("clickable")!="true": target=parents.get(target)
 if target is None: raise SystemExit("Diary fixture has no clickable list-row ancestor")
-m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",target.attrib.get("bounds",""))
+m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
 if not m: raise SystemExit("Diary fixture row has invalid bounds")
 x1,y1,x2,y2=map(int,m.groups())
 x,y=(x1+x2)//2,(y1+y2)//2
@@ -126,7 +126,7 @@ for n in r.iter("node"):
  t=n
  while t is not None and t.attrib.get("clickable")!="true": t=parents.get(t)
  if t is None: continue
- m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",t.attrib.get("bounds",""))
+ m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",t.attrib.get("bounds",""))
  if not m: continue
  x1,y1,x2,y2=map(int,m.groups())
  if x2<=x1 or y2<=y1: continue

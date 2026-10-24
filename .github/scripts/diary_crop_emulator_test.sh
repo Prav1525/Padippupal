@@ -75,10 +75,22 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# DocumentsUI's accessibility tree exposes the filename as a non-clickable
-# TextView and the row as non-clickable too. A single coordinate tap is ignored
-# by this API-30 picker; double-tap the file's actual list row (not the preview
-# affordance) and verify that the activity returns to PadippuPal.
+# DocumentsUI initially opens Downloads in a thumbnail grid. Switch to
+# list view first, then select the actual file row; the previous revision tried
+# to parse a list-view dump that had never been created.
+python3 - <<'PY'
+import re, subprocess, xml.etree.ElementTree as ET
+p="ui-screenshots/diary-test/diary-picker-downloads.xml"
+root=ET.parse(p).getroot()
+button=next((n for n in root.iter("node") if n.attrib.get("content-desc")=="List view"),None)
+if button is None: raise SystemExit("DocumentsUI list-view control missing")
+m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",button.attrib.get("bounds",""))
+if not m: raise SystemExit("DocumentsUI list-view control has invalid bounds")
+x1,y1,x2,y2=map(int,m.groups())
+subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)],check=True,timeout=20)
+PY
+sleep 1
+dump_ui diary-picker-list
 python3 - <<'PY'
 import re, subprocess, time, xml.etree.ElementTree as ET
 path="ui-screenshots/diary-test/diary-picker-list.xml"
@@ -86,8 +98,8 @@ root=ET.parse(path).getroot()
 file_node=next((n for n in root.iter("node") if "PadippuPal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc",""))),None)
 if file_node is None: raise SystemExit("Diary fixture missing from DocumentsUI list view")
 parents={child:node for node in root.iter() for child in node}
-# Tap the full row; filename-only bounds may be too narrow for DocumentsUI's
-# row touch listener. Stop before the preview-icon column at x >= 891.
+# Prefer the full item row; if this Android build has no item_root resource id,
+# use the filename node's bounds. Avoid the rightmost preview-icon column.
 row=file_node
 ancestor=parents.get(file_node)
 while ancestor is not None:
@@ -97,14 +109,13 @@ while ancestor is not None:
         break
     ancestor=parents.get(ancestor)
 m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
-if not m: raise SystemExit("Diary file row has no valid bounds")
+if not m: raise SystemExit("Diary filename/row has no valid bounds")
 x1,y1,x2,y2=map(int,m.groups())
-x=min(x2-40, max(x1+40, (x1+x2)//2))
-y=(y1+y2)//2
+x=min(x2-40,max(x1+10,(x1+x2)//2)); y=(y1+y2)//2
 print(f"Double-tap diary file row at {x},{y}")
 cmd=["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]
 subprocess.run(cmd,check=True,timeout=20)
-time.sleep(.25)
+time.sleep(.3)
 subprocess.run(cmd,check=True,timeout=20)
 PY
 sleep 2

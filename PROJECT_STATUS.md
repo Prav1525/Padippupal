@@ -116,3 +116,12 @@ Poll the current UI smoke run; once complete, inspect its logs and screenshot ar
 - **Fix:** Added a bounded retry after a grace period for a checkpoint that remains visible; the smoke flow still requires the genuine `TOPIC COMPLETE` state and a full-topic screenshot. Added TE-045 and a checklist regression gate.
 - **Verification:** Not yet verified. Wait for workflows on the resulting exact branch head; inspect the final screenshot and logs. Do not mark Phase 1 complete or merge PR #13 until the emulator completion flow passes and the screenshot is visually reviewed.
 - **Release:** PR #13 remains open and unmerged.
+
+
+## Viewport assertion correction — 2026-10-24
+
+- **Finding:** UI smoke run [40061682447](https://github.com/Prav1525/Padippupal/actions/runs/40061682447) failed before emulator launch because two helper tests required the removed `heightIn(maxHeight - 16.dp)` rule, while the production layout is deliberately top-aligned and uses `Arrangement.spacedBy(8.dp)`.
+- **Fix:** Updated the two stale assertions to enforce scrollability and natural top alignment, and to reject forced minimum height/vertical centering that can recreate the blank-space issue. Added TE-046 to `docs/TESTING_ERRORS.md`.
+- **Commits:** helper correction `daccab059e3507b71a2aeeb459ebe42641b2e371`; incident log `13f5633900422636572df254595b73ea55fff882`.
+- **Verification:** Automatic workflows must be checked against the latest branch SHA. The previous APK and curriculum successes on `3141cd04281702b1fcfe86731cc1685be2574062` do not verify the current head. UI smoke and screenshot review remain pending.
+- **Release gate:** PR #13 remains open and unmerged until the latest emulator run and full-topic screenshot pass.

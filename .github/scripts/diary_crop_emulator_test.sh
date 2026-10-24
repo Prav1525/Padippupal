@@ -140,9 +140,11 @@ if actions:
     print(f"Confirm selected diary image using {label} at {x},{y}")
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 else:
-    # Some DocumentsUI builds immediately open on row tap; do not issue a
-    # blind second tap. The caller verifies whether the picker actually closed.
-    print("No explicit Open/Select action exposed; relying on picker state assertion")
+    # On API 30 DocumentsUI, tapping the filename may only focus/select the row.
+    # Press Enter to activate that focused document instead of repeating a tap
+    # (which can toggle selection or hit the row checkbox on some builds).
+    print("No explicit Open/Select action exposed; activating focused file with ENTER")
+    subprocess.run(["adb","-s","emulator-5554","shell","input","keyevent","KEYCODE_ENTER"],check=True,timeout=20)
 PY
 sleep 2
 dump_ui diary-picker-confirmed

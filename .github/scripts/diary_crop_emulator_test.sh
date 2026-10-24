@@ -33,11 +33,9 @@ python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-home.xml
 sleep 3
 dump_ui diary-scanner
 cp ui-screenshots/diary-test/diary-scanner.xml ui-screenshots/diary-test/scanner-before-camera.xml
-python3 .github/scripts/ui_smoke.py assert-diary-scan ui-screenshots/diary-test/diary-scanner.xml 2>/dev/null || {
-  grep -qi "Scan school diary" ui-screenshots/diary-test/diary-scanner.xml
-  grep -qi "Take photo" ui-screenshots/diary-test/diary-scanner.xml
-  grep -qi "Choose photo" ui-screenshots/diary-test/diary-scanner.xml
-}
+grep -qi "Scan school diary" ui-screenshots/diary-test/diary-scanner.xml
+grep -qi "Take photo" ui-screenshots/diary-test/diary-scanner.xml
+grep -qi "Choose photo" ui-screenshots/diary-test/diary-scanner.xml
 log "Checking camera button launches the system capture flow"
 tap_label ui-screenshots/diary-test/diary-scanner.xml "Take photo"
 sleep 3

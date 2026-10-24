@@ -108,9 +108,15 @@ while ancestor is not None:
     ancestor=parents.get(ancestor)
 m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
 if not m: raise SystemExit("Diary filename/row has no valid bounds")
-x1,y1,x2,y2=map(int,m.groups())
-x=min(x2-90,max(x1+20,(x1+x2)//2)); y=(y1+y2)//2
-print(f"Select diary file row at {x},{y}")
+# Tap the filename node itself, not the far-right side of the row.
+# On this DocumentsUI build, tapping the row's right side can select/check
+# the row without opening the file, leaving the test stuck in Downloads.
+fm=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",file_node.attrib.get("bounds",""))
+if not fm: raise SystemExit("Diary filename node has invalid bounds")
+fx1,fy1,fx2,fy2=map(int,fm.groups())
+x=(fx1+fx2)//2
+y=(fy1+fy2)//2
+print(f"Tap diary filename at {x},{y}; filename bounds={fm.group(0)}, row bounds={m.group(0)}")
 subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY
 sleep 1
@@ -143,7 +149,7 @@ dump_ui diary-picker-confirmed
 cp ui-screenshots/diary-test/diary-picker-confirmed.xml ui-screenshots/diary-test/diary-picker-file-selected.xml
 if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
-  log "FAIL: double-tapping the diary file row did not return from DocumentsUI"
+  log "FAIL: picker remained in DocumentsUI after filename tap/explicit confirmation; see diary-picker-confirmed.xml and picker-selection-stuck.png"
   exit 1
 fi
 sleep 3

@@ -269,7 +269,6 @@ python3 .github/scripts/ui_smoke.py assert-followup follow-up.xml | tee -a "$REP
 # and a system Back event may only dismiss the IME or leave the tutor screen active.
 log "Testing app Back control navigation to Home"
 python3 .github/scripts/ui_smoke.py tap follow-up.xml "Back"
-timeout 10s "${ADB[@]}" shell input keyevent 4
 sleep 5
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/home-return.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/home-return.xml || {

@@ -2652,6 +2652,11 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
         match_status = str(parsed.get("match_status", "needs_crop")).strip().lower()
         if match_status not in {"matched", "no_today_row", "needs_crop"}:
             match_status = "needs_crop"
+        # Never trust the model's label alone: a matched date must equal the
+        # device-local date supplied by Android in ISO form.
+        model_diary_date = normalize(str(parsed.get("diary_date", "")))[:40]
+        if not payload.today_date or model_diary_date != payload.today_date:
+            match_status = "needs_crop" if match_status == "matched" else match_status
         tasks = []
         for item in (parsed.get("tasks", [])[:40] if match_status == "matched" else []):
             if not isinstance(item, dict) or not str(item.get("title", "")).strip():

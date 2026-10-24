@@ -102,3 +102,12 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 - [ ] Include the tested commit SHA and identify what state each displayed screenshot proves (e.g. teaching in progress vs. topic complete). Use fresh images from the latest required run, not screenshots from an earlier commit.
 - [ ] For the tutor lesson, verify the full lesson progresses without any feedback/checkpoint prompt until all planned teaching segments finish. Feedback controls may appear only after the actual topic-complete state.
 
+### Lesson completeness — mandatory acceptance
+
+- [ ] A lesson is not considered complete merely because the planner returned a valid JSON object or a source-grounded sentence.
+- [ ] For the All 1s pilot, require at least four substantive teaching segments covering the repeated sequence, why the value stays the same, contrast with a changing sequence, and a worked example or learner reflection.
+- [ ] Reject one-sentence textbook fallback for All 1s; show a clear recoverable error instead of marking the topic taught when a complete source-grounded lesson cannot be produced.
+- [ ] Approved and generated lesson plans must pass the same topic-relevance and completeness gates.
+- [ ] No intermediate feedback checkpoints: every teaching segment has no checkpoint; feedback appears only after the full topic is taught and marked complete.
+- [ ] Tests must cover short/incomplete lesson rejection, complete lesson acceptance, provider outage behavior, and the generic-topic compatibility path.
+

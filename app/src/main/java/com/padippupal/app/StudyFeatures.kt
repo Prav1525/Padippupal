@@ -284,8 +284,9 @@ internal fun DiaryScanScreen(
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Crop today's diary row", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     Text("Drag across the date and homework for today. Include the date so it can be checked again.", color = FeatureGrey, fontSize = 13.sp)
-                    Image(bitmap.asImageBitmap(), contentDescription = "Diary crop", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat()/bitmap.height).pointerInput(bitmap) { detectDragGestures(onDragStart = { val p = Offset(it.x / size.width * bitmap.width, it.y / size.height * bitmap.height); cropStart = p; cropEnd = p }, onDrag = { change, _ -> cropEnd = Offset(change.position.x / size.width * bitmap.width, change.position.y / size.height * bitmap.height) }) })
-                    Canvas(Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat()/bitmap.height)) {
+                    Box(Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat()/bitmap.height)) {
+                        Image(bitmap.asImageBitmap(), contentDescription = "Diary crop", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxSize().pointerInput(bitmap) { detectDragGestures(onDragStart = { val p = Offset(it.x / size.width * bitmap.width, it.y / size.height * bitmap.height); cropStart = p; cropEnd = p }, onDrag = { change, _ -> cropEnd = Offset(change.position.x / size.width * bitmap.width, change.position.y / size.height * bitmap.height) }) })
+                        Canvas(Modifier.fillMaxSize()) {
                         val a = cropStart; val b = cropEnd
                         if (a != null && b != null) {
                             val l = minOf(a.x,b.x).coerceIn(0f,bitmap.width.toFloat()) / bitmap.width * size.width; val t = minOf(a.y,b.y).coerceIn(0f,bitmap.height.toFloat()) / bitmap.height * size.height
@@ -293,6 +294,7 @@ internal fun DiaryScanScreen(
                             drawRect(Color(0x3334D399), topLeft=Offset(l,t), size=androidx.compose.ui.geometry.Size(rr-l,bb-t))
                             drawRect(Color(0xFF0F766E), topLeft=Offset(l,t), size=androidx.compose.ui.geometry.Size(rr-l,bb-t), style=Stroke(3.dp.toPx()))
                         }
+                    }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { showCropEditor = false }, modifier = Modifier.weight(1f)) { Text("Cancel") }

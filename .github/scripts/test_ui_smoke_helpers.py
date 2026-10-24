@@ -103,6 +103,10 @@ class LiveCheckpointLabelRegressionTests(unittest.TestCase):
           <node text="Did you understand the topic?" bounds="[0,230][400,280]"/>
           <node text="I understand" bounds="[0,210][200,260]"/>
         </hierarchy>"""
+        # Keep this fixture representative of the actual live UI contract; without
+        # these nodes assert_live correctly rejects it before testing completion gating.
+        self.assertIn('text="WATCH THE PATTERN"', xml)
+        self.assertIn('text="1, 1, 1, 1, 1"', xml)
         with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", encoding="utf-8") as handle:
             handle.write(xml)
             handle.flush()

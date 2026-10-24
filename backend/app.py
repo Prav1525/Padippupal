@@ -2521,6 +2521,7 @@ class DiaryParseRequest(BaseModel):
     class_level: int = Field(default=6, ge=1, le=12)
     medium: str = Field(default="English", max_length=40)
     app_language: str = Field(default="English", max_length=30)
+    today_date: str = Field(default="", max_length=10, pattern=r"^$|^\\d{4}-\\d{2}-\\d{2}$")
 
 
 def _task_dict(row: Any) -> dict[str, Any]:
@@ -2625,10 +2626,10 @@ def parse_school_diary(payload: DiaryParseRequest) -> dict[str, Any]:
         raise HTTPException(status_code=413, detail="Please choose a smaller or more compressed diary photo.")
     model = os.getenv("PADIPPUPAL_GEMINI_VISION_MODEL", "gemini-2.5-flash").strip()
     prompt = f"""You are transcribing a real school diary, including children's handwriting, for a learner in class {payload.class_level}, board {payload.board}, textbook medium {payload.medium}. Preferred language for notes is {payload.app_language}.
-Treat the image as a diary page, not a printed worksheet. First locate the date/day column and determine which date or dated row the homework belongs to. Then read the handwriting in the homework/remarks column for that same row. Use visual context and line spacing to associate text with the correct date; do not merge adjacent rows. Read handwritten English and regional-language text when visible. If the page is tilted or text is faint, use the visible strokes and context cautiously, but never invent a word.
-Extract only homework, assignments, tests, projects, page numbers and due dates actually supported by the image. Do not assume the photo date is the diary date. Use YYYY-MM-DD only when the written date is unambiguous; otherwise leave due_date empty and explain the uncertainty in details. For illegible words, preserve the readable part and include [check photo] plus a short reason in details. Keep each task separate.
+Treat the image as a diary page, not a printed worksheet. The learner local date for this scan is {payload.today_date or "NOT PROVIDED"}. First identify the date/day column and match ONLY the row for that local date. Accept unambiguous dates written as DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD, 24 Oct 2026, October 24, 2026, weekday-plus-date, and clearly supported local-language or short day/month forms. Resolve DD/MM versus MM/DD only from clear diary/locale context; if ambiguous, do not guess. Read homework only from the matched row and never include adjacent rows. If today is absent, date is unclear, or row alignment is uncertain, return no tasks and set match_status to "no_today_row" when the date is clearly absent, otherwise "needs_crop". Read handwritten English and regional-language text when visible. If the page is tilted or text is faint, use the visible strokes and context cautiously, but never invent a word.
+Extract only homework, assignments, tests, projects, page numbers and due dates actually supported by the image. Do not assume the photo date is the diary date. Set diary_date to the matched date in YYYY-MM-DD form. If no confident match to the supplied local date exists, tasks must be empty. For illegible words, preserve the readable part and include [check photo] plus a short reason in details. Keep each task separate.
 Return ONLY valid JSON in this schema:
-{{"diary_date":"YYYY-MM-DD if unambiguous, else empty string","tasks":[{{"title":"short transcription; include [check photo] if essential words are unclear","subject":"subject if visible, else General","details":"page/question numbers and uncertainty notes","due_date":"explicit due date YYYY-MM-DD if unambiguous, else empty string","minutes":15,"confidence":"high, medium, or low"}}]}}
+{{"diary_date":"matched date YYYY-MM-DD or empty string","match_status":"matched, no_today_row, or needs_crop","tasks":[{{"title":"short transcription; include [check photo] if essential words are unclear","subject":"subject if visible, else General","details":"page/question numbers and uncertainty notes","due_date":"explicit due date YYYY-MM-DD if unambiguous, else empty string","minutes":15,"confidence":"high, medium, or low"}}]}}
 Do not claim image cropping or certainty that you did not perform. Return an empty tasks array if no homework is legible."""
     body = json.dumps({
         "contents": [{"role": "user", "parts": [
@@ -2648,8 +2649,11 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
             result = json.loads(response.read().decode("utf-8"))
         text_output = "".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"])
         parsed = json.loads(text_output.strip())
+        match_status = str(parsed.get("match_status", "needs_crop")).strip().lower()
+        if match_status not in {"matched", "no_today_row", "needs_crop"}:
+            match_status = "needs_crop"
         tasks = []
-        for item in parsed.get("tasks", [])[:40]:
+        for item in (parsed.get("tasks", [])[:40] if match_status == "matched" else []):
             if not isinstance(item, dict) or not str(item.get("title", "")).strip():
                 continue
             tasks.append({
@@ -2662,7 +2666,7 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
                 "source": "diary",
             })
         diary_date = normalize(str(parsed.get("diary_date", "")))[:40]
-        return {"tasks": tasks, "count": len(tasks), "diary_date": diary_date, "needs_review": True, "model": model}
+        return {"tasks": tasks, "count": len(tasks), "diary_date": diary_date, "match_status": match_status, "needs_review": True, "model": model}
     except urllib.error.HTTPError as exc:
         logger.warning("Diary OCR provider HTTP error status=%s", exc.code)
         if exc.code == 429:

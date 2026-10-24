@@ -128,7 +128,8 @@ def self_test() -> None:
     assert len(LESSON["segments"]) == 5
     assert "sequence" in LESSON["segments"][0]["spoken_text"].casefold()
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
-    assert all(segment["checkpoint"] is None for segment in LESSON["segments"])\n    assert "worked" not in json.dumps(LESSON).casefold()
+    assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
+    assert "worked" not in json.dumps(LESSON).casefold()
     assert "square" not in json.dumps(LESSON).casefold()
     print("smoke API fixture self-test passed: five teaching segments, no mid-lesson checkpoint, no square-number content")
 

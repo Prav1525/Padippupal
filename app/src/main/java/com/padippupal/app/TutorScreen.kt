@@ -1580,7 +1580,7 @@ internal fun TutorScreen(
 
     fun playLiveSegment(index: Int) {
         if (!liveLessonActive || livePaused) return
-        if (index >= liveSegments.size) { liveLessonComplete = true; awaitingUnderstanding = false; livePaused = false; status = "Topic complete. Scroll up any time to review."; return }
+        if (index >= liveSegments.size) { liveLessonComplete = true; awaitingUnderstanding = true; currentCheckpoint = "Did you understand the topic?"; livePaused = false; status = "Topic complete. Tell your teacher how it went."; return }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
         // Normalize nullable API data before it enters UI state; optString may yield literal "null".
@@ -2170,18 +2170,24 @@ internal fun TutorScreen(
                 if (liveLessonComplete) {
                     Text("You have finished this topic. Scroll up to review any explanation, or use Stop when you are ready to leave the lesson.", modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = TutorGrey, fontSize = 14.sp, lineHeight = 21.sp)
                 }
-                if (liveLessonActive && awaitingUnderstanding && !liveLessonComplete) {
+                if (liveLessonActive && awaitingUnderstanding) {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, lineHeight = 26.sp)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Button(
                                 onClick = {
-                                    val nextIndex = liveSegmentIndex + 1
-                                    awaitingUnderstanding = false
-                                    currentCheckpoint = ""
-                                    livePaused = false
-                                    status = "Great! Let’s take the next part of the lesson."
-                                    tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
+                                    if (liveLessonComplete) {
+                                        awaitingUnderstanding = false
+                                        currentCheckpoint = ""
+                                        status = "Thank you for your feedback. You can review the lesson or stop when ready."
+                                    } else {
+                                        val nextIndex = liveSegmentIndex + 1
+                                        awaitingUnderstanding = false
+                                        currentCheckpoint = ""
+                                        livePaused = false
+                                        status = "Great! Let’s take the next part of the lesson."
+                                        tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
+                                    }
                                 },
                                 modifier = Modifier.weight(1f).height(52.dp),
                                 shape = RoundedCornerShape(16.dp),

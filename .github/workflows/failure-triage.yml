@@ -1,0 +1,191 @@
+name: CI failure triage and project records
+
+on:
+  workflow_run:
+    workflows:
+      - "Android APK"
+      - "Android UI smoke test"
+      - "Curriculum Engine Tests"
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+
+# Never check out or execute code from the completed workflow's commit.
+# This workflow consumes GitHub run metadata and writes a factual audit trail.
+jobs:
+  record-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Record run status and any failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            if (!run) {
+              core.setFailed("workflow_run payload is missing.");
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = run.head_branch || "";
+            const runUrl = run.html_url;
+            const attempt = run.run_attempt || 1;
+            const marker = "<!-- padippupal-ci-record:" + run.id + ":" + attempt + " -->";
+            const conclusion = run.conclusion || "unknown";
+            const title = "[CI " + conclusion + "] " + run.name + " — run " + run.id + " attempt " + attempt;
+            const sha = run.head_sha || "unknown";
+            const headRepo = run.head_repository && run.head_repository.full_name || "";
+            const stamp = new Date().toISOString();
+
+            let jobs = [];
+            try {
+              const response = await github.rest.actions.listJobsForWorkflowRun({
+                owner, repo, run_id: run.id, per_page: 100
+              });
+              jobs = response.data.jobs || [];
+            } catch (error) {
+              core.warning("Could not list job details: " + error.message);
+            }
+
+            const failedJobs = jobs.filter(j =>
+              ["failure", "timed_out", "cancelled", "action_required"].includes(j.conclusion)
+            );
+            const jobLines = jobs.map(j =>
+              "- " + j.name + ": " + (j.conclusion || j.status) + " (" + j.html_url + ")"
+            ).join("\n") || "- Job details unavailable.";
+            const failureLines = failedJobs.map(j =>
+              "- **" + j.name + "** — " + j.conclusion + " (" + j.html_url + ")"
+            ).join("\n") || "- No failed jobs reported.";
+
+            const summary = [
+              marker,
+              "## " + title,
+              "- Recorded: " + stamp,
+              "- Result: **" + conclusion + "**",
+              "- Branch: " + branch,
+              "- Commit: " + sha,
+              "- Workflow run: " + runUrl,
+              "",
+              "### Jobs",
+              jobLines,
+              "",
+              "### Failure details",
+              failureLines,
+              "",
+              "This is an automated run record, not a claim that the product is verified. Inspect linked logs and screenshots from the exact commit before changing status to Verified."
+            ].join("\n");
+
+            let issueUrl = "";
+            if (conclusion !== "success") {
+              const existing = await github.rest.issues.listForRepo({
+                owner, repo, state: "all", per_page: 100
+              });
+              const prior = existing.data.find(i => i.body && i.body.includes(marker));
+              if (prior) {
+                issueUrl = prior.html_url;
+              } else {
+                const issue = await github.rest.issues.create({
+                  owner, repo, title,
+                  body: summary + "\n\n## Required follow-up\n- Read AGENTS.md, PROJECT_STATUS.md, docs/TESTING_ERRORS.md, and .github/testing-regression-checklist.md before starting another test cycle.\n- Inspect full logs and artifacts.\n- Confirm the root cause before changing code.\n- Add regression protection and update the incident status after rerunning.\n- Do not weaken assertions or skip acceptance criteria."
+                });
+                issueUrl = issue.data.html_url;
+              }
+            }
+
+            // Only update the branch that produced the run when it is in this repository.
+            // Fork PRs are never written to. If a write fails, the failed-run issue is the fallback.
+            let docsUpdated = false;
+            const sameRepo = headRepo.toLowerCase() === (owner + "/" + repo).toLowerCase();
+            const safeBranch = /^[A-Za-z0-9._/-]+$/.test(branch) && !branch.startsWith("-");
+            if (sameRepo && safeBranch) {
+              async function getFile(path) {
+                const result = await github.rest.repos.getContent({ owner, repo, path, ref: branch });
+                if (Array.isArray(result.data) || !result.data.content) {
+                  throw new Error("Not a text file: " + path);
+                }
+                return {
+                  sha: result.data.sha,
+                  text: Buffer.from(result.data.content, "base64").toString("utf8")
+                };
+              }
+              async function putFile(path, text, blobSha, message) {
+                await github.rest.repos.createOrUpdateFileContents({
+                  owner, repo, path, branch, sha: blobSha, message,
+                  content: Buffer.from(text, "utf8").toString("base64")
+                });
+              }
+
+              try {
+                const status = await getFile("PROJECT_STATUS.md");
+                if (!status.text.includes(marker)) {
+                  const statusEntry = [
+                    "",
+                    marker,
+                    "### Automated CI record — " + run.name + " / run " + run.id + " attempt " + attempt,
+                    "- **Recorded:** " + stamp,
+                    "- **Result:** " + conclusion,
+                    "- **Branch / SHA:** " + branch + " / " + sha,
+                    "- **Run:** " + runUrl,
+                    "- **Triage issue:** " + (issueUrl || "not required; successful run"),
+                    "- **Jobs:** " + (jobs.map(j => j.name + "=" + (j.conclusion || j.status)).join("; ") || "unavailable"),
+                    "- **Verification:** CI result recorded; visual/product acceptance remains unverified until evidence is inspected.",
+                    ""
+                  ].join("\n");
+                  await putFile("PROJECT_STATUS.md", status.text + statusEntry, status.sha,
+                    "docs: record CI run " + run.id + " attempt " + attempt);
+                }
+
+                if (conclusion !== "success") {
+                  const errors = await getFile("docs/TESTING_ERRORS.md");
+                  if (!errors.text.includes(marker)) {
+                    const matches = Array.from(errors.text.matchAll(/TE-(\d+)/g), m => Number(m[1]));
+                    const next = Math.max(0, ...matches) + 1;
+                    const errorEntry = [
+                      "",
+                      marker,
+                      "### TE-" + String(next).padStart(3, "0") + " — CI run failed: " + run.name,
+                      "- **Date discovered:** " + stamp,
+                      "- **Area:** Automated CI triage; exact failing layer requires log inspection.",
+                      "- **Symptom/failure:** Workflow conclusion was **" + conclusion + "** for run " + run.id + ", attempt " + attempt + ".",
+                      "- **Root cause:** Not yet diagnosed by automation. Treat any hypothesis as unconfirmed until logs/artifacts are reviewed.",
+                      "- **Why it escaped:** Pending investigation.",
+                      "- **Corrective action:** Pending log and artifact inspection; do not weaken assertions or skip acceptance criteria before diagnosis.",
+                      "- **Regression protection:** Add a focused regression test or harness assertion after the root cause is confirmed.",
+                      "- **Evidence:** " + runUrl + "; triage issue: " + (issueUrl || "not created") + "; commit: " + sha + ".",
+                      "- **Status:** **Open — diagnosis required.**",
+                      ""
+                    ].join("\n");
+                    await putFile("docs/TESTING_ERRORS.md", errors.text + errorEntry, errors.sha,
+                      "docs: log CI failure TE-" + String(next).padStart(3, "0") + " from run " + run.id);
+                  }
+                }
+                docsUpdated = true;
+              } catch (error) {
+                core.warning("Could not update status/error documents on " + branch + ": " + error.message);
+              }
+            } else {
+              core.notice("Run came from a fork or unsafe branch name; repository docs were not modified.");
+            }
+
+            await core.summary
+              .addHeading("PadippuPal CI record")
+              .addTable([
+                [{data:"Field",header:true},{data:"Value",header:true}],
+                ["Workflow", run.name],
+                ["Result", conclusion],
+                ["Commit", sha],
+                ["Branch", branch],
+                ["Run", runUrl],
+                ["Triage issue", issueUrl || "not required for a successful run"],
+                ["Project documents updated", docsUpdated ? "yes" : "no; inspect fallback issue/logs"]
+              ])
+              .addLink("Open run", runUrl)
+              .write();
+
+            core.setOutput("conclusion", conclusion);
+            core.setOutput("docs_updated", String(docsUpdated));

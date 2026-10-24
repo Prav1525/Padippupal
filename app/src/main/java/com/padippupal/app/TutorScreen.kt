@@ -1923,7 +1923,7 @@ internal fun TutorScreen(
             }
             Spacer(Modifier.width(6.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                Text("PadippuPal", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                Text("PadippuPal", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
                 Text(
                     if (topic.isNotBlank()) "$chapter · $topic" else if (chapter.isNotBlank()) chapter else "CLASS $grade  ·  $board",
                     fontSize = 11.sp, color = TutorMutedOnNight, maxLines = 1
@@ -2134,7 +2134,7 @@ internal fun TutorScreen(
                         .heightIn(min = if (awaitingUnderstanding) maxHeight - 16.dp else 0.dp)
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                         .verticalScroll(liveLessonScrollState),
-                    verticalArrangement = Arrangement.spacedBy(if (awaitingUnderstanding) 10.dp else 12.dp)
+                    verticalArrangement = Arrangement.spacedBy(if (awaitingUnderstanding) 16.dp else 12.dp)
                 ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))

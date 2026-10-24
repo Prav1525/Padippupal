@@ -75,19 +75,31 @@ class TutorHeaderLayoutRegressionTests(unittest.TestCase):
 
 
 class LiveCheckpointLabelRegressionTests(unittest.TestCase):
-    def test_actual_understanding_checkpoint_label_is_a_valid_live_lesson_state(self):
-        # Match the wording shown by the real Compose checkpoint, not just older labels.
+    def test_mid_topic_feedback_is_rejected_by_live_lesson_assertion(self):
+        # A teaching snapshot must never treat feedback controls as a valid live state.
         xml = """<hierarchy>
           <node text="Patterns in Mathematics" bounds="[0,0][400,60]"/>
           <node text="Pause" bounds="[0,60][100,110]"/>
           <node text="Stop" bounds="[100,60][200,110]"/>
-          <node text="The All 1s pattern repeats the number 1" bounds="[0,120][400,180]"/>
-          <node text="WATCH THE PATTERN" bounds="[0,180][400,220]"/>
-          <node text="1, 1, 1, 1, 1" bounds="[0,220][400,260]"/>
-          <node text="Does that make sense so far?" bounds="[0,270][400,320]"/>
-          <node text="I understand" bounds="[0,320][200,370]"/>
-          <node text="Explain again" bounds="[200,320][400,370]"/>
-          <node text="I have a question" bounds="[0,370][400,420]"/>
+          <node text="YOUR TEACHER IS SPEAKING" bounds="[0,110][400,150]"/>
+          <node text="The All 1s pattern repeats the number 1" bounds="[0,150][400,210]"/>
+          <node text="Does that make sense so far?" bounds="[0,220][400,270]"/>
+          <node text="I understand" bounds="[0,270][200,320]"/>
+        </hierarchy>"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", encoding="utf-8") as handle:
+            handle.write(xml)
+            handle.flush()
+            with self.assertRaisesRegex(SystemExit, "Feedback/checkpoint appeared before TOPIC COMPLETE"):
+                assert_live(handle.name)
+
+    def test_feedback_is_allowed_only_after_topic_complete(self):
+        xml = """<hierarchy>
+          <node text="Patterns in Mathematics" bounds="[0,0][400,60]"/>
+          <node text="Pause" bounds="[0,60][100,110]"/>
+          <node text="Stop" bounds="[100,60][200,110]"/>
+          <node text="TOPIC COMPLETE" bounds="[0,110][400,150]"/>
+          <node text="Did you understand the topic?" bounds="[0,150][400,210]"/>
+          <node text="I understand" bounds="[0,210][200,260]"/>
         </hierarchy>"""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", encoding="utf-8") as handle:
             handle.write(xml)

@@ -13,6 +13,8 @@ required = {
     "gallery image retained": "sourceBitmap = bitmap",
     "crop action visible": "Crop this photo and rescan",
     "crop dialog": "Crop today's diary row",
+    "crop overlay layers on image": "Box(Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat()/bitmap.height))",
+    "selection canvas overlays image": "Canvas(Modifier.fillMaxSize())",
     "crop rescan action": 'Text("Rescan crop")',
     "crop uses same date-guarded scan path": 'scanImage(out.toByteArray(),"image/jpeg","Cropped diary row")',
     "date sent to parser": '"today_date"',

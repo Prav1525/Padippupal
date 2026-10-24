@@ -1583,9 +1583,9 @@ internal fun TutorScreen(
         if (index >= liveSegments.size) { liveLessonComplete = true; awaitingUnderstanding = true; currentCheckpoint = "Did you understand the topic?"; livePaused = false; status = "Topic complete. Tell your teacher how it went."; return }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        // Normalize nullable API data before it enters UI state; optString may yield literal "null".
-        val rawCheckpoint = if (segment.isNull("checkpoint")) null else segment.optString("checkpoint")
-        currentCheckpoint = if ((index + 1) % 2 == 0 && !rawCheckpoint.isNullOrBlank()) normalizedCheckpoint(rawCheckpoint) else ""
+        // Teaching is one uninterrupted flow. Ignore legacy/provider checkpoint fields;
+        // understanding feedback is shown only after every planned segment has finished.
+        currentCheckpoint = ""
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
@@ -1616,12 +1616,9 @@ internal fun TutorScreen(
             status = "Your teacher is explaining this topic."
         }) {
             if (!liveLessonActive) return@speak
-            if (currentCheckpoint.isNotBlank()) {
-                awaitingUnderstanding = true
-                status = "Pause for understanding: continue when ready, or ask for a simpler explanation."
-            } else {
-                tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(index + 1) }, 1150L)
-            }
+            // Never interrupt the topic for a checkpoint. Move to the next segment;
+            // playLiveSegment marks the topic complete only after the final segment.
+            tutorMainHandler.postDelayed({ if (liveLessonActive) playLiveSegment(index + 1) }, 1150L)
         }
     }
 
@@ -2170,7 +2167,7 @@ internal fun TutorScreen(
                 if (liveLessonComplete) {
                     Text("You have finished this topic. Scroll up to review any explanation, or use Stop when you are ready to leave the lesson.", modifier = Modifier.fillMaxWidth().padding(top = 8.dp), color = TutorGrey, fontSize = 14.sp, lineHeight = 21.sp)
                 }
-                if (liveLessonActive && awaitingUnderstanding) {
+                if (liveLessonActive && awaitingUnderstanding && liveLessonComplete) {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, lineHeight = 26.sp)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

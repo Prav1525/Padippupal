@@ -616,3 +616,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Corrective action:** Add the required animation label and repeated-ones content to the fixture; keep the production assertion intact.
 - **Regression protection:** Rerun all helper tests, API fixture self-test, and full emulator workflow on the new exact SHA. Screenshot review is still required.
 - **Status:** Fixture corrected in `d545bcab06798d5f1700426267b1430f80927f82`; CI pending.
+
+
+### TE-049 — Completion-state regression fixture omitted required animation labels in executed revision
+
+- **Date discovered:** 2026-10-24
+- **Area:** UI helper regression tests.
+- **Symptom:** Android UI smoke run [40068847686](https://github.com/Prav1525/Padippupal/actions/runs/40068847686) passed the Android build and curriculum engine tests, then failed script validation: `test_feedback_is_allowed_only_after_topic_complete` called `assert_live` with a completion-state XML fixture that did not satisfy the live lesson's required “WATCH THE PATTERN” / repeated-ones animation assertions. Emulator launch was skipped, so no fresh emulator screenshot was produced.
+- **Root cause:** The fixture's purpose was to test feedback gating, but it was not a complete valid representation of the live UI contract. This made the helper test fail before it could validate the intended completion behavior.
+- **Corrective action:** Ensure the completion fixture includes both the passive animation label and the exact repeated-ones sequence; retain the separate negative test that rejects feedback before `TOPIC COMPLETE`.
+- **Regression protection:** Run the helper suite and API fixture self-test, then the full UI workflow on the resulting exact SHA. A successful helper run is not equivalent to emulator acceptance; screenshots from the same successful emulator run must still be inspected and displayed inline.
+- **Evidence:** Failed run [40068847686](https://github.com/Prav1525/Padippupal/actions/runs/40068847686); current fixture inspected in `.github/scripts/test_ui_smoke_helpers.py`.
+- **Status:** Failure documented; current branch fixture contains the required labels. A new exact-head workflow run is required to verify this correction.

@@ -401,8 +401,8 @@ def assert_topic_complete(path, screenshot_path):
     missing = [label for label in required if label not in lowered]
     if missing:
         raise SystemExit("Completed-topic screen is missing required lesson/completion UI: " + ", ".join(missing))
-    if "the all 1s pattern repeats the number 1" not in lowered:
-        raise SystemExit("Completed-topic transcript lost the original teaching explanation")
+    if "look at this sequence" not in lowered or "every term is one" not in lowered or "remember" not in lowered:
+        raise SystemExit("Completed-topic transcript lost one or more planned teaching segments")
     if not screenshot_path or not Path(screenshot_path).is_file():
         raise SystemExit("Completed-topic screenshot is required; accessibility XML alone is insufficient")
     try:

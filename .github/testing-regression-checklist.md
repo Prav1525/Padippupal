@@ -92,3 +92,13 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 - [ ] Smoke flow advances every understanding checkpoint until the real `TOPIC COMPLETE` state appears.
 - [ ] If a response tap does not leave the checkpoint, the harness retries only after a bounded grace period and still fails if completion never appears.
 - [ ] Capture and inspect `live-complete.png` from the exact tested SHA; do not accept a checkpoint screenshot as topic completion.
+
+### Screenshot evidence delivery — mandatory
+
+- [ ] After every emulator/UI test run, retrieve the screenshot artifact from that exact workflow run and exact tested commit SHA.
+- [ ] Open and visually inspect the actual image files; confirm the screen state and commit/run match the claim. A green CI result or accessibility tree alone is not screenshot verification.
+- [ ] **Show the actual screenshot image inline in the chat itself.** Download/extract the artifact, then embed/display the image in the response (not merely a GitHub artifact URL, sandbox link, filename, or markdown link that the user must open).
+- [ ] If the image cannot be retrieved or displayed, state that plainly and report the run as not visually verified; never invent a screenshot path or claim the image was inspected.
+- [ ] Include the tested commit SHA and identify what state each displayed screenshot proves (e.g. teaching in progress vs. topic complete). Use fresh images from the latest required run, not screenshots from an earlier commit.
+- [ ] For the tutor lesson, verify the full lesson progresses without any feedback/checkpoint prompt until all planned teaching segments finish. Feedback controls may appear only after the actual topic-complete state.
+

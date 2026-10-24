@@ -7,6 +7,10 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 3. **API against deployed service**: confirm CBSE Class 6 Mathematics outline returns 10 chapters, Chapter 1 is Patterns in Mathematics, and its topic list is non-empty. Keep API success separate from UI success.
 4. **Fast Android checks before emulator**: run Kotlin/JVM tests, assemble the debug APK, and compile/run smoke-test helper unit tests before allocating the emulator.
 5. **UI flow, not just screen presence**: verify profile -> tutor -> feedback action -> settings -> Mathematics -> Chapter 1 -> select a numbered concept -> lesson actually opens -> spoken caption visible -> highlight appears in captured frames.
+- [ ] At the understanding checkpoint, wait for checkpoint auto-scroll and inspect the captured screenshot; the full-width “I have a question” control must be completely visible above system navigation, not merely present in the accessibility tree.
+- [ ] Inspect the tutor header on the same final emulator screenshots: the live header must be a compact single-line concept title, Back/Pause/Resume/Stop remain visible and usable, and the header must not consume disproportionate viewport height.
+- [ ] Inspect the live-speaking and checkpoint screenshots for a compact lesson cluster with consistent spacing; reject `Arrangement.SpaceEvenly`-style large gaps between individual lesson elements.
+- [ ] The smoke journey must advance every distinct checkpoint and verify the completed-topic state before the UI run can pass.
 6. **Accessibility selector resilience**: Android XML may omit clickable/enabled flags for Compose rows. Select only visible numbered rows with valid non-zero bounds; prefer clickable nodes when present, but verify the tap by observing the next state. Never interpret a visible option as proof selection succeeded.
 7. **Failure diagnosis**: preserve XML/screenshots/logs; classify failure as app behavior, test harness, API/data, emulator/ADB, or timing. Fix the cause before rerun; do not simply loosen assertions or skip the failed step.
 8. **Bounded waits**: every emulator/ADB action has a timeout; detect emulator/ADB unavailability and fail with a diagnostic rather than waiting indefinitely.
@@ -35,8 +39,75 @@ Run this checklist for every tutor-screen change; do not mark the release green 
 **Acceptance criteria:**
 - Prompt and tap-to-pronounce affordance are absent from the tutor lesson UI; speech and inline highlight still work.
 - On the supported emulator viewport, the lesson content uses available space appropriately with no unexplained large blank region, clipping, overlap, or hidden controls.
+- In checkpoint state, the transcript content is balanced through the available viewport while the three feedback controls remain pinned below it and above system navigation; verify the actual screenshot rather than relying only on source assertions.
 - Only the active lesson segment is shown; no faded upcoming paragraph is visible.
 - Loading status is truthful and does not remain stuck while playback is active.
 - Back navigation, pause/stop, and student input remain functional.
 - Backend tests, JVM/helper tests, APK build, and relevant emulator regression tests pass; inspect screenshots and logs from the final run.
 - If any criterion fails, Phase 1 remains open. Do not start Phase 2 (speech/highlight synchronization) until Phase 1 is verified.
+
+## Mandatory pre-test mistake-prevention gate
+
+**Before every test run, read `docs/TESTING_ERRORS.md` and this checklist. Do not start testing until the known-failure checks relevant to the current change have been mapped to explicit tests or verification steps.** If a known mistake has no regression test or practical safeguard yet, add one before proceeding whenever feasible; otherwise document the blocker and do not claim the risk is covered.
+
+- [ ] Read the testing-error log and identify prior failures related to the files, behavior, test harness, APIs, emulator, or workflow being changed.
+- [ ] State the active objective, acceptance criteria, affected system layers, and exact commands/checks before running tests.
+- [ ] Trace the expected path end to end (data/source -> backend validation/API -> Android parsing/state -> playback/UI -> observable user outcome) where applicable.
+- [ ] For each prior failure that could recur, confirm a regression test or explicit preflight catches it; do not assume a test exists without locating it.
+- [ ] Keep tests meaningful: never delete, weaken, skip, or rewrite a valid failing assertion merely to obtain a green run. If a test expectation is wrong, prove that independently and document why.
+- [ ] When a test fails, preserve the failing assertion, logs/screenshots, commit SHA, and environment; classify the cause before editing.
+- [ ] Fix the root cause, add a regression test/safeguard, and rerun the failed test plus affected neighboring tests. Then rerun all required release-gate checks on the latest commit.
+- [ ] Check for interactions/regressions across backend, Android, CI scripts, and deployed API. A build passing is not proof that the user journey works.
+- [ ] Update `docs/TESTING_ERRORS.md` in the same workstream for every meaningful mistake/failure: symptom, root cause, why it escaped, corrective action, regression protection, affected commit/run, and current status.
+- [ ] Report each result accurately as **passed**, **failed**, **blocked**, or **not run**. Never say fixed/verified until the relevant rerun passes. Keep the PR unmerged while required checks or acceptance criteria fail.
+
+### Required test-run order
+
+1. Read this checklist and `docs/TESTING_ERRORS.md`.
+2. Inspect current branch/commit and relevant existing tests; identify the previous failure modes that apply.
+3. Define the fix and regression coverage before executing the test suite.
+4. Run the narrowest relevant test first; diagnose any failure before proceeding.
+5. Run neighboring/regression tests, then full required CI and end-to-end checks.
+6. Inspect actual outputs (logs, screenshots, UI state), confirm they correspond to the latest tested SHA, and update the error log.
+7. Only then provide a status report or consider release/merge readiness.
+
+
+### Tutor vertical-layout regression gate
+
+- [ ] Command bar is bounded to 48–52dp; Back/Pause/Resume/Stop remain usable and not clipped.
+- [ ] The lesson transcript scrolls independently and fills the flexible space; checkpoint controls are in-flow below it, pinned to the bottom of the tutor screen rather than inside the transcript scroll container.
+- [ ] Fresh screenshots from the exact tested SHA show all three checkpoint actions above system navigation with no large unused region beneath them.
+- [ ] Helper tests, JVM tests, APK build, and emulator flow pass after any layout change; inspect both live lesson and checkpoint screenshots before marking verified.
+
+
+### Setup-screen default-topic navigation regression
+
+- [ ] After selecting Chapter 1, inspect the accessibility snapshot and assert the expected default concept (`All 1s`) is selected.
+- [ ] Continue directly through Done -> Teach when that default is already selected; do not assume the topic picker must expose numbered rows.
+- [ ] Treat a missing/wrong default concept as an app failure; do not bypass the assertion to make UI smoke pass.
+
+
+### Multi-checkpoint topic-completion regression
+
+- [ ] Smoke flow advances every understanding checkpoint until the real `TOPIC COMPLETE` state appears.
+- [ ] If a response tap does not leave the checkpoint, the harness retries only after a bounded grace period and still fails if completion never appears.
+- [ ] Capture and inspect `live-complete.png` from the exact tested SHA; do not accept a checkpoint screenshot as topic completion.
+
+### Test-fixture wording and selector drift — mandatory\n\n- [ ] When a UI helper asserts visible lesson copy, trace the expected text to the current deterministic fixture and current UI behavior. Do not assert a phrase against the shell smoke script unless that phrase is actually part of the script.\n- [ ] If lesson copy changes, update the source fixture, end-to-end expectations, and helper assertions together; keep semantic coverage for all five planned segments and the true `TOPIC COMPLETE` gate.\n- [ ] Before accepting script validation, run `python3 .github/scripts/test_ui_smoke_helpers.py` and `python3 .github/scripts/tutor_smoke_api.py --self-test` on the exact commit; a successful APK build does not cover these checks.\n- [ ] When validation fails before emulator launch, record the exact assertion and root cause in `docs/TESTING_ERRORS.md`, fix it without deleting meaningful coverage, and rerun the full workflow.\n\n### Screenshot evidence delivery — mandatory
+
+- [ ] After every emulator/UI test run, retrieve the screenshot artifact from that exact workflow run and exact tested commit SHA.
+- [ ] Open and visually inspect the actual image files; confirm the screen state and commit/run match the claim. A green CI result or accessibility tree alone is not screenshot verification.
+- [ ] **Show the actual screenshot image inline in the chat itself.** Download/extract the artifact, then embed/display the image in the response (not merely a GitHub artifact URL, sandbox link, filename, or markdown link that the user must open).
+- [ ] If the image cannot be retrieved or displayed, state that plainly and report the run as not visually verified; never invent a screenshot path or claim the image was inspected.
+- [ ] Include the tested commit SHA and identify what state each displayed screenshot proves (e.g. teaching in progress vs. topic complete). Use fresh images from the latest required run, not screenshots from an earlier commit.
+- [ ] For the tutor lesson, verify the full lesson progresses without any feedback/checkpoint prompt until all planned teaching segments finish. Feedback controls may appear only after the actual topic-complete state.
+
+### Lesson completeness — mandatory acceptance
+
+- [ ] A lesson is not considered complete merely because the planner returned a valid JSON object or a source-grounded sentence.
+- [ ] For the All 1s pilot, require at least four substantive teaching segments covering the repeated sequence, why the value stays the same, contrast with a changing sequence, and a worked example or learner reflection.
+- [ ] Reject one-sentence textbook fallback for All 1s; show a clear recoverable error instead of marking the topic taught when a complete source-grounded lesson cannot be produced.
+- [ ] Approved and generated lesson plans must pass the same topic-relevance and completeness gates.
+- [ ] No intermediate feedback checkpoints: every teaching segment has no checkpoint; feedback appears only after the full topic is taught and marked complete.
+- [ ] Tests must cover short/incomplete lesson rejection, complete lesson acceptance, provider outage behavior, and the generic-topic compatibility path.
+

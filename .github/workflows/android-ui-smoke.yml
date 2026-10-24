@@ -35,10 +35,10 @@ jobs:
           gradle-version: "8.9"
 
       - name: Run fast JVM tests before emulator allocation
-        run: gradle --no-daemon testDebugUnitTest
+        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 testDebugUnitTest
 
       - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 assembleDebug
 
       - name: Install screenshot inspection dependency
         run: python3 -m pip install --user --disable-pip-version-check Pillow
@@ -46,8 +46,10 @@ jobs:
       - name: Validate smoke-test scripts
         run: |
           bash -n .github/scripts/android-ui-smoke.sh
-          python3 -m py_compile .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py
+          bash -n .github/scripts/android-tts-preflight.sh
+          python3 -m py_compile .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py
           python3 .github/scripts/test_ui_smoke_helpers.py
+          python3 .github/scripts/tutor_smoke_api.py --self-test
 
       - name: Enable KVM hardware acceleration for the emulator
         run: |
@@ -57,11 +59,30 @@ jobs:
           test -e /dev/kvm && ls -l /dev/kvm
           test -r /dev/kvm && test -w /dev/kvm
 
+      # Use a deterministic local API fixture rather than production Render.
+      # The emulator must test this PR's client behavior, not a separately deployed
+      # main-branch backend or mutable curriculum data.
+      - name: Start deterministic tutor smoke API
+        run: |
+          python3 .github/scripts/tutor_smoke_api.py --host 0.0.0.0 --port 8765 > /tmp/padippupal-smoke-api.log 2>&1 &
+          echo $! > /tmp/padippupal-smoke-api.pid
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error --max-time 2 http://127.0.0.1:8765/health -o /tmp/padippupal-health.json; then
+              cat /tmp/padippupal-health.json
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+
       - name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
           arch: x86_64
+          system-image: google_apis
           profile: pixel_2
           # Keep the guest memory modest so the emulator does not starve the hosted runner.
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
@@ -70,6 +91,10 @@ jobs:
           script: |
             echo "Checking emulator acceleration from the SDK provisioned by android-emulator-runner"
             "$ANDROID_HOME/emulator/emulator" -accel-check
+            # Install a checksum-verified, offline TTS engine from F-Droid's
+            # signed repository index. This works even when the emulator image
+            # ships with no TTS service and does not depend on Play Store sign-in.
+            bash .github/scripts/android-tts-preflight.sh
             bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Upload emulator screenshots, UI trees, and diagnostics
@@ -90,5 +115,9 @@ jobs:
             chapter-selected.xml
             ready-to-teach.xml
             live-lesson.xml
+            live-resumed.xml
+            live-checkpoint.xml
+            live-continued.xml
+            ui-screenshots/live-checkpoint.png
           if-no-files-found: warn
           retention-days: 14

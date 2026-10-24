@@ -34,29 +34,129 @@ def assert_tutor(path):
     expected_any = ("chapter", "math", "tutor", "lesson", "ask", "subject", "class", "english", "tamil", "topic")
     if not any(term in joined.lower() for term in expected_any):
         raise SystemExit("Tutor screen has no recognizable tutor/lesson/chapter labels")
-    feedback = ("How did that explanation feel?", "I understand", "Explain again", "Ask")
-    missing = [term for term in feedback if term.lower() not in joined.lower()]
+    labels = {text.strip().lower() for text in texts}
+    if "change" not in labels:
+        raise SystemExit("Tutor ready screen is missing the Change control for lesson selection")
+    if not any(label.strip().lstrip("▶").strip().lower() == "teach" for label in labels):
+        raise SystemExit("Tutor ready screen is missing the Teach action")
+    if any("set up your lesson" in text.lower() for text in texts):
+        raise SystemExit("Lesson setup must open only after the learner chooses Change")
+    source_path = Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt"
+    source = source_path.read_text(encoding="utf-8")
+    if "color=Color(0xFFEAF5EE)" in source and "InteractiveLessonLab" in source:
+        raise SystemExit("Concept lab still uses the detached pale-green panel styling")
+    print("PASS: concept lab does not use the detached pale-green panel styling")
+    print("PASS: tutor ready screen exposes Change and Teach without showing setup or starting a chat lesson")
+
+def assert_checkpoint(path, screenshot_path=None):
+    _, texts = load(path)
+    joined = "\n".join(texts).lower()
+    print("CHECKPOINT TEXT:", " | ".join(texts[:120]))
+    required = ("i understand", "explain again", "i have a question", "watch the pattern")
+    has_checkpoint_heading = "quick check" in joined or "let's check your understanding" in joined or "does that make sense so far?" in joined
+    missing = [label for label in required if label not in joined]
+    if not has_checkpoint_heading:
+        missing.append("understanding checkpoint heading/prompt")
     if missing:
-        raise SystemExit("Tutor feedback controls are missing: " + ", ".join(missing))
-    print("PASS: tutor screen and all three explanation-feedback controls are accessible")
+        raise SystemExit("Live lesson did not pause at the complete understanding checkpoint: " + ", ".join(missing))
+    prompt_index = max(joined.find("quick check"), joined.find("let's check your understanding"), joined.find("does that make sense so far?"))
+    prompt_and_actions = joined[prompt_index:prompt_index + 400] if prompt_index >= 0 else joined
+    if re.search(r"(^|\s)(null|undefined)(\s|$)", prompt_and_actions):
+        raise SystemExit("Understanding checkpoint rendered a null/undefined placeholder")
+    prompt_lines = [value.strip() for value in texts if value.strip().lower() not in required and value.strip().lower() != "quick check"]
+    if not any("?" in value and len(value) >= 8 for value in prompt_lines):
+        raise SystemExit("Understanding checkpoint has no human-readable question")
+    if not screenshot_path:
+        raise SystemExit("Checkpoint screenshot path is required; XML presence alone cannot prove the animation is visible")
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise SystemExit("Pillow is required to inspect checkpoint screenshot") from exc
+    image = Image.open(screenshot_path).convert("RGB")
+    width, height = image.size
+    # Repeated-one tiles use the production mint fill #CDE9E2. Exclude the top header
+    # and search only the teaching viewport so the LIVE badge cannot pass this check.
+    pixels = image.load()
+    x1, x2 = int(width * .08), int(width * .92)
+    y1, y2 = int(height * .18), int(height * .76)
+    tile_pixels = sum(1 for y in range(y1, y2) for x in range(x1, x2) if pixels[x, y] == (205, 233, 226))
+    print(f"Checkpoint repeated-ones tile pixels in teaching viewport: {tile_pixels}")
+    if tile_pixels < 350:
+        raise SystemExit("Checkpoint XML exists, but the repeated-ones animation is not visibly rendered in the teaching viewport")
+    print("PASS: checkpoint prompt, response choices, and visible repeated-ones animation are present")
+
+def assert_continued(path):
+    _, texts = load(path)
+    joined = "\n".join(texts).lower()
+    print("CONTINUED LESSON TEXT:", " | ".join(texts[:120]))
+    # No page counter is expected. Verify the next fixture sentence is appended
+    # while earlier teaching remains available in the same transcript.
+    required = ("now look at the sequence.", "the all 1s pattern repeats the number 1")
+    missing = [phrase for phrase in required if phrase not in joined]
+    if missing:
+        raise SystemExit("Continuous lesson did not retain prior teaching and append the next module: " + ", ".join(missing))
+    if re.search(r"\b\d+\s*/\s*\d+\b", joined) or re.search(r"segment\s+\d+\s+of\s+\d+", joined):
+        raise SystemExit("Page-style segment progress reappeared in the continuous lesson")
+    print("PASS: next teaching module appended to the same transcript; prior explanation retained; no page counter")
 
 def assert_feedback(path):
     _, texts = load(path)
     joined = "\n".join(texts)
     print("FEEDBACK TEXT:", " | ".join(texts[:100]))
-    if "great!" not in joined.lower():
-        raise SystemExit("Tapping I understand did not show supportive feedback")
-    print("PASS: I understand action shows supportive feedback")
+    if "thank you for your feedback" not in joined.lower():
+        raise SystemExit("Tapping I understand after topic completion did not acknowledge feedback")
+    print("PASS: post-completion I understand action acknowledges feedback")
 
 def assert_settings(path):
     nodes, texts = load(path)
     joined = "\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
     print("SETTINGS TEXT:", " | ".join(texts[:140]))
-    expected = ("Mathematics", "Choose chapter", "Choose concept", "Language", "English", "Tanglish", "Read replies aloud", "Prefer on-device voice")
+    if "set up your lesson" not in joined:
+        raise SystemExit("Change did not open the dedicated lesson-selection screen")
+    if "done" not in joined:
+        raise SystemExit("Lesson-selection screen has no Done action to return to the tutor")
+    # Done must remain in the visible, fixed footer even when the setup fields
+    # need scrolling; a label somewhere in off-screen content is not sufficient.
+    done_nodes = [n for n in nodes if n.attrib.get("text", "").strip().lower() == "done"]
+    if not done_nodes:
+        raise SystemExit("Lesson-selection Done action is not exposed as a visible accessibility node")
+    done_node = next((n for n in done_nodes if n.attrib.get("enabled") == "true"), done_nodes[0])
+    bounds = done_node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("Lesson-selection Done action has no visible screen bounds")
+    x1, y1, x2, y2 = map(int, match.groups())
+    if x2 <= x1 or y2 <= y1:
+        raise SystemExit("Lesson-selection Done action has zero-area bounds")
+    if done_node.attrib.get("enabled") == "false":
+        raise SystemExit("Lesson-selection Done action is disabled")
+    # Voice preferences live lower in the independently scrollable setup form.
+    # Validate the controls in a second accessibility dump after scrolling rather
+    # than falsely treating off-screen Compose children as missing.
+    expected = ("Mathematics", "Language", "English", "Tanglish")
     missing = [term for term in expected if term.lower() not in joined]
+    # When a saved session already has Chapter 1 selected, the control shows the
+    # selected chapter name rather than the empty-state "Choose chapter" prompt.
+    if "choose chapter" not in joined and "patterns in mathematics" not in joined:
+        missing.append("Choose chapter or selected chapter (Patterns in Mathematics)")
+    # The topic picker intentionally shows its selected database topic (for this
+    # smoke test, "All 1s") instead of the "Choose concept" placeholder. Accept
+    # either state, but never accept a settings screen with no topic selection.
+    if "choose concept" not in joined and "all 1s" not in joined:
+        missing.append("Choose concept or selected topic (All 1s)")
     if missing:
         raise SystemExit("Tutor settings are missing expected controls: " + ", ".join(missing))
-    print("PASS: subject, chapter/topic, language, and voice settings are accessible")
+    print("PASS: subject, chapter/topic, language, and fixed Done footer are accessible")
+
+def assert_voice_settings(path):
+    nodes, texts = load(path)
+    joined = "\\n".join(texts + [n.attrib.get("content-desc", "") for n in nodes]).lower()
+    print("SCROLLED SETTINGS TEXT:", " | ".join(texts[:140]))
+    expected = ("read replies aloud", "prefer on-device voice")
+    missing = [label for label in expected if label not in joined]
+    if missing:
+        raise SystemExit("Voice controls are missing after scrolling lesson setup: " + ", ".join(missing))
+    print("PASS: both voice preferences are reachable by scrolling the lesson setup")
 
 def assert_chapter_button(path):
     nodes, texts = load(path)
@@ -72,7 +172,7 @@ def assert_chapter_button(path):
 
 def assert_chapter_selected(path):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     print("SELECTED CHAPTER TEXT:", " | ".join(texts[:100]))
     if "patterns in mathematics" not in joined:
         raise SystemExit("Smoke test did not select Class 6 Mathematics Chapter 1: Patterns in Mathematics")
@@ -158,12 +258,37 @@ def assert_live(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
-    if "teacher is speaking" not in joined and "quick check" not in joined:
-        raise SystemExit("Live lesson did not reach the speaking/checkpoint UI")
-    # The inline caption is ordinary Text now; verify lesson words, not the removed prompt.
+    # A live snapshot is only valid while teaching or after full topic completion.
+    # Feedback/checkpoint labels before TOPIC COMPLETE are a product regression,
+    # not an alternate valid live-lesson state.
+    completed = "topic complete" in joined
+    checkpoint_labels = (
+        "quick check", "let's check your understanding",
+        "does that make sense so far?", "i understand",
+        "explain again", "i have a question",
+    )
+    premature = [label for label in checkpoint_labels if label in joined and not completed]
+    if premature:
+        raise SystemExit("Feedback/checkpoint appeared before TOPIC COMPLETE: " + ", ".join(premature))
+    has_lesson_state = any(label in joined for label in (
+        "your teacher is speaking", "your lesson", "topic complete",
+    ))
+    if not has_lesson_state:
+        raise SystemExit("Live lesson is missing its teaching or completed-topic state")
     lesson_words = ("one", "all 1s", "pattern", "number")
     if not any(term in joined for term in lesson_words):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
+    voice_failures = (
+        "no compatible english voice",
+        "this selected voice engine has no tamil voice",
+        "voice playback failed",
+        "voice playback did not start",
+        "voice engine could not initialize",
+        "speech engine did not finish starting",
+    )
+    failure = next((message for message in voice_failures if message in joined), None)
+    if failure:
+        raise SystemExit("Live lesson cannot speak on the selected voice engine: " + failure)
     if "tap any word to hear its pronunciation again." in joined:
         raise SystemExit("Removed pronunciation prompt has reappeared in the live lesson UI")
     visible_labels = {text.strip().lower() for text in texts}
@@ -171,13 +296,36 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
+    if "ask your teacher" in joined or "send question" in joined:
+        raise SystemExit("Chat composer is still visible during the dedicated live teaching experience")
     forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")
     found_activity = [label for label in forbidden_activity_labels if label in joined]
     if found_activity:
         raise SystemExit("Interactive activity UI reappeared in the teaching flow: " + ", ".join(found_activity))
     if "patterns in mathematics" in joined and "watch the pattern" not in joined:
         raise SystemExit("Class 6 Patterns in Mathematics live lesson is missing its passive auto-playing concept animation")
-    print("PASS: live lesson has inline teaching text, no interactive activity, and the pilot's passive pattern animation")
+    if "all 1s" in joined:
+        if "1, 1, 1, 1, 1" not in joined:
+            raise SystemExit("All 1s topic is not showing the matching repeated-ones animation")
+        if "square numbers grow" in joined or "1²" in joined or "+3" in joined:
+            raise SystemExit("All 1s topic is incorrectly showing square-number content")
+    print("PASS: live lesson has inline teaching text, no interactive activity, and concept-matched passive animation")
+
+def exact_color_mask(image, target):
+    """Return a fast Pillow mask for pixels exactly matching an RGB color."""
+    from PIL import Image, ImageChops
+    rgb = image.convert("RGB")
+    channels = rgb.split()
+    channel_masks = [
+        channel.point(lambda value, expected=expected: 255 if value == expected else 0)
+        for channel, expected in zip(channels, target)
+    ]
+    # Intersect channel masks so near-matches never count as exact target pixels.
+    return ImageChops.multiply(
+        ImageChops.multiply(channel_masks[0], channel_masks[1]),
+        channel_masks[2],
+    )
+
 
 def assert_highlight_frames(directory):
     try:
@@ -188,21 +336,23 @@ def assert_highlight_frames(directory):
     frames = sorted(root.glob("*.png"))
     if not frames:
         raise SystemExit("No live lesson frames were captured")
-    target = (216, 232, 183)  # WordByWordCaption highlight: #D8E8B7
+    target = (205, 233, 226)  # WordByWordCaption active-word highlight: #CDE9E2
     best_count = 0
     best_frame = ""
     centers = []
     for frame in frames:
         try:
             image = Image.open(frame).convert("RGB")
-            pixels = image.load()
-            coords = [(x, y) for y in range(image.height) for x in range(image.width) if pixels[x, y] == target]
-            count = len(coords)
+            mask = exact_color_mask(image, target)
+            count = mask.histogram()[255]
             if count > best_count:
                 best_count, best_frame = count, str(frame)
-            # The same lesson text must visibly move its highlight as speech progresses.
-            if count >= 12:
-                centers.append((sum(x for x, _ in coords) / count, sum(y for _, y in coords) / count))
+            # The highlight is a single word-sized region; its bounding-box center
+            # is sufficient to detect movement. Pillow computes the mask/bounds in
+            # optimized native code instead of scanning millions of pixels in Python.
+            bbox = mask.getbbox()
+            if count >= 12 and bbox:
+                centers.append(((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2))
         except Exception as exc:
             print("Skipping unreadable frame", frame, exc)
     distinct_centers = []
@@ -218,7 +368,7 @@ def assert_highlight_frames(directory):
 
 def assert_playback_state(path, expected):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     print("PLAYBACK STATE TEXT:", " | ".join(texts[:100]))
     required = ("stop", "resume") if expected == "paused" else ("stop", "pause")
     missing = [label for label in required if label not in joined]
@@ -234,19 +384,83 @@ def assert_live_layout(path):
         raise SystemExit("Pillow is required to inspect live lesson layout") from exc
     image = Image.open(path).convert("RGB")
     width, height = image.size
-    # The live teaching panel uses #EAF5EE. Check its central area near the
-    # bottom of the teaching viewport, above the fixed message composer.
-    x1, x2 = int(width * 0.15), int(width * 0.85)
-    y1, y2 = int(height * 0.58), int(height * 0.70)
-    count = 0
-    for y in range(y1, y2):
-        for x in range(x1, x2):
-            if image.getpixel((x, y)) == (234, 245, 238):
-                count += 1
-    print(f"Live panel lower-viewport background pixels: {count}")
-    if count < 500:
-        raise SystemExit("Live teaching panel does not fill the available vertical space; a large unused blank area remains below the lesson")
-    print("PASS: live teaching panel occupies the available teaching viewport")
+    # The tutor is intentionally a continuous canvas, not a large inset green card.
+    # The old card's exact pale-green fill (#EAF5EE) should no longer dominate the
+    # lower teaching viewport; small inline animation highlights remain acceptable.
+    x1, x2 = int(width * 0.10), int(width * 0.90)
+    y1, y2 = int(height * 0.48), int(height * 0.76)
+    region = image.crop((x1, y1, x2, y2))
+    count = exact_color_mask(region, (234, 245, 238)).histogram()[255]
+    area = max(1, region.width * region.height)
+    ratio = count / area
+    print(f"Separate-card background coverage in teaching viewport: {ratio:.1%}")
+    if ratio > 0.35:
+        raise SystemExit("A large pale-green lesson card still occupies the teaching viewport")
+    print("PASS: live lesson uses a continuous canvas without a dominant green card")
+
+
+
+def assert_topic_complete(path, screenshot_path):
+    _, texts = load(path)
+    joined = "\n".join(texts)
+    lowered = joined.lower()
+    print("COMPLETED TOPIC TEXT:", " | ".join(texts[:160]))
+    required = ("topic complete", "you have finished this topic", "stop")
+    missing = [label for label in required if label not in lowered]
+    if missing:
+        raise SystemExit("Completed-topic screen is missing required lesson/completion UI: " + ", ".join(missing))
+    if "look at this sequence" not in lowered or "every term is one" not in lowered or "remember" not in lowered:
+        raise SystemExit("Completed-topic transcript lost one or more planned teaching segments")
+    if not screenshot_path or not Path(screenshot_path).is_file():
+        raise SystemExit("Completed-topic screenshot is required; accessibility XML alone is insufficient")
+    try:
+        from PIL import Image, ImageStat
+    except ImportError as exc:
+        raise SystemExit("Pillow is required to inspect completed-topic screenshot") from exc
+    image = Image.open(screenshot_path).convert("RGB")
+    width, height = image.size
+    if width < 300 or height < 500:
+        raise SystemExit(f"Completed-topic screenshot has unexpected dimensions: {width}x{height}")
+    # Check visible information in both the upper teaching area and lower viewport.
+    # A completely blank lower half is a useful regression signal for the dead-zone bug.
+    upper = image.crop((0, int(height * .12), width, int(height * .55)))
+    lower = image.crop((0, int(height * .55), width, int(height * .92)))
+    upper_spread = max(ImageStat.Stat(upper).stddev)
+    lower_spread = max(ImageStat.Stat(lower).stddev)
+    print(f"Completed-topic screenshot {width}x{height}; upper visual spread={upper_spread:.1f}; lower visual spread={lower_spread:.1f}")
+    if upper_spread < 8 or lower_spread < 5:
+        raise SystemExit("Completed-topic screenshot appears visually empty or fails to show content through the lower viewport")
+    print("PASS: topic completion is visible, earlier teaching is retained, and screenshot content reaches the lower viewport")
+
+
+def exact_text_candidates(nodes, target):
+    """Return only nodes whose visible label equals the requested control label."""
+    normalized_target = target.strip().lower().lstrip("▶").strip()
+    return [
+        node for node in nodes
+        if node.attrib.get("text", "").strip().lower().lstrip("▶").strip() == normalized_target
+    ]
+
+
+def tap_exact(path, target):
+    """Tap an exact visible label, avoiding ambiguous substring matches like 'Teach'."""
+    nodes, texts = load(path)
+    candidates = exact_text_candidates(nodes, target)
+    if not candidates:
+        raise SystemExit(f"Could not find exact target {target!r}; visible labels: {' | '.join(texts[:100])}")
+    # Compose sometimes exposes a clickable parent and a non-clickable child with
+    # the same text. Prefer the clickable node; otherwise its bounds still identify
+    # the exact control without accidentally hitting a similarly named chat item.
+    node = next((n for n in candidates if n.attrib.get("clickable") == "true"), candidates[0])
+    bounds = node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit(f"Exact target {target!r} has invalid accessibility bounds: {bounds!r}")
+    x1, y1, x2, y2 = map(int, match.groups())
+    x, y = (x1 + x2) // 2, (y1 + y2) // 2
+    print(f"Tapping exact target {target!r} at ({x}, {y}), bounds={bounds}, clickable={node.attrib.get('clickable')}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+                   check=True, timeout=45)
 
 
 def tap(path, target):
@@ -277,14 +491,14 @@ def has_label(path, label):
 
 def assert_topic_selected(path):
     _, texts = load(path)
-    joined = "\\n".join(texts).lower()
+    joined = "\n".join(texts).lower()
     if "all 1s" not in joined and "patterns in mathematics" not in joined:
         raise SystemExit("No database-backed topic/chapter selection is visible: " + " | ".join(texts[:100]))
     print("PASS: a database-backed chapter/topic is already selected")
 
 def main():
     if len(sys.argv) < 3:
-        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
+        raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-checkpoint|assert-continued|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]
     if not Path(path).is_file():
         raise SystemExit("UI XML file does not exist: " + path)
@@ -292,10 +506,16 @@ def main():
         assert_home(path)
     elif action == "assert-tutor":
         assert_tutor(path)
+    elif action == "assert-continued":
+        assert_continued(path)
     elif action == "assert-feedback":
         assert_feedback(path)
+    elif action == "assert-checkpoint" and len(sys.argv) >= 4:
+        assert_checkpoint(path, sys.argv[3])
     elif action == "assert-settings":
         assert_settings(path)
+    elif action == "assert-voice-settings":
+        assert_voice_settings(path)
     elif action == "has-label" and len(sys.argv) >= 4:
         if not has_label(path, sys.argv[3]):
             raise SystemExit(1)
@@ -311,12 +531,16 @@ def main():
         tap_topic_picker(path)
     elif action == "tap-first-concept":
         tap_first_concept(path)
+    elif action == "tap-exact" and len(sys.argv) >= 4:
+        tap_exact(path, sys.argv[3])
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:
         assert_highlight_frames(sys.argv[3])
     elif action == "assert-live-layout":
         assert_live_layout(path)
+    elif action == "assert-topic-complete" and len(sys.argv) >= 4:
+        assert_topic_complete(path, sys.argv[3])
     elif action == "assert-playback-state" and len(sys.argv) >= 4:
         assert_playback_state(path, sys.argv[3])
     elif action == "tap" and len(sys.argv) >= 4:

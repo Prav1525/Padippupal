@@ -30,9 +30,9 @@ import java.util.concurrent.Executors
 
 private val examExecutor = Executors.newSingleThreadExecutor()
 private val examHandler = Handler(Looper.getMainLooper())
-private val examGreen = Color(0xFF24734B)
-private val examInk = Color(0xFF173D2A)
-private val examGrey = Color(0xFF718075)
+private val examGreen = Color(0xFF4169E1)
+private val examInk = Color(0xFF172033)
+private val examGrey = Color(0xFF64748B)
 
 private data class ExamChapter(val title: String, val count: Int)
 
@@ -189,7 +189,7 @@ internal fun ExamMasterScreen(
             contentPadding = PaddingValues(top = 6.dp, bottom = 18.dp)
         ) {
             item {
-                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFE5F5E9))) {
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF0FF))) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text("Two separate printable PDFs", color = examInk, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                         Text("1. Student paper with questions only\n2. Parent answer key with model answers, marking guidance and score sheet", color = examInk, fontSize = 13.sp, lineHeight = 19.sp)

@@ -72,8 +72,12 @@ fi
 # The normal app default is Tamil Nadu State Board, which has no matching CBSE-only
 # lesson records. Use an isolated CBSE profile so this test checks the supported
 # Patterns in Mathematics lesson rather than silently testing the wrong curriculum.
-log "Resetting smoke-test profile so every retry starts from the same settings"
+log "Resetting smoke-test profile and saved tutor session so every retry starts from a deterministic clean state"
 "${ADB[@]}" shell "run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml"
+# TutorScreen restores the selected subject/chapter/topic from a separate
+# same-day session file. Clearing only the profile leaves stale selections
+# behind, so later steps incorrectly expect the empty-state picker labels.
+"${ADB[@]}" shell "run-as com.padippupal.app rm -f shared_prefs/padippupal_tutor_sessions.xml"
 log "Configuring smoke-test profile: CBSE, Class 6, English"
 ${ADB[@]} shell "run-as com.padippupal.app sh -c 'mkdir -p shared_prefs && echo PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9InllcyIgPz48bWFwPjxzdHJpbmcgbmFtZT0iZ3JhZGUiPjY8L3N0cmluZz48c3RyaW5nIG5hbWU9ImJvYXJkIj5DQlNFPC9zdHJpbmc+PHN0cmluZyBuYW1lPSJtZWRpdW0iPkVuZ2xpc2g8L3N0cmluZz48c3RyaW5nIG5hbWU9Imxhbmd1YWdlIj5FbmdsaXNoPC9zdHJpbmc+PC9tYXA+ | base64 -d > shared_prefs/padippupal_profile.xml && test -s shared_prefs/padippupal_profile.xml'"
 "${ADB[@]}" shell am force-stop com.padippupal.app
@@ -121,21 +125,25 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/tutor.xml || {
 "${ADB[@]}" pull /data/local/tmp/tutor.xml tutor.xml
 python3 .github/scripts/ui_smoke.py assert-tutor tutor.xml | tee -a "$REPORT"
 
-log "Testing the I understand feedback action"
-python3 .github/scripts/ui_smoke.py tap tutor.xml "I understand"
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/feedback.xml
-"${ADB[@]}" pull /data/local/tmp/feedback.xml feedback.xml
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/feedback.png
-python3 .github/scripts/ui_smoke.py assert-feedback feedback.xml | tee -a "$REPORT"
-
 log "Testing tutor settings and voice controls"
-python3 .github/scripts/ui_smoke.py tap feedback.xml "Change"
+python3 .github/scripts/ui_smoke.py tap tutor.xml "Change"
 sleep 2
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
 "${ADB[@]}" pull /data/local/tmp/settings.xml settings.xml
 python3 .github/scripts/ui_smoke.py assert-settings settings.xml | tee -a "$REPORT"
+log "Scrolling lesson setup to verify lower voice preferences while Done stays fixed"
+"${ADB[@]}" shell input swipe 540 1450 540 650 450
+sleep 1
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/settings-scrolled.png
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings-scrolled.xml
+"${ADB[@]}" pull /data/local/tmp/settings-scrolled.xml settings-scrolled.xml
+python3 .github/scripts/ui_smoke.py assert-voice-settings settings-scrolled.xml | tee -a "$REPORT"
+# Return to the top so the subject picker is visible for the next step.
+"${ADB[@]}" shell input swipe 540 650 540 1450 450
+sleep 1
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings-top.xml
+"${ADB[@]}" pull /data/local/tmp/settings-top.xml settings-top.xml
 
 log "Loading the real Mathematics chapter list"
 python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
@@ -152,24 +160,60 @@ sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
 "${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
 python3 .github/scripts/ui_smoke.py assert-chapter-selected chapter-selected.xml | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap-topic-picker chapter-selected.xml
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
-"${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
-python3 .github/scripts/ui_smoke.py tap-first-concept concept-menu.xml
-sleep 2
-timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
-"${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml
-python3 .github/scripts/ui_smoke.py tap concept-selected.xml "Done"
+# Chapter selection auto-selects the first available concept (All 1s for this fixture).
+# Do not reopen the picker and require numbered labels when a single concept is
+# already selected; accessibility labels are not guaranteed to be numbered.
+if ! grep -Eqi 'All 1s' chapter-selected.xml; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: expected default concept All 1s was not selected after choosing the chapter"
+  cat chapter-selected.xml | tee -a "$REPORT"
+  exit 1
+fi
+log "Default concept All 1s is already selected; completing setup without reopening the picker"
+python3 .github/scripts/ui_smoke.py tap chapter-selected.xml "Done"
 sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
 "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
-python3 .github/scripts/ui_smoke.py tap ready-to-teach.xml "Teach"
+python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
-log "Recording live lesson frames to verify inline spoken-word highlighting"
+# Start frame capture immediately after Teach, not after the polling loop. The
+# lesson may already reach its checkpoint by the time UIAutomator observes it;
+# starting capture only then produces 35 identical checkpoint frames and falsely
+# reports that word highlighting never rendered. Capture across preparation and
+# playback so frames include the moving active word.
+log "Starting early live-lesson frame capture for playback/highlight evidence"
 "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
 "${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames
-"${ADB[@]}" shell 'i=0; while [ "$i" -lt 35 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done'
+("${ADB[@]}" shell 'i=0; while [ "$i" -lt 100 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done' > ui-screenshots/frame-capture.log 2>&1) &
+FRAME_CAPTURE_PID=$!
+
+log "Waiting for the lesson-plan API to return a real segment (up to 150s)"
+lesson_started=0
+for attempt in $(seq 1 50); do
+  timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
+  if [ -s live-lesson.xml ]; then
+    if grep -Eqi "YOUR TEACHER IS SPEAKING|YOUR LESSON|TOPIC COMPLETE|Quick check|check your understanding|does that make sense so far" live-lesson.xml; then
+      lesson_started=1
+      break
+    fi
+    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s" live-lesson.xml; then
+      FAILURE_CLASS="APP_FAILURE"
+      log "FAIL: tutor API returned an explicit lesson-start error"
+      cat live-lesson.xml | tee -a "$REPORT"
+      exit 1
+    fi
+  fi
+  sleep 3
+done
+if [ "$lesson_started" -ne 1 ]; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: tutor did not leave lesson preparation within 150 seconds"
+  [ ! -s live-lesson.xml ] || cat live-lesson.xml | tee -a "$REPORT"
+  exit 1
+fi
+log "Lesson UI detected; allowing early frame capture to finish so playback frames are included"
+wait "$FRAME_CAPTURE_PID"
 "${ADB[@]}" pull /data/local/tmp/padippupal-live-frames ui-screenshots/live-frames
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-lesson.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml
@@ -189,7 +233,47 @@ sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-resumed.xml
 "${ADB[@]}" pull /data/local/tmp/live-resumed.xml live-resumed.xml
 python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playing | tee -a "$REPORT"
-python3 .github/scripts/ui_smoke.py tap live-resumed.xml "Stop"
+
+log "Waiting for the complete five-segment lesson; feedback must not appear before TOPIC COMPLETE (up to 180s)"
+completed=0
+for attempt in $(seq 1 60); do
+  timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
+  "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
+  if [ -s live-complete.xml ]; then
+    if grep -Eqi "Quick check|check your understanding|does that make sense so far|LET'S CHECK YOUR UNDERSTANDING" live-complete.xml && ! grep -Eqi "TOPIC COMPLETE" live-complete.xml; then
+      FAILURE_CLASS="APP_FAILURE"
+      log "FAIL: feedback/checkpoint appeared before topic completion"
+      cat live-complete.xml | tee -a "$REPORT"
+      exit 1
+    fi
+    if grep -Eqi "No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-complete.xml; then
+      FAILURE_CLASS="APP_FAILURE"
+      log "FAIL: speech could not start; full lesson progression cannot be verified"
+      cat live-complete.xml | tee -a "$REPORT"
+      exit 1
+    fi
+    if grep -Eqi "TOPIC COMPLETE" live-complete.xml; then
+      completed=1
+      break
+    fi
+  fi
+  sleep 3
+done
+if [ "$completed" -ne 1 ]; then
+  FAILURE_CLASS="APP_FAILURE"
+  log "FAIL: complete topic did not finish within 180 seconds without an intermediate feedback prompt"
+  [ -s live-complete.xml ] && cat live-complete.xml | tee -a "$REPORT"
+  exit 1
+fi
+sleep 1
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/live-complete.png
+python3 .github/scripts/ui_smoke.py assert-topic-complete live-complete.xml ui-screenshots/live-complete.png | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-complete.xml "I understand"
+sleep 1
+timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-feedback.xml
+"${ADB[@]}" pull /data/local/tmp/live-feedback.xml live-feedback.xml
+python3 .github/scripts/ui_smoke.py assert-feedback live-feedback.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py tap live-feedback.xml "Stop"
 sleep 2
 
 log "Testing Android back navigation to Home"

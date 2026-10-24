@@ -1225,6 +1225,12 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
         # Fill only safe display defaults; never invent source citations or spoken content.
         if isinstance(item, dict):
             item = dict(item)
+            # Empty narration is not a playable teaching segment. Reject it so the
+            # endpoint's existing single retry can repair the model response instead
+            # of letting Android silently skip a step and jump past the checkpoint.
+            raw_spoken = item.get("spoken_text")
+            if not isinstance(raw_spoken, str) or not raw_spoken.strip():
+                raise HTTPException(status_code=502, detail=f"The lesson planner returned an empty spoken segment (segment {index}).")
             # Normalize presentation metadata that can safely default without changing
             # the lesson content. Never synthesize spoken text or textbook citations.
             raw_id = item.get("id")
@@ -1249,11 +1255,9 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
                 "target": visual_target[:100] if isinstance(visual_target, str) else "",
                 "value": visual_value[:160] if isinstance(visual_value, str) else "",
             }
-            raw_checkpoint = item.get("checkpoint")
-            if not isinstance(raw_checkpoint, str) or not raw_checkpoint.strip():
-                item["checkpoint"] = None
-            else:
-                item["checkpoint"] = raw_checkpoint[:240]
+            # Feedback is a post-topic action, never an interruption inside teaching.
+            # Ignore planner-supplied checkpoint text even if the model returns it.
+            item["checkpoint"] = None
         try:
             segment = LessonSegment.model_validate(item)
         except Exception as exc:
@@ -1414,10 +1418,124 @@ def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medi
 
 
 
+def _topic_passage_matches(topic: str, passage: str) -> bool:
+    """Return whether a retrieved textbook passage actually covers the selected topic."""
+    selected = normalize(topic).casefold()
+    text = normalize(passage).casefold()
+    if not selected:
+        return True
+
+    # This known pilot topic needs phrase-level matching: the word "all" alone
+    # is far too broad and allowed unrelated number-sequence passages through.
+    if selected in {"all 1s", "all ones", "all one's"}:
+        aliases = (
+            r"\ball\s+1s?\b",
+            r"\ball\s+ones?\b",
+            r"\brepeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?1\b",
+            r"\brepeat(?:s|ed|ing)?\s+ones?\b",
+            r"\b1\s*[,;]\s*1(?:\s*[,;]\s*1)*\b",
+            r"\bsame number\b",
+            r"\bstays? the same\b",
+        )
+        return any(re.search(pattern, text) for pattern in aliases)
+
+    ignored = {"a", "an", "the", "of", "in", "on", "and", "for", "to", "topic", "chapter", "concept"}
+    tokens = [token for token in re.findall(r"[a-z0-9]+", selected) if token not in ignored and len(token) > 1]
+    passage_tokens = set(re.findall(r"[a-z0-9]+", text))
+    return bool(tokens) and any(token in passage_tokens for token in tokens)
+
+
+def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> bool:
+    """Reject off-topic All 1s content while allowing supporting explanation steps."""
+    selected = normalize(topic).casefold()
+    if selected not in {"all 1s", "all ones", "all one's"}:
+        return True
+    if not segments:
+        return False
+
+    forbidden = (
+        r"count(?:ing)? numbers? up and then down",
+        r"square numbers?",
+        r"1\s*\+\s*2\s*\+\s*1\s*=\s*4",
+        r"1\s*²",
+        r"\+\s*3\b",
+    )
+    relevant = (
+        r"\ball\s+1s?\b",
+        r"\ball\s+ones?\b",
+        r"\brepeat(?:s|ed|ing)?\s+(?:the\s+)?(?:number\s+)?(?:1|one|ones)\b",
+        r"\b1\s*[,;]\s*1\b",
+        r"\bsame number\b",
+        r"\bstays? the same\b",
+        r"\bnumber\s+one\b",
+    )
+    # These describe the invariant in an All 1s pattern without requiring the
+    # lesson to repeat its label in every segment.
+    supporting = (
+        r"\bpattern\w*\b.{0,70}\brepeat\w*\b",
+        r"\bwithout\s+(?:increasing|decreasing)\b",
+        r"\b(?:does|do)\s+not\s+(?:increase|decrease|change)\b",
+        r"\b(?:doesn't|don't)\s+(?:increase|decrease|change)\b",
+        r"\b(?:stays?|remains?)\s+(?:constant|unchanged|the same)\b",
+        r"\bsame value\b",
+    )
+    # Only brief classroom transitions qualify as neutral; a generic paragraph
+    # cannot pass merely because it contains words such as "notice" or "try".
+    neutral = (
+        r"^(?:now\s+)?(?:let'?s\s+)?(?:look carefully at the sequence|look at the sequence|"
+        r"try the next step|think about it|your turn|take a moment|tell me what you notice|"
+        r"what do you notice\??|pause here)[.!?\s]*$",
+    )
+    has_relevant_speech = False
+    for segment in segments:
+        speech = " ".join(
+            str(segment.get(key, "")) for key in ("spoken_text", "caption_text")
+        ).strip().casefold()
+        visual = str(segment.get("visual_action", "")).casefold()
+        if any(re.search(pattern, speech + " " + visual) for pattern in forbidden):
+            return False
+        is_relevant = any(re.search(pattern, speech) for pattern in relevant)
+        is_supporting = any(re.search(pattern, speech) for pattern in supporting)
+        is_neutral = any(re.search(pattern, speech) for pattern in neutral)
+        if not (is_relevant or is_supporting or is_neutral):
+            return False
+        has_relevant_speech = has_relevant_speech or is_relevant
+
+    # Require both per-segment topicality and at least one explicit topic signal.
+    return has_relevant_speech
+
+
+def _lesson_meets_completeness_bar(topic: str, segments: list[dict[str, Any]]) -> bool:
+    """Reject skeletal lessons for the known All 1s pilot instead of calling them complete."""
+    selected = normalize(topic).casefold()
+    if selected not in {"all 1s", "all ones", "all one's"}:
+        return True
+    if len(segments) < 4:
+        return False
+    speech = " ".join(
+        str(segment.get("spoken_text", "")) + " " + str(segment.get("caption_text", ""))
+        for segment in segments
+    ).casefold()
+    coverage = (
+        # Identify/show the repeated sequence.
+        r"\b(?:1\s*[,;]\s*1|all\s+1s?|all\s+ones?)\b",
+        # Explain why the value is unchanged.
+        r"\b(?:same|stays?|remains?|unchanged|repeat)\w*\b",
+        # Contrast with a changing/growing pattern.
+        r"\b(?:unlike|compare|different|increas\w*|grow\w*|chang\w*|2\s*[,;]\s*3)\b",
+        # Include an example, learner reflection, or recap.
+        r"\b(?:example|try|notice|remember|recap|rule|because)\b",
+    )
+    return all(re.search(pattern, speech) for pattern in coverage)
+
+
 @app.post("/tutor/lesson-plan")
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
-    """Create short source-grounded lesson segments for synchronized playback."""
+    """Create a complete, source-grounded teaching sequence for synchronized playback; reject incomplete plans rather than presenting a fragment as a full lesson."""
     subject = infer_tutor_subject(payload.message, payload.subject)
+    is_all_ones = normalize(payload.topic).casefold() in {"all 1s", "all ones", "all one's"}
+    # Do not let a small caller-supplied limit make a complete pilot lesson impossible.
+    segment_limit = max(payload.max_segments, 4) if is_all_ones else payload.max_segments
 
     # Prefer the reviewed chapter sequence; this avoids regenerating a different
     # lesson on every visit. Only an exact curriculum profile/chapter is eligible.
@@ -1432,10 +1550,18 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                          AND LOWER(medium)=LOWER(?) ORDER BY updated_at DESC""",
                     (payload.board, payload.class_level, subject, payload.medium),
                 ).fetchall()
-            approved = next((dict(row) for row in rows
-                if normalize(str(row["chapter"])).casefold() == normalize(payload.chapter).casefold()
-                and (not payload.topic.strip() or not str(row["topic"] or "").strip()
-                     or normalize(str(row["topic"])).casefold() == normalize(payload.topic).casefold())), None)
+            approved = None
+            requested_chapter = normalize(payload.chapter).casefold()
+            requested_topic = normalize(payload.topic).casefold()
+            for row in rows:
+                if normalize(str(row["chapter"])).casefold() != requested_chapter:
+                    continue
+                stored_topic = normalize(str(row["topic"] or "")).casefold()
+                # A topic-specific request must never inherit a chapter-wide lesson.
+                if requested_topic and stored_topic != requested_topic:
+                    continue
+                approved = dict(row)
+                break
         except Exception:
             logger.exception("Approved chapter lesson lookup failed; using textbook retrieval fallback")
             approved = None
@@ -1448,7 +1574,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                           "table": "label", "diagram": "label", "none": "none"}
             segments = []
             for index, step in enumerate(lesson.get("teaching_sequence", [])):
-                if len(segments) >= payload.max_segments:
+                if len(segments) >= segment_limit:
                     break
                 if not isinstance(step, dict):
                     continue
@@ -1470,9 +1596,13 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "target": str(objects[0])[:100] if isinstance(objects, list) and objects else "",
                         "value": str(visual.get("actions") or visual.get("narration_sync") or "")[:160],
                     },
-                    "checkpoint": str(step.get("checkpoint"))[:240] if step.get("checkpoint") else None,
+                    # Approved lessons obey the same no-interruption teaching contract.
+                    "checkpoint": None,
                 })
-            if segments:
+            # Approval verifies source provenance, not that every step still matches
+            # the learner's selected topic. Treat stored lessons like generated lessons:
+            # validate the actual playable segments before returning them.
+            if segments and _lesson_segments_match_topic(payload.topic, segments) and _lesson_meets_completeness_bar(payload.topic, segments):
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",
@@ -1481,14 +1611,29 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "chapter_overview": lesson.get("overview", ""),
                         "learning_objectives": lesson.get("learning_objectives", []),
                         "chapter_title": lesson.get("chapter_title", approved["chapter"])}
+            if segments:
+                logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",
+                               payload.topic, approved["id"])
 
+    # Retrieval relevance must come from the selected curriculum target, not the
+    # student's long teacher-style instruction prompt. The prompt is for generation.
+    retrieval_query = " ".join(part for part in (payload.topic, payload.chapter) if part).strip()
+    if not retrieval_query:
+        retrieval_query = payload.message
     retrieved = retrieve(SearchRequest(board=payload.board, class_level=payload.class_level, subject=subject,
-        medium=payload.medium, query=" ".join(part for part in (payload.chapter, payload.topic, payload.message) if part),
-        chapter=payload.chapter or None, limit=5))
+        medium=payload.medium, query=retrieval_query,
+        chapter=payload.chapter or None, limit=10))
     matches = retrieved.get("matches", [])
+    if payload.topic.strip():
+        # Retrieval is chapter/profile-scoped, but can still return a neighbouring
+        # topic. Only give the model passages that actually mention the selected concept.
+        matches = [
+            item for item in matches
+            if _topic_passage_matches(payload.topic, str(item.get("text", "")))
+        ]
     if not matches:
         return {"lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
-                "warning": "No matching textbook passage was found; no lesson was generated."}
+                "warning": "No matching textbook passage was found for the selected topic; no lesson was generated."}
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Gemini tutor is not configured on the backend.")
@@ -1506,9 +1651,9 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     system_prompt = ("You are PadippuPal lesson planner for class " + str(payload.class_level) + ", subject " + subject + ", chapter " + (payload.chapter or "not selected") + ", topic " + (payload.topic or payload.message) + ", language " + payload.app_language + ".\n"
         + "Use ONLY retrieved PadippuPal database passages for factual claims. Return JSON only: {segments:[{id,spoken_text,caption_text,source_chunk_ids,visual_action:{type,target,value},checkpoint}]}. "
         + "Teach like a patient, kind primary-school teacher sitting beside one child. Use very simple everyday words, one idea at a time, and explain any new term before using it. "
-        + "Create at most " + str(payload.max_segments) + " short sequential spoken segments, usually one sentence and no more than 18 spoken words each. "
+        + "Create at least 4 and at most " + str(segment_limit) + " short sequential spoken segments, usually one sentence and no more than 18 spoken words each. For the All 1s topic, cover the sequence, why every term stays 1, a contrast with a changing sequence, and a worked example or learner reflection. Never return a skeletal lesson. "
         + "Use natural spoken punctuation: short sentences, commas for gentle breaths, and occasional ellipses only where a real pause helps. Avoid robotic lists, rushed phrasing, repeated filler, and exaggerated baby talk. "
-        + "After explaining a key idea or worked example, set checkpoint to a warm, short understanding question such as Does that make sense so far? or Would you like me to show that another way? Set checkpoint on at least every second segment, especially after examples. Do not put the checkpoint question inside spoken_text; the app will pause and ask it separately. "
+        + "Set checkpoint to null on every teaching segment. Do not interrupt teaching with a feedback question; the app must teach the complete topic first and ask for feedback only after the final topic-complete state. "
         + "When explaining an example, make visual_action point to the exact number, shape, or step being spoken about; reveal or compare one step at a time. "
         + "Each segment must cite exact chunk_id values shown in the passages. visual_action type must be one of highlight,reveal,move,compare,label,draw-line,show-result,none. Never return code or invent unsupported visuals. Use none if no matching visual is supported.")
     model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
@@ -1541,11 +1686,145 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             with urllib.request.urlopen(req, timeout=45) as response:
                 result = json.loads(response.read().decode("utf-8"))
             raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
-            validated = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
+            candidate = _validate_lesson_plan(raw, allowed_ids, segment_limit)
+            minimum_segments = min(4, segment_limit)
+            if len(candidate["segments"]) < minimum_segments:
+                if attempt == 0:
+                    logger.warning("Tutor lesson plan too short: got=%s required=%s topic=%s", len(candidate["segments"]), minimum_segments, payload.topic)
+                    retry_instruction += "\nThe previous plan was incomplete. Return at least " + str(minimum_segments) + " distinct, meaningful, source-grounded teaching segments covering introduction, explanation, worked example/application, and recap. Do not use filler or checkpoints."
+                    continue
+                logger.warning("Tutor lesson rejected as incomplete after retry: got=%s required=%s topic=%s", len(candidate["segments"]), minimum_segments, payload.topic)
+                return {"lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
+                        "warning": "The available textbook material could not support a complete lesson; no partial lesson was started."}
+            if not _lesson_segments_match_topic(payload.topic, candidate["segments"]) or not _lesson_meets_completeness_bar(payload.topic, candidate["segments"]):
+                if attempt == 0:
+                    logger.warning("Gemini lesson planner drifted from selected topic=%s; retrying once", payload.topic)
+                    retry_instruction += (
+                        "\nThe previous valid JSON was rejected because its teaching content or visual action "
+                        "did not match the selected topic '" + payload.topic + "'. Rewrite every segment for that topic only. "
+                        "For All 1s, return at least four substantive segments covering the repeated sequence, why every term stays 1, a contrast with a changing sequence, and a worked example or learner reflection. Set every checkpoint to null. Do not discuss counting up/down, square numbers, or "
+                        "the equation 1 + 2 + 1 = 4. Keep the same approved source chunk IDs."
+                    )
+                    continue
+                logger.warning("Gemini lesson planner remained off-topic after retry topic=%s; trying an exact matched-source excerpt", payload.topic)
+                # The model can ignore topic instructions even after a corrective retry.
+                # Do not fail a lesson when retrieval already found an exact-topic passage:
+                # extract a sentence from that passage and apply the same topic gate.
+                # This is not model-authored text and preserves the retrieved chunk IDs.
+                fallback_segment = None
+                fallback_source_ids: list[str] = []
+                for item in matches:
+                    excerpt = str(item.get("text", "")).strip()
+                    source_id = str(item.get("source", {}).get("chunk_id", ""))
+                    if not excerpt or not source_id:
+                        continue
+                    sentences = re.findall(r"[^.!?]+[.!?]?", excerpt)
+                    for sentence in sentences:
+                        spoken = normalize(sentence)
+                        if not spoken:
+                            continue
+                        candidate = {"spoken_text": spoken[:500], "caption_text": spoken[:500],
+                                     "visual_action": {"type": "none", "target": "", "value": ""}}
+                        if _lesson_segments_match_topic(payload.topic, [candidate]):
+                            fallback_segment = candidate
+                            fallback_source_ids = [source_id]
+                            break
+                    if fallback_segment:
+                        break
+                if fallback_segment and fallback_source_ids and _lesson_meets_completeness_bar(payload.topic, [fallback_segment]):
+                    return {
+                        "lesson_id": str(uuid.uuid4()),
+                        "segments": [{
+                            "id": "textbook-extract-1",
+                            "spoken_text": fallback_segment["spoken_text"],
+                            "caption_text": fallback_segment["caption_text"],
+                            "source_chunk_ids": fallback_source_ids,
+                            "visual_action": fallback_segment["visual_action"],
+                            "checkpoint": None,
+                        }],
+                        "grounded": True,
+                        "sources": [source for source in sources if source.get("chunk_id") in fallback_source_ids],
+                        "warning": "The generated lesson was off-topic; this segment is taken from the matched textbook passage.",
+                        "language": payload.app_language,
+                        "subject": subject,
+                        "provider": "textbook_extract_fallback",
+                        "model": "retrieved-textbook",
+                        "timing_mode": "segment",
+                        "word_timestamps_available": False,
+                    }
+                return {
+                    "lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
+                    "warning": "The generated explanation did not match the selected topic and no matching source sentence was safe to teach; no lesson was started.",
+                }
+            validated = candidate
             break
         except urllib.error.HTTPError as exc:
-            logger.warning("Gemini lesson planner rejected: status=%s model=%s", exc.code, model)
-            raise HTTPException(status_code=503 if exc.code == 429 else 502, detail="The lesson planner could not answer right now.") from exc
+            provider_detail = exc.read(1000).decode("utf-8", errors="replace")
+            logger.warning(
+                "Gemini lesson planner rejected: status=%s model=%s detail=%s",
+                exc.code, model, provider_detail[:240],
+            )
+            # Retry once for rate limits and server-side failures before
+            # degrading to the already-retrieved textbook source.
+            if attempt == 0 and (exc.code == 429 or exc.code >= 500):
+                logger.warning("Retrying transient Gemini lesson-planner failure status=%s", exc.code)
+                continue
+            # A live lesson must not be blocked by a provider-side generation
+            # failure when we already retrieved and topic-filtered approved
+            # textbook passages. Fall back to an exact source excerpt; never
+            # invent replacement teaching content or citations.
+            excerpt = next(
+                (str(item.get("text", "")).strip() for item in matches
+                 if str(item.get("text", "")).strip()),
+                "",
+            )
+            if excerpt:
+                sentence_match = re.search(r"[^.!?]+[.!?]?(?:\s|$)", excerpt)
+                spoken = sentence_match.group(0).strip() if sentence_match else excerpt
+                spoken = spoken[:500].rsplit(" ", 1)[0] if len(spoken) > 500 else spoken
+                source_ids = [
+                    str(item.get("source", {}).get("chunk_id", ""))
+                    for item in matches
+                    if str(item.get("source", {}).get("chunk_id", ""))
+                    and str(item.get("text", "")).strip() == excerpt
+                ]
+                fallback_segment = {
+                    "spoken_text": spoken,
+                    "caption_text": spoken,
+                    "visual_action": {"type": "none", "target": "", "value": ""},
+                }
+                # Provider-error fallback is still a teaching path: it must pass
+                # exactly the same topic gate as generated and approved lessons.
+                fallback_matches_topic = _lesson_segments_match_topic(payload.topic, [fallback_segment])
+                if spoken and source_ids and fallback_matches_topic and _lesson_meets_completeness_bar(payload.topic, [fallback_segment]):
+                    logger.warning(
+                        "Starting source-extract lesson fallback after Gemini failure status=%s topic=%s",
+                        exc.code, payload.topic,
+                    )
+                    return {
+                        "lesson_id": str(uuid.uuid4()),
+                        "segments": [{
+                            "id": "textbook-extract-1",
+                            "spoken_text": spoken,
+                            "caption_text": spoken,
+                            "source_chunk_ids": source_ids[:5],
+                            "visual_action": {"type": "none", "target": "", "value": ""},
+                            "checkpoint": None,
+                        }],
+                        "grounded": True,
+                        "sources": sources,
+                        "warning": "Gemini lesson generation was unavailable; this segment is quoted from the matched textbook passage.",
+                        "language": payload.app_language,
+                        "subject": subject,
+                        "provider": "textbook_extract_fallback",
+                        "model": "retrieved-textbook",
+                        "timing_mode": "segment",
+                        "word_timestamps_available": False,
+                    }
+            raise HTTPException(
+                status_code=503 if exc.code in (429, 503) else 502,
+                detail="The lesson planner could not answer right now and no safe textbook fallback was available.",
+            ) from exc
         except HTTPException as exc:
             if attempt == 0 and exc.status_code == 502:
                 logger.warning("Gemini lesson planner output validation failed; retrying once detail=%s", exc.detail[:180])
@@ -1562,6 +1841,12 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             raise HTTPException(status_code=502, detail="The lesson planner returned an invalid response.") from exc
     if validated is None:
         raise HTTPException(status_code=502, detail="The lesson planner could not produce a valid grounded lesson.")
+    if not _lesson_segments_match_topic(payload.topic, validated["segments"]) or not _lesson_meets_completeness_bar(payload.topic, validated["segments"]):
+        logger.warning("Tutor lesson rejected: generated segments do not match selected topic=%s", payload.topic)
+        return {
+            "lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],
+            "warning": "The generated explanation did not match the selected topic; no lesson was started.",
+        }
     return {"lesson_id": str(uuid.uuid4()), "segments": validated["segments"], "grounded": True, "sources": sources,
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False}
@@ -2063,14 +2348,24 @@ def _sarvam_tutor_speech(speech_text: str, language: str) -> dict[str, Any] | No
 
 @app.get("/health/voice")
 def voice_health() -> dict[str, Any]:
-    """Report voice provider status without exposing credentials."""
+    """Report the real provider order without exposing credentials."""
     gemini_configured = bool(os.getenv("GEMINI_API_KEY", "").strip())
     sarvam_configured = bool(os.getenv("SARVAM_API_KEY", "").strip())
+    primary = "sarvam" if sarvam_configured else "gemini" if gemini_configured else "android-tts"
+    model = (
+        os.getenv("PADIPPUPAL_SARVAM_TTS_MODEL", "bulbul:v3").strip()
+        if primary == "sarvam"
+        else os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
+        if primary == "gemini"
+        else "system-default"
+    )
+    fallback = "gemini" if primary == "sarvam" and gemini_configured else "android-tts"
     return {
-        "provider": "gemini",
+        "provider": primary,
         "configured": gemini_configured or sarvam_configured,
-        "model": os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip(),
-        "fallback": "sarvam" if sarvam_configured else "android-tts",
+        "model": model,
+        "fallback": fallback,
+        "fallback_chain": ["sarvam", "gemini", "android-tts"],
         "gemini_configured": gemini_configured,
         "sarvam_configured": sarvam_configured,
     }
@@ -2125,15 +2420,17 @@ def _align_tutor_audio_words(audio_bytes: bytes, language: str) -> list[dict[str
 
 @app.post("/tutor/speech")
 def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
-    """Try Gemini first, then Sarvam, leaving Android TTS as the app's final fallback."""
+    """Prefer Gemini narration, fall back to Sarvam, then Android TTS."""
     request_started = time.monotonic()
     language = payload.app_language.strip()
     speech_text = _clean_tutor_speech_text(payload.text)
     if not speech_text:
         raise HTTPException(status_code=422, detail="There is no text to speak.")
 
+    # Gemini is the primary PadippuPal teacher voice; Sarvam is a cloud fallback.
+    # Android TTS remains the final device fallback if both cloud providers fail.
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
+    model = os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-3.8-flash-lite-tts").strip()
     gemini_error: str | None = None
 
     if api_key:
@@ -2221,13 +2518,13 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
         gemini_error = "not_configured"
         logger.info("Gemini TTS is not configured; trying Sarvam fallback")
 
-    fallback = _sarvam_tutor_speech(speech_text, language)
-    if fallback:
-        fallback["fallback_reason"] = gemini_error
-        fallback["elapsed_ms"] = int((time.monotonic() - request_started) * 1000)
-        return fallback
+    sarvam_result = _sarvam_tutor_speech(speech_text, language)
+    if sarvam_result:
+        sarvam_result["elapsed_ms"] = int((time.monotonic() - request_started) * 1000)
+        logger.info("Tutor speech selected fallback provider=sarvam elapsed_ms=%d", sarvam_result["elapsed_ms"])
+        return sarvam_result
 
-    logger.warning("All cloud TTS providers unavailable; app should use Android TTS")
+    logger.warning("Gemini and Sarvam cloud TTS unavailable; app should use Android TTS")
     if not api_key and not os.getenv("SARVAM_API_KEY", "").strip():
         raise HTTPException(status_code=503, detail="Natural voice is not configured yet.")
     raise HTTPException(

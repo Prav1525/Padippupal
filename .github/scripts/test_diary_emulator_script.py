@@ -43,7 +43,10 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("Record test outcomes and failure diagnostics", workflow)
         self.assertIn("test-failure-report.md", workflow)
         self.assertIn("padippupal-emulator-ui", workflow)
-        self.assertIn("Inspect this run's step logs and the padippupal-emulator-ui artifact.", workflow)
+        report_script = ROOT / ".github" / "scripts" / "write_test_failure_report.py"
+        report_source = report_script.read_text(encoding="utf-8")
+        self.assertIn("Inspect this run's step logs and the padippupal-emulator-ui artifact.", report_source)
+        self.assertIn("write_test_failure_report.py", workflow)
 
 
 

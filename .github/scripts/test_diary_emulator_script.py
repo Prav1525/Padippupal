@@ -66,7 +66,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch.object(sys, "argv", ["ui_smoke.py", "tap-file", str(path), "PadippuPal-diary-test.jpg"]):
                 with mock.patch("ui_smoke.subprocess.run") as run:
                     ui_smoke.main()
-                    self.assertEqual(run.call_count, 2)
+                    self.assertEqual(run.call_count, 1)
                     for call in run.call_args_list:
                         self.assertEqual(call.args[0][-2:], ["185", "140"])
 
@@ -82,9 +82,30 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 args = run.call_args.args[0]
                 self.assertEqual(args[-2:], ["185", "140"])
-                self.assertEqual(run.call_count, 2)
+                self.assertEqual(run.call_count, 1)
                 for call in run.call_args_list:
                     self.assertEqual(call.args[0][-2:], ["185", "140"])
+
+    def test_file_selector_never_blindly_double_taps(self):
+        source = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")
+        start = source.index("def tap_file(")
+        end = source.index("\\ndef _contains_bounds", start)
+        selector = source[start:end]
+        self.assertIn("One deliberate tap only", selector)
+        self.assertNotIn("repeat only at the filename text", selector)
+        self.assertEqual(selector.count("subprocess.run(adb, check=True, timeout=45)"), 1)
+
+    def test_missing_filename_fails_safely_without_tapping_preview(self):
+        xml = """<hierarchy>
+          <node text="" content-desc="Preview the file other.jpg" clickable="true" bounds="[240,100][300,160]" />
+        </hierarchy>"""
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "list.xml"
+            path.write_text(xml, encoding="utf-8")
+            with mock.patch("ui_smoke.subprocess.run") as run:
+                with self.assertRaises(SystemExit):
+                    tap_file(str(path), "PadippuPal-diary-test.jpg")
+                run.assert_not_called()
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")

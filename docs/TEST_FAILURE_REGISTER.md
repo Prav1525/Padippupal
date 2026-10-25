@@ -51,3 +51,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** Inspecting `picker-selection-stuck.png` shows the thumbnail centered near (80,630), while the filename TextView bounds are [189,685][660,742]. The test derived y=713 from the filename bounds and tapped blank space below the thumbnail. This explains why the earlier "thumbnail" fix did not select the file.
 - **Fix:** Commit `92bdd6c3d48559ad7a94fbaac0c8ac94f4fdd2f0` changes the tap y-coordinate to filename top minus 55 pixels (and x to filename left minus 109 pixels), matching the observed thumbnail center. Commit `ff5b55efe49951daa03ea5fc080687ccd6efe4c5` updates the regression test to require these coordinates.
 - **Validation:** Fresh emulator CI pending. The coordinate fix is evidence-based but not yet proven end-to-end; do not merge PR #21 unless the picker returns to PadippuPal and crop, rescan, and planner-save assertions all pass.
+
+
+## Incident: picker tap remained above the file row
+
+- **Symptom:** Emulator run `40155882991` passed JVM tests, APK build, and smoke-script validation, but the picker remained open after two taps at `(80,630)`.
+- **Root cause from the uploaded UI hierarchy:** The fixture row bounds are `[0,641][1080,830]`; its thumbnail ImageView bounds are `[42,683][147,788]`. The test tapped at y=630, which is **above the row**, not on the thumbnail. The earlier coordinate calculation was wrong; prior claims that this coordinate matched the thumbnail were incorrect.
+- **Fix:** Commit `1217e5c9745ded072f6367089638ef730468093d` parses the actual `com.android.documentsui:id/icon_thumb` node and taps the center of its live bounds for both the initial and fallback attempt, rather than deriving coordinates from the filename label.
+- **Regression prevention:** Commit `bfdbba55e11a06edbd9ed184e540c4673e3506e0` updates the static regression test to require thumbnail-node lookup and center-of-bounds coordinates.
+- **Validation:** Pending a fresh CI run. This corrects the proven coordinate error, but is not considered resolved until emulator CI selects the image and passes crop, rescan, review, and planner-save assertions. Do not merge PR #21 before that full pass.

@@ -7,7 +7,7 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Symptom:** The diary crop-and-rescan test stopped after tapping the Downloads row. ADB exited with status 127.
 - **Root cause:** The command list already contained `shell`, then appended a second `shell` before `uiautomator dump`.
 - **Fix:** Commit `3dde5052105d82c1c54fa5968d6c495baef62b54` removes the duplicate argument.
-- **Regression prevention:** Add a pre-emulator script contract test that checks the ADB command shape; run it with shell syntax checks and unit tests before allocating an emulator.
+- **Regression prevention:** Added `.github/scripts/test_diary_emulator_script.py`, which checks the ADB command shape and the dump/pull/parse order before emulator allocation. It also verifies the workflow preserves failure reports.
 - **Acceptance still required:** A fresh emulator run must select the fixture, crop it, rescan through the deterministic API, save both expected tasks, and verify the planner excludes tasks from other dates.
 
 ## Required incident-closing checklist

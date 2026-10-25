@@ -135,6 +135,7 @@ else:
  x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
  tap(x,y); time.sleep(.2); tap(x,y)
 time.sleep(1)
+PY
 sleep 1
 dump_ui diary-picker-row-selected
 # Give DocumentsUI time to return the selected content URI to PadippuPal.

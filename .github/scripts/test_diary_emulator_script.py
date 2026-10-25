@@ -13,7 +13,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
         self.assertIn('resource-id") != "com.android.documentsui:id/item_root"', source)
-        self.assertIn('row body rather than the far-right preview button', source)
+        self.assertIn('filename/body region rather than the far-right preview button', source)
         self.assertIn('Tap DocumentsUI item row body at', source)
         self.assertIn('subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
         self.assertIn('package="com.padippupal.app"', source)

@@ -464,44 +464,36 @@ def tap_exact(path, target):
 
 
 def tap_file(path, filename):
-    """Open the file using a real DocumentsUI control.
+    """Open a named file through the DocumentsUI list item, never its preview button.
 
-    On the emulator's DocumentsUI, the filename, thumbnail, and row container
-    are all non-clickable. The only exposed clickable control for the file is
-    its dedicated preview affordance. Tap that control, then let the caller
-    inspect the resulting UI and activate any explicit Open/Select confirmation.
+    On the CI AOSP picker, the filename TextView and item container report
+    clickable=false even though the list item responds to a double-tap. The
+    preview_icon is a separate expand/preview affordance and does not return a
+    selected URI to the calling app.
     """
     nodes, texts = load(path)
     target = filename.strip().lower()
-    target_node = next((n for n in nodes
-                        if n.attrib.get("text", "").strip().lower() == target), None)
-    if target_node is None:
+    row = next((n for n in nodes
+                if n.attrib.get("text", "").strip().lower() == target), None)
+    if row is None:
         observed = [f"text={n.attrib.get('text','')!r}, desc={n.attrib.get('content-desc','')!r}, bounds={n.attrib.get('bounds','')}"
                     for n in nodes if filename.lower() in (n.attrib.get("text","") + " " + n.attrib.get("content-desc","")).lower()]
         raise SystemExit("No filename row target for " + repr(filename) +
                          "; matching nodes: " + (" | ".join(observed) if observed else "none") +
                          "; visible labels: " + " | ".join(texts[:80]))
-
-    # Prefer a clickable filename row when available; CI DocumentsUI exposes only preview_icon.
-    row = next((n for n in nodes
-                if n.attrib.get("text", "").strip().lower() == target
-                and n.attrib.get("clickable") == "true"
-                and n.attrib.get("enabled") != "false"), None)
-    control = row or next((n for n in nodes
-                           if n.attrib.get("resource-id", "").rsplit("/", 1)[-1] == "preview_icon"
-                           and filename.lower() in n.attrib.get("content-desc", "").lower()
-                           and n.attrib.get("clickable") == "true"
-                           and n.attrib.get("enabled") == "true"), None)
-    if control is None:
-        raise SystemExit("DocumentsUI exposes no enabled clickable filename row or preview/open control for " + repr(filename))
-    bounds = control.attrib.get("bounds", "")
-    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    bounds = row.attrib.get("bounds", "")
+    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
     if not match:
-        raise SystemExit("Preview control has invalid bounds for " + repr(filename) + ": " + bounds)
+        raise SystemExit("Filename row has invalid bounds for " + repr(filename) + ": " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
+    if x2 <= x1 or y2 <= y1:
+        raise SystemExit("Filename row has zero-area bounds for " + repr(filename) + ": " + bounds)
     x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    print(f"Opening real DocumentsUI file control for {filename!r} at ({x},{y}); bounds={bounds}")
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+    print(f"Double-tapping DocumentsUI filename row for {filename!r} at ({x},{y}); bounds={bounds}; accessibility-clickable={row.attrib.get('clickable')}")
+    # AOSP DocumentsUI opens a file on double-tap; the preview affordance at
+    # the right edge only previews it and leaves the picker active.
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "sh", "-c",
+                    f"input tap {x} {y}; sleep 0.15; input tap {x} {y}"],
                    check=True, timeout=45)
 
 def _contains_bounds(outer, inner):

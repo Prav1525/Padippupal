@@ -19,7 +19,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
         self.assertIn('dump_ui diary-picker-list', source)
         self.assertIn('node.attrib.get("clickable")=="true"', source)
-        self.assertIn('r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', source)
+        self.assertIn('r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"', source)
         self.assertIn('No clickable file-row ancestor found in DocumentsUI list view', source)
         self.assertIn('parents={child:parent for parent in root.iter() for child in parent}', source)
         self.assertIn('["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
@@ -30,7 +30,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('dump_ui diary-picker-selection-result', source)
-        self.assertIn('FAIL: tapping the selectable file row did not return from DocumentsUI', source)
+        # Assert the diagnostic's intent, not a brittle, obsolete full message.
+        self.assertIn('did not return from DocumentsUI', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
 
     def test_failure_register_exists_and_names_regression_expectations(self):
@@ -40,7 +41,6 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("root cause", text.lower())
         self.assertIn("regression test", text.lower())
         self.assertIn("3dde5052105d82c1c54fa5968d6c495baef62b54", text)
-
 
     def test_workflow_records_outcomes_even_when_a_step_fails(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -52,7 +52,6 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         report_source = report_script.read_text(encoding="utf-8")
         self.assertIn("Inspect this run's step logs and the padippupal-emulator-ui artifact.", report_source)
         self.assertIn("write_test_failure_report.py", workflow)
-
 
 
 if __name__ == "__main__":

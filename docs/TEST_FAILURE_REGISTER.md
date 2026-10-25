@@ -154,3 +154,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** PR #24, commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa`, also corrects indentation in `.github/scripts/ui_smoke.py` settings-bounds validation.
 - **Regression prevention:** Unit tests require one tap, thumbnail fallback when filename/row are not clickable, and safe failure when the fixture filename is absent. End-to-end acceptance must prove picker return, crop editor, rescan, date-correct review, and planner save.
 - **Validation:** CI on commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa` is running; keep PR #24 unmerged until Android UI smoke passes.
+
+
+## Incident: DocumentsUI tap sequence was not sent as one remote shell command
+
+- **Symptom:** Emulator run [40195732651](https://github.com/Prav1525/Padippupal/actions/runs/40195732651) passed JVM tests, APK build, and script validation but remained on Downloads after the filename-row double-tap. The captured screenshot and UI tree showed the fixture row unchanged and no selection confirmation.
+- **Root cause:** `.github/scripts/ui_smoke.py` invoked `adb shell sh -c` while passing the compound tap sequence as a separate argument. The ADB shell command was therefore subject to another layer of shell parsing; the regression test asserted the constructed string but did not verify the remote-shell invocation shape.
+- **Fix:** Send the full tap/sleep/tap sequence as one command argument directly to `adb shell`, and use a 350 ms gap so the two taps are distinct but remain within typical double-tap timing.
+- **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` asserts the exact ADB argument vector and rejects the broken `shell sh -c` form. The emulator acceptance test must still prove return to PadippuPal and complete crop, rescan, date review, and planner-save flow.
+- **Validation:** Local script regression tests and a fresh emulator workflow are required. This change is not considered verified until the emulator flow passes; do not merge PR #24 before then.

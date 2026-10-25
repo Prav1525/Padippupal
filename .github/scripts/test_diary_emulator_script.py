@@ -9,47 +9,28 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_hierarchy_dump_is_pulled_before_parsing(self):
+    def test_picker_uses_real_thumbnail_tap_not_long_press_select_guess(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        # The picker switches to list mode inside an embedded Python helper,
-        # which dumps and pulls the hierarchy directly rather than using dump_ui.
         self.assertIn('shell content insert --uri content://media/external/images/media', source)
         self.assertIn('content query --uri content://media/external/images/media', source)
-        self.assertIn('fixture exists in shared storage but is not indexed in MediaStore', source)
-        # The legacy images/media endpoint rejects modern display_name and
-        # relative_path insert columns; verify by querying rows, not a quoted
-        # selection expression that Android's content CLI tokenizes incorrectly.
+        self.assertIn('--projection _id:_display_name:_data | grep -Fq "PadippuPal-diary-test.jpg"', source)
         self.assertNotIn('--bind display_name:s:', source)
         self.assertNotIn('--bind relative_path:s:', source)
-        self.assertNotIn('--where "_display_name=', source)
-        self.assertIn('--projection _id:_display_name:_data | grep -Fq "PadippuPal-diary-test.jpg"', source)
-        self.assertIn('subprocess.run(adb+["uiautomator","dump",remote]', source)
-        self.assertIn('subprocess.run(["adb","-s","emulator-5554","pull",remote,local]', source)
-        self.assertIn('dump("/data/local/tmp/diary-picker-list.xml","ui-screenshots/diary-test/diary-picker-list.xml")', source)
-        dump = source.index('dump("/data/local/tmp/diary-picker-list.xml"')
-        parse = source.index('path="ui-screenshots/diary-test/diary-picker-list.xml"; ns=nodes(path)')
-        self.assertLess(dump, parse)
-
-    def test_picker_selects_fixture_and_uses_observed_select_action(self):
-        source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('"padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()', source)
         self.assertIn('r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"', source)
-        self.assertIn('print(f"Long-press filename to enter selection mode', source)
-        self.assertIn('["input","swipe",str(x),str(y),str(x),str(y),"1100"]', source)
-        self.assertIn('dump("/data/local/tmp/diary-picker-selection-mode.xml"', source)
-        self.assertIn('label in ("select","open","use","choose","select file")', source)
-        self.assertIn('if not actions: raise SystemExit("No visible Select action', source)
-        self.assertIn('Tap observed DocumentsUI action', source)
-        self.assertNotIn("Preview the file PadippuPal-diary-test.jpg", source)
-        self.assertNotIn("Diary filename disappeared after preview", source)
+        self.assertIn('endswith(":id/thumbnail")', source)
+        self.assertIn('Tap fixture thumbnail at', source)
+        self.assertIn('["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
+        self.assertIn('if ! grep -q \'package="com.android.documentsui"\'', source)
+        self.assertNotIn('Long-press filename to enter selection mode', source)
+        self.assertNotIn('No visible Select action after long-press', source)
+        self.assertNotIn('Tap observed DocumentsUI action', source)
 
-    def test_picker_dump_is_pulled_before_it_is_parsed(self):
+    def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        dump = source.index('dump("/data/local/tmp/diary-picker-list.xml"')
-        parse = source.index('path="ui-screenshots/diary-test/diary-picker-list.xml"; ns=nodes(path)')
-        self.assertLess(dump, parse)
-        self.assertIn('ns=nodes(path)', source[parse:])
-        self.assertIn('def nodes(path): return list(ET.parse(path).getroot().iter("node"))', source[:parse])
+        self.assertIn('dump_ui diary-picker-selection-result', source)
+        self.assertIn('FAIL: tapping the fixture thumbnail did not return from DocumentsUI', source)
+        self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
 
     def test_failure_register_exists_and_names_regression_expectations(self):
         register = ROOT / "docs" / "TEST_FAILURE_REGISTER.md"

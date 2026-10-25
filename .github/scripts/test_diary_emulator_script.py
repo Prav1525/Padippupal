@@ -21,7 +21,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"', source)
         self.assertIn('n.attrib.get("resource-id")=="com.android.documentsui:id/item_root"', source)
         self.assertIn("Tap file-row content", source)
-        self.assertIn("double-tap file-row content", source)
+        self.assertIn("double-tap file-row content", source.lower())
         self.assertIn("Never infer success from the command exit code alone", source)
         self.assertIn("diary-picker-row-action.xml", source)
         self.assertIn("diary-picker-row-action.xml", source)

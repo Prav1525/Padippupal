@@ -464,12 +464,16 @@ def tap_exact(path, target):
 
 
 def tap_file(path, filename):
-    """Select a DocumentsUI list row without activating its separate preview action."""
+    """Tap the visible file item body, never DocumentsUI's separate preview action.
+
+    Some AOSP DocumentsUI builds expose the filename TextView as non-focusable
+    and non-clickable. The row's thumbnail is still part of the file item and
+    avoids the far-right preview affordance; prefer the filename area when the
+    accessibility tree exposes a clickable row, otherwise tap the thumbnail.
+    The caller must inspect a fresh UI tree after this single action.
+    """
     nodes, texts = load(path)
     target = filename.strip().lower()
-    # Find the filename text and then its enclosing item_root row. On AOSP API 30
-    # the filename TextView and row both report clickable=false, but item_root
-    # is the touch target; the preview action is a separate control at far right.
     target_node = next((n for n in nodes
                         if n.attrib.get("text", "").strip().lower() == target), None)
     if target_node is None:
@@ -478,22 +482,36 @@ def tap_file(path, filename):
         raise SystemExit("No filename row target for " + repr(filename) +
                          "; matching nodes: " + (" | ".join(observed) if observed else "none") +
                          "; visible labels: " + " | ".join(texts[:80]))
-    # Tap the bounds of the filename node itself. The item_root can span the full
-    # screen and its center may hit DocumentsUI's separate preview action; the
-    # filename node's center stays within the visible filename column.
-    bounds = target_node.attrib.get("bounds", "")
-    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-    if not match:
-        raise SystemExit("Invalid filename bounds: " + bounds)
-    x1, y1, x2, y2 = map(int, match.groups())
-    x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    print(f"Tapping filename text {filename!r} at ({x},{y}), bounds={bounds}")
-    adb = ["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)]
-    # One deliberate tap only. Never double-tap blindly: the second tap can
-    # activate a different picker action or race the selection/confirmation UI.
-    # The caller must dump the new accessibility tree and confirm only if the
-    # picker explicitly exposes an Open/Select action.
-    subprocess.run(adb, check=True, timeout=45)
+
+    def center(node):
+        bounds = node.attrib.get("bounds", "")
+        match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+        if not match:
+            return None
+        x1, y1, x2, y2 = map(int, match.groups())
+        if x2 <= x1 or y2 <= y1:
+            return None
+        return (x1 + x2) // 2, (y1 + y2) // 2
+
+    # Prefer an explicitly clickable ancestor/item_root containing the filename.
+    # In the observed AOSP tree the row is not marked clickable, so its thumbnail
+    # is the safest actionable area; the separate preview button is on the far right.
+    filename_center = center(target_node)
+    row = next((n for n in nodes
+                if n.attrib.get("resource-id", "").endswith(":id/item_root")
+                and _contains_bounds(n.attrib.get("bounds", ""), target_node.attrib.get("bounds", ""))), None)
+    clickable_row = row if row and row.attrib.get("clickable") == "true" else None
+    thumb = next((n for n in nodes
+                  if n.attrib.get("resource-id", "").endswith(":id/icon_thumb")
+                  and row and _contains_bounds(row.attrib.get("bounds", ""), n.attrib.get("bounds", ""))), None)
+    point = center(clickable_row) if clickable_row else (center(thumb) if thumb else filename_center)
+    if not point:
+        raise SystemExit("Filename and file-item controls have invalid bounds for " + repr(filename))
+    x, y = point
+    strategy = "clickable item row" if clickable_row else ("file thumbnail" if thumb else "filename text fallback")
+    print(f"Tapping file item via {strategy} for {filename!r} at ({x},{y}); filename bounds={target_node.attrib.get('bounds','')}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+                   check=True, timeout=45)
 
 
 def _contains_bounds(outer, inner):

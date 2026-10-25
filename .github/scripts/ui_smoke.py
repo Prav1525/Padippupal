@@ -482,7 +482,7 @@ def tap_file(path, filename):
                          "; matching nodes: " + (" | ".join(observed) if observed else "none") +
                          "; visible labels: " + " | ".join(texts[:80]))
     bounds = row.attrib.get("bounds", "")
-    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("Filename row has invalid bounds for " + repr(filename) + ": " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())

@@ -86,3 +86,11 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Remove the unsupported insert columns and verify the indexed row by querying the image table projection and matching the filename in the host-side output, avoiding the rejected selection expression.
 - **Regression prevention:** Extend `.github/scripts/test_diary_emulator_script.py` to forbid those unsupported insert columns and the brittle `--where` form, and require the unfiltered projection check.
 - **Validation:** Script regression checks and a fresh emulator run are required. Keep PR #21 open until the fixture is visible in DocumentsUI and the full crop, rescan, review, and planner-save flow passes.
+
+## Incident: DocumentsUI exposed the fixture name as a content description
+
+- **Symptom:** Run [40165802993](https://github.com/Prav1525/Padippupal/actions/runs/40165802993) passed JVM tests, APK build, script validation, and the general tutor UI smoke flow, but the diary flow failed while looking for the fixture in Downloads.
+- **Root cause from the uploaded artifact:** The file was in fact visible in DocumentsUI. Its accessibility hierarchy exposed the filename through a node's `content-desc` (including file size and time), not the node's `text` attribute. The selection helper searched only for an exact `text` match and incorrectly reported the file missing. Inspection also found its bounds regex was over-escaped, preventing valid bounds from being parsed.
+- **Fix:** Commit `348decd85f0088a32e5bd893ebb5414b0246730d` searches both `text` and `content-desc` for the filename and corrects the bounds regex to parse Android UI coordinates.
+- **Regression prevention:** Commit `64c17a2482d4e9e1686ecedb3ccfd5bdb33fb257` adds static assertions for the content-description fallback and correctly escaped bounds pattern.
+- **Validation:** Fresh CI is required to prove the picker selects the image and completes crop, rescan, review, and planner-save checks. This diagnosis is confirmed from the uploaded UI hierarchy, but the fix is not yet verified end to end. Do not merge PR #21 until the full emulator flow passes.

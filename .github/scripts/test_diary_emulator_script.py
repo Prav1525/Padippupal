@@ -16,6 +16,13 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('shell content insert --uri content://media/external/images/media', source)
         self.assertIn('content query --uri content://media/external/images/media', source)
         self.assertIn('fixture exists in shared storage but is not indexed in MediaStore', source)
+        # The legacy images/media endpoint rejects modern display_name and
+        # relative_path insert columns; verify by querying rows, not a quoted
+        # selection expression that Android's content CLI tokenizes incorrectly.
+        self.assertNotIn('--bind display_name:s:', source)
+        self.assertNotIn('--bind relative_path:s:', source)
+        self.assertNotIn('--where "_display_name=', source)
+        self.assertIn('--projection _id:_display_name:_data | grep -Fq "PadippuPal-diary-test.jpg"', source)
         self.assertIn('subprocess.run(adb+["uiautomator","dump",remote]', source)
         self.assertIn('subprocess.run(["adb","-s","emulator-5554","pull",remote,local]', source)
         self.assertIn('dump("/data/local/tmp/diary-picker-list.xml","ui-screenshots/diary-test/diary-picker-list.xml")', source)

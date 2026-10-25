@@ -2,6 +2,7 @@
 """Small accessibility-tree helpers for the PadippuPal Android emulator smoke test."""
 import re
 import subprocess
+import time
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path

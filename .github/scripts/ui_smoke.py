@@ -484,7 +484,7 @@ def tap_file(path, filename):
                 if n.attrib.get("resource-id", "").endswith(":id/item_root")
                 and _contains_bounds(n.attrib.get("bounds", ""), target_node.attrib.get("bounds", ""))), None)
     bounds = row.attrib.get("bounds", "") if row is not None else target_node.attrib.get("bounds", "")
-    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("Invalid filename/item row bounds: " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
@@ -507,7 +507,7 @@ def tap_file(path, filename):
 def _contains_bounds(outer, inner):
     """Whether outer bounds fully contain inner bounds."""
     def parse(value):
-        match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", value)
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", value)
         return tuple(map(int, match.groups())) if match else None
     a, b = parse(outer), parse(inner)
     return bool(a and b and a[0] <= b[0] and a[1] <= b[1] and a[2] >= b[2] and a[3] >= b[3])

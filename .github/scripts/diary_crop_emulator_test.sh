@@ -99,7 +99,7 @@ def dump(remote,local):
  subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
 def getnodes(path): return list(ET.parse(path).getroot().iter("node"))
 def bounds(n):
- m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+ m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
  return tuple(map(int,m.groups())) if m else None
 def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 path="ui-screenshots/diary-test/diary-picker-list.xml"

@@ -55,7 +55,7 @@ def main():
     for date, title, body in entries:
         if title.strip() in {"Short test/change description", "Short description"}:
             continue
-        if not re.search(r"(?im)^- \*\*Result:\*\* (PASS|FAIL|BLOCKED|UNVERIFIED)\b", body):
+        if not re.search(r"(?im)^- \*\*Result:\*\* \*\*(PASS|FAIL|BLOCKED|UNVERIFIED)\*\*\b|^- \*\*Result:\*\* (PASS|FAIL|BLOCKED|UNVERIFIED)\b", body):
             continue
         if not re.search(r"(?im)^- \*\*Evidence", body):
             continue

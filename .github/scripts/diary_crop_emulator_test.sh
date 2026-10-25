@@ -26,8 +26,31 @@ python3 .github/scripts/create_diary_test_fixture.py
 # directly even when the emulator's MediaStore index is cold or empty.
 "${ADB[@]}" shell mkdir -p /sdcard/Download
 "${ADB[@]}" push ui-screenshots/padippupal-diary-fixture.jpg /sdcard/Download/PadippuPal-diary-test.jpg >/dev/null
-"${ADB[@]}" shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Download/PadippuPal-diary-test.jpg >/dev/null || true
-sleep 2
+# Android 10+ no longer reliably indexes files from the deprecated
+# MEDIA_SCANNER_SCAN_FILE broadcast. Register the pushed fixture in MediaStore
+# explicitly so DocumentsUI's image-filtered Downloads view can discover it.
+"${ADB[@]}" shell content insert --uri content://media/external/images/media \
+  --bind _data:s:/storage/emulated/0/Download/PadippuPal-diary-test.jpg \
+  --bind mime_type:s:image/jpeg \
+  --bind title:s:PadippuPal-diary-test \
+  --bind display_name:s:PadippuPal-diary-test.jpg \
+  --bind relative_path:s:Download/
+indexed=0
+for attempt in $(seq 1 10); do
+  if "${ADB[@]}" shell content query --uri content://media/external/images/media \
+      --projection _id:_display_name:_data \
+      --where "_display_name='PadippuPal-diary-test.jpg'" | grep -q "PadippuPal-diary-test.jpg"; then
+    indexed=1
+    break
+  fi
+  sleep 1
+done
+if [ "$indexed" -ne 1 ]; then
+  log "FAIL: fixture exists in shared storage but is not indexed in MediaStore; DocumentsUI cannot list it"
+  "${ADB[@]}" shell ls -l /sdcard/Download/PadippuPal-diary-test.jpg | tee -a "$REPORT"
+  "${ADB[@]}" shell content query --uri content://media/external/images/media --projection _id:_display_name:_data | tee -a "$REPORT"
+  exit 1
+fi
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity >/dev/null
 sleep 6

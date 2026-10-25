@@ -123,3 +123,17 @@ Use this format:
 - **What remains unverified:** What tapping the clickable preview control does; whether DocumentsUI exposes a genuine selection/open action after that; whether Android returns a content URI to PadippuPal; and crop/rescan/save behavior.
 - **Difference from previous attempt:** Stops repeating the earlier thumbnail tap and the subsequent filename-label tap. The next diagnostic must observe the preview interaction and inspect picker-launch implementation before changing selectors or coordinates.
 - **Next action and why:** Inspect the diary picker launch code, intent/action and result callback, plus the smoke workflow fixture setup. Then make one evidence-based diagnostic that captures UI hierarchy/screenshot immediately after tapping the clickable preview control and explicitly checks for activity return/URI receipt. Follow with crop/rescan/save acceptance only after URI return is confirmed. Do not change coordinates blindly, and do not mark the picker fixed until the full path passes.
+
+
+### 2026-10-25 — Focus and keyboard-activate the DocumentsUI row
+- **Branch / commit:** `fix/diary-image-picker-reliability`; implementation commits `f7cf7504cd06d87d78d25d3095b0a7f18c6a0dd6` and `8a587129b7467108606453ad471f7a5c1b111d3d`.
+- **Test command or workflow URL:** Push-triggered Android UI smoke workflow; targeted regression is `python3 .github/scripts/test_diary_emulator_script.py`.
+- **Result:** **UNVERIFIED pending fresh CI/emulator evidence**.
+- **Exact failure or assertion:** Previous run [40212992310](https://github.com/Prav1525/Padippupal/actions/runs/40212992310) failed with `file selection did not return from DocumentsUI`. The captured hierarchy reported the filename and `item_root` as non-clickable, but `item_root` was focusable; the separate preview control was clickable.
+- **Evidence links (logs/screenshots/XML/artifacts):** [failed emulator run](https://github.com/Prav1525/Padippupal/actions/runs/40212992310); [UI evidence artifact](https://github.com/Prav1525/Padippupal/actions/runs/40212992310/artifacts/12606607030).
+- **Change made (files + rationale):** `.github/scripts/ui_smoke.py` now locates the focusable DocumentsUI `item_root`, taps its body away from the preview control, and sends `DPAD_CENTER` rather than tapping a filename node marked non-clickable. `.github/scripts/test_diary_emulator_script.py` now asserts this two-command interaction. This is a new diagnostic hypothesis based on the observed focusable row, not a confirmed picker fix.
+- **Root cause:** **CONFIRMED** old target was non-clickable; **UNKNOWN** whether focus + keyboard activation actually selects the file or whether app picker integration is also faulty.
+- **What this attempt proves:** Code and regression expectation are updated; runtime selection is not proven until fresh emulator evidence returns.
+- **What remains unverified:** Script regression result, actual row focus/activation, Android content-URI return, and crop/rescan/save.
+- **Difference from previous attempt:** Replaces the repeated non-clickable filename tap with a keyboard activation attempt on the focusable row; avoids preview control.
+- **Next action and why:** Inspect the newly triggered workflow, including the exact failing step and screenshot/XML artifact. Do not retry unchanged if DPAD_CENTER fails; use fresh UI evidence to select a different diagnostic or correct the app's picker intent/result handling.

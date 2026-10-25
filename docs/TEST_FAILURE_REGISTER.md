@@ -145,3 +145,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `a86a8ddfcd5095a2ae9cbf71eec6f7c4b4d9b3a5` corrected the regex. Follow-up commit `d8daf4c4f5441a1ea1c95996632dceacb0b6b61f` also makes the tap use the filename node's actual bounds rather than a potentially screen-wide `item_root` center, while retaining the double-tap retry.
 - **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` exercises valid bounds and asserts expected filename-column tap coordinates. CI must pass static validation and then prove the emulator returns from DocumentsUI and completes crop, rescan, review, and planner save.
 - **Validation:** Pending the workflow run triggered by the follow-up fix. No merge until the complete emulator acceptance flow passes.
+
+
+## Incident: diary picker row tap did not select the file
+
+- **Symptom:** Emulator run [40184576935](https://github.com/Prav1525/Padippupal/actions/runs/40184576935) passed JVM tests, APK build, and smoke-script validation but timed out while DocumentsUI remained on the file list after tapping `PadippuPal-diary-test.jpg`.
+- **Root cause:** The filename TextView and item row were not clickable in the observed AOSP accessibility tree. Tapping the filename center did not select the file; the separate preview affordance must not be used. The selector now prefers a clickable item row, otherwise the file thumbnail, and performs one tap before inspecting fresh UI state.
+- **Fix:** PR #24, commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa`, also corrects indentation in `.github/scripts/ui_smoke.py` settings-bounds validation.
+- **Regression prevention:** Unit tests require one tap, thumbnail fallback when filename/row are not clickable, and safe failure when the fixture filename is absent. End-to-end acceptance must prove picker return, crop editor, rescan, date-correct review, and planner save.
+- **Validation:** CI on commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa` is running; keep PR #24 unmerged until Android UI smoke passes.

@@ -2,6 +2,7 @@
 """Small accessibility-tree helpers for the PadippuPal Android emulator smoke test."""
 import re
 import subprocess
+import time
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -421,11 +422,23 @@ def assert_live_layout(path):
 
 
 def exact_text_candidates(nodes, target):
-    """Return only nodes whose visible label equals the requested control label."""
+    """Prefer visible text over accessibility descriptions for exact-label taps.
+
+    DocumentsUI can expose a filename as both a non-clickable TextView and a
+    clickable preview-icon content description. Combining both lets tap_exact
+    choose the preview affordance. Prefer actual text when present, and fall
+    back to content descriptions only for controls without visible text.
+    """
     normalized_target = target.strip().lower().lstrip("▶").strip()
+    text_matches = [
+        node for node in nodes
+        if node.attrib.get("text", "").strip().lower().lstrip("▶").strip() == normalized_target
+    ]
+    if text_matches:
+        return text_matches
     return [
         node for node in nodes
-        if (node.attrib.get("text", "").strip() or node.attrib.get("content-desc", "").strip()).lower().lstrip("▶").strip() == normalized_target
+        if node.attrib.get("content-desc", "").strip().lower().lstrip("▶").strip() == normalized_target
     ]
 
 
@@ -449,6 +462,47 @@ def tap_exact(path, target):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
+
+def tap_file(path, filename):
+    """Select a DocumentsUI list row without activating its separate preview action."""
+    nodes, texts = load(path)
+    target = filename.strip().lower()
+    # Find the filename text and then its enclosing item_root row. On AOSP API 30
+    # the filename TextView and row both report clickable=false, but item_root
+    # is the touch target; the preview action is a separate control at far right.
+    target_node = next((n for n in nodes
+                        if n.attrib.get("text", "").strip().lower() == target), None)
+    if target_node is None:
+        observed = [f"text={n.attrib.get('text','')!r}, desc={n.attrib.get('content-desc','')!r}, bounds={n.attrib.get('bounds','')}"
+                    for n in nodes if filename.lower() in (n.attrib.get("text","") + " " + n.attrib.get("content-desc","")).lower()]
+        raise SystemExit("No filename row target for " + repr(filename) +
+                         "; matching nodes: " + (" | ".join(observed) if observed else "none") +
+                         "; visible labels: " + " | ".join(texts[:80]))
+    # Tap the bounds of the filename node itself. The item_root can span the full
+    # screen and its center may hit DocumentsUI's separate preview action; the
+    # filename node's center stays within the visible filename column.
+    bounds = target_node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("Invalid filename bounds: " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    x, y = (x1 + x2) // 2, (y1 + y2) // 2
+    print(f"Tapping filename text {filename!r} at ({x},{y}), bounds={bounds}")
+    adb = ["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)]
+    subprocess.run(adb, check=True, timeout=45)
+    time.sleep(1.0)
+    # Some DocumentsUI builds first focus/select the row and require a second
+    # tap; repeat only at the filename text, never at the preview affordance.
+    subprocess.run(adb, check=True, timeout=45)
+
+
+def _contains_bounds(outer, inner):
+    """Whether outer bounds fully contain inner bounds."""
+    def parse(value):
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", value)
+        return tuple(map(int, match.groups())) if match else None
+    a, b = parse(outer), parse(inner)
+    return bool(a and b and a[0] <= b[0] and a[1] <= b[1] and a[2] >= b[2] and a[3] >= b[3])
 
 def tap(path, target):
     nodes, texts = load(path)
@@ -555,6 +609,8 @@ def main():
         tap_first_concept(path)
     elif action == "tap-exact" and len(sys.argv) >= 4:
         tap_exact(path, sys.argv[3])
+    elif action == "tap-file" and len(sys.argv) >= 4:
+        tap_file(path, sys.argv[3])
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-completed-lesson":

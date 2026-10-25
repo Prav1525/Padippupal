@@ -17,7 +17,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('Tap the actual clickable DocumentsUI preview control', source)
         self.assertIn('dump_ui diary-picker-preview', source)
         self.assertIn('dump_ui diary-picker-selection-result', source)
-        self.assertIn("\\nPY\\n# Give the picker time to deliver the selected URI", source)
+        self.assertIn("\nPY\nreturned=0\nfor attempt in $(seq 1 8); do", source)
         self.assertNotIn("PY# Give the picker time", source)
         self.assertIn('subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
         self.assertIn('package="com.padippupal.app"', source)

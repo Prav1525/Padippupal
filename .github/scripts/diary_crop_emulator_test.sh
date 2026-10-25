@@ -113,7 +113,7 @@ if target is None:
     raise SystemExit("Clickable DocumentsUI preview control for fixture not found")
 if target.attrib.get("clickable")!="true":
     raise SystemExit("Fixture preview control is not clickable; inspect diary-picker-list.xml")
-m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",target.attrib.get("bounds",""))
+m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
 if not m: raise SystemExit("Fixture preview control has invalid bounds")
 x1,y1,x2,y2=map(int,m.groups())
 x,y=(x1+x2)//2,(y1+y2)//2

@@ -9,28 +9,27 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_uses_real_thumbnail_tap_not_long_press_select_guess(self):
+    def test_picker_uses_selectable_list_row_not_nonclickable_grid_thumbnail(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('shell content insert --uri content://media/external/images/media', source)
         self.assertIn('content query --uri content://media/external/images/media', source)
         self.assertIn('--projection _id:_display_name:_data | grep -Fq "PadippuPal-diary-test.jpg"', source)
         self.assertNotIn('--bind display_name:s:', source)
         self.assertNotIn('--bind relative_path:s:', source)
-        self.assertIn('"padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()', source)
-        self.assertIn('r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"', source)
-        self.assertIn('endswith(":id/icon_thumb")', source)
-        self.assertIn("parent :id/thumbnail spans", source)
-        self.assertIn('Tap fixture thumbnail at', source)
+        self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
+        self.assertIn('dump_ui diary-picker-list', source)
+        self.assertIn('node.attrib.get("clickable")=="true"', source)
+        self.assertIn('No clickable file-row ancestor found in DocumentsUI list view', source)
+        self.assertIn('parents={child:parent for parent in root.iter() for child in parent}', source)
         self.assertIn('["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
+        self.assertNotIn('endswith(":id/icon_thumb")', source)
+        self.assertNotIn('Tap fixture thumbnail at', source)
         self.assertIn('if ! grep -q \'package="com.android.documentsui"\'', source)
-        self.assertNotIn('Long-press filename to enter selection mode', source)
-        self.assertNotIn('No visible Select action after long-press', source)
-        self.assertNotIn('Tap observed DocumentsUI action', source)
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('dump_ui diary-picker-selection-result', source)
-        self.assertIn('FAIL: tapping the fixture thumbnail did not return from DocumentsUI', source)
+        self.assertIn('FAIL: tapping the selectable file row did not return from DocumentsUI', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
 
     def test_failure_register_exists_and_names_regression_expectations(self):

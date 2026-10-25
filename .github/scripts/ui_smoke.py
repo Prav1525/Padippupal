@@ -490,7 +490,7 @@ def tap_file(path, filename):
     if preview is None:
         raise SystemExit("DocumentsUI exposes no enabled clickable preview/open control for " + repr(filename))
     bounds = preview.attrib.get("bounds", "")
-    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("Preview control has invalid bounds for " + repr(filename) + ": " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())

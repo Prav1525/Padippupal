@@ -42,9 +42,11 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 ui_smoke.main()
             selector.assert_called_once_with(str(path), "PadippuPal-diary-test.jpg")
 
-    def test_file_selector_taps_nonclickable_filename_text_not_preview_icon(self):
+    def test_file_selector_uses_thumbnail_when_filename_and_row_are_not_clickable(self):
         xml = """<hierarchy>
           <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="false" bounds="[189,685][660,742]" />
+          <node resource-id="com.android.documentsui:id/item_root" clickable="false" bounds="[0,641][1080,830]" />
+          <node resource-id="com.android.documentsui:id/icon_thumb" clickable="false" bounds="[42,683][147,788]" />
           <node text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" bounds="[891,641][1080,830]" />
         </hierarchy>"""
         with tempfile.TemporaryDirectory() as temp:
@@ -53,8 +55,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 args = run.call_args.args[0]
-                self.assertEqual(args[-2:], ["424", "713"])
-                run.assert_called_once_with(["adb", "-s", "emulator-5554", "shell", "input", "tap", "424", "713"], check=True, timeout=45)
+                self.assertEqual(args[-2:], ["94", "735"])
+                run.assert_called_once_with(["adb", "-s", "emulator-5554", "shell", "input", "tap", "94", "735"], check=True, timeout=45)
 
     def test_tap_file_command_selects_row_through_dispatcher(self):
         xml = """<hierarchy>
@@ -91,9 +93,9 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         start = source.index("def tap_file(")
         end = source.index("\ndef _contains_bounds", start)
         selector = source[start:end]
-        self.assertIn("One deliberate tap only", selector)
-        self.assertNotIn("repeat only at the filename text", selector)
-        self.assertEqual(selector.count("subprocess.run(adb, check=True, timeout=45)"), 1)
+        self.assertIn("file thumbnail", selector)
+        self.assertIn("separate preview action", selector)
+        self.assertEqual(selector.count('subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap"'), 1)
 
     def test_missing_filename_fails_safely_without_tapping_preview(self):
         xml = """<hierarchy>

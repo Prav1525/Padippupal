@@ -482,20 +482,25 @@ def tap_file(path, filename):
                          "; matching nodes: " + (" | ".join(observed) if observed else "none") +
                          "; visible labels: " + " | ".join(texts[:80]))
 
-    preview = next((n for n in nodes
-                    if n.attrib.get("resource-id", "").rsplit("/", 1)[-1] == "preview_icon"
-                    and filename.lower() in n.attrib.get("content-desc", "").lower()
-                    and n.attrib.get("clickable") == "true"
-                    and n.attrib.get("enabled") == "true"), None)
-    if preview is None:
-        raise SystemExit("DocumentsUI exposes no enabled clickable preview/open control for " + repr(filename))
-    bounds = preview.attrib.get("bounds", "")
+    # Prefer a clickable filename row when available; CI DocumentsUI exposes only preview_icon.
+    row = next((n for n in nodes
+                if n.attrib.get("text", "").strip().lower() == target
+                and n.attrib.get("clickable") == "true"
+                and n.attrib.get("enabled") != "false"), None)
+    control = row or next((n for n in nodes
+                           if n.attrib.get("resource-id", "").rsplit("/", 1)[-1] == "preview_icon"
+                           and filename.lower() in n.attrib.get("content-desc", "").lower()
+                           and n.attrib.get("clickable") == "true"
+                           and n.attrib.get("enabled") == "true"), None)
+    if control is None:
+        raise SystemExit("DocumentsUI exposes no enabled clickable filename row or preview/open control for " + repr(filename))
+    bounds = control.attrib.get("bounds", "")
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("Preview control has invalid bounds for " + repr(filename) + ": " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
     x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    print(f"Opening real DocumentsUI preview control for {filename!r} at ({x},{y}); bounds={bounds}")
+    print(f"Opening real DocumentsUI file control for {filename!r} at ({x},{y}); bounds={bounds}")
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 

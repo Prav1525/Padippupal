@@ -489,10 +489,10 @@ def tap_file(path, filename):
     x, y = (x1 + x2) // 2, (y1 + y2) // 2
     print(f"Tapping filename text {filename!r} at ({x},{y}), bounds={bounds}")
     adb = ["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)]
-    subprocess.run(adb, check=True, timeout=45)
-    time.sleep(1.0)
-    # Some DocumentsUI builds first focus/select the row and require a second
-    # tap; repeat only at the filename text, never at the preview affordance.
+    # One deliberate tap only. Never double-tap blindly: the second tap can
+    # activate a different picker action or race the selection/confirmation UI.
+    # The caller must dump the new accessibility tree and confirm only if the
+    # picker explicitly exposes an Open/Select action.
     subprocess.run(adb, check=True, timeout=45)
 
 

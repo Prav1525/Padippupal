@@ -95,3 +95,17 @@ Use this format:
 - **What remains unverified:** Unit/static regression checks, DocumentsUI return, content-URI receipt, crop/rescan, date isolation, save-to-planner, and runtime behavior.
 - **Difference from previous attempt:** Changes the target from thumbnail center `(94,735)` to filename-row center `(424,713)`; no repeated coordinate retry on the same target.
 - **Next action and why:** Run exact-head script/JVM/APK/emulator checks; inspect the new picker screenshot/XML if the filename-row tap still fails and then switch to a URI-level diagnostic rather than another blind tap.
+
+
+### 2026-10-25 — Correct smoke-script regression assertions to match subprocess API
+- **Branch / commit:** `fix/diary-image-picker-reliability`; test correction commit `98775487373b047b81de3f3c258780787caad022`.
+- **Test command or workflow URL:** Prior exact-head validation [run 40212740440](https://github.com/Prav1525/Padippupal/actions/runs/40212740440), job 121227295458; corrected commit's CI run pending.
+- **Result:** **FAIL** on prior head; corrected assertions **UNVERIFIED** pending CI.
+- **Exact failure or assertion:** Three Python regression tests failed before emulator allocation. Two expected a single argv string `"input tap 185 140"` / `"input tap 424 713"`, but implementation correctly invokes subprocess with separate argv entries `"input", "tap", "185", "140"` / `"input", "tap", "424", "713"`. The third asserted for a shell-command string `f"input tap {x} {y}"` not used by the implementation.
+- **Evidence links:** [Failed workflow](https://github.com/Prav1525/Padippupal/actions/runs/40212740440); test failure output in emulator-smoke job 121227295458.
+- **Change made (files + rationale):** `.github/scripts/test_diary_emulator_script.py` now asserts the actual subprocess argv structure. This fixes a test-harness assertion mismatch; it does not change picker behavior or claim the selector is correct.
+- **Root cause:** **CONFIRMED** for the three script-validation failures by comparing exact assertion output with the implementation's subprocess argv. Root cause of the original DocumentsUI selection failure remains **UNKNOWN**.
+- **What this attempt proves:** The prior CI was blocked by three self-test assertions incompatible with the helper's actual command construction; APK build and JVM tests had passed in that run.
+- **What remains unverified:** Corrected script tests, emulator selection, URI return, crop/rescan, and save flow.
+- **Difference from previous attempt:** Corrects assertions to inspect tokenized subprocess arguments rather than changing tap coordinates or selection strategy.
+- **Next action and why:** Inspect CI on the corrected commit. If script validation passes, use the resulting emulator XML/screenshot and selection-return evidence to isolate the original picker failure; do not call the picker fixed based on unit/script validation alone.

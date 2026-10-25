@@ -71,7 +71,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                     ui_smoke.main()
                     self.assertEqual(run.call_count, 1)
                     for call in run.call_args_list:
-                        self.assertEqual(call.args[0][-2:], ["185", "140"])
+                        self.assertEqual(call.args[0][-2:], ["985", "735"])
 
     def test_file_selector_accepts_clickable_list_row_not_preview(self):
         xml = """<hierarchy>
@@ -84,7 +84,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 args = run.call_args.args[0]
-                self.assertEqual(args[-2:], ["985", "735"])
+                self.assertEqual(args[-2:], ["185", "140"])
                 self.assertEqual(run.call_count, 1)
                 for call in run.call_args_list:
                     self.assertEqual(call.args[0][-2:], ["270", "130"])

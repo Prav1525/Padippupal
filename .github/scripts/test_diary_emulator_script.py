@@ -26,7 +26,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('for attempt in $(seq 1 8); do', source)
         self.assertLess(source.index("returned=0"), source.index("for attempt in $(seq 1 8); do"))
         self.assertIn("preview_icon", (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8"))
-        self.assertIn("Preview the file PadippuPal-diary-test.jpg", (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8"))
+        self.assertIn('filename.lower() in n.attrib.get("content-desc", "").lower()', (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8"))
         self.assertNotIn("PY# Give the picker time", source)
         self.assertIn('package="com.padippupal.app"', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
@@ -71,7 +71,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                     ui_smoke.main()
                     self.assertEqual(run.call_count, 1)
                     for call in run.call_args_list:
-                        self.assertEqual(call.args[0][-2:], ["985", "735"])
+                        self.assertEqual(call.args[0][-2:], ["270", "130"])
 
     def test_file_selector_accepts_clickable_list_row_not_preview(self):
         xml = """<hierarchy>
@@ -84,7 +84,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 args = run.call_args.args[0]
-                self.assertEqual(args[-2:], ["185", "140"])
+                self.assertEqual(args[-2:], ["270", "130"])
                 self.assertEqual(run.call_count, 1)
                 for call in run.call_args_list:
                     self.assertEqual(call.args[0][-2:], ["270", "130"])

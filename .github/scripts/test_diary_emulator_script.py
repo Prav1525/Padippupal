@@ -26,7 +26,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('for attempt in $(seq 1 8); do', source)
         self.assertLess(source.index("returned=0"), source.index("for attempt in $(seq 1 8); do"))
         selector_source = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")
-        self.assertIn('Single-tapping DocumentsUI filename row', selector_source)
+        self.assertIn('Focusing DocumentsUI row', selector_source)
         self.assertNotIn('target_kind = "thumbnail"', selector_source)
         self.assertIn('["adb", "-s", "emulator-5554", "shell",', selector_source)
         self.assertIn('"input", "tap", str(x), str(y)', selector_source)
@@ -47,22 +47,21 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 ui_smoke.main()
             selector.assert_called_once_with(str(path), "PadippuPal-diary-test.jpg")
 
-    def test_file_selector_taps_filename_row_when_nodes_report_not_clickable(self):
+    def test_file_selector_focuses_row_then_activates_without_preview(self):
         xml = """<hierarchy>
           <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="false" bounds="[189,685][660,742]" />
-          <node resource-id="com.android.documentsui:id/item_root" clickable="false" bounds="[0,641][1080,830]" />
+          <node resource-id="com.android.documentsui:id/item_root" clickable="false" focusable="true" bounds="[0,641][1080,830]" />
           <node resource-id="com.android.documentsui:id/icon_thumb" clickable="false" bounds="[42,683][147,788]" />
-          <node resource-id="com.android.documentsui:id/preview_icon" text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" enabled="true" bounds="[891,641][1080,830]" />
+          <node resource-id="com.google.android.documentsui:id/preview_icon" text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" enabled="true" bounds="[891,641][1080,830]" />
         </hierarchy>"""
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "list.xml"
             path.write_text(xml, encoding="utf-8")
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
-                run.assert_called_once_with(
-                    ["adb", "-s", "emulator-5554", "shell",
-                     "input", "tap", "424", "713"],
-                    check=True, timeout=45)
+                self.assertEqual(run.call_count, 2)
+                run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "tap", "540", "735"], check=True, timeout=45)
+                run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "keyevent", "DPAD_CENTER"], check=True, timeout=45)
 
     def test_file_selector_prefers_filename_row_even_if_preview_is_clickable(self):
         xml = """<hierarchy>

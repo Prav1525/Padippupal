@@ -9,24 +9,19 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_hierarchy_dump_has_exactly_one_shell_argument(self):
+    def test_picker_hierarchy_dump_uses_dump_ui_helper(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn(
-            'subprocess.run(adb+["uiautomator","dump","/data/local/tmp/diary-picker-after-row.xml"]',
-            source,
-        )
-        self.assertNotIn(
-            'subprocess.run(adb+["shell","uiautomator","dump","/data/local/tmp/diary-picker-after-row.xml"]',
-            source,
-        )
+        helper = source[source.index("dump_ui(){"):source.index("\ntap_label(){")]
+        self.assertIn('shell uiautomator dump "/data/local/tmp/${name}.xml"', helper)
+        self.assertIn('pull "/data/local/tmp/${name}.xml" "ui-screenshots/diary-test/${name}.xml"', helper)
+        self.assertIn("dump_ui diary-picker-list", source)
 
     def test_picker_dump_is_pulled_before_it_is_parsed(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        dump = source.index('subprocess.run(adb+["uiautomator","dump","/data/local/tmp/diary-picker-after-row.xml"]')
-        pull = source.index('subprocess.run(["adb","-s","emulator-5554","pull","/data/local/tmp/diary-picker-after-row.xml"')
-        parse = source.index('ET.parse("ui-screenshots/diary-test/diary-picker-after-row.xml")')
-        self.assertLess(dump, pull)
-        self.assertLess(pull, parse)
+        dump = source.index("dump_ui diary-picker-list")
+        parse = source.index('path="ui-screenshots/diary-test/diary-picker-list.xml"')
+        self.assertLess(dump, parse)
+        self.assertIn('ns=getnodes(path)', source[parse:])
 
     def test_failure_register_exists_and_names_regression_expectations(self):
         register = ROOT / "docs" / "TEST_FAILURE_REGISTER.md"

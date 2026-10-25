@@ -77,3 +77,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix attempt:** Explicitly register the fixture in `content://media/external/images/media` and verify the matching row exists before launching the app. If indexing fails, log both the file path and MediaStore query rather than failing later with a misleading picker-selection error.
 - **Regression prevention:** Static smoke-script validation checks for explicit MediaStore registration and a query proving the fixture is indexed before the UI flow starts.
 - **Validation:** Pending a fresh CI run. Do not merge PR #21 unless the fixture becomes visible, the picker returns to PadippuPal, and crop, rescan, review, and planner-save assertions pass.
+
+
+## Incident: MediaStore fixture registration used unsupported columns and a rejected selection
+
+- **Symptom:** Run [40165215787](https://github.com/Prav1525/Padippupal/actions/runs/40165215787) passed JVM tests, APK build, and script validation, but the diary emulator test stopped before opening the picker.
+- **Root cause:** The fixture file was successfully pushed to `/sdcard/Download/PadippuPal-diary-test.jpg`, but the setup inserted it through the legacy `content://media/external/images/media` endpoint with unsupported `display_name` and `relative_path` columns. Android logged `Invalid column display_name`. The follow-up `content query --where "_display_name='PadippuPal-diary-test.jpg'"` was also rejected with `Invalid token PadippuPal`, so the test never verified indexing successfully.
+- **Fix:** Remove the unsupported insert columns and verify the indexed row by querying the image table projection and matching the filename in the host-side output, avoiding the rejected selection expression.
+- **Regression prevention:** Extend `.github/scripts/test_diary_emulator_script.py` to forbid those unsupported insert columns and the brittle `--where` form, and require the unfiltered projection check.
+- **Validation:** Script regression checks and a fresh emulator run are required. Keep PR #21 open until the fixture is visible in DocumentsUI and the full crop, rescan, review, and planner-save flow passes.

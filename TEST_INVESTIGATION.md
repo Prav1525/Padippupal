@@ -67,3 +67,17 @@ Use this format:
 - **What remains unverified:** No build was run; the repository guidance workflow was not triggered/verified here; this does not technically intercept every ChatGPT GitHub tool call.
 - **Difference from previous attempt:** Build and packaging actions are now explicitly covered rather than being implied by testing guidance.
 - **Next action and why:** Verify the guidance workflow on a PR and inspect/configure required branch protection if permissions allow. Do not merge without explicit user permission.
+
+
+### 2026-10-25 — Fix validator date/field regex escaping
+- **Branch / commit:** `fix/diary-image-picker-reliability`; validator fix commit `0e0e024d09306c6d49e569e8c16755c27650fd97`.
+- **Test command or workflow URL:** Static inspection of `.github/scripts/validate_investigation_ledger.py`; automated PR workflow execution pending.
+- **Result:** **UNVERIFIED** for CI enforcement; validator source corrected, but no workflow result has yet confirmed it.
+- **Exact failure or assertion:** The validator used doubled backslashes inside raw regex strings, so date and Markdown-field patterns did not match the intended ledger format reliably.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Validator](https://github.com/Prav1525/Padippupal/blob/fix/diary-image-picker-reliability/.github/scripts/validate_investigation_ledger.py); [guidance workflow](https://github.com/Prav1525/Padippupal/blob/fix/diary-image-picker-reliability/.github/workflows/investigation-guidance.yml).
+- **Change made (files + rationale):** Corrected raw regex escapes for dates, newlines, Markdown bold markers, end-of-input, and word boundaries so the intended dated-entry validation can operate.
+- **Root cause:** **CONFIRMED** for this validator defect by inspection of the regex literals; unrelated to the original picker failure.
+- **What this attempt proves:** The committed regex patterns now express the intended matching syntax.
+- **What remains unverified:** Workflow run, status-check requirement, branch protection, and whether the integration can configure repository rules.
+- **Difference from previous attempt:** Fixes the validator itself rather than only adding process instructions.
+- **Next action and why:** Let the PR workflow execute on the new commit and inspect its result; then ask the repository owner to require the status check if admin-level settings are unavailable.

@@ -488,13 +488,19 @@ def tap_file(path, filename):
     if not match:
         raise SystemExit("Invalid filename/item row bounds: " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
-    # Keep away from the preview button at the far right of the row.
-    x = min((x1 + x2) // 2, 800)
+    # DocumentsUI's item_root can span the full screen width even though the
+    # filename is aligned left and a preview/action target occupies the right.
+    # Tapping the row center (or capping it at x=800) can hit that separate
+    # preview target on emulator layouts. Tap inside the filename column instead.
+    row_width = x2 - x1
+    x = max(x1 + 24, min(x1 + min(240, row_width // 3), x2 - 24))
     y = (y1 + y2) // 2
     print(f"Tapping filename item row {filename!r} at ({x},{y}), row_bounds={bounds}")
     adb = ["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)]
     subprocess.run(adb, check=True, timeout=45)
-    time.sleep(0.8)
+    time.sleep(1.0)
+    # Some DocumentsUI builds first focus/select the row and require a second
+    # tap on the same filename column to activate it; never tap the preview side.
     subprocess.run(adb, check=True, timeout=45)
 
 

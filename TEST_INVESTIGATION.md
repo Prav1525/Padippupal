@@ -54,3 +54,16 @@ Use this format:
 - **What remains unverified:** The workflow has not run; required branch protection is not confirmed; automated checks cannot validate whether a diagnosis is truthful or reasoning was actually performed.
 - **Difference from previous attempt:** Moves from instructions alone to an automated PR check and a persistent investigation ledger.
 - **Next action and why:** Trigger/observe the GitHub Actions gate and fix any workflow/validator issues; then configure the gate as a required status check in repository branch protection if permissions allow.
+
+### 2026-10-25 — Add mandatory build guidance
+- **Branch / commit:** `fix/diary-image-picker-reliability`; guidance updates `cb70d1311f1ca657ee990b9beae9b555dd64c919` and `6aa2eb7f3216944dcecd76b7ca0ab4fbb34a57ae`.
+- **Test command or workflow URL:** Documentation-only change; no Android build or CI workflow was run as part of this update.
+- **Result:** **UNVERIFIED** for the overall gate; documentation commits succeeded.
+- **Exact failure or assertion:** None from a build attempt; the guidance gate's CI execution remains unverified as recorded above.
+- **Evidence links:** [Updated testing/build guidance](https://github.com/Prav1525/Padippupal/blob/fix/diary-image-picker-reliability/TESTING_GUIDANCE.md); [updated agent instructions](https://github.com/Prav1525/Padippupal/blob/fix/diary-image-picker-reliability/AGENTS.md).
+- **Change made (files + rationale):** Added build-tool/version discovery, wrapper preference, task/variant verification, staged build and test requirements, APK verification, environment-blocker handling, secret safety, and explicit separation of compile/build/runtime acceptance. Updated `AGENTS.md` so build actions are included in the pre-action gate.
+- **Root cause:** Not applicable to picker failure; picker root cause remains UNKNOWN.
+- **What this attempt proves:** The build guidance is committed to the feature branch.
+- **What remains unverified:** No build was run; the repository guidance workflow was not triggered/verified here; this does not technically intercept every ChatGPT GitHub tool call.
+- **Difference from previous attempt:** Build and packaging actions are now explicitly covered rather than being implied by testing guidance.
+- **Next action and why:** Verify the guidance workflow on a PR and inspect/configure required branch protection if permissions allow. Do not merge without explicit user permission.

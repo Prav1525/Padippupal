@@ -505,7 +505,7 @@ def tap_file(path, filename):
         if not node.attrib.get("resource-id", "").endswith(":id/icon_thumb"):
             continue
         thumb_bounds = node.attrib.get("bounds", "")
-        m = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", thumb_bounds)
+        m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", thumb_bounds)
         if not m:
             continue
         tx1, ty1, tx2, ty2 = map(int, m.groups())

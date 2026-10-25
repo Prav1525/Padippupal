@@ -95,45 +95,14 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# On this AOSP DocumentsUI build, the file row and thumbnail are not clickable.
-# The accessibility tree exposes only the dedicated preview control as clickable.
-# Open that file-specific preview instead of tapping a dead row body.
-tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"
-sleep 1
-dump_ui diary-picker-list
-python3 - <<'PY'
-import re, subprocess, xml.etree.ElementTree as ET
-path="ui-screenshots/diary-test/diary-picker-list.xml"
-root=ET.parse(path).getroot()
-target=next((n for n in root.iter("node")
-    if n.attrib.get("package")=="com.android.documentsui"
-    and n.attrib.get("resource-id")=="com.android.documentsui:id/preview_icon"
-    and "padippupal-diary-test.jpg" in n.attrib.get("content-desc","").lower()),None)
-if target is None:
-    raise SystemExit("Clickable DocumentsUI preview control for fixture not found")
-if target.attrib.get("clickable")!="true":
-    raise SystemExit("Fixture preview control is not clickable; inspect diary-picker-list.xml")
-m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",target.attrib.get("bounds",""))
-if not m: raise SystemExit("Fixture preview control has invalid bounds")
-x1,y1,x2,y2=map(int,m.groups())
-x,y=(x1+x2)//2,(y1+y2)//2
-print(f"Tap the actual clickable DocumentsUI preview control at {x},{y}: {target.attrib.get('content-desc')}")
-subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
-PY
+# The preview_icon is a preview affordance, not a selection action. Tap the
+# center of the visible filename text node instead. Earlier attempts tapped near
+# the bottom padding of its bounds (y=735 vs text-row center y=713), which did not
+# reliably activate the row. ui_smoke.py computes the text node's actual center.
+tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"
 sleep 2
-dump_ui diary-picker-preview
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-preview.png
-# Some DocumentsUI versions show a preview with an explicit Open/Select action;
-# use it if present. Other versions return the URI directly from the preview tap.
-if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-preview.xml; then
-  if grep -qi 'text="Open"' ui-screenshots/diary-test/diary-picker-preview.xml; then
-    tap_label ui-screenshots/diary-test/diary-picker-preview.xml "Open"
-  elif grep -qi 'text="Select"' ui-screenshots/diary-test/diary-picker-preview.xml; then
-    tap_label ui-screenshots/diary-test/diary-picker-preview.xml "Select"
-  elif grep -qi 'text="Use this file"' ui-screenshots/diary-test/diary-picker-preview.xml; then
-    tap_label ui-screenshots/diary-test/diary-picker-preview.xml "Use this file"
-  fi
-fi
+dump_ui diary-picker-selection-result
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png
 # Give the picker time to deliver the selected URI and verify the owning package.
 returned=0
 for attempt in $(seq 1 8); do

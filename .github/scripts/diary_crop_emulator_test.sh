@@ -106,7 +106,7 @@ def dump(remote,local):
  subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
 def nodes(path): return list(ET.parse(path).getroot().iter("node"))
 def bounds(n):
- m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+ m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
  return tuple(map(int,m.groups())) if m else None
 def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 path="ui-screenshots/diary-test/diary-picker-downloads.xml"
@@ -117,7 +117,7 @@ if list_button and bounds(list_button):
  b=bounds(list_button); tap((b[0]+b[2])//2,(b[1]+b[3])//2); time.sleep(1)
  dump("/data/local/tmp/diary-picker-list.xml","ui-screenshots/diary-test/diary-picker-list.xml")
  path="ui-screenshots/diary-test/diary-picker-list.xml"; ns=nodes(path)
-name=next((n for n in ns if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
+name=next((n for n in ns if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
 if name is None or bounds(name) is None: raise SystemExit("Fixture filename not found in DocumentsUI")
 b=bounds(name); x=(b[0]+b[2])//2; y=(b[1]+b[3])//2
 print(f"Long-press filename to enter selection mode at {x},{y}, bounds={b}")

@@ -136,3 +136,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Evidence/root cause:** The saved diary-picker-list.xml marks com.android.documentsui:id/preview_icon as the separate “Preview the file …” affordance, while the post-tap hierarchy and screenshot remain on the unchanged Downloads list. The test confused a preview affordance with a selection action. The prior row-body coordinate (424,735) was also near the bottom padding of the filename node [189,685][660,742], rather than the center of the visible filename text.
 - **Fix attempt:** Commit daf2bf5837d3b89b6b35ebf5d2bd767b6e1eb18d replaces the preview-control tap with the filename text helper, which taps the text node's computed center, and captures picker-selection-result.png immediately after interaction. Commit f23a07c208ffa2f77257fc9fe8a1338b2dd3d7ba changes the static regression test to require filename tapping and forbid the preview-icon strategy.
 - **Validation:** Fresh CI is pending. This is an evidence-based interaction change, not a verified fix until the emulator proves the picker returns to PadippuPal and the crop, rescan, review, and planner-save assertions all pass. Do not merge PR #21 before that full pass.
+
+
+## Incident: filename-bounds regex regression blocked emulator allocation
+
+- **Symptom:** Workflow run [40182175498](https://github.com/Prav1525/Padippupal/actions/runs/40182175498) passed JVM tests and APK build but failed smoke-script validation. Three tests raised `Invalid filename/item row bounds` for valid bounds such as `[20,100][350,180]` and `[189,685][660,742]`; the emulator stage was skipped.
+- **Root cause:** The bounds regex in `.github/scripts/ui_smoke.py` was over-escaped, so it expected literal backslashes instead of the square-bracket coordinates emitted by Android UIAutomator.
+- **Fix:** Commit `a86a8ddfcd5095a2ae9cbf71eec6f7c4b4d9b3a5` corrected the regex. Follow-up commit `d8daf4c4f5441a1ea1c95996632dceacb0b6b61f` also makes the tap use the filename node's actual bounds rather than a potentially screen-wide `item_root` center, while retaining the double-tap retry.
+- **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` exercises valid bounds and asserts expected filename-column tap coordinates. CI must pass static validation and then prove the emulator returns from DocumentsUI and completes crop, rescan, review, and planner save.
+- **Validation:** Pending the workflow run triggered by the follow-up fix. No merge until the complete emulator acceptance flow passes.

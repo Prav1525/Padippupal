@@ -11,7 +11,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
     def test_picker_taps_filename_text_not_preview_affordance(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"', source)
+        self.assertIn('python3 .github/scripts/ui_smoke.py tap-exact ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"', source)
         self.assertIn('dump_ui diary-picker-selection-result', source)
         self.assertIn('picker-selection-result.png', source)
         self.assertIn('returned=0', source)

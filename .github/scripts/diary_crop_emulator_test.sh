@@ -110,10 +110,11 @@ def bounds(n):
  return tuple(map(int,m.groups())) if m else None
 name=next((n for n in nodes if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
 if name is None: raise SystemExit("Fixture filename disappeared from DocumentsUI")
-# Prefer the thumbnail child, not the distinct 'Preview the file' action.
-thumb=next((n for n in name.iter("node") if n.attrib.get("resource-id","").endswith(":id/thumbnail")),None)
+# icon_thumb is the actual image region. The parent :id/thumbnail spans
+# the whole grid card and its center lands in a non-interactive gap.
+thumb=next((n for n in name.iter("node") if n.attrib.get("resource-id","").endswith(":id/icon_thumb")),None)
 if thumb is None:
- thumb=next((n for n in name.iter("node") if n.attrib.get("resource-id","").endswith(":id/icon_thumb")),None)
+ thumb=next((n for n in name.iter("node") if n.attrib.get("resource-id","").endswith(":id/thumbnail")),None)
 b=bounds(thumb) if thumb is not None else None
 if b is None: raise SystemExit("Fixture thumbnail bounds not found in DocumentsUI hierarchy")
 x=(b[0]+b[2])//2; y=(b[1]+b[3])//2

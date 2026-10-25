@@ -124,7 +124,7 @@ def assert_settings(path):
         raise SystemExit("Lesson-selection Done action is not exposed as a visible accessibility node")
     done_node = next((n for n in done_nodes if n.attrib.get("enabled") == "true"), done_nodes[0])
     bounds = done_node.attrib.get("bounds", "")
-        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("Lesson-selection Done action has no visible screen bounds")
     x1, y1, x2, y2 = map(int, match.groups())

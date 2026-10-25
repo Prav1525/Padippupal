@@ -108,16 +108,17 @@ while ancestor is not None:
     ancestor=parents.get(ancestor)
 m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
 if not m: raise SystemExit("Diary filename/row has no valid bounds")
-# DocumentsUI exposes the filename TextView as non-clickable. Activate the
-# focusable item_root row (not the text child), then use the explicit Open action
-# if this API-level picker presents one.
+# On this Android DocumentsUI build, item_root and its filename child are
+# explicitly non-clickable; item_root is focusable. A tap therefore does nothing.
+# Focus the row, then activate it with ENTER (the same action as keyboard-open).
 x1,y1,x2,y2=map(int,m.groups())
 x=(x1+x2)//2
 y=(y1+y2)//2
-print(f"Tap focusable diary row at {x},{y}; row bounds={m.group(0)}")
+print(f"Focus diary row at {x},{y}; row bounds={m.group(0)}, then press ENTER")
 subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+subprocess.run(["adb","-s","emulator-5554","shell","input","keyevent","KEYCODE_ENTER"],check=True,timeout=20)
 import time
-time.sleep(0.5)
+time.sleep(1)
 
 PY
 sleep 1

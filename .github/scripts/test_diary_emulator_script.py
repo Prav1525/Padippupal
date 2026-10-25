@@ -16,6 +16,14 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('pull "/data/local/tmp/${name}.xml" "ui-screenshots/diary-test/${name}.xml"', helper)
         self.assertIn("dump_ui diary-picker-list", source)
 
+    def test_picker_selects_filename_not_preview_affordance(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn('n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"', source)
+        self.assertIn("Tap diary filename row", source)
+        self.assertIn("diary-picker-row-action.xml", source)
+        self.assertNotIn("Preview the file PadippuPal-diary-test.jpg", source)
+        self.assertNotIn("Diary filename disappeared after preview", source)
+
     def test_picker_dump_is_pulled_before_it_is_parsed(self):
         source = SCRIPT.read_text(encoding="utf-8")
         dump = source.index("dump_ui diary-picker-list")

@@ -120,7 +120,7 @@ adb=["adb","-s","emulator-5554","shell"]
 subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 import time
 time.sleep(1)
-subprocess.run(adb+["shell","uiautomator","dump","/data/local/tmp/diary-picker-after-row.xml"],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
+subprocess.run(adb+["uiautomator","dump","/data/local/tmp/diary-picker-after-row.xml"],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
 subprocess.run(["adb","-s","emulator-5554","pull","/data/local/tmp/diary-picker-after-row.xml","ui-screenshots/diary-test/diary-picker-after-row.xml"],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
 after=ET.parse("ui-screenshots/diary-test/diary-picker-after-row.xml").getroot()
 if any(n.attrib.get("package")=="com.android.documentsui" for n in after.iter("node")):

@@ -27,7 +27,9 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertLess(source.index("returned=0"), source.index("for attempt in $(seq 1 8); do"))
         selector_source = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")
         self.assertIn("Double-tapping DocumentsUI filename row", selector_source)
-        self.assertIn("input tap {x} {y}; sleep 0.15; input tap {x} {y}", selector_source)
+        self.assertIn('["adb", "-s", "emulator-5554", "shell",', selector_source)
+        self.assertIn("input tap {x} {y}; sleep 0.35; input tap {x} {y}", selector_source)
+        self.assertNotIn('"shell", "sh", "-c"', selector_source)
         self.assertNotIn("control = row or next", selector_source)
         self.assertNotIn("PY# Give the picker time", source)
         self.assertIn('package="com.padippupal.app"', source)
@@ -57,8 +59,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 run.assert_called_once_with(
-                    ["adb", "-s", "emulator-5554", "shell", "sh", "-c",
-                     "input tap 424 713; sleep 0.15; input tap 424 713"],
+                    ["adb", "-s", "emulator-5554", "shell",
+                     "input tap 424 713; sleep 0.35; input tap 424 713"],
                     check=True, timeout=45)
 
     def test_file_selector_prefers_filename_row_even_if_preview_is_clickable(self):
@@ -72,8 +74,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 run.assert_called_once_with(
-                    ["adb", "-s", "emulator-5554", "shell", "sh", "-c",
-                     "input tap 185 140; sleep 0.15; input tap 185 140"],
+                    ["adb", "-s", "emulator-5554", "shell",
+                     "input tap 185 140; sleep 0.35; input tap 185 140"],
                     check=True, timeout=45)
 
     def test_missing_filename_fails_safely_without_tapping_preview(self):

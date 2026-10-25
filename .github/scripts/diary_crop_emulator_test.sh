@@ -98,20 +98,30 @@ root=ET.parse(path).getroot()
 file_node=next((n for n in root.iter("node") if "PadippuPal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc",""))),None)
 if file_node is None: raise SystemExit("Diary fixture missing from DocumentsUI list view")
 parents={child:node for node in root.iter() for child in node}
+# AOSP DocumentsUI versions differ: some expose item_root, while others
+# expose the filename as a non-clickable TextView inside a larger row. Tap
+# the full row/container rather than the title text itself.
 row=file_node
 ancestor=parents.get(file_node)
+fallback=None
 while ancestor is not None:
-    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",ancestor.attrib.get("bounds",""))
-    if ancestor.attrib.get("resource-id")=="com.android.documentsui:id/item_root" and m:
-        row=ancestor
-        break
+    bounds=ancestor.attrib.get("bounds","")
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",bounds)
+    if m:
+        ax1,ay1,ax2,ay2=map(int,m.groups())
+        if ax2>ax1 and ay2>ay1 and (ax2-ax1)>500 and (ay2-ay1)>70:
+            fallback=ancestor
+        if ancestor.attrib.get("resource-id")=="com.android.documentsui:id/item_root":
+            row=ancestor
+            break
     ancestor=parents.get(ancestor)
+else:
+    if fallback is not None:
+        row=fallback
 m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
 if not m: raise SystemExit("Diary filename/row has no valid bounds")
-# DocumentsUI can require a separate confirmation after a row is selected.
-# Tap the row once, then inspect the live hierarchy and activate an explicit
-# Open/Select action if the picker remains visible. Do not assume ENTER focuses
-# the row: touch input does not guarantee keyboard focus.
+# DocumentsUI can require a separate confirmation after selection. Inspect
+# the live hierarchy after a full-row tap before trying a confirmation action.
 x1,y1,x2,y2=map(int,m.groups())
 x=(x1+x2)//2
 y=(y1+y2)//2

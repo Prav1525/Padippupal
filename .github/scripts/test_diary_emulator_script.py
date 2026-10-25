@@ -9,26 +9,20 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_uses_the_actual_clickable_file_preview_control(self):
+    def test_picker_taps_filename_text_not_preview_affordance(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
-        self.assertIn('resource-id")=="com.android.documentsui:id/preview_icon"', source)
-        self.assertIn('target.attrib.get("clickable")!="true"', source)
-        self.assertIn('Tap the actual clickable DocumentsUI preview control', source)
-        self.assertIn('dump_ui diary-picker-preview', source)
+        self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"', source)
         self.assertIn('dump_ui diary-picker-selection-result', source)
-        # Check the heredoc closure and the return-verification loop separately;
-        # comments between them are explanatory text, not part of the contract.
-        self.assertIn("\nPY\n", source)
-        self.assertIn("returned=0", source)
-        self.assertIn("for attempt in $(seq 1 8); do", source)
+        self.assertIn('picker-selection-result.png', source)
+        self.assertIn('returned=0', source)
+        self.assertIn('for attempt in $(seq 1 8); do', source)
         self.assertLess(source.index("returned=0"), source.index("for attempt in $(seq 1 8); do"))
+        self.assertNotIn("com.android.documentsui:id/preview_icon", source)
+        self.assertNotIn("Preview the file PadippuPal-diary-test.jpg", source)
         self.assertNotIn("PY# Give the picker time", source)
-        self.assertIn('subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
         self.assertIn('package="com.padippupal.app"', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
         self.assertNotIn('Tap DocumentsUI item row body at', source)
-        self.assertNotIn('filename/body region rather than the far-right preview button', source)
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")

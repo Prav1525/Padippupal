@@ -8,6 +8,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ui_smoke
+import ui_smoke
 from ui_smoke import tap_file
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,6 +33,16 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
         self.assertNotIn('Tap DocumentsUI item row body at', source)
 
+
+
+    def test_tap_file_command_is_registered_in_dispatcher(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "picker.xml"
+            path.write_text("<hierarchy />", encoding="utf-8")
+            with mock.patch.object(ui_smoke, "tap_file") as selector, \
+                 mock.patch.object(ui_smoke.sys, "argv", ["ui_smoke.py", "tap-file", str(path), "PadippuPal-diary-test.jpg"]):
+                ui_smoke.main()
+            selector.assert_called_once_with(str(path), "PadippuPal-diary-test.jpg")
 
     def test_file_selector_rejects_preview_and_requires_clickable_filename_row(self):
         xml = """<hierarchy>

@@ -516,14 +516,15 @@ def tap_file(path, filename):
             # the filename's left edge; never consider preview_icon.
             thumbs.append((0 if same_item else 1, max(0, x1 - tx2), node))
     thumb = min(thumbs, key=lambda item: (item[0], item[1]))[2] if thumbs else None
-    target_node = thumb or row
+    target_node = thumb if thumb is not None else row
     target_bounds = target_node.attrib.get("bounds", "")
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", target_bounds)
     if not match:
         raise SystemExit("File target has invalid bounds for " + repr(filename) + ": " + target_bounds)
     a, b, c, d = map(int, match.groups())
     x, y = (a + c) // 2, (b + d) // 2
-    print(f"Single-tapping DocumentsUI file thumbnail for {filename!r} at ({x},{y}); thumbnail-bounds={target_bounds}; filename-bounds={bounds}")
+    target_kind = "thumbnail" if thumb is not None else "filename row (no matching thumbnail exposed)"
+    print(f"Single-tapping DocumentsUI {target_kind} for {filename!r} at ({x},{y}); target-bounds={target_bounds}; filename-bounds={bounds}")
     subprocess.run(["adb", "-s", "emulator-5554", "shell", f"input tap {x} {y}"],
                    check=True, timeout=45)
 

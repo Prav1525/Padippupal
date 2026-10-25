@@ -105,17 +105,17 @@ def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeou
 path="ui-screenshots/diary-test/diary-picker-list.xml"
 ns=nodes(path)
 # Do not tap DocumentsUI's preview-eye icon: it launches a preview and BACK
-# exits the picker back to PadippuPal, which was mistaken for a missing file.
-# Tap the filename itself; Android's picker handles selection/opening from
-# the row even when the title TextView is not marked clickable in the UI tree.
+# exits the picker. The filename TextView is also not clickable. Resolve the
+# actual thumbnail ImageView from the live UI hierarchy and tap its own bounds;
+# do not derive coordinates from the filename label (which caused repeated misses).
 n=next((n for n in ns if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
-b=bounds(n) if n is not None else None
-if not b: raise SystemExit("Diary fixture filename missing or has invalid bounds in picker list")
-# The filename TextView is not clickable on this DocumentsUI build. The
-# screenshot shows the file row's thumbnail to its left; tap the thumbnail
-# within the same row instead of sending taps to a non-clickable text node.
-x=max(1,b[0]-109); y=max(1,b[1]-55)
-print(f"Tap diary thumbnail/file-row target at {x},{y} (filename bounds={b})")
+thumb=next((n for n in ns if n.attrib.get("resource-id")=="com.android.documentsui:id/icon_thumb"),None)
+row=next((n for n in ns if n.attrib.get("resource-id")=="com.android.documentsui:id/item_root" and any(c is n for c in [])),None)
+tb=bounds(thumb) if thumb is not None else None
+if n is None or bounds(n) is None: raise SystemExit("Diary fixture filename missing or has invalid bounds in picker list")
+if not tb: raise SystemExit("Diary fixture thumbnail ImageView missing or has invalid bounds in picker list")
+x=(tb[0]+tb[2])//2; y=(tb[1]+tb[3])//2
+print(f"Tap actual diary thumbnail ImageView at {x},{y} (thumbnail bounds={tb})")
 tap(x,y); time.sleep(1.5)
 dump("/data/local/tmp/diary-picker-row-action.xml","ui-screenshots/diary-test/diary-picker-row-action.xml")
 root=ET.parse("ui-screenshots/diary-test/diary-picker-row-action.xml").getroot()
@@ -135,11 +135,11 @@ if package=="com.android.documentsui":
   tap(x,y); time.sleep(1.5)
  else:
   # The row may need a double-tap on builds where a single tap only focuses it.
-  n=next((n for n in root.iter("node") if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
-  b=bounds(n) if n is not None else None
-  if not b: raise SystemExit("Picker stayed open but fixture row disappeared after tap; see diary-picker-row-action.xml")
-  x=max(1,b[0]-109); y=max(1,b[1]-55)
-  print(f"Double-tap diary thumbnail/file-row target at {x},{y}")
+  thumb=next((n for n in root.iter("node") if n.attrib.get("resource-id")=="com.android.documentsui:id/icon_thumb"),None)
+  tb=bounds(thumb) if thumb is not None else None
+  if not tb: raise SystemExit("Picker stayed open but fixture thumbnail disappeared after tap; see diary-picker-row-action.xml")
+  x,y=(tb[0]+tb[2])//2,(tb[1]+tb[3])//2
+  print(f"Double-tap actual diary thumbnail ImageView at {x},{y} (thumbnail bounds={tb})")
   tap(x,y); time.sleep(.2); tap(x,y); time.sleep(1.5)
 PY
 sleep 1

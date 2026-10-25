@@ -13,6 +13,9 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         source = SCRIPT.read_text(encoding="utf-8")
         # The picker switches to list mode inside an embedded Python helper,
         # which dumps and pulls the hierarchy directly rather than using dump_ui.
+        self.assertIn('shell content insert --uri content://media/external/images/media', source)
+        self.assertIn('content query --uri content://media/external/images/media', source)
+        self.assertIn('fixture exists in shared storage but is not indexed in MediaStore', source)
         self.assertIn('subprocess.run(adb+["uiautomator","dump",remote]', source)
         self.assertIn('subprocess.run(["adb","-s","emulator-5554","pull",remote,local]', source)
         self.assertIn('dump("/data/local/tmp/diary-picker-list.xml","ui-screenshots/diary-test/diary-picker-list.xml")', source)

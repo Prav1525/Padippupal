@@ -32,14 +32,11 @@ python3 .github/scripts/create_diary_test_fixture.py
 "${ADB[@]}" shell content insert --uri content://media/external/images/media \
   --bind _data:s:/storage/emulated/0/Download/PadippuPal-diary-test.jpg \
   --bind mime_type:s:image/jpeg \
-  --bind title:s:PadippuPal-diary-test \
-  --bind display_name:s:PadippuPal-diary-test.jpg \
-  --bind relative_path:s:Download/
+  --bind title:s:PadippuPal-diary-test
 indexed=0
 for attempt in $(seq 1 10); do
   if "${ADB[@]}" shell content query --uri content://media/external/images/media \
-      --projection _id:_display_name:_data \
-      --where "_display_name='PadippuPal-diary-test.jpg'" | grep -q "PadippuPal-diary-test.jpg"; then
+      --projection _id:_display_name:_data | grep -Fq "PadippuPal-diary-test.jpg"; then
     indexed=1
     break
   fi

@@ -463,19 +463,18 @@ def tap_exact(path, target):
 
 
 def tap_file(path, filename):
-    """Select a file through a genuinely clickable filename row, never its preview icon."""
+    """Tap the filename row body; Android may mark its TextView non-clickable."""
     nodes, texts = load(path)
     target = filename.strip().lower()
     candidates = []
     for node in nodes:
         label = node.attrib.get("text", "").strip().lower()
         desc = node.attrib.get("content-desc", "").strip().lower()
-        # List view commonly exposes the filename as text; allow metadata suffixes
-        # in descriptions, but explicitly exclude the preview-icon action.
+        # DocumentsUI can expose the filename as a non-clickable TextView while
+        # the row parent handles touch events. Use that text's bounds, not the
+        # separate clickable preview icon (which opens preview instead of selecting).
         matches = label == target or desc == target or desc.startswith(target + ",")
-        if not matches or node.attrib.get("clickable") != "true":
-            continue
-        if "preview the file" in desc:
+        if not matches or "preview the file" in desc:
             continue
         bounds = node.attrib.get("bounds", "")
         if re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", bounds):
@@ -483,14 +482,15 @@ def tap_file(path, filename):
     if not candidates:
         observed = [f"text={n.attrib.get('text','')!r}, desc={n.attrib.get('content-desc','')!r}, clickable={n.attrib.get('clickable')}, bounds={n.attrib.get('bounds','')}"
                     for n in nodes if filename.lower() in (n.attrib.get("text","") + " " + n.attrib.get("content-desc","")).lower()]
-        raise SystemExit("No clickable filename row for " + repr(filename) +
+        raise SystemExit("No filename row target for " + repr(filename) +
                          "; matching nodes: " + (" | ".join(observed) if observed else "none") +
                          "; visible labels: " + " | ".join(texts[:80]))
-    # Prefer the shortest matching label: a row is more specific than a clickable parent.
-    node = min(candidates, key=lambda n: len(n.attrib.get("text","") or n.attrib.get("content-desc","")))
+    # Prefer the exact filename text node over metadata descriptions or ancestors.
+    node = min(candidates, key=lambda n: (n.attrib.get("text","").strip().lower() != target,
+                                          len(n.attrib.get("text","") or n.attrib.get("content-desc",""))))
     x1,y1,x2,y2 = map(int, re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib["bounds"]).groups())
     x,y=(x1+x2)//2,(y1+y2)//2
-    print(f"Selecting clickable file row {filename!r} at ({x},{y}), bounds={node.attrib['bounds']}, text={node.attrib.get('text')!r}, desc={node.attrib.get('content-desc')!r}")
+    print(f"Tapping filename row body {filename!r} at ({x},{y}), bounds={node.attrib['bounds']}, clickable={node.attrib.get('clickable')}, text={node.attrib.get('text')!r}, desc={node.attrib.get('content-desc')!r}")
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=45)
 
 

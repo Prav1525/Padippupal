@@ -7,6 +7,7 @@ from unittest import mock
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ui_smoke
 from ui_smoke import tap_file
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -42,6 +43,20 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             path.write_text(xml, encoding="utf-8")
             with self.assertRaisesRegex(SystemExit, "No clickable filename row"):
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
+
+    def test_tap_file_command_is_registered_in_dispatcher(self):
+        xml = """<hierarchy>
+          <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="true" bounds="[20,100][350,180]" />
+        </hierarchy>"""
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "list.xml"
+            path.write_text(xml, encoding="utf-8")
+            with mock.patch.object(sys, "argv", ["ui_smoke.py", "tap-file", str(path), "PadippuPal-diary-test.jpg"]):
+                with mock.patch("ui_smoke.subprocess.run") as run:
+                    ui_smoke.main()
+                    run.assert_called_once()
+                    args = run.call_args.args[0]
+                    self.assertEqual(args[-2:], ["185", "140"])
 
     def test_file_selector_accepts_clickable_list_row_not_preview(self):
         xml = """<hierarchy>

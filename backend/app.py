@@ -2657,6 +2657,12 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
         headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
+    # Log enough context to diagnose upstream failures without logging API keys,
+    # image bytes/base64, student content, or the full provider response.
+    logger.info(
+        "Diary OCR request: model=%s mime_type=%s image_bytes=%d date_supplied=%s",
+        model, payload.mime_type, len(image_bytes), bool(payload.today_date),
+    )
     try:
         with urllib.request.urlopen(request, timeout=35) as response:
             result = json.loads(response.read().decode("utf-8"))
@@ -2686,11 +2692,24 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
         diary_date = normalize(str(parsed.get("diary_date", "")))[:40]
         return {"tasks": tasks, "count": len(tasks), "diary_date": diary_date, "match_status": match_status, "needs_review": True, "model": model}
     except urllib.error.HTTPError as exc:
-        logger.warning("Diary OCR provider HTTP error status=%s", exc.code)
+        # Provider body often contains the actionable reason (invalid model/key,
+        # quota, permissions). Keep a short sanitized excerpt for server logs only.
+        try:
+            provider_error = exc.read(2048).decode("utf-8", errors="replace")
+        except Exception:
+            provider_error = ""
+        provider_error = " ".join(provider_error.split())[:1000]
+        logger.warning(
+            "Diary OCR provider HTTP error: status=%s model=%s reason=%s",
+            exc.code, model, provider_error or "no response body",
+        )
         if exc.code == 429:
             raise HTTPException(status_code=503, detail="Diary scanning is temporarily at the AI usage limit.") from exc
         raise HTTPException(status_code=502, detail="The diary photo could not be read right now. Please try again.") from exc
     except (urllib.error.URLError, TimeoutError, KeyError, IndexError, StopIteration,
             ValueError, TypeError, json.JSONDecodeError) as exc:
-        logger.warning("Diary OCR failed: %s", type(exc).__name__)
+        logger.warning(
+            "Diary OCR failed: error_type=%s model=%s message=%s",
+            type(exc).__name__, model, " ".join(str(exc).split())[:500],
+        )
         raise HTTPException(status_code=502, detail="Diary scanning failed. Try a clearer photo with good lighting.") from exc

@@ -493,13 +493,29 @@ def tap_file(path, filename):
 
     # Prefer the thumbnail that belongs to this same list item. Never tap the
     # sibling preview_icon, which opens a preview and does not select the URI.
-    thumb = next((n for n in nodes
-                  if n.attrib.get("resource-id", "").endswith(":id/icon_thumb")
-                  and _contains_bounds(
-                      next((p.attrib.get("bounds", "") for p in nodes
-                            if p.attrib.get("resource-id", "").endswith(":id/item_root")
-                            and _contains_bounds(p.attrib.get("bounds", ""), bounds)), ""),
-                      n.attrib.get("bounds", ""))), None)
+    # DocumentsUI accessibility trees vary by Android/provider version: some
+    # omit item_root or report bounds that do not contain the thumbnail. Prefer
+    # a thumbnail geometrically associated with this filename row, using a
+    # shared item_root when available and a same-row vertical overlap otherwise.
+    item_roots = [p.attrib.get("bounds", "") for p in nodes
+                  if p.attrib.get("resource-id", "").endswith(":id/item_root")
+                  and _contains_bounds(p.attrib.get("bounds", ""), bounds)]
+    thumbs = []
+    for node in nodes:
+        if not node.attrib.get("resource-id", "").endswith(":id/icon_thumb"):
+            continue
+        thumb_bounds = node.attrib.get("bounds", "")
+        m = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", thumb_bounds)
+        if not m:
+            continue
+        tx1, ty1, tx2, ty2 = map(int, m.groups())
+        same_item = any(_contains_bounds(root_bounds, thumb_bounds) for root_bounds in item_roots)
+        same_row = ty1 < y2 and ty2 > y1 and tx2 <= x1
+        if same_item or same_row:
+            # Prefer explicit item membership, then the nearest thumbnail to
+            # the filename's left edge; never consider preview_icon.
+            thumbs.append((0 if same_item else 1, max(0, x1 - tx2), node))
+    thumb = min(thumbs, key=lambda item: (item[0], item[1]))[2] if thumbs else None
     target_node = thumb or row
     target_bounds = target_node.attrib.get("bounds", "")
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", target_bounds)

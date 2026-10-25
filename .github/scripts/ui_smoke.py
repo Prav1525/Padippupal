@@ -599,6 +599,8 @@ def main():
         tap_first_concept(path)
     elif action == "tap-exact" and len(sys.argv) >= 4:
         tap_exact(path, sys.argv[3])
+    elif action == "tap-file" and len(sys.argv) >= 4:
+        tap_file(path, sys.argv[3])
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-completed-lesson":

@@ -75,65 +75,33 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# DocumentsUI initially opens Downloads in a thumbnail grid. Switch to
-# list view first, then select the actual file row; the previous revision tried
-# to parse a list-view dump that had never been created.
-python3 - <<'PY'
-import re, subprocess, xml.etree.ElementTree as ET
-p="ui-screenshots/diary-test/diary-picker-downloads.xml"
-root=ET.parse(p).getroot()
-button=next((n for n in root.iter("node") if n.attrib.get("content-desc")=="List view"),None)
-if button is None: raise SystemExit("DocumentsUI list-view control missing")
-m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",button.attrib.get("bounds",""))
-if not m: raise SystemExit("DocumentsUI list-view control has invalid bounds")
-x1,y1,x2,y2=map(int,m.groups())
-subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)],check=True,timeout=20)
-PY
-sleep 1
-dump_ui diary-picker-list
+# Keep DocumentsUI in its native image grid. In the captured hierarchy the
+# list row and filename TextView are both non-clickable; tapping their text
+# never selects the content URI. Tap the actual image tile using its observed
+# bounds, avoiding the separate preview affordance.
 python3 - <<'PY'
 import re, subprocess, time, xml.etree.ElementTree as ET
-adb=["adb","-s","emulator-5554","shell"]
-def dump(remote,local):
- subprocess.run(adb+["uiautomator","dump",remote],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
- subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
-def nodes(path): return list(ET.parse(path).getroot().iter("node"))
+p="ui-screenshots/diary-test/diary-picker-downloads.xml"
+root=ET.parse(p).getroot()
+nodes=list(root.iter("node"))
+tile=next((n for n in nodes if n.attrib.get("class")=="android.widget.LinearLayout"
+           and "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","")),None)
+if tile is None:
+    # The grid tile's content description contains the filename, unlike the
+    # non-clickable filename child in list mode.
+    tile=next((n for n in nodes if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","")
+               and n.attrib.get("class") not in ("android.widget.TextView","android.widget.FrameLayout")),None)
 def bounds(n):
- m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
- return tuple(map(int,m.groups())) if m else None
-def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
-path="ui-screenshots/diary-test/diary-picker-list.xml"
-ns=nodes(path)
-name=next((n for n in ns if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
-row=next((n for n in ns if n.attrib.get("resource-id")=="com.android.documentsui:id/item_root" and any(c.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg" for c in n.iter("node"))),None)
-if name is None or bounds(name) is None or row is None or bounds(row) is None:
- raise SystemExit("Fixture file row not found in live DocumentsUI hierarchy")
-# AOSP DocumentsUI exposes the thumbnail and title as non-clickable children.
-# Tap the center of the row's main content (not the preview-eye affordance),
-# then inspect state; if a single tap only focuses the row, double-tap the same
-# main content. Never infer success from the command exit code alone.
-r=bounds(row); x=min(r[2]-220,max(r[0]+220,(r[0]+r[2])//2)); y=(r[1]+r[3])//2
-print(f"Tap file-row content at {x},{y}; row bounds={r}")
-tap(x,y); time.sleep(1.0)
-dump("/data/local/tmp/diary-picker-row-action.xml","ui-screenshots/diary-test/diary-picker-row-action.xml")
-root=ET.parse("ui-screenshots/diary-test/diary-picker-row-action.xml").getroot()
-package=root.find(".//node").attrib.get("package","") if root.find(".//node") is not None else ""
-if package=="com.android.documentsui":
- # If a real selection/open button appears, use its observed bounds.
- ns=list(root.iter("node")); actions=[]
- for n in ns:
-  label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
-  if label in ("open","select","use","choose","open file","select file") and n.attrib.get("enabled","true")=="true":
-   b=bounds(n)
-   if b: actions.append((label,b))
- if actions:
-  label,b=actions[-1]; x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
-  print(f"Tap actual picker action {label!r} at {x},{y}"); tap(x,y); time.sleep(1.5)
- else:
-  # The list-row children are not individually clickable in this AOSP build.
-  # Double-tap the row body, away from the preview icon on the far right.
-  print(f"No selection action after first tap; double-tap file-row content at {x},{y}")
-  tap(x,y); time.sleep(.25); tap(x,y); time.sleep(1.5)
+    m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+    return tuple(map(int,m.groups())) if m else None
+if tile is None or bounds(tile) is None:
+    raise SystemExit("Clickable image-grid tile not found in observed DocumentsUI hierarchy")
+b=bounds(tile)
+# Prefer the thumbnail area (left third), not the preview icon on the right.
+x=b[0]+max(30,(b[2]-b[0])//4); y=(b[1]+b[3])//2
+print(f"Tap image tile at {x},{y}; observed tile bounds={b}")
+subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
+time.sleep(2)
 PY
 sleep 1
 dump_ui diary-picker-row-selected

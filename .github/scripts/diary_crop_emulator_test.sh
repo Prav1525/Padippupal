@@ -75,33 +75,46 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# Keep DocumentsUI in its native image grid. In the captured hierarchy the
-# list row and filename TextView are both non-clickable; tapping their text
-# never selects the content URI. Tap the actual image tile using its observed
-# bounds, avoiding the separate preview affordance.
+# AOSP DocumentsUI supports explicit multi-selection in list mode:
+# long-press the filename row, then click its observed Select action. A normal
+# tap on a non-clickable filename child does not select the file.
 python3 - <<'PY'
 import re, subprocess, time, xml.etree.ElementTree as ET
-p="ui-screenshots/diary-test/diary-picker-downloads.xml"
-root=ET.parse(p).getroot()
-nodes=list(root.iter("node"))
-tile=next((n for n in nodes if n.attrib.get("class")=="android.widget.LinearLayout"
-           and "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","")),None)
-if tile is None:
-    # The grid tile's content description contains the filename, unlike the
-    # non-clickable filename child in list mode.
-    tile=next((n for n in nodes if "PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","")
-               and n.attrib.get("class") not in ("android.widget.TextView","android.widget.FrameLayout")),None)
+adb=["adb","-s","emulator-5554","shell"]
+def dump(remote,local):
+ subprocess.run(adb+["uiautomator","dump",remote],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
+ subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
+def nodes(path): return list(ET.parse(path).getroot().iter("node"))
 def bounds(n):
-    m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
-    return tuple(map(int,m.groups())) if m else None
-if tile is None or bounds(tile) is None:
-    raise SystemExit("Clickable image-grid tile not found in observed DocumentsUI hierarchy")
-b=bounds(tile)
-# Prefer the thumbnail area (left third), not the preview icon on the right.
-x=b[0]+max(30,(b[2]-b[0])//4); y=(b[1]+b[3])//2
-print(f"Tap image tile at {x},{y}; observed tile bounds={b}")
-subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
-time.sleep(2)
+ m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+ return tuple(map(int,m.groups())) if m else None
+def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
+path="ui-screenshots/diary-test/diary-picker-downloads.xml"
+ns=nodes(path)
+# Switch to list mode using the control's live bounds when available.
+list_button=next((n for n in ns if n.attrib.get("content-desc","").strip().lower()=="list view"),None)
+if list_button and bounds(list_button):
+ b=bounds(list_button); tap((b[0]+b[2])//2,(b[1]+b[3])//2); time.sleep(1)
+ dump("/data/local/tmp/diary-picker-list.xml","ui-screenshots/diary-test/diary-picker-list.xml")
+ path="ui-screenshots/diary-test/diary-picker-list.xml"; ns=nodes(path)
+name=next((n for n in ns if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
+if name is None or bounds(name) is None: raise SystemExit("Fixture filename not found in DocumentsUI")
+b=bounds(name); x=(b[0]+b[2])//2; y=(b[1]+b[3])//2
+print(f"Long-press filename to enter selection mode at {x},{y}, bounds={b}")
+subprocess.run(adb+["input","swipe",str(x),str(y),str(x),str(y),"1100"],check=True,timeout=20)
+time.sleep(1)
+dump("/data/local/tmp/diary-picker-selection-mode.xml","ui-screenshots/diary-test/diary-picker-selection-mode.xml")
+ns=nodes("ui-screenshots/diary-test/diary-picker-selection-mode.xml")
+actions=[]
+for n in ns:
+ label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
+ rid=n.attrib.get("resource-id","")
+ if (label in ("select","open","use","choose","select file") or rid.endswith(":id/action_menu_select")) and bounds(n):
+  actions.append((label,bounds(n)))
+if not actions: raise SystemExit("No visible Select action after long-press; see diary-picker-selection-mode.xml")
+label,b=actions[-1]; x=(b[0]+b[2])//2; y=(b[1]+b[3])//2
+print(f"Tap observed DocumentsUI action {label!r} at {x},{y}")
+tap(x,y); time.sleep(2)
 PY
 sleep 1
 dump_ui diary-picker-row-selected

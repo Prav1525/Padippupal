@@ -19,6 +19,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
         self.assertIn('dump_ui diary-picker-list', source)
         self.assertIn('node.attrib.get("clickable")=="true"', source)
+        self.assertIn('r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', source)
         self.assertIn('No clickable file-row ancestor found in DocumentsUI list view', source)
         self.assertIn('parents={child:parent for parent in root.iter() for child in parent}', source)
         self.assertIn('["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)

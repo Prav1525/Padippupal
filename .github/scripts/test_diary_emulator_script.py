@@ -9,20 +9,21 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_uses_list_row_body_when_accessibility_flags_are_nonclickable(self):
+    def test_picker_uses_the_actual_clickable_file_preview_control(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
-        self.assertIn('resource-id") != "com.android.documentsui:id/item_root"', source)
-        self.assertIn('filename/body region rather than the far-right preview button', source)
-        self.assertIn('Tap DocumentsUI item row body at', source)
-        self.assertIn("\nPY\n# Give the picker time to deliver the selected URI", source)
+        self.assertIn('resource-id")=="com.android.documentsui:id/preview_icon"', source)
+        self.assertIn('target.attrib.get("clickable")!="true"', source)
+        self.assertIn('Tap the actual clickable DocumentsUI preview control', source)
+        self.assertIn('dump_ui diary-picker-preview', source)
+        self.assertIn('dump_ui diary-picker-selection-result', source)
+        self.assertIn("\\nPY\\n# Give the picker time to deliver the selected URI", source)
         self.assertNotIn("PY# Give the picker time", source)
         self.assertIn('subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
         self.assertIn('package="com.padippupal.app"', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
-        self.assertNotIn('node.attrib.get("clickable")=="true"', source)
-        self.assertNotIn('endswith(":id/icon_thumb")', source)
-        self.assertNotIn('Tap fixture thumbnail at', source)
+        self.assertNotIn('Tap DocumentsUI item row body at', source)
+        self.assertNotIn('filename/body region rather than the far-right preview button', source)
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")

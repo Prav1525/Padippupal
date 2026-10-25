@@ -81,3 +81,17 @@ Use this format:
 - **What remains unverified:** Workflow run, status-check requirement, branch protection, and whether the integration can configure repository rules.
 - **Difference from previous attempt:** Fixes the validator itself rather than only adding process instructions.
 - **Next action and why:** Let the PR workflow execute on the new commit and inspect its result; then ask the repository owner to require the status check if admin-level settings are unavailable.
+
+
+### 2026-10-25 — Change picker smoke tap from thumbnail to filename row
+- **Branch / commit:** `fix/diary-image-picker-reliability`; helper commit `50f0622bf04c71836f439941483d9b3d2e93efdd`; regression-test commit `4406f11f9b163f25a3f7444db5f551ec5e107723`.
+- **Test command or workflow URL:** Pending exact-head CI after these commits.
+- **Result:** **UNVERIFIED** — change committed; automated regression and emulator acceptance have not run on this exact head yet.
+- **Exact failure or assertion:** Previous run [40207402376](https://github.com/Prav1525/Padippupal/actions/runs/40207402376) tapped thumbnail center `(94,735)` and remained in DocumentsUI for all eight checks; log says `Single-tapping DocumentsUI thumbnail ...`.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Failed run](https://github.com/Prav1525/Padippupal/actions/runs/40207402376), [failure artifact](https://github.com/Prav1525/Padippupal/actions/runs/40207402376/artifacts/12605182220).
+- **Change made (files + rationale):** `.github/scripts/ui_smoke.py` now taps the filename node's own center rather than selecting the non-clickable thumbnail; `.github/scripts/test_diary_emulator_script.py` now asserts the filename-row coordinates `(424,713)` for the exact previously observed XML and rejects the old thumbnail-selection strategy.
+- **Root cause:** **PROBABLE, not confirmed** — the failing action is demonstrably tapping a non-clickable thumbnail; filename-row tap is a distinct, evidence-led interaction, but only a fresh emulator run can establish whether it selects the URI.
+- **What this attempt proves:** A concrete test-harness defect was identified and the selector plus its regression expectation were changed.
+- **What remains unverified:** Unit/static regression checks, DocumentsUI return, content-URI receipt, crop/rescan, date isolation, save-to-planner, and runtime behavior.
+- **Difference from previous attempt:** Changes the target from thumbnail center `(94,735)` to filename-row center `(424,713)`; no repeated coordinate retry on the same target.
+- **Next action and why:** Run exact-head script/JVM/APK/emulator checks; inspect the new picker screenshot/XML if the filename-row tap still fails and then switch to a URI-level diagnostic rather than another blind tap.

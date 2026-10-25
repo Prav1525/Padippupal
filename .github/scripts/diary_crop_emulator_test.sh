@@ -109,35 +109,51 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   log "FAIL: fixture disappeared after switching DocumentsUI to List view"
   exit 1
 fi
-# tap-file only activates a clickable filename row and explicitly rejects preview actions.
+# Tap the file row, then handle both DocumentsUI behaviors: some picker builds
+# immediately return a URI; others first mark the row selected and require the
+# toolbar's Open/Select confirmation. Never activate the separate Preview action.
 python3 .github/scripts/ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker-list.xml "PadippuPal-diary-test.jpg"
-sleep 2
+sleep 1
 dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png
-# Give the picker time to deliver the selected URI and verify the owning package.
 returned=0
 for attempt in $(seq 1 8); do
-  sleep 1
+  if ! grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+    returned=1
+    break
+  fi
+  # A selected row can remain in DocumentsUI until its explicit confirmation
+  # button is pressed. Only tap a visible, accessible confirmation label.
+  if grep -Eqi 'text="(Open|Select|Use this file|Choose)"|content-desc="(Open|Select|Use this file|Choose)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+    if grep -Eqi 'text="Open"|content-desc="Open"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Open"
+    elif grep -Eqi 'text="Select"|content-desc="Select"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Select"
+    elif grep -Eqi 'text="Use this file"|content-desc="Use this file"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Use this file"
+    else
+      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Choose"
+    fi
+    sleep 1
+  fi
   dump_ui diary-picker-selection-result
   if ! grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
     returned=1
     break
   fi
+  sleep 1
 done
 if [ "$returned" -ne 1 ]; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
-  log "FAIL: tapping the fixture thumbnail did not return from DocumentsUI; see diary-picker-selection-result.xml and picker-selection-stuck.png"
+  log "FAIL: file selection did not return from DocumentsUI after row tap and any visible confirmation; inspect diary-picker-selection-result.xml and picker-selection-stuck.png"
   exit 1
 fi
 sleep 1
-dump_ui diary-picker-row-selected
-# Give DocumentsUI time to return the selected content URI to PadippuPal.
-sleep 2
 dump_ui diary-picker-confirmed
 cp ui-screenshots/diary-test/diary-picker-confirmed.xml ui-screenshots/diary-test/diary-picker-file-selected.xml
 if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
-  log "FAIL: picker remained in DocumentsUI after filename tap/explicit confirmation; see diary-picker-confirmed.xml and picker-selection-stuck.png"
+  log "FAIL: picker remained in DocumentsUI after selection confirmation; see diary-picker-confirmed.xml and picker-selection-stuck.png"
   exit 1
 fi
 sleep 3

@@ -95,30 +95,35 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# In this emulator's image-filtered DocumentsUI grid, the file row and its
-# thumbnail are not exposed as clickable accessibility nodes, and long-pressing
-# the row does not enter selection mode. The separate preview icon is a different
-# action. Tap the actual thumbnail bounds from the live hierarchy, then verify
-# the picker returns the selected content URI to PadippuPal.
+# The image-filtered DocumentsUI grid exposes a non-clickable thumbnail ImageView.
+# Switch to list view, where the file row should be a real selectable item, and tap
+# the nearest clickable ancestor of the fixture filename rather than guessing coordinates.
+tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"
+sleep 1
+dump_ui diary-picker-list
 python3 - <<'PY'
-import re, subprocess, time, xml.etree.ElementTree as ET
-path="ui-screenshots/diary-test/diary-picker-downloads.xml"
+import re, subprocess, xml.etree.ElementTree as ET
+path="ui-screenshots/diary-test/diary-picker-list.xml"
 root=ET.parse(path).getroot()
+parents={child:parent for parent in root.iter() for child in parent}
 nodes=list(root.iter("node"))
-def bounds(n):
- m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
- return tuple(map(int,m.groups())) if m else None
 name=next((n for n in nodes if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
-if name is None: raise SystemExit("Fixture filename disappeared from DocumentsUI")
-# icon_thumb is the actual image region. The parent :id/thumbnail spans
-# the whole grid card and its center lands in a non-interactive gap.
-thumb=next((n for n in name.iter("node") if n.attrib.get("resource-id","").endswith(":id/icon_thumb")),None)
-if thumb is None:
- thumb=next((n for n in name.iter("node") if n.attrib.get("resource-id","").endswith(":id/thumbnail")),None)
-b=bounds(thumb) if thumb is not None else None
-if b is None: raise SystemExit("Fixture thumbnail bounds not found in DocumentsUI hierarchy")
+if name is None:
+    raise SystemExit("Fixture filename not found in DocumentsUI list view")
+node=name
+target=None
+while node is not None:
+    if node.tag=="node" and node.attrib.get("clickable")=="true":
+        m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",node.attrib.get("bounds",""))
+        if m:
+            target=node
+            b=tuple(map(int,m.groups()))
+            break
+    node=parents.get(node)
+if target is None:
+    raise SystemExit("No clickable file-row ancestor found in DocumentsUI list view; inspect diary-picker-list.xml")
 x=(b[0]+b[2])//2; y=(b[1]+b[3])//2
-print(f"Tap fixture thumbnail at {x},{y}, bounds={b}; avoid the separate preview icon")
+print(f"Tap selectable file row at {x},{y}, bounds={target.attrib.get('bounds')}, label={name.attrib.get('text') or name.attrib.get('content-desc')}")
 subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY
 # Give the picker time to deliver the selected URI and verify the owning package.

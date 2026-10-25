@@ -35,3 +35,11 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Regression prevention:** Keep the dump-before-parse ordering assertion and verify the exact helper used by the embedded parser. Run script validation and the full emulator smoke test on the fix commit; a green static check alone does not close this incident.
 - **Validation:** Pending CI. PR #21 must remain open until the emulator verifies picker selection, crop, rescan, review, and planner save.
 
+
+## Incident: picker selection tapped a non-clickable filename label
+
+- **Symptom:** Emulator run `40153864135` built the APK and passed JVM/static checks, but failed because DocumentsUI remained open after the filename tap and retry.
+- **Evidence/root cause:** The uploaded `picker-selection-stuck.png` and matching UI hierarchy show DocumentsUI in its file-list layout. The filename is an `android.widget.TextView` with `clickable=false`; the test tapped the center of that label twice, so it never activated the file row. The thumbnail is the visible row target to the left of the label.
+- **Fix attempt:** Commit `7f2dff3f7d562848c9a83a05409bdaeae1150403` changes the initial and fallback taps to target the thumbnail aligned with the filename row. Commit `8c96ac8484650967ab0d946b075dd6ca41e306a0` updates the static regression check to require the thumbnail-target interaction.
+- **Regression prevention:** Static validation now checks for the thumbnail target rather than asserting that a non-clickable filename label is tapped. The end-to-end test must still prove that DocumentsUI returns to PadippuPal, opens crop UI, rescans, saves the expected tasks, and verifies planner contents.
+- **Validation:** Pending a fresh CI run. This is a reasoned fix based on the uploaded screenshot/UI tree, not yet a verified end-to-end pass. Do not merge PR #21 until the full emulator flow passes.

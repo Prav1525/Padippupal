@@ -99,48 +99,41 @@ def dump(remote,local):
  subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
 def nodes(path): return list(ET.parse(path).getroot().iter("node"))
 def bounds(n):
- m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
+ m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
  return tuple(map(int,m.groups())) if m else None
 def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 path="ui-screenshots/diary-test/diary-picker-list.xml"
 ns=nodes(path)
-# Do not tap DocumentsUI's preview-eye icon: it launches a preview and BACK
-# exits the picker. The filename TextView is also not clickable. Resolve the
-# actual thumbnail ImageView from the live UI hierarchy and tap its own bounds;
-# do not derive coordinates from the filename label (which caused repeated misses).
-n=next((n for n in ns if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
-thumb=next((n for n in ns if n.attrib.get("resource-id")=="com.android.documentsui:id/icon_thumb"),None)
-row=next((n for n in ns if n.attrib.get("resource-id")=="com.android.documentsui:id/item_root" and any(c is n for c in [])),None)
-tb=bounds(thumb) if thumb is not None else None
-if n is None or bounds(n) is None: raise SystemExit("Diary fixture filename missing or has invalid bounds in picker list")
-if not tb: raise SystemExit("Diary fixture thumbnail ImageView missing or has invalid bounds in picker list")
-x=(tb[0]+tb[2])//2; y=(tb[1]+tb[3])//2
-print(f"Tap actual diary thumbnail ImageView at {x},{y} (thumbnail bounds={tb})")
-tap(x,y); time.sleep(1.5)
+name=next((n for n in ns if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
+row=next((n for n in ns if n.attrib.get("resource-id")=="com.android.documentsui:id/item_root" and any(c.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg" for c in n.iter("node"))),None)
+if name is None or bounds(name) is None or row is None or bounds(row) is None:
+ raise SystemExit("Fixture file row not found in live DocumentsUI hierarchy")
+# AOSP DocumentsUI exposes the thumbnail and title as non-clickable children.
+# Tap the center of the row's main content (not the preview-eye affordance),
+# then inspect state; if a single tap only focuses the row, double-tap the same
+# main content. Never infer success from the command exit code alone.
+r=bounds(row); x=min(r[2]-220,max(r[0]+220,(r[0]+r[2])//2)); y=(r[1]+r[3])//2
+print(f"Tap file-row content at {x},{y}; row bounds={r}")
+tap(x,y); time.sleep(1.0)
 dump("/data/local/tmp/diary-picker-row-action.xml","ui-screenshots/diary-test/diary-picker-row-action.xml")
 root=ET.parse("ui-screenshots/diary-test/diary-picker-row-action.xml").getroot()
 package=root.find(".//node").attrib.get("package","") if root.find(".//node") is not None else ""
 if package=="com.android.documentsui":
- # Some DocumentsUI builds select the row first and expose an Open/Select
- # confirmation; click that real action rather than a preview affordance.
- actions=[]
- for node in root.iter("node"):
-  label=(node.attrib.get("text","")+" "+node.attrib.get("content-desc","")).strip().lower()
-  if label in ("open","select","use","choose","open file","select file") and node.attrib.get("enabled","true")=="true":
-   b=bounds(node)
+ # If a real selection/open button appears, use its observed bounds.
+ ns=list(root.iter("node")); actions=[]
+ for n in ns:
+  label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
+  if label in ("open","select","use","choose","open file","select file") and n.attrib.get("enabled","true")=="true":
+   b=bounds(n)
    if b: actions.append((label,b))
  if actions:
   label,b=actions[-1]; x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
-  print(f"Tap picker confirmation {label!r} at {x},{y}")
-  tap(x,y); time.sleep(1.5)
+  print(f"Tap actual picker action {label!r} at {x},{y}"); tap(x,y); time.sleep(1.5)
  else:
-  # The row may need a double-tap on builds where a single tap only focuses it.
-  thumb=next((n for n in root.iter("node") if n.attrib.get("resource-id")=="com.android.documentsui:id/icon_thumb"),None)
-  tb=bounds(thumb) if thumb is not None else None
-  if not tb: raise SystemExit("Picker stayed open but fixture thumbnail disappeared after tap; see diary-picker-row-action.xml")
-  x,y=(tb[0]+tb[2])//2,(tb[1]+tb[3])//2
-  print(f"Double-tap actual diary thumbnail ImageView at {x},{y} (thumbnail bounds={tb})")
-  tap(x,y); time.sleep(.2); tap(x,y); time.sleep(1.5)
+  # The list-row children are not individually clickable in this AOSP build.
+  # Double-tap the row body, away from the preview icon on the far right.
+  print(f"No selection action after first tap; double-tap file-row content at {x},{y}")
+  tap(x,y); time.sleep(.25); tap(x,y); time.sleep(1.5)
 PY
 sleep 1
 dump_ui diary-picker-row-selected

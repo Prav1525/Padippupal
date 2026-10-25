@@ -148,7 +148,8 @@ x=max(x1+40,min((lx1+lx2)//2,x2-220))
 y=(y1+y2)//2
 print(f"Tap DocumentsUI item row body at {x},{y}, row={row.attrib.get('bounds')}, label={name.attrib.get('text') or name.attrib.get('content-desc')}, clickable={row.attrib.get('clickable')}")
 subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
-PY# Give the picker time to deliver the selected URI and verify the owning package.
+PY
+# Give the picker time to deliver the selected URI and verify the owning package.
 returned=0
 for attempt in $(seq 1 8); do
   sleep 1

@@ -2,7 +2,7 @@ name: Android UI smoke test
 
 on:
   push:
-    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan"]
+    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan", "fix/diary-image-picker-reliability"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
@@ -23,6 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:

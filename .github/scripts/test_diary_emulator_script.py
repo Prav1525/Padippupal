@@ -29,7 +29,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         dump = source.index("dump_ui diary-picker-list")
         parse = source.index('path="ui-screenshots/diary-test/diary-picker-list.xml"')
         self.assertLess(dump, parse)
-        self.assertIn('ns=getnodes(path)', source[parse:])
+        self.assertIn('ns=nodes(path)', source[parse:])
+        self.assertIn("def nodes(path): return list(ET.parse(path).getroot().iter(\"node\"))", source[:parse])
 
     def test_failure_register_exists_and_names_regression_expectations(self):
         register = ROOT / "docs" / "TEST_FAILURE_REGISTER.md"

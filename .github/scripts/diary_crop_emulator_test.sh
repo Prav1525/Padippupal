@@ -92,65 +92,49 @@ PY
 sleep 1
 dump_ui diary-picker-list
 python3 - <<'PY'
-import re, subprocess, xml.etree.ElementTree as ET, time
+import re, subprocess, time, xml.etree.ElementTree as ET
 adb=["adb","-s","emulator-5554","shell"]
-def dump(remote, local):
-    subprocess.run(adb+["uiautomator","dump",remote],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
-    subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
-def tap_node(node, description):
-    m=re.fullmatch(r"\[(\d+),(\d+)\]\\[(\d+),(\d+)\]",node.attrib.get("bounds",""))
-    if not m: raise SystemExit(f"{description} has invalid bounds")
-    x1,y1,x2,y2=map(int,m.groups())
-    x,y=(x1+x2)//2,(y1+y2)//2
-    print(f"Tap {description} at {x},{y}; bounds={m.group(0)}")
-    subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
+def dump(remote,local):
+ subprocess.run(adb+["uiautomator","dump",remote],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
+ subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
+def getnodes(path): return list(ET.parse(path).getroot().iter("node"))
+def bounds(n):
+ m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+ return tuple(map(int,m.groups())) if m else None
+def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 path="ui-screenshots/diary-test/diary-picker-list.xml"
-root=ET.parse(path).getroot()
-# The file row/title is explicitly non-clickable on this AOSP DocumentsUI.
-# Use its actual clickable preview action instead of tapping a dead row center.
-preview=next((n for n in root.iter("node")
-    if "Preview the file PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","")
-    and n.attrib.get("clickable")=="true"),None)
-if preview is None:
-    # Some Android versions keep the preview icon in grid view; inspect both
-    # the list dump and the original Downloads dump for the accessible action.
-    for p in ("ui-screenshots/diary-test/diary-picker-downloads.xml",):
-        r=ET.parse(p).getroot()
-        preview=next((n for n in r.iter("node")
-            if "Preview the file PadippuPal-diary-test.jpg" in n.attrib.get("content-desc","")
-            and n.attrib.get("clickable")=="true"),None)
-        if preview is not None:
-            path=p
-            break
-if preview is None:
-    raise SystemExit("Clickable preview action for diary fixture not found in picker hierarchy")
-tap_node(preview,"clickable file preview")
-time.sleep(1)
+ns=getnodes(path)
+# Use the clickable preview affordance. The file row/title themselves are
+# non-clickable in this DocumentsUI build, so tapping their center is ineffective.
+n=next((n for n in ns if n.attrib.get("clickable")=="true" and "preview the file padippupal-diary-test.jpg" in n.attrib.get("content-desc","").lower()),None)
+if n is None: raise SystemExit("Clickable preview action for PadippuPal-diary-test.jpg not found")
+b=bounds(n)
+if not b: raise SystemExit("Preview action has invalid bounds")
+x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
+print(f"Tap clickable preview action at {x},{y}")
+tap(x,y); time.sleep(1)
 dump("/data/local/tmp/diary-picker-preview.xml","ui-screenshots/diary-test/diary-picker-preview.xml")
-subprocess.run(["adb","-s","emulator-5554","exec-out","screencap","-p"],stdout=open("ui-screenshots/diary-test/picker-preview.png","wb"),check=True,timeout=20)
-root=ET.parse("ui-screenshots/diary-test/diary-picker-preview.xml").getroot()
-# A preview may itself return the content URI, or expose a positive action
-# such as Open/Select/Use. Only tap a visible, enabled action in the live tree.
-if any(n.attrib.get("package")=="com.padippupal.app" for n in root.iter("node")):
-    print("Preview action returned directly to PadippuPal")
+ns=getnodes("ui-screenshots/diary-test/diary-picker-preview.xml")
+actions=[]
+for n in ns:
+ label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
+ if label in ("open","select","use","choose","open file","select file") and n.attrib.get("enabled","true")=="true":
+  b=bounds(n)
+  if b: actions.append((label,b))
+if actions:
+ label,b=actions[-1]; x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
+ print(f"Tap explicit confirmation {label!r} at {x},{y}"); tap(x,y)
 else:
-    positives=[]
-    for n in root.iter("node"):
-        label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
-        if label in ("open","select","use","choose","open file","select file","use photo","select photo","done"):
-            if n.attrib.get("enabled","true")!="true": continue
-            if n.attrib.get("clickable","false")!="true": continue
-            m=re.fullmatch(r"\[(\d+),(\d+)\]\\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
-            if m:
-                b=tuple(map(int,m.groups()))
-                if b[2]>b[0] and b[3]>b[1]: positives.append((n,b,label))
-    if not positives:
-        raise SystemExit("Preview screen has no enabled clickable Open/Select/Use action; inspect diary-picker-preview.xml and picker-preview.png")
-    n,(x1,y1,x2,y2),label=positives[-1]
-    print(f"Confirm preview with {label!r}")
-    tap_node(n,"preview confirmation "+label)
-    time.sleep(1)
-PY
+ # Some previews are image-only; return to the list and double-tap the filename.
+ print("No explicit preview confirmation; returning to list for filename double-tap")
+ subprocess.run(adb+["input","keyevent","KEYCODE_BACK"],check=True,timeout=20); time.sleep(1)
+ dump("/data/local/tmp/diary-picker-list-retry.xml","ui-screenshots/diary-test/diary-picker-list-retry.xml")
+ n=next((n for n in getnodes("ui-screenshots/diary-test/diary-picker-list-retry.xml") if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
+ b=bounds(n) if n is not None else None
+ if not b: raise SystemExit("Diary filename disappeared after preview")
+ x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
+ tap(x,y); time.sleep(.2); tap(x,y)
+time.sleep(1)
 sleep 1
 dump_ui diary-picker-row-selected
 # Give DocumentsUI time to return the selected content URI to PadippuPal.

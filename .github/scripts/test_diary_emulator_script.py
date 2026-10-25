@@ -32,7 +32,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
 
     def test_picker_selects_fixture_and_uses_observed_select_action(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"', source)
+        self.assertIn('"padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()', source)
+        self.assertIn('r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"', source)
         self.assertIn('print(f"Long-press filename to enter selection mode', source)
         self.assertIn('["input","swipe",str(x),str(y),str(x),str(y),"1100"]', source)
         self.assertIn('dump("/data/local/tmp/diary-picker-selection-mode.xml"', source)

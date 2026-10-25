@@ -54,7 +54,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 args = run.call_args.args[0]
                 self.assertEqual(args[-2:], ["424", "713"])
-                run.assert_called_once()
+                run.assert_has_calls([mock.call(["adb", "-s", "emulator-5554", "shell", "input", "tap", mock.ANY, mock.ANY], check=True, timeout=45), mock.call(["adb", "-s", "emulator-5554", "shell", "input", "tap", mock.ANY, mock.ANY], check=True, timeout=45)])
 
     def test_tap_file_command_selects_row_through_dispatcher(self):
         xml = """<hierarchy>

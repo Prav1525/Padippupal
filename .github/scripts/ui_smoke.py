@@ -491,7 +491,15 @@ def tap_file(path, filename):
     x1,y1,x2,y2 = map(int, re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib["bounds"]).groups())
     x,y=(x1+x2)//2,(y1+y2)//2
     print(f"Tapping filename row body {filename!r} at ({x},{y}), bounds={node.attrib['bounds']}, clickable={node.attrib.get('clickable')}, text={node.attrib.get('text')!r}, desc={node.attrib.get('content-desc')!r}")
-    subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=45)
+    # DocumentsUI on the CI emulator exposes neither the filename nor its row
+    # as clickable in the accessibility tree. A single center tap was observed
+    # to leave the picker unchanged. Try a second tap on the same row body
+    # (the normal open-on-second-tap interaction) before the caller inspects
+    # the resulting UI; never tap the distinct preview icon.
+    adb = ["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)]
+    subprocess.run(adb, check=True, timeout=45)
+    time.sleep(0.35)
+    subprocess.run(adb, check=True, timeout=45)
 
 
 def tap(path, target):

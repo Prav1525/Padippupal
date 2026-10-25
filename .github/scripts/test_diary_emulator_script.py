@@ -19,7 +19,9 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
     def test_picker_selects_filename_not_preview_affordance(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"', source)
-        self.assertIn("Tap diary filename row", source)
+        self.assertIn("Tap diary thumbnail/file-row target", source)
+        self.assertIn("b[0]-110", source)
+        self.assertIn("filename TextView is not clickable", source)
         self.assertIn("diary-picker-row-action.xml", source)
         self.assertNotIn("Preview the file PadippuPal-diary-test.jpg", source)
         self.assertNotIn("Diary filename disappeared after preview", source)

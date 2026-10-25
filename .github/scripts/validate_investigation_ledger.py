@@ -50,16 +50,16 @@ def main():
         return 1
 
     # A template placeholder must not count as a real investigation entry.
-    entries = re.findall(r"(?ms)^### (20\\d{2}-\\d{2}-\\d{2}) — (.+?)\\n(.*?)(?=^### |\\Z)", ledger)
+    entries = re.findall(r"(?ms)^### (20\d{2}-\d{2}-\d{2}) — (.+?)\n(.*?)(?=^### |\Z)", ledger)
     real_entries = []
     for date, title, body in entries:
         if title.strip() in {"Short test/change description", "Short description"}:
             continue
-        if not re.search(r"(?im)^- \\*\\*Result:\\*\\* (PASS|FAIL|BLOCKED|UNVERIFIED)\\b", body):
+        if not re.search(r"(?im)^- \*\*Result:\*\* (PASS|FAIL|BLOCKED|UNVERIFIED)\b", body):
             continue
-        if not re.search(r"(?im)^- \\*\\*Evidence", body):
+        if not re.search(r"(?im)^- \*\*Evidence", body):
             continue
-        if not re.search(r"(?im)^- \\*\\*Next action", body):
+        if not re.search(r"(?im)^- \*\*Next action", body):
             continue
         real_entries.append((date, title))
     if not real_entries:

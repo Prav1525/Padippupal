@@ -97,44 +97,47 @@ adb=["adb","-s","emulator-5554","shell"]
 def dump(remote,local):
  subprocess.run(adb+["uiautomator","dump",remote],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
  subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
-def getnodes(path): return list(ET.parse(path).getroot().iter("node"))
+def nodes(path): return list(ET.parse(path).getroot().iter("node"))
 def bounds(n):
  m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
  return tuple(map(int,m.groups())) if m else None
 def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 path="ui-screenshots/diary-test/diary-picker-list.xml"
-ns=getnodes(path)
-# Use the clickable preview affordance. The file row/title themselves are
-# non-clickable in this DocumentsUI build, so tapping their center is ineffective.
-n=next((n for n in ns if n.attrib.get("clickable")=="true" and "preview the file padippupal-diary-test.jpg" in n.attrib.get("content-desc","").lower()),None)
-if n is None: raise SystemExit("Clickable preview action for PadippuPal-diary-test.jpg not found")
-b=bounds(n)
-if not b: raise SystemExit("Preview action has invalid bounds")
+ns=nodes(path)
+# Do not tap DocumentsUI's preview-eye icon: it launches a preview and BACK
+# exits the picker back to PadippuPal, which was mistaken for a missing file.
+# Tap the filename itself; Android's picker handles selection/opening from
+# the row even when the title TextView is not marked clickable in the UI tree.
+n=next((n for n in ns if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
+b=bounds(n) if n is not None else None
+if not b: raise SystemExit("Diary fixture filename missing or has invalid bounds in picker list")
 x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
-print(f"Tap clickable preview action at {x},{y}")
-tap(x,y); time.sleep(1)
-dump("/data/local/tmp/diary-picker-preview.xml","ui-screenshots/diary-test/diary-picker-preview.xml")
-ns=getnodes("ui-screenshots/diary-test/diary-picker-preview.xml")
-actions=[]
-for n in ns:
- label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
- if label in ("open","select","use","choose","open file","select file") and n.attrib.get("enabled","true")=="true":
-  b=bounds(n)
-  if b: actions.append((label,b))
-if actions:
- label,b=actions[-1]; x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
- print(f"Tap explicit confirmation {label!r} at {x},{y}"); tap(x,y)
-else:
- # Some previews are image-only; return to the list and double-tap the filename.
- print("No explicit preview confirmation; returning to list for filename double-tap")
- subprocess.run(adb+["input","keyevent","KEYCODE_BACK"],check=True,timeout=20); time.sleep(1)
- dump("/data/local/tmp/diary-picker-list-retry.xml","ui-screenshots/diary-test/diary-picker-list-retry.xml")
- n=next((n for n in getnodes("ui-screenshots/diary-test/diary-picker-list-retry.xml") if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
- b=bounds(n) if n is not None else None
- if not b: raise SystemExit("Diary filename disappeared after preview")
- x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
- tap(x,y); time.sleep(.2); tap(x,y)
-time.sleep(1)
+print(f"Tap diary filename row at {x},{y} (bounds={b})")
+tap(x,y); time.sleep(1.5)
+dump("/data/local/tmp/diary-picker-row-action.xml","ui-screenshots/diary-test/diary-picker-row-action.xml")
+root=ET.parse("ui-screenshots/diary-test/diary-picker-row-action.xml").getroot()
+package=root.find(".//node").attrib.get("package","") if root.find(".//node") is not None else ""
+if package=="com.android.documentsui":
+ # Some DocumentsUI builds select the row first and expose an Open/Select
+ # confirmation; click that real action rather than a preview affordance.
+ actions=[]
+ for node in root.iter("node"):
+  label=(node.attrib.get("text","")+" "+node.attrib.get("content-desc","")).strip().lower()
+  if label in ("open","select","use","choose","open file","select file") and node.attrib.get("enabled","true")=="true":
+   b=bounds(node)
+   if b: actions.append((label,b))
+ if actions:
+  label,b=actions[-1]; x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
+  print(f"Tap picker confirmation {label!r} at {x},{y}")
+  tap(x,y); time.sleep(1.5)
+ else:
+  # The row may need a double-tap on builds where a single tap only focuses it.
+  n=next((n for n in root.iter("node") if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
+  b=bounds(n) if n is not None else None
+  if not b: raise SystemExit("Picker stayed open but fixture row disappeared after tap; see diary-picker-row-action.xml")
+  x,y=(b[0]+b[2])//2,(b[1]+b[3])//2
+  print(f"Double-tap fixture filename at {x},{y}")
+  tap(x,y); time.sleep(.2); tap(x,y); time.sleep(1.5)
 PY
 sleep 1
 dump_ui diary-picker-row-selected

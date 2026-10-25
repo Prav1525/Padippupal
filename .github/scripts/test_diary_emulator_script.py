@@ -9,23 +9,18 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_uses_selectable_list_row_not_nonclickable_grid_thumbnail(self):
+    def test_picker_uses_list_row_body_when_accessibility_flags_are_nonclickable(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('shell content insert --uri content://media/external/images/media', source)
-        self.assertIn('content query --uri content://media/external/images/media', source)
-        self.assertIn('--projection _id:_display_name:_data | grep -Fq "PadippuPal-diary-test.jpg"', source)
-        self.assertNotIn('--bind display_name:s:', source)
-        self.assertNotIn('--bind relative_path:s:', source)
         self.assertIn('tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
-        self.assertIn('dump_ui diary-picker-list', source)
-        self.assertIn('node.attrib.get("clickable")=="true"', source)
-        self.assertIn('r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]"', source)
-        self.assertIn('No clickable file-row ancestor found in DocumentsUI list view', source)
-        self.assertIn('parents={child:parent for parent in root.iter() for child in parent}', source)
-        self.assertIn('["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
+        self.assertIn('resource-id") != "com.android.documentsui:id/item_root"', source)
+        self.assertIn('row body rather than the far-right preview button', source)
+        self.assertIn('Tap DocumentsUI item row body at', source)
+        self.assertIn('subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
+        self.assertIn('package="com.padippupal.app"', source)
+        self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
+        self.assertNotIn('node.attrib.get("clickable")=="true"', source)
         self.assertNotIn('endswith(":id/icon_thumb")', source)
         self.assertNotIn('Tap fixture thumbnail at', source)
-        self.assertIn('if ! grep -q \'package="com.android.documentsui"\'', source)
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")

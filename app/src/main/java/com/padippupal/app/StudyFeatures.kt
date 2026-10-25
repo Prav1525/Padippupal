@@ -154,7 +154,7 @@ internal fun DiaryScanScreen(
                         val o = array.optJSONObject(i) ?: return@mapNotNull null
                         val title = o.optString("title").trim()
                         if (title.isBlank()) null else DiaryDraft(title, o.optString("subject", "General"),
-                            o.optString("details"), o.optString("due_date"), o.optInt("minutes", 15), o.optString("confidence", "medium"))
+                            o.optString("details"), o.optString("due_date").ifBlank { diaryDate }, o.optInt("minutes", 15), o.optString("confidence", "medium"))
                     }
                     status = if (drafts.isEmpty()) "No clear homework was detected. Try a closer, brighter photo or type the task into your planner." else "Found ${drafts.size} possible task(s). Review them carefully before saving."
                 }, onFailure = { status = "Could not scan: ${it.message ?: "please try again"}" })
@@ -251,6 +251,14 @@ internal fun DiaryScanScreen(
                 Button(onClick = {
                     val chosen = drafts.filter { it.checked && it.title.isNotBlank() }
                     if (chosen.isEmpty()) { status = "Select at least one task to save."; return@Button }
+                    val invalidDate = chosen.any { task ->
+                        !task.dueDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) ||
+                            runCatching { java.time.LocalDate.parse(task.dueDate) }.isFailure
+                    }
+                    if (invalidDate) {
+                        status = "A task has no confirmed date. Please rescan the diary row showing its date; nothing was saved."
+                        return@Button
+                    }
                     saving = true
                     status = "Saving tasks to your study planner…"
                     featureExecutor.execute {
@@ -259,7 +267,7 @@ internal fun DiaryScanScreen(
                             chosen.forEach { t ->
                                 array.put(JSONObject().put("profile_id", profileId).put("title", t.title.trim())
                                     .put("subject", t.subject).put("details", t.details)
-                                    .put("due_date", t.dueDate.ifBlank { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()) })
+                                    .put("due_date", t.dueDate)
                                     .put("minutes", t.minutes.coerceIn(1, 600)).put("source", "diary"))
                             }
                             featureRequest("${featureBase()}/planner/tasks/import", "POST",

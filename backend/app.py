@@ -2569,12 +2569,25 @@ def import_planner_tasks(payload: PlannerTaskImport) -> dict[str, Any]:
         for task in payload.tasks:
             if task.profile_id != payload.profile_id:
                 raise HTTPException(status_code=400, detail="All tasks must belong to the requested learner profile.")
+            title = normalize(task.title)
+            subject = normalize(task.subject) or "General"
+            details = normalize(task.details)
+            due_date = normalize(task.due_date)
+            # Re-scanning the same diary row must not create duplicate tasks or
+            # reset completion. Match only diary-sourced tasks for this learner,
+            # on the same date, with the same normalized title and subject.
+            existing = conn.execute(
+                "SELECT id FROM planner_tasks WHERE profile_id=? AND source='diary' "
+                "AND LOWER(title)=LOWER(?) AND LOWER(subject)=LOWER(?) AND due_date=? LIMIT 1",
+                (payload.profile_id, title, subject, due_date),
+            ).fetchone()
+            if existing:
+                continue
             task_id = str(uuid.uuid4())
             conn.execute(
                 "INSERT INTO planner_tasks(id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
-                (task_id, payload.profile_id, normalize(task.title), normalize(task.subject) or "General",
-                 normalize(task.details), normalize(task.due_date), task.minutes, "diary", created_at),
+                (task_id, payload.profile_id, title, subject, details, due_date, task.minutes, "diary", created_at),
             )
             inserted.append(task_id)
         rows = conn.execute(

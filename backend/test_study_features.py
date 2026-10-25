@@ -42,6 +42,35 @@ def test_planner_tasks_persist_and_can_be_completed(client):
     assert client.get("/planner/tasks", params={"profile_id": profile_id}).json()["tasks"] == []
 
 
+def test_diary_import_is_idempotent_and_preserves_completion(client):
+    profile_id = "diary-dedupe-profile"
+    payload = {
+        "profile_id": profile_id,
+        "tasks": [{
+            "profile_id": profile_id, "title": "Complete exercise 2",
+            "subject": "Mathematics", "details": "Questions 1-5",
+            "due_date": "2026-10-24", "minutes": 20, "source": "diary",
+        }],
+    }
+    first = client.post("/planner/tasks/import", json=payload)
+    assert first.status_code == 201
+    assert first.json()["saved"] == 1
+    task_id = first.json()["tasks"][0]["id"]
+
+    completed = client.put(f"/planner/tasks/{task_id}", json={
+        "profile_id": profile_id, "completed": True,
+    })
+    assert completed.status_code == 200
+
+    second = client.post("/planner/tasks/import", json=payload)
+    assert second.status_code == 201
+    assert second.json()["saved"] == 0
+    listed = client.get("/planner/tasks", params={"profile_id": profile_id}).json()["tasks"]
+    assert len(listed) == 1
+    assert listed[0]["id"] == task_id
+    assert listed[0]["completed"] is True
+
+
 def test_diary_scan_reports_missing_gemini_key(client):
     response = client.post("/diary/parse", json={
         "image_base64": base64.b64encode(b"fake-image-content" * 10).decode(),

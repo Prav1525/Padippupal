@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """Static regression checks for the diary emulator's ADB command construction."""
 from pathlib import Path
+import tempfile
 import unittest
+from unittest import mock
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ui_smoke import tap_file
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / ".github" / "scripts" / "diary_crop_emulator_test.sh"
@@ -11,7 +17,8 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
     def test_picker_taps_filename_text_not_preview_affordance(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('python3 .github/scripts/ui_smoke.py tap-exact ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"', source)
+        self.assertIn('ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker-list.xml "PadippuPal-diary-test.jpg"', source)
+        self.assertIn('ui_smoke.py tap ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
         self.assertIn('dump_ui diary-picker-selection-result', source)
         self.assertIn('picker-selection-result.png', source)
         self.assertIn('returned=0', source)
@@ -23,6 +30,32 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('package="com.padippupal.app"', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
         self.assertNotIn('Tap DocumentsUI item row body at', source)
+
+
+    def test_file_selector_rejects_preview_and_requires_clickable_filename_row(self):
+        xml = """<hierarchy>
+          <node text="" content-desc="PadippuPal-diary-test.jpg, 98.90 kB, 7:43 AM" clickable="false" bounds="[64,652][366,954]" />
+          <node text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" bounds="[240,652][366,778]" />
+        </hierarchy>"""
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "grid.xml"
+            path.write_text(xml, encoding="utf-8")
+            with self.assertRaisesRegex(SystemExit, "No clickable filename row"):
+                tap_file(str(path), "PadippuPal-diary-test.jpg")
+
+    def test_file_selector_accepts_clickable_list_row_not_preview(self):
+        xml = """<hierarchy>
+          <node text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" bounds="[240,100][300,160]" />
+          <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="true" bounds="[20,100][350,180]" />
+        </hierarchy>"""
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "list.xml"
+            path.write_text(xml, encoding="utf-8")
+            with mock.patch("ui_smoke.subprocess.run") as run:
+                tap_file(str(path), "PadippuPal-diary-test.jpg")
+                args = run.call_args.args[0]
+                self.assertEqual(args[-2:], ["185", "140"])
+                run.assert_called_once()
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")

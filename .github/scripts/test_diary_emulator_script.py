@@ -29,7 +29,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('Single-tapping DocumentsUI filename row', selector_source)
         self.assertNotIn('target_kind = "thumbnail"', selector_source)
         self.assertIn('["adb", "-s", "emulator-5554", "shell",', selector_source)
-        self.assertIn('f"input tap {x} {y}"', selector_source)
+        self.assertIn('"input", "tap", str(x), str(y)', selector_source)
         self.assertNotIn('"shell", "sh", "-c"', selector_source)
         self.assertNotIn("control = row or next", selector_source)
         self.assertNotIn("PY# Give the picker time", source)
@@ -61,7 +61,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 run.assert_called_once_with(
                     ["adb", "-s", "emulator-5554", "shell",
-                     "input tap 424 713"],
+                     "input", "tap", "424", "713"],
                     check=True, timeout=45)
 
     def test_file_selector_prefers_filename_row_even_if_preview_is_clickable(self):
@@ -76,7 +76,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 run.assert_called_once_with(
                     ["adb", "-s", "emulator-5554", "shell",
-                     "input tap 185 140"],
+                     "input", "tap", "185", "140"],
                     check=True, timeout=45)
 
     def test_missing_filename_fails_safely_without_tapping_preview(self):

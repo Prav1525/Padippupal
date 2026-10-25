@@ -68,3 +68,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** The picker implementation and other assertions were updated to locate the actual `icon_thumb` node, but one old assertion still required the removed log text `Tap diary thumbnail/file-row target`. This was test drift, not an emulator result.
 - **Fix:** Commit `de55dbe5ac863f82457bab0d962b50be5d91b923` removes that obsolete assertion while retaining checks for live thumbnail-node bounds and center-coordinate taps.
 - **Validation:** Fresh script validation and emulator run pending. This incident does not close the underlying picker issue; do not merge PR #21 without the complete emulator flow passing.
+
+
+## Incident: emulator fixture missing from DocumentsUI Downloads
+
+- **Symptom:** Run `40164183979` passed JVM tests, APK build, and smoke-script validation, then failed in the real emulator because `PadippuPal-diary-test.jpg` was absent from the image-filtered Downloads listing. The screenshot shows DocumentsUI's Downloads view with an empty image list; the fixture push itself completed.
+- **Root cause:** The test copied the JPEG into shared storage but relied on the deprecated `MEDIA_SCANNER_SCAN_FILE` broadcast to index it. On this Android 11 emulator, the file did not appear in the MediaStore-backed image list used by DocumentsUI, so the picker could not see it.
+- **Fix attempt:** Explicitly register the fixture in `content://media/external/images/media` and verify the matching row exists before launching the app. If indexing fails, log both the file path and MediaStore query rather than failing later with a misleading picker-selection error.
+- **Regression prevention:** Static smoke-script validation checks for explicit MediaStore registration and a query proving the fixture is indexed before the UI flow starts.
+- **Validation:** Pending a fresh CI run. Do not merge PR #21 unless the fixture becomes visible, the picker returns to PadippuPal, and crop, rescan, review, and planner-save assertions pass.

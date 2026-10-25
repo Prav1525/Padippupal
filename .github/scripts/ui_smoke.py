@@ -464,12 +464,14 @@ def tap_exact(path, target):
 
 
 def tap_file(path, filename):
-    """Open a named file through the DocumentsUI list item, never its preview button.
+    """Select/open a named file using its thumbnail, not filename text or preview.
 
-    On the CI AOSP picker, the filename TextView and item container report
-    clickable=false even though the list item responds to a double-tap. The
-    preview_icon is a separate expand/preview affordance and does not return a
-    selected URI to the calling app.
+    In the observed Google DocumentsUI hierarchy the filename TextView, row
+    container, and thumbnail ImageView report clickable=false, while the
+    separate preview_icon is clickable but only opens a preview. A single tap
+    in the thumbnail's visible bounds is the least ambiguous file-row action;
+    the caller immediately captures a fresh hierarchy and handles any explicit
+    Open/Select confirmation instead of blindly double-tapping stale bounds.
     """
     nodes, texts = load(path)
     target = filename.strip().lower()
@@ -488,15 +490,25 @@ def tap_file(path, filename):
     x1, y1, x2, y2 = map(int, match.groups())
     if x2 <= x1 or y2 <= y1:
         raise SystemExit("Filename row has zero-area bounds for " + repr(filename) + ": " + bounds)
-    x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    print(f"Double-tapping DocumentsUI filename row for {filename!r} at ({x},{y}); bounds={bounds}; accessibility-clickable={row.attrib.get('clickable')}")
-    # AOSP DocumentsUI opens a file on double-tap; the preview affordance at
-    # the right edge only previews it and leaves the picker active.
-    # Pass the complete sequence as one remote shell command. Splitting it after
-    # "sh -c" lets adb/device shell parsing treat the semicolons as host-side
-    # command separators, so the taps may never execute on the emulator.
-    subprocess.run(["adb", "-s", "emulator-5554", "shell",
-                    f"input tap {x} {y}; sleep 0.35; input tap {x} {y}"],
+
+    # Prefer the thumbnail that belongs to this same list item. Never tap the
+    # sibling preview_icon, which opens a preview and does not select the URI.
+    thumb = next((n for n in nodes
+                  if n.attrib.get("resource-id", "").endswith(":id/icon_thumb")
+                  and _contains_bounds(
+                      next((p.attrib.get("bounds", "") for p in nodes
+                            if p.attrib.get("resource-id", "").endswith(":id/item_root")
+                            and _contains_bounds(p.attrib.get("bounds", ""), bounds)), ""),
+                      n.attrib.get("bounds", ""))), None)
+    target_node = thumb or row
+    target_bounds = target_node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", target_bounds)
+    if not match:
+        raise SystemExit("File target has invalid bounds for " + repr(filename) + ": " + target_bounds)
+    a, b, c, d = map(int, match.groups())
+    x, y = (a + c) // 2, (b + d) // 2
+    print(f"Single-tapping DocumentsUI file thumbnail for {filename!r} at ({x},{y}); thumbnail-bounds={target_bounds}; filename-bounds={bounds}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", f"input tap {x} {y}"],
                    check=True, timeout=45)
 
 def _contains_bounds(outer, inner):

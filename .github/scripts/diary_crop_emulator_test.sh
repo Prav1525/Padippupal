@@ -106,7 +106,7 @@ path="ui-screenshots/diary-test/diary-picker-downloads.xml"
 root=ET.parse(path).getroot()
 nodes=list(root.iter("node"))
 def bounds(n):
- m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+ m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
  return tuple(map(int,m.groups())) if m else None
 name=next((n for n in nodes if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
 if name is None: raise SystemExit("Fixture filename disappeared from DocumentsUI")
@@ -121,11 +121,16 @@ print(f"Tap fixture thumbnail at {x},{y}, bounds={b}; avoid the separate preview
 subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY
 # Give the picker time to deliver the selected URI and verify the owning package.
+returned=0
 for attempt in $(seq 1 8); do
   sleep 1
   dump_ui diary-picker-selection-result
+  if ! grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+    returned=1
+    break
+  fi
 done
-if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+if [ "$returned" -ne 1 ]; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
   log "FAIL: tapping the fixture thumbnail did not return from DocumentsUI; see diary-picker-selection-result.xml and picker-selection-stuck.png"
   exit 1

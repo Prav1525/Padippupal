@@ -9,32 +9,36 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_hierarchy_dump_uses_dump_ui_helper(self):
+    def test_picker_hierarchy_dump_is_pulled_before_parsing(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        helper = source[source.index("dump_ui(){"):source.index("\ntap_label(){")]
-        self.assertIn('shell uiautomator dump "/data/local/tmp/${name}.xml"', helper)
-        self.assertIn('pull "/data/local/tmp/${name}.xml" "ui-screenshots/diary-test/${name}.xml"', helper)
-        self.assertIn("dump_ui diary-picker-list", source)
+        # The picker switches to list mode inside an embedded Python helper,
+        # which dumps and pulls the hierarchy directly rather than using dump_ui.
+        self.assertIn('subprocess.run(adb+["uiautomator","dump",remote]', source)
+        self.assertIn('subprocess.run(["adb","-s","emulator-5554","pull",remote,local]', source)
+        self.assertIn('dump("/data/local/tmp/diary-picker-list.xml","ui-screenshots/diary-test/diary-picker-list.xml")', source)
+        dump = source.index('dump("/data/local/tmp/diary-picker-list.xml"')
+        parse = source.index('path="ui-screenshots/diary-test/diary-picker-list.xml"; ns=nodes(path)')
+        self.assertLess(dump, parse)
 
-    def test_picker_selects_filename_not_preview_affordance(self):
+    def test_picker_selects_fixture_and_uses_observed_select_action(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"', source)
-        self.assertIn('n.attrib.get("resource-id")=="com.android.documentsui:id/item_root"', source)
-        self.assertIn("Tap file-row content", source)
-        self.assertIn("double-tap file-row content", source.lower())
-        self.assertIn("Never infer success from the command exit code alone", source)
-        self.assertIn("diary-picker-row-action.xml", source)
-        self.assertIn("diary-picker-row-action.xml", source)
+        self.assertIn('print(f"Long-press filename to enter selection mode', source)
+        self.assertIn('["input","swipe",str(x),str(y),str(x),str(y),"1100"]', source)
+        self.assertIn('dump("/data/local/tmp/diary-picker-selection-mode.xml"', source)
+        self.assertIn('label in ("select","open","use","choose","select file")', source)
+        self.assertIn('if not actions: raise SystemExit("No visible Select action', source)
+        self.assertIn('Tap observed DocumentsUI action', source)
         self.assertNotIn("Preview the file PadippuPal-diary-test.jpg", source)
         self.assertNotIn("Diary filename disappeared after preview", source)
 
     def test_picker_dump_is_pulled_before_it_is_parsed(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        dump = source.index("dump_ui diary-picker-list")
-        parse = source.index('path="ui-screenshots/diary-test/diary-picker-list.xml"')
+        dump = source.index('dump("/data/local/tmp/diary-picker-list.xml"')
+        parse = source.index('path="ui-screenshots/diary-test/diary-picker-list.xml"; ns=nodes(path)')
         self.assertLess(dump, parse)
         self.assertIn('ns=nodes(path)', source[parse:])
-        self.assertIn("def nodes(path): return list(ET.parse(path).getroot().iter(\"node\"))", source[:parse])
+        self.assertIn('def nodes(path): return list(ET.parse(path).getroot().iter("node"))', source[:parse])
 
     def test_failure_register_exists_and_names_regression_expectations(self):
         register = ROOT / "docs" / "TEST_FAILURE_REGISTER.md"

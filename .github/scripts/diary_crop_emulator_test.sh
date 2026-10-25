@@ -114,7 +114,7 @@ node=name
 target=None
 while node is not None:
     if node.tag=="node" and node.attrib.get("clickable")=="true":
-        m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",node.attrib.get("bounds",""))
+        m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",node.attrib.get("bounds",""))
         if m:
             target=node
             b=tuple(map(int,m.groups()))

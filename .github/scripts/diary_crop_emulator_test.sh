@@ -108,16 +108,38 @@ while ancestor is not None:
     ancestor=parents.get(ancestor)
 m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
 if not m: raise SystemExit("Diary filename/row has no valid bounds")
-# On this Android DocumentsUI build, item_root and its filename child are
-# explicitly non-clickable; item_root is focusable. A tap therefore does nothing.
-# Focus the row, then activate it with ENTER (the same action as keyboard-open).
+# DocumentsUI can require a separate confirmation after a row is selected.
+# Tap the row once, then inspect the live hierarchy and activate an explicit
+# Open/Select action if the picker remains visible. Do not assume ENTER focuses
+# the row: touch input does not guarantee keyboard focus.
 x1,y1,x2,y2=map(int,m.groups())
 x=(x1+x2)//2
 y=(y1+y2)//2
-print(f"Focus diary row at {x},{y}; row bounds={m.group(0)}, then press ENTER")
-subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
-subprocess.run(["adb","-s","emulator-5554","shell","input","keyevent","KEYCODE_ENTER"],check=True,timeout=20)
+print(f"Tap diary row at {x},{y}; row bounds={m.group(0)}")
+adb=["adb","-s","emulator-5554","shell"]
+subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 import time
+time.sleep(1)
+subprocess.run(adb+["exec-out","uiautomator","dump","/dev/tty"],stdout=open("ui-screenshots/diary-test/diary-picker-after-row.xml","w"),stderr=subprocess.DEVNULL,check=True,timeout=30)
+after=ET.parse("ui-screenshots/diary-test/diary-picker-after-row.xml").getroot()
+if any(n.attrib.get("package")=="com.android.documentsui" for n in after.iter("node")):
+    actions=[]
+    for n in after.iter("node"):
+        label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
+        if label in ("open","select","use","choose","open file","select file") and n.attrib.get("enabled","true")=="true":
+            b=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+            if b: actions.append((n,tuple(map(int,b.groups())),label))
+    if actions:
+        node,(ax1,ay1,ax2,ay2),label=actions[-1]
+        print(f"Tap explicit picker confirmation {label!r} at {(ax1+ax2)//2},{(ay1+ay2)//2}")
+        subprocess.run(adb+["input","tap",str((ax1+ax2)//2),str((ay1+ay2)//2)],check=True,timeout=20)
+    else:
+        # Some DocumentsUI builds use double-tap to open a document when the
+        # row is focusable but not exposed as clickable in the accessibility tree.
+        print("No explicit confirmation action found; retry row as a double-tap")
+        subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
+        time.sleep(0.15)
+        subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 time.sleep(1)
 
 PY

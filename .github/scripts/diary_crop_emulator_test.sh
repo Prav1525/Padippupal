@@ -95,11 +95,22 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# The preview_icon is a preview affordance, not a selection action. Tap the
-# center of the visible filename text node instead. Earlier attempts tapped near
-# the bottom padding of its bounds (y=735 vs text-row center y=713), which did not
-# reliably activate the row. ui_smoke.py computes the text node's actual center.
-python3 .github/scripts/ui_smoke.py tap-exact ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"
+# Grid view exposes a non-clickable file tile and a clickable preview action,
+# so do not tap either. Switch to List view and inspect a fresh accessibility tree.
+if grep -qi 'content-desc="List view"' ui-screenshots/diary-test/diary-picker-downloads.xml; then
+  python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-downloads.xml "List view"
+  sleep 1
+  dump_ui diary-picker-list
+else
+  log "FAIL: DocumentsUI List view control missing; cannot safely select a file from grid view"
+  exit 1
+fi
+if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker-list.xml; then
+  log "FAIL: fixture disappeared after switching DocumentsUI to List view"
+  exit 1
+fi
+# tap-file only activates a clickable filename row and explicitly rejects preview actions.
+python3 .github/scripts/ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker-list.xml "PadippuPal-diary-test.jpg"
 sleep 2
 dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png

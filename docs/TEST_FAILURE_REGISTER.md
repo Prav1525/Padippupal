@@ -119,3 +119,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `93f96630b56ac7ec889a835a2d01f60433a13ea5` locates the actual `item_root` containing the fixture and taps its body using the captured bounds, away from the separate preview control. It no longer requires a clickable ancestor.
 - **Regression prevention:** Commit `7895e3a3272c388ed182ead18a6195a2234b4f84` replaces the old clickable-ancestor assertion with checks for row-body targeting and the app-return/crop guards.
 - **Validation:** New CI run required. This is a targeted fix based on the captured hierarchy, not yet an end-to-end pass. Keep PR #21 open until photo selection, crop, rescan, review, and today's planner save all pass.
+
+
+## Incident: DocumentsUI row-body tap did not select the file
+
+- **Symptom:** Run [40169953811](https://github.com/Prav1525/Padippupal/actions/runs/40169953811) passed JVM tests, APK build, script validation, and the general tutor UI flow, then remained in Downloads after eight selection checks.
+- **Root cause confirmed from the screenshot and `diary-picker-list.xml`:** The filename TextView, thumbnail, and `item_root` row all have `clickable=false`. Tapping the row body at `(424,735)` therefore did not activate selection. The only file-specific clickable control exposed by the hierarchy is `com.android.documentsui:id/preview_icon`, with content description `Preview the file PadippuPal-diary-test.jpg`. The prior fix incorrectly assumed a non-clickable row still handled touch input.
+- **Fix attempt:** Commit `fc42023339a2559777aa74298745608d758e68b4` changes the test to locate the fixture's actual clickable preview control, tap its measured bounds, and capture the resulting preview UI; commit `0b8069ba9720d2ff92b320428b1fdf8c18e4e60f` corrects the bounds parser; commit `e641fe7652a97e9d60711bc51f4988cc8af8a894` updates the regression test to require this control and reject row-body taps.
+- **Regression prevention:** The static test now checks the clickable preview target and the preview/result diagnostic checkpoints. The next emulator run must verify whether preview returns the URI directly or exposes an explicit Open/Select action; the test attempts common explicit confirmation labels if DocumentsUI remains active.
+- **Validation:** These changes are pushed but **not yet verified by a fresh emulator run**. Do not merge PR #21 until the selected URI returns to PadippuPal and crop, rescan, review, and today's planner save all pass.

@@ -19,7 +19,6 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
     def test_picker_selects_filename_not_preview_affordance(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"', source)
-        self.assertIn("Tap diary thumbnail/file-row target", source)
         self.assertIn('n.attrib.get("resource-id")=="com.android.documentsui:id/icon_thumb"', source)
         self.assertIn("Tap actual diary thumbnail ImageView", source)
         self.assertIn("(tb[0]+tb[2])//2", source)

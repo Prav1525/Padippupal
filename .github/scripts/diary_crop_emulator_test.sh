@@ -114,7 +114,7 @@ if not b: raise SystemExit("Diary fixture filename missing or has invalid bounds
 # The filename TextView is not clickable on this DocumentsUI build. The
 # screenshot shows the file row's thumbnail to its left; tap the thumbnail
 # within the same row instead of sending taps to a non-clickable text node.
-x=max(1,b[0]-110); y=(b[1]+b[3])//2
+x=max(1,b[0]-109); y=max(1,b[1]-55)
 print(f"Tap diary thumbnail/file-row target at {x},{y} (filename bounds={b})")
 tap(x,y); time.sleep(1.5)
 dump("/data/local/tmp/diary-picker-row-action.xml","ui-screenshots/diary-test/diary-picker-row-action.xml")
@@ -138,7 +138,7 @@ if package=="com.android.documentsui":
   n=next((n for n in root.iter("node") if n.attrib.get("text","").strip().lower()=="padippupal-diary-test.jpg"),None)
   b=bounds(n) if n is not None else None
   if not b: raise SystemExit("Picker stayed open but fixture row disappeared after tap; see diary-picker-row-action.xml")
-  x=max(1,b[0]-110); y=(b[1]+b[3])//2
+  x=max(1,b[0]-109); y=max(1,b[1]-55)
   print(f"Double-tap diary thumbnail/file-row target at {x},{y}")
   tap(x,y); time.sleep(.2); tap(x,y); time.sleep(1.5)
 PY

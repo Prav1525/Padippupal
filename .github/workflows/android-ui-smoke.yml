@@ -89,7 +89,8 @@ jobs:
         with:
           api-level: 30
           arch: x86_64
-          system-image: google_apis
+          system-image-api-level: 30
+          target: google_apis
           profile: pixel_2
           # Keep the guest memory modest so the emulator does not starve the hosted runner.
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2

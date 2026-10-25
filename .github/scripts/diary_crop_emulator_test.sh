@@ -95,47 +95,41 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# AOSP DocumentsUI supports explicit multi-selection in list mode:
-# long-press the filename row, then click its observed Select action. A normal
-# tap on a non-clickable filename child does not select the file.
+# In this emulator's image-filtered DocumentsUI grid, the file row and its
+# thumbnail are not exposed as clickable accessibility nodes, and long-pressing
+# the row does not enter selection mode. The separate preview icon is a different
+# action. Tap the actual thumbnail bounds from the live hierarchy, then verify
+# the picker returns the selected content URI to PadippuPal.
 python3 - <<'PY'
 import re, subprocess, time, xml.etree.ElementTree as ET
-adb=["adb","-s","emulator-5554","shell"]
-def dump(remote,local):
- subprocess.run(adb+["uiautomator","dump",remote],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
- subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
-def nodes(path): return list(ET.parse(path).getroot().iter("node"))
-def bounds(n):
- m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
- return tuple(map(int,m.groups())) if m else None
-def tap(x,y): subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 path="ui-screenshots/diary-test/diary-picker-downloads.xml"
-ns=nodes(path)
-# Switch to list mode using the control's live bounds when available.
-list_button=next((n for n in ns if n.attrib.get("content-desc","").strip().lower()=="list view"),None)
-if list_button and bounds(list_button):
- b=bounds(list_button); tap((b[0]+b[2])//2,(b[1]+b[3])//2); time.sleep(1)
- dump("/data/local/tmp/diary-picker-list.xml","ui-screenshots/diary-test/diary-picker-list.xml")
- path="ui-screenshots/diary-test/diary-picker-list.xml"; ns=nodes(path)
-name=next((n for n in ns if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
-if name is None or bounds(name) is None: raise SystemExit("Fixture filename not found in DocumentsUI")
-b=bounds(name); x=(b[0]+b[2])//2; y=(b[1]+b[3])//2
-print(f"Long-press filename to enter selection mode at {x},{y}, bounds={b}")
-subprocess.run(adb+["input","swipe",str(x),str(y),str(x),str(y),"1100"],check=True,timeout=20)
-time.sleep(1)
-dump("/data/local/tmp/diary-picker-selection-mode.xml","ui-screenshots/diary-test/diary-picker-selection-mode.xml")
-ns=nodes("ui-screenshots/diary-test/diary-picker-selection-mode.xml")
-actions=[]
-for n in ns:
- label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
- rid=n.attrib.get("resource-id","")
- if (label in ("select","open","use","choose","select file") or rid.endswith(":id/action_menu_select")) and bounds(n):
-  actions.append((label,bounds(n)))
-if not actions: raise SystemExit("No visible Select action after long-press; see diary-picker-selection-mode.xml")
-label,b=actions[-1]; x=(b[0]+b[2])//2; y=(b[1]+b[3])//2
-print(f"Tap observed DocumentsUI action {label!r} at {x},{y}")
-tap(x,y); time.sleep(2)
+root=ET.parse(path).getroot()
+nodes=list(root.iter("node"))
+def bounds(n):
+ m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+ return tuple(map(int,m.groups())) if m else None
+name=next((n for n in nodes if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
+if name is None: raise SystemExit("Fixture filename disappeared from DocumentsUI")
+# Prefer the thumbnail child, not the distinct 'Preview the file' action.
+thumb=next((n for n in name.iter("node") if n.attrib.get("resource-id","").endswith(":id/thumbnail")),None)
+if thumb is None:
+ thumb=next((n for n in name.iter("node") if n.attrib.get("resource-id","").endswith(":id/icon_thumb")),None)
+b=bounds(thumb) if thumb is not None else None
+if b is None: raise SystemExit("Fixture thumbnail bounds not found in DocumentsUI hierarchy")
+x=(b[0]+b[2])//2; y=(b[1]+b[3])//2
+print(f"Tap fixture thumbnail at {x},{y}, bounds={b}; avoid the separate preview icon")
+subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
 PY
+# Give the picker time to deliver the selected URI and verify the owning package.
+for attempt in $(seq 1 8); do
+  sleep 1
+  dump_ui diary-picker-selection-result
+done
+if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
+  log "FAIL: tapping the fixture thumbnail did not return from DocumentsUI; see diary-picker-selection-result.xml and picker-selection-stuck.png"
+  exit 1
+fi
 sleep 1
 dump_ui diary-picker-row-selected
 # Give DocumentsUI time to return the selected content URI to PadippuPal.

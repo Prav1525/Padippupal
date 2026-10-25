@@ -464,44 +464,47 @@ def tap_exact(path, target):
 
 
 def tap_file(path, filename):
-    """Tap the filename row body; Android may mark its TextView non-clickable."""
+    """Select a DocumentsUI list row without activating its separate preview action."""
     nodes, texts = load(path)
     target = filename.strip().lower()
-    candidates = []
-    for node in nodes:
-        label = node.attrib.get("text", "").strip().lower()
-        desc = node.attrib.get("content-desc", "").strip().lower()
-        # DocumentsUI can expose the filename as a non-clickable TextView while
-        # the row parent handles touch events. Use that text's bounds, not the
-        # separate clickable preview icon (which opens preview instead of selecting).
-        matches = label == target or desc == target or desc.startswith(target + ",")
-        if not matches or "preview the file" in desc:
-            continue
-        bounds = node.attrib.get("bounds", "")
-        if re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", bounds):
-            candidates.append(node)
-    if not candidates:
-        observed = [f"text={n.attrib.get('text','')!r}, desc={n.attrib.get('content-desc','')!r}, clickable={n.attrib.get('clickable')}, bounds={n.attrib.get('bounds','')}"
+    # Find the filename text and then its enclosing item_root row. On AOSP API 30
+    # the filename TextView and row both report clickable=false, but item_root
+    # is the touch target; the preview action is a separate control at far right.
+    target_node = next((n for n in nodes
+                        if n.attrib.get("text", "").strip().lower() == target), None)
+    if target_node is None:
+        observed = [f"text={n.attrib.get('text','')!r}, desc={n.attrib.get('content-desc','')!r}, bounds={n.attrib.get('bounds','')}"
                     for n in nodes if filename.lower() in (n.attrib.get("text","") + " " + n.attrib.get("content-desc","")).lower()]
         raise SystemExit("No filename row target for " + repr(filename) +
                          "; matching nodes: " + (" | ".join(observed) if observed else "none") +
                          "; visible labels: " + " | ".join(texts[:80]))
-    # Prefer the exact filename text node over metadata descriptions or ancestors.
-    node = min(candidates, key=lambda n: (n.attrib.get("text","").strip().lower() != target,
-                                          len(n.attrib.get("text","") or n.attrib.get("content-desc",""))))
-    x1,y1,x2,y2 = map(int, re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib["bounds"]).groups())
-    x,y=(x1+x2)//2,(y1+y2)//2
-    print(f"Tapping filename row body {filename!r} at ({x},{y}), bounds={node.attrib['bounds']}, clickable={node.attrib.get('clickable')}, text={node.attrib.get('text')!r}, desc={node.attrib.get('content-desc')!r}")
-    # DocumentsUI on the CI emulator exposes neither the filename nor its row
-    # as clickable in the accessibility tree. A single center tap was observed
-    # to leave the picker unchanged. Try a second tap on the same row body
-    # (the normal open-on-second-tap interaction) before the caller inspects
-    # the resulting UI; never tap the distinct preview icon.
+    # Walk ancestors to the DocumentsUI item_root; XML parents aren't exposed by
+    # ElementTree, so identify the narrow row bounds from its known resource id.
+    row = next((n for n in nodes
+                if n.attrib.get("resource-id", "").endswith(":id/item_root")
+                and _contains_bounds(n.attrib.get("bounds", ""), target_node.attrib.get("bounds", ""))), None)
+    bounds = row.attrib.get("bounds", "") if row is not None else target_node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    if not match:
+        raise SystemExit("Invalid filename/item row bounds: " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    # Keep away from the preview button at the far right of the row.
+    x = min((x1 + x2) // 2, 800)
+    y = (y1 + y2) // 2
+    print(f"Tapping filename item row {filename!r} at ({x},{y}), row_bounds={bounds}")
     adb = ["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)]
     subprocess.run(adb, check=True, timeout=45)
-    time.sleep(0.35)
+    time.sleep(0.8)
     subprocess.run(adb, check=True, timeout=45)
 
+
+def _contains_bounds(outer, inner):
+    """Whether outer bounds fully contain inner bounds."""
+    def parse(value):
+        match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", value)
+        return tuple(map(int, match.groups())) if match else None
+    a, b = parse(outer), parse(inner)
+    return bool(a and b and a[0] <= b[0] and a[1] <= b[1] and a[2] >= b[2] and a[3] >= b[3])
 
 def tap(path, target):
     nodes, texts = load(path)

@@ -464,14 +464,13 @@ def tap_exact(path, target):
 
 
 def tap_file(path, filename):
-    """Select/open a named file using its thumbnail, not filename text or preview.
+    """Tap the visible filename row for a named file, never its preview affordance.
 
-    In the observed Google DocumentsUI hierarchy the filename TextView, row
-    container, and thumbnail ImageView report clickable=false, while the
-    separate preview_icon is clickable but only opens a preview. A single tap
-    in the thumbnail's visible bounds is the least ambiguous file-row action;
-    the caller immediately captures a fresh hierarchy and handles any explicit
-    Open/Select confirmation instead of blindly double-tapping stale bounds.
+    The latest failing emulator trace showed that the helper chose the thumbnail
+    at (94,735), although both the thumbnail and filename accessibility nodes
+    reported clickable=false. DocumentsUI's separate preview icon was clickable
+    but did not select the URI. Tap the center of the filename row itself, then
+    let the caller inspect a fresh hierarchy and handle an explicit confirmation.
     """
     nodes, texts = load(path)
     target = filename.strip().lower()
@@ -491,41 +490,11 @@ def tap_file(path, filename):
     if x2 <= x1 or y2 <= y1:
         raise SystemExit("Filename row has zero-area bounds for " + repr(filename) + ": " + bounds)
 
-    # Prefer the thumbnail that belongs to this same list item. Never tap the
-    # sibling preview_icon, which opens a preview and does not select the URI.
-    # DocumentsUI accessibility trees vary by Android/provider version: some
-    # omit item_root or report bounds that do not contain the thumbnail. Prefer
-    # a thumbnail geometrically associated with this filename row, using a
-    # shared item_root when available and a same-row vertical overlap otherwise.
-    item_roots = [p.attrib.get("bounds", "") for p in nodes
-                  if p.attrib.get("resource-id", "").endswith(":id/item_root")
-                  and _contains_bounds(p.attrib.get("bounds", ""), bounds)]
-    thumbs = []
-    for node in nodes:
-        if not node.attrib.get("resource-id", "").endswith(":id/icon_thumb"):
-            continue
-        thumb_bounds = node.attrib.get("bounds", "")
-        m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", thumb_bounds)
-        if not m:
-            continue
-        tx1, ty1, tx2, ty2 = map(int, m.groups())
-        same_item = any(_contains_bounds(root_bounds, thumb_bounds) for root_bounds in item_roots)
-        same_row = ty1 < y2 and ty2 > y1 and tx2 <= x1
-        if same_item or same_row:
-            # Prefer explicit item membership, then the nearest thumbnail to
-            # the filename's left edge; never consider preview_icon.
-            thumbs.append((0 if same_item else 1, max(0, x1 - tx2), node))
-    thumb = min(thumbs, key=lambda item: (item[0], item[1]))[2] if thumbs else None
-    target_node = thumb if thumb is not None else row
-    target_bounds = target_node.attrib.get("bounds", "")
-    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", target_bounds)
-    if not match:
-        raise SystemExit("File target has invalid bounds for " + repr(filename) + ": " + target_bounds)
-    a, b, c, d = map(int, match.groups())
-    x, y = (a + c) // 2, (b + d) // 2
-    target_kind = "thumbnail" if thumb is not None else "filename row (no matching thumbnail exposed)"
-    print(f"Single-tapping DocumentsUI {target_kind} for {filename!r} at ({x},{y}); target-bounds={target_bounds}; filename-bounds={bounds}")
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", f"input tap {x} {y}"],
+    # Do not use the thumbnail: the previous emulator run proved that tapping
+    # its center left DocumentsUI unchanged. Also never tap preview_icon.
+    x, y = (x1 + x2) // 2, (y1 + y2) // 2
+    print(f"Single-tapping DocumentsUI filename row for {filename!r} at ({x},{y}); bounds={bounds}; clickable={row.attrib.get('clickable', 'unspecified')}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)
 
 def _contains_bounds(outer, inner):

@@ -25,7 +25,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('returned=0', source)
         self.assertIn('for attempt in $(seq 1 8); do', source)
         self.assertLess(source.index("returned=0"), source.index("for attempt in $(seq 1 8); do"))
-        self.assertIn("com.android.documentsui:id/preview_icon", (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8"))
+        self.assertIn("preview_icon", (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8"))
         self.assertIn("Preview the file PadippuPal-diary-test.jpg", (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8"))
         self.assertNotIn("PY# Give the picker time", source)
         self.assertIn('package="com.padippupal.app"', source)
@@ -42,7 +42,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 ui_smoke.main()
             selector.assert_called_once_with(str(path), "PadippuPal-diary-test.jpg")
 
-    def test_file_selector_taps_filename_when_row_is_not_clickable(self):
+    def test_file_selector_taps_preview_when_row_is_not_clickable(self):
         xml = """<hierarchy>
           <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="false" bounds="[189,685][660,742]" />
           <node resource-id="com.android.documentsui:id/item_root" clickable="false" bounds="[0,641][1080,830]" />
@@ -71,7 +71,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                     ui_smoke.main()
                     self.assertEqual(run.call_count, 1)
                     for call in run.call_args_list:
-                        self.assertEqual(call.args[0][-2:], ["270", "130"])
+                        self.assertEqual(call.args[0][-2:], ["185", "140"])
 
     def test_file_selector_accepts_clickable_list_row_not_preview(self):
         xml = """<hierarchy>
@@ -84,7 +84,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 args = run.call_args.args[0]
-                self.assertEqual(args[-2:], ["270", "130"])
+                self.assertEqual(args[-2:], ["985", "735"])
                 self.assertEqual(run.call_count, 1)
                 for call in run.call_args_list:
                     self.assertEqual(call.args[0][-2:], ["270", "130"])

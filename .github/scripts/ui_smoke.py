@@ -421,11 +421,23 @@ def assert_live_layout(path):
 
 
 def exact_text_candidates(nodes, target):
-    """Return only nodes whose visible label equals the requested control label."""
+    """Prefer visible text over accessibility descriptions for exact-label taps.
+
+    DocumentsUI can expose a filename as both a non-clickable TextView and a
+    clickable preview-icon content description. Combining both lets tap_exact
+    choose the preview affordance. Prefer actual text when present, and fall
+    back to content descriptions only for controls without visible text.
+    """
     normalized_target = target.strip().lower().lstrip("▶").strip()
+    text_matches = [
+        node for node in nodes
+        if node.attrib.get("text", "").strip().lower().lstrip("▶").strip() == normalized_target
+    ]
+    if text_matches:
+        return text_matches
     return [
         node for node in nodes
-        if (node.attrib.get("text", "").strip() or node.attrib.get("content-desc", "").strip()).lower().lstrip("▶").strip() == normalized_target
+        if node.attrib.get("content-desc", "").strip().lower().lstrip("▶").strip() == normalized_target
     ]
 
 

@@ -2,6 +2,7 @@
 """Require durable investigation records for code-changing pull requests."""
 from pathlib import Path
 import os
+import re
 import subprocess
 import sys
 
@@ -48,17 +49,24 @@ def main():
         print("FAIL: investigation ledger is missing required fields: " + ", ".join(absent))
         return 1
 
-    # Require at least one attempt entry after the template marker, with an outcome.
-    marker = "## New entries (append below"
-    if marker not in ledger:
-        print("FAIL: append-only new-entry template is missing.")
-        return 1
-    appended = ledger.split(marker, 1)[1]
-    if "### " not in appended or not any(x in appended for x in ("PASS", "FAIL", "BLOCKED", "UNVERIFIED")):
-        print("FAIL: add a dated attempt entry with a result under 'New entries'.")
+    # A template placeholder must not count as a real investigation entry.
+    entries = re.findall(r"(?ms)^### (20\\d{2}-\\d{2}-\\d{2}) — (.+?)\\n(.*?)(?=^### |\\Z)", ledger)
+    real_entries = []
+    for date, title, body in entries:
+        if title.strip() in {"Short test/change description", "Short description"}:
+            continue
+        if not re.search(r"(?im)^- \\*\\*Result:\\*\\* (PASS|FAIL|BLOCKED|UNVERIFIED)\\b", body):
+            continue
+        if not re.search(r"(?im)^- \\*\\*Evidence", body):
+            continue
+        if not re.search(r"(?im)^- \\*\\*Next action", body):
+            continue
+        real_entries.append((date, title))
+    if not real_entries:
+        print("FAIL: append a real dated attempt with an explicit result, evidence, and next action; the template placeholder does not count.")
         return 1
 
-    print("PASS: guidance exists and investigation ledger was updated with a recorded attempt.")
+    print("PASS: guidance exists and the investigation ledger contains a dated attempt with outcome, evidence, and next action.")
     print("NOTE: this gate checks documentation completeness, not whether the diagnosis or test claims are true.")
     return 0
 

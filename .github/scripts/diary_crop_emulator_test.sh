@@ -105,28 +105,50 @@ python3 - <<'PY'
 import re, subprocess, xml.etree.ElementTree as ET
 path="ui-screenshots/diary-test/diary-picker-list.xml"
 root=ET.parse(path).getroot()
-parents={child:parent for parent in root.iter() for child in parent}
 nodes=list(root.iter("node"))
 name=next((n for n in nodes if "padippupal-diary-test.jpg" in (n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).lower()),None)
 if name is None:
     raise SystemExit("Fixture filename not found in DocumentsUI list view")
-node=name
-target=None
-while node is not None:
-    if node.tag=="node" and node.attrib.get("clickable")=="true":
-        m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",node.attrib.get("bounds",""))
-        if m:
-            target=node
-            b=tuple(map(int,m.groups()))
+# On this AOSP DocumentsUI build, neither the filename TextView nor its
+# item_root row is marked clickable. The row still receives touch input.
+# Find the actual item_root containing the filename, then tap its body,
+# safely left of the separate preview affordance on the right.
+row=None
+for candidate in nodes:
+    if candidate.attrib.get("resource-id") != "com.android.documentsui:id/item_root":
+        continue
+    if candidate.attrib.get("package") != "com.android.documentsui":
+        continue
+    if candidate not in list(root.iter("node")):
+        continue
+    if candidate is name or any(desc is name for desc in candidate.iter("node")):
+        row=candidate
+        break
+if row is None:
+    # Parent relationships are more reliable than testing accessibility clickable flags.
+    parents={child:parent for parent in root.iter() for child in parent}
+    node=name
+    while node is not None:
+        if node.attrib.get("resource-id")=="com.android.documentsui:id/item_root":
+            row=node
             break
-    node=parents.get(node)
-if target is None:
-    raise SystemExit("No clickable file-row ancestor found in DocumentsUI list view; inspect diary-picker-list.xml")
-x=(b[0]+b[2])//2; y=(b[1]+b[3])//2
-print(f"Tap selectable file row at {x},{y}, bounds={target.attrib.get('bounds')}, label={name.attrib.get('text') or name.attrib.get('content-desc')}")
+        node=parents.get(node)
+if row is None:
+    raise SystemExit("No item_root row contains the fixture filename; inspect diary-picker-list.xml")
+m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",row.attrib.get("bounds",""))
+if not m:
+    raise SystemExit("Fixture item_root has invalid bounds")
+x1,y1,x2,y2=map(int,m.groups())
+# Tap the filename/body region rather than the far-right preview button.
+label_bounds=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",name.attrib.get("bounds",""))
+if not label_bounds:
+    raise SystemExit("Fixture filename has invalid bounds")
+lx1,ly1,lx2,ly2=map(int,label_bounds.groups())
+x=max(x1+40,min((lx1+lx2)//2,x2-220))
+y=(y1+y2)//2
+print(f"Tap DocumentsUI item row body at {x},{y}, row={row.attrib.get('bounds')}, label={name.attrib.get('text') or name.attrib.get('content-desc')}, clickable={row.attrib.get('clickable')}")
 subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=20)
-PY
-# Give the picker time to deliver the selected URI and verify the owning package.
+PY# Give the picker time to deliver the selected URI and verify the owning package.
 returned=0
 for attempt in $(seq 1 8); do
   sleep 1

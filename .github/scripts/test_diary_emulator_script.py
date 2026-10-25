@@ -15,6 +15,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('resource-id") != "com.android.documentsui:id/item_root"', source)
         self.assertIn('filename/body region rather than the far-right preview button', source)
         self.assertIn('Tap DocumentsUI item row body at', source)
+        self.assertIn("\nPY\n# Give the picker time to deliver the selected URI", source)
+        self.assertNotIn("PY# Give the picker time", source)
         self.assertIn('subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)]', source)
         self.assertIn('package="com.padippupal.app"', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)

@@ -161,7 +161,7 @@ internal fun DiaryScanScreen(
             }
         }
     }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
             featureExecutor.execute {
                 val result = runCatching {
@@ -209,7 +209,7 @@ internal fun DiaryScanScreen(
                     Button(onClick = { camera.launch(null) }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.CameraAlt, null); Text("  Take photo")
                     }
-                    OutlinedButton(onClick = { picker.launch("image/*") }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { picker.launch(arrayOf("image/jpeg", "image/png", "image/webp")) }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.UploadFile, null); Text("  Choose photo")
                     }
                     if (selectedName.isNotBlank()) Text("Photo selected", color = FeatureGrey, fontSize = 12.sp)

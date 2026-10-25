@@ -478,7 +478,7 @@ def tap_file(path, filename):
         if "preview the file" in desc:
             continue
         bounds = node.attrib.get("bounds", "")
-        if re.fullmatch(r"\\[\\d+,\\d+\\]\\[\\d+,\\d+\\]", bounds):
+        if re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", bounds):
             candidates.append(node)
     if not candidates:
         observed = [f"text={n.attrib.get('text','')!r}, desc={n.attrib.get('content-desc','')!r}, clickable={n.attrib.get('clickable')}, bounds={n.attrib.get('bounds','')}"
@@ -488,7 +488,7 @@ def tap_file(path, filename):
                          "; visible labels: " + " | ".join(texts[:80]))
     # Prefer the shortest matching label: a row is more specific than a clickable parent.
     node = min(candidates, key=lambda n: len(n.attrib.get("text","") or n.attrib.get("content-desc","")))
-    x1,y1,x2,y2 = map(int, re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", node.attrib["bounds"]).groups())
+    x1,y1,x2,y2 = map(int, re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib["bounds"]).groups())
     x,y=(x1+x2)//2,(y1+y2)//2
     print(f"Selecting clickable file row {filename!r} at ({x},{y}), bounds={node.attrib['bounds']}, text={node.attrib.get('text')!r}, desc={node.attrib.get('content-desc')!r}")
     subprocess.run(["adb","-s","emulator-5554","shell","input","tap",str(x),str(y)],check=True,timeout=45)

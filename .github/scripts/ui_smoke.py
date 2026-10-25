@@ -464,38 +464,35 @@ def tap_exact(path, target):
 
 
 def tap_file(path, filename):
-    """Tap the visible filename row for a named file, never its preview affordance.
-
-    The latest failing emulator trace showed that the helper chose the thumbnail
-    at (94,735), although both the thumbnail and filename accessibility nodes
-    reported clickable=false. DocumentsUI's separate preview icon was clickable
-    but did not select the URI. Tap the center of the filename row itself, then
-    let the caller inspect a fresh hierarchy and handle an explicit confirmation.
-    """
+    """Focus and activate a focusable DocumentsUI row without tapping its label or preview."""
     nodes, texts = load(path)
     target = filename.strip().lower()
-    row = next((n for n in nodes
-                if n.attrib.get("text", "").strip().lower() == target), None)
-    if row is None:
-        observed = [f"text={n.attrib.get('text','')!r}, desc={n.attrib.get('content-desc','')!r}, bounds={n.attrib.get('bounds','')}"
-                    for n in nodes if filename.lower() in (n.attrib.get("text","") + " " + n.attrib.get("content-desc","")).lower()]
-        raise SystemExit("No filename row target for " + repr(filename) +
-                         "; matching nodes: " + (" | ".join(observed) if observed else "none") +
-                         "; visible labels: " + " | ".join(texts[:80]))
-    bounds = row.attrib.get("bounds", "")
-    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-    if not match:
-        raise SystemExit("Filename row has invalid bounds for " + repr(filename) + ": " + bounds)
-    x1, y1, x2, y2 = map(int, match.groups())
-    if x2 <= x1 or y2 <= y1:
-        raise SystemExit("Filename row has zero-area bounds for " + repr(filename) + ": " + bounds)
-
-    # Do not use the thumbnail: the previous emulator run proved that tapping
-    # its center left DocumentsUI unchanged. Also never tap preview_icon.
+    label = next((n for n in nodes if n.attrib.get("text", "").strip().lower() == target), None)
+    if label is None:
+        raise SystemExit("No filename node for " + repr(filename) + "; visible labels: " + " | ".join(texts[:80]))
+    def bounds(node):
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
+        return tuple(map(int, match.groups())) if match else None
+    lb = bounds(label)
+    if not lb:
+        raise SystemExit("Filename node has invalid bounds for " + repr(filename))
+    rows = []
+    for node in nodes:
+        rb = bounds(node)
+        if (node.attrib.get("resource-id", "").endswith(":id/item_root") and rb
+                and node.attrib.get("focusable") == "true"
+                and rb[0] <= lb[0] and rb[1] <= lb[1] and rb[2] >= lb[2] and rb[3] >= lb[3]):
+            rows.append((node, rb))
+    if not rows:
+        raise SystemExit("No focusable DocumentsUI item_root contains filename " + repr(filename) + "; refusing to tap a non-clickable label or preview")
+    row, (x1, y1, x2, y2) = min(rows, key=lambda item: (item[1][2]-item[1][0]) * (item[1][3]-item[1][1]))
     x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    print(f"Single-tapping DocumentsUI filename row for {filename!r} at ({x},{y}); bounds={bounds}; clickable={row.attrib.get('clickable', 'unspecified')}")
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
-                   check=True, timeout=45)
+    preview = next((bounds(n) for n in nodes if n.attrib.get("resource-id", "").endswith(":id/preview_icon") and filename.lower() in n.attrib.get("content-desc", "").lower()), None)
+    if preview and preview[0] <= x <= preview[2] and preview[1] <= y <= preview[3]:
+        x = x1 + max(1, (preview[0] - x1) // 2)
+    print(f"Focusing DocumentsUI row for {filename!r} at ({x},{y}); bounds={row.attrib.get('bounds')}; focusable=true; clickable={row.attrib.get('clickable', 'unspecified')}; then activating with DPAD_CENTER")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "keyevent", "DPAD_CENTER"], check=True, timeout=45)
 
 def _contains_bounds(outer, inner):
     """Whether outer bounds fully contain inner bounds."""

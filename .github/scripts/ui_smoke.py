@@ -492,8 +492,11 @@ def tap_file(path, filename):
     print(f"Double-tapping DocumentsUI filename row for {filename!r} at ({x},{y}); bounds={bounds}; accessibility-clickable={row.attrib.get('clickable')}")
     # AOSP DocumentsUI opens a file on double-tap; the preview affordance at
     # the right edge only previews it and leaves the picker active.
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "sh", "-c",
-                    f"input tap {x} {y}; sleep 0.15; input tap {x} {y}"],
+    # Pass the complete sequence as one remote shell command. Splitting it after
+    # "sh -c" lets adb/device shell parsing treat the semicolons as host-side
+    # command separators, so the taps may never execute on the emulator.
+    subprocess.run(["adb", "-s", "emulator-5554", "shell",
+                    f"input tap {x} {y}; sleep 0.35; input tap {x} {y}"],
                    check=True, timeout=45)
 
 def _contains_bounds(outer, inner):

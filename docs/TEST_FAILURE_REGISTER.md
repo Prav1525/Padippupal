@@ -110,3 +110,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix attempt:** Switch DocumentsUI to List view, find the fixture filename, walk up its accessibility hierarchy to the nearest clickable ancestor with valid bounds, and tap that row. Fail with the captured list hierarchy if no selectable row is exposed instead of guessing coordinates.
 - **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` now requires list-view selection via a clickable filename ancestor and rejects the non-clickable grid-thumbnail strategy.
 - **Validation:** The change is pushed but still requires a fresh emulator run. Do not merge PR #21 until selection returns to PadippuPal and crop, rescan, review, and save all pass.
+
+
+## Incident: DocumentsUI list row was present but exposed no clickable ancestor
+
+- **Symptom:** Run [40168559516](https://github.com/Prav1525/Padippupal/actions/runs/40168559516) passed JVM tests, APK build, script validation, and the general tutor emulator flow, then failed at diary photo selection with `No clickable file-row ancestor found in DocumentsUI list view`.
+- **Root cause confirmed from `diary-picker-list.xml`:** The filename TextView, its containing layouts, and `com.android.documentsui:id/item_root` are all marked `clickable=false`. The helper incorrectly treated accessibility clickability as proof of whether a row can receive a touch. The fixture is visible and its row bounds are available; this is not a missing-file or MediaStore problem.
+- **Fix:** Commit `93f96630b56ac7ec889a835a2d01f60433a13ea5` locates the actual `item_root` containing the fixture and taps its body using the captured bounds, away from the separate preview control. It no longer requires a clickable ancestor.
+- **Regression prevention:** Commit `7895e3a3272c388ed182ead18a6195a2234b4f84` replaces the old clickable-ancestor assertion with checks for row-body targeting and the app-return/crop guards.
+- **Validation:** New CI run required. This is a targeted fix based on the captured hierarchy, not yet an end-to-end pass. Keep PR #21 open until photo selection, crop, rescan, review, and today's planner save all pass.

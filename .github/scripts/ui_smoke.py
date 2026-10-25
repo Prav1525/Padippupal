@@ -493,27 +493,19 @@ def tap_file(path, filename):
             return None
         return (x1 + x2) // 2, (y1 + y2) // 2
 
-    # Prefer an explicitly clickable ancestor/item_root containing the filename.
-    # In the observed AOSP tree the row is not marked clickable, so its thumbnail
-    # is the safest actionable area; the separate preview button is on the far right.
+    # Prefer an explicitly clickable row when DocumentsUI exposes one. Otherwise
+    # tap the actual filename TextView bounds, not the non-clickable thumbnail or
+    # the separate preview affordance at the far right of item_root.
     filename_center = center(target_node)
-    # Match the final resource-id component rather than a particular package's
-    # fully-qualified spelling; DocumentsUI variants can expose different prefixes.
     row = next((n for n in nodes
                 if n.attrib.get("resource-id", "").rsplit("/", 1)[-1] == "item_root"
                 and _contains_bounds(n.attrib.get("bounds", ""), target_node.attrib.get("bounds", ""))), None)
     clickable_row = row if row is not None and row.attrib.get("clickable") == "true" else None
-    thumb = next((n for n in nodes
-                  if n.attrib.get("resource-id", "").rsplit("/", 1)[-1] == "icon_thumb"
-                  and row is not None and _contains_bounds(row.attrib.get("bounds", ""), n.attrib.get("bounds", ""))), None)
-    # ElementTree elements with no child elements are falsey. These accessibility
-    # nodes are leaf elements, so never use element truthiness to test whether
-    # the row/thumbnail exists; doing so silently falls back to the filename.
-    point = center(clickable_row) if clickable_row is not None else (center(thumb) if thumb is not None else filename_center)
-    if not point:
+    point = center(clickable_row) if clickable_row is not None else filename_center
+    if point is None:
         raise SystemExit("Filename and file-item controls have invalid bounds for " + repr(filename))
     x, y = point
-    strategy = "clickable item row" if clickable_row else ("file thumbnail" if thumb else "filename text fallback")
+    strategy = "clickable item row" if clickable_row else "filename text"
     print(f"Tapping file item via {strategy} for {filename!r} at ({x},{y}); filename bounds={target_node.attrib.get('bounds','')}")
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
                    check=True, timeout=45)

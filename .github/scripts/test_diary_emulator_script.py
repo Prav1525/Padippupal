@@ -42,16 +42,19 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 ui_smoke.main()
             selector.assert_called_once_with(str(path), "PadippuPal-diary-test.jpg")
 
-    def test_file_selector_rejects_preview_and_requires_clickable_filename_row(self):
+    def test_file_selector_taps_nonclickable_filename_text_not_preview_icon(self):
         xml = """<hierarchy>
-          <node text="" content-desc="PadippuPal-diary-test.jpg, 98.90 kB, 7:43 AM" clickable="false" bounds="[64,652][366,954]" />
-          <node text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" bounds="[240,652][366,778]" />
+          <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="false" bounds="[189,685][660,742]" />
+          <node text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" bounds="[891,641][1080,830]" />
         </hierarchy>"""
         with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "grid.xml"
+            path = Path(temp) / "list.xml"
             path.write_text(xml, encoding="utf-8")
-            with self.assertRaisesRegex(SystemExit, "No clickable filename row"):
+            with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
+                args = run.call_args.args[0]
+                self.assertEqual(args[-2:], ["424", "713"])
+                run.assert_called_once()
 
     def test_tap_file_command_selects_row_through_dispatcher(self):
         xml = """<hierarchy>

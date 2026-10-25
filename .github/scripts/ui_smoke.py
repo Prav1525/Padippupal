@@ -485,7 +485,7 @@ def tap_file(path, filename):
 
     def center(node):
         bounds = node.attrib.get("bounds", "")
-        match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
         if not match:
             return None
         x1, y1, x2, y2 = map(int, match.groups())

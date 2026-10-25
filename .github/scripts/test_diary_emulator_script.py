@@ -43,7 +43,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("Record test outcomes and failure diagnostics", workflow)
         self.assertIn("test-failure-report.md", workflow)
         self.assertIn("padippupal-emulator-ui", workflow)
-        self.assertIn("docs/TEST_FAILURE_REGISTER.md", workflow)
+        self.assertIn("Inspect this run's step logs and the padippupal-emulator-ui artifact.", workflow)
 
 
 

@@ -34,16 +34,19 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Run fast JVM tests before emulator allocation
+      - id: jvm_tests
+        name: Run fast JVM tests before emulator allocation
         run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 testDebugUnitTest
 
-      - name: Build debug APK
+      - id: apk_build
+        name: Build debug APK
         run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 assembleDebug
 
       - name: Install screenshot inspection dependency
         run: python3 -m pip install --user --disable-pip-version-check Pillow
 
-      - name: Validate smoke-test scripts
+      - id: script_validation
+        name: Validate smoke-test scripts
         run: |
           bash -n .github/scripts/android-ui-smoke.sh
           bash -n .github/scripts/android-tts-preflight.sh
@@ -80,7 +83,8 @@ jobs:
           done
           test "$ready" -eq 1
 
-      - name: Launch app in Android emulator and test navigation
+      - id: emulator_test
+        name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 30
@@ -101,6 +105,15 @@ jobs:
             bash .github/scripts/android-ui-smoke-retry.sh
             bash .github/scripts/diary_crop_emulator_test.sh
 
+      - name: Record test outcomes and failure diagnostics
+        if: always()
+        env:
+          JVM_TESTS_OUTCOME: ${{ steps.jvm_tests.outcome }}
+          APK_BUILD_OUTCOME: ${{ steps.apk_build.outcome }}
+          SCRIPT_VALIDATION_OUTCOME: ${{ steps.script_validation.outcome }}
+          EMULATOR_TEST_OUTCOME: ${{ steps.emulator_test.outcome }}
+        run: python3 .github/scripts/write_test_failure_report.py
+
       - name: Upload emulator screenshots, UI trees, and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -109,6 +122,7 @@ jobs:
           path: |
             ui-screenshots/
             attempt-artifacts/
+            test-failure-report.md
             home.xml
             home-return.xml
             feedback.xml

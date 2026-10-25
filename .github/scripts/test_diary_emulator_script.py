@@ -8,7 +8,6 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ui_smoke
-import ui_smoke
 from ui_smoke import tap_file
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,7 +31,6 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('package="com.padippupal.app"', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
         self.assertNotIn('Tap DocumentsUI item row body at', source)
-
 
 
     def test_tap_file_command_is_registered_in_dispatcher(self):

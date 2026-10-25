@@ -497,13 +497,15 @@ def tap_file(path, filename):
     # In the observed AOSP tree the row is not marked clickable, so its thumbnail
     # is the safest actionable area; the separate preview button is on the far right.
     filename_center = center(target_node)
+    # Match the final resource-id component rather than a particular package's
+    # fully-qualified spelling; DocumentsUI variants can expose different prefixes.
     row = next((n for n in nodes
-                if n.attrib.get("resource-id", "").endswith(":id/item_root")
+                if n.attrib.get("resource-id", "").rsplit("/", 1)[-1] == "item_root"
                 and _contains_bounds(n.attrib.get("bounds", ""), target_node.attrib.get("bounds", ""))), None)
-    clickable_row = row if row and row.attrib.get("clickable") == "true" else None
+    clickable_row = row if row is not None and row.attrib.get("clickable") == "true" else None
     thumb = next((n for n in nodes
-                  if n.attrib.get("resource-id", "").endswith(":id/icon_thumb")
-                  and row and _contains_bounds(row.attrib.get("bounds", ""), n.attrib.get("bounds", ""))), None)
+                  if n.attrib.get("resource-id", "").rsplit("/", 1)[-1] == "icon_thumb"
+                  and row is not None and _contains_bounds(row.attrib.get("bounds", ""), n.attrib.get("bounds", ""))), None)
     point = center(clickable_row) if clickable_row else (center(thumb) if thumb else filename_center)
     if not point:
         raise SystemExit("Filename and file-item controls have invalid bounds for " + repr(filename))

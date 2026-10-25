@@ -63,20 +63,20 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "tap", "540", "735"], check=True, timeout=45)
                 run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "keyevent", "DPAD_CENTER"], check=True, timeout=45)
 
-    def test_file_selector_prefers_filename_row_even_if_preview_is_clickable(self):
+    def test_file_selector_prefers_row_activation_over_preview(self):
         xml = """<hierarchy>
-          <node resource-id="com.android.documentsui:id/preview_icon" text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" enabled="true" bounds="[240,100][300,160]" />
-          <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="true" bounds="[20,100][350,180]" />
+          <node resource-id="com.google.android.documentsui:id/item_root" clickable="false" focusable="true" bounds="[0,80][400,200]" />
+          <node resource-id="com.google.android.documentsui:id/preview_icon" text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" enabled="true" bounds="[300,80][400,200]" />
+          <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="false" bounds="[20,100][250,160]" />
         </hierarchy>"""
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "list.xml"
             path.write_text(xml, encoding="utf-8")
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
-                run.assert_called_once_with(
-                    ["adb", "-s", "emulator-5554", "shell",
-                     "input", "tap", "185", "140"],
-                    check=True, timeout=45)
+                self.assertEqual(run.call_count, 2)
+                run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "tap", "200", "140"], check=True, timeout=45)
+                run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "keyevent", "DPAD_CENTER"], check=True, timeout=45)
 
     def test_missing_filename_fails_safely_without_tapping_preview(self):
         xml = """<hierarchy>

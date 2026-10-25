@@ -98,7 +98,7 @@ def dump(remote, local):
     subprocess.run(adb+["uiautomator","dump",remote],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
     subprocess.run(["adb","-s","emulator-5554","pull",remote,local],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
 def tap_node(node, description):
-    m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",node.attrib.get("bounds",""))
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\\[(\d+),(\d+)\]",node.attrib.get("bounds",""))
     if not m: raise SystemExit(f"{description} has invalid bounds")
     x1,y1,x2,y2=map(int,m.groups())
     x,y=(x1+x2)//2,(y1+y2)//2
@@ -140,7 +140,7 @@ else:
         if label in ("open","select","use","choose","open file","select file","use photo","select photo","done"):
             if n.attrib.get("enabled","true")!="true": continue
             if n.attrib.get("clickable","false")!="true": continue
-            m=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+            m=re.fullmatch(r"\[(\d+),(\d+)\]\\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
             if m:
                 b=tuple(map(int,m.groups()))
                 if b[2]>b[0] and b[3]>b[1]: positives.append((n,b,label))

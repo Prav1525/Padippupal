@@ -37,5 +37,15 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("3dde5052105d82c1c54fa5968d6c495baef62b54", text)
 
 
+    def test_workflow_records_outcomes_even_when_a_step_fails(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("if: always()", workflow)
+        self.assertIn("Record test outcomes and failure diagnostics", workflow)
+        self.assertIn("test-failure-report.md", workflow)
+        self.assertIn("padippupal-emulator-ui", workflow)
+        self.assertIn("docs/TEST_FAILURE_REGISTER.md", workflow)
+
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

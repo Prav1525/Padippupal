@@ -506,7 +506,10 @@ def tap_file(path, filename):
     thumb = next((n for n in nodes
                   if n.attrib.get("resource-id", "").rsplit("/", 1)[-1] == "icon_thumb"
                   and row is not None and _contains_bounds(row.attrib.get("bounds", ""), n.attrib.get("bounds", ""))), None)
-    point = center(clickable_row) if clickable_row else (center(thumb) if thumb else filename_center)
+    # ElementTree elements with no child elements are falsey. These accessibility
+    # nodes are leaf elements, so never use element truthiness to test whether
+    # the row/thumbnail exists; doing so silently falls back to the filename.
+    point = center(clickable_row) if clickable_row is not None else (center(thumb) if thumb is not None else filename_center)
     if not point:
         raise SystemExit("Filename and file-item controls have invalid bounds for " + repr(filename))
     x, y = point

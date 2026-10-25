@@ -118,7 +118,7 @@ dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png
 returned=0
 for attempt in $(seq 1 8); do
-  if ! grep -Eq 'package="(com\\.android\\.documentsui|com\\.google\\.android\\.documentsui)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+  if ! grep -Eq 'package="(com\.android\.documentsui|com\.google\.android\.documentsui)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
     returned=1
     break
   fi
@@ -137,7 +137,7 @@ for attempt in $(seq 1 8); do
     sleep 1
   fi
   dump_ui diary-picker-selection-result
-  if ! grep -Eq 'package="(com\\.android\\.documentsui|com\\.google\\.android\\.documentsui)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+  if ! grep -Eq 'package="(com\.android\.documentsui|com\.google\.android\.documentsui)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
     returned=1
     break
   fi
@@ -151,7 +151,7 @@ fi
 sleep 1
 dump_ui diary-picker-confirmed
 cp ui-screenshots/diary-test/diary-picker-confirmed.xml ui-screenshots/diary-test/diary-picker-file-selected.xml
-if grep -Eq 'package="(com\\.android\\.documentsui|com\\.google\\.android\\.documentsui)"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
+if grep -Eq 'package="(com\.android\.documentsui|com\.google\.android\.documentsui)"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
   log "FAIL: picker remained in DocumentsUI after selection confirmation; see diary-picker-confirmed.xml and picker-selection-stuck.png"
   exit 1

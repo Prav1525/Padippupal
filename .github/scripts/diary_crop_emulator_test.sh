@@ -99,7 +99,7 @@ fi
 # center of the visible filename text node instead. Earlier attempts tapped near
 # the bottom padding of its bounds (y=735 vs text-row center y=713), which did not
 # reliably activate the row. ui_smoke.py computes the text node's actual center.
-tap_label ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"
+python3 .github/scripts/ui_smoke.py tap-exact ui-screenshots/diary-test/diary-picker-downloads.xml "PadippuPal-diary-test.jpg"
 sleep 2
 dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png

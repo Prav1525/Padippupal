@@ -18,3 +18,11 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - [ ] Verify the regression test fails against the old behavior and passes with the fix where practical.
 - [ ] Run all required CI checks on the fix commit.
 - [ ] Link the fix commit and successful run here; do not close on a build-only pass.
+
+## Incident: diary picker test tapped preview instead of selecting the file
+
+- **Symptom:** Emulator run `40151883852` failed with `Diary filename disappeared after preview`; after tapping the preview-eye affordance and pressing BACK, the picker had exited to PadippuPal.
+- **Root cause:** The test treated the clickable `Preview the file …` icon as a file-selection control. On this AOSP DocumentsUI build it launches a preview, and BACK exits the picker; the test then incorrectly looked for the filename in the app's UI tree.
+- **Fix:** Commit `e9142247fdac2b3122943268ff84ff33c0d88e6e` changes the interaction to tap the actual filename row and, only if DocumentsUI remains open, inspect the resulting hierarchy for a real Open/Select confirmation or retry the filename tap. The script saves the row-action hierarchy for diagnosis.
+- **Regression prevention:** Added a static regression test requiring filename-row selection and forbidding the preview-icon path.
+- **Validation:** Pending CI on the fix commit. Do not close this incident or merge PR #21 until the Android emulator flow passes through crop, rescan, review, and planner save.

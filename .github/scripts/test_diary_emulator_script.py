@@ -53,7 +53,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "No clickable filename row"):
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
 
-    def test_tap_file_command_is_registered_in_dispatcher(self):
+    def test_tap_file_command_selects_row_through_dispatcher(self):
         xml = """<hierarchy>
           <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="true" bounds="[20,100][350,180]" />
         </hierarchy>"""

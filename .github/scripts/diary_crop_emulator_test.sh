@@ -120,14 +120,15 @@ adb=["adb","-s","emulator-5554","shell"]
 subprocess.run(adb+["input","tap",str(x),str(y)],check=True,timeout=20)
 import time
 time.sleep(1)
-subprocess.run(adb+["exec-out","uiautomator","dump","/dev/tty"],stdout=open("ui-screenshots/diary-test/diary-picker-after-row.xml","w"),stderr=subprocess.DEVNULL,check=True,timeout=30)
+subprocess.run(adb+["shell","uiautomator","dump","/data/local/tmp/diary-picker-after-row.xml"],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=30)
+subprocess.run(["adb","-s","emulator-5554","pull","/data/local/tmp/diary-picker-after-row.xml","ui-screenshots/diary-test/diary-picker-after-row.xml"],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True,timeout=20)
 after=ET.parse("ui-screenshots/diary-test/diary-picker-after-row.xml").getroot()
 if any(n.attrib.get("package")=="com.android.documentsui" for n in after.iter("node")):
     actions=[]
     for n in after.iter("node"):
         label=(n.attrib.get("text","")+" "+n.attrib.get("content-desc","")).strip().lower()
         if label in ("open","select","use","choose","open file","select file") and n.attrib.get("enabled","true")=="true":
-            b=re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",n.attrib.get("bounds",""))
+            b=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
             if b: actions.append((n,tuple(map(int,b.groups())),label))
     if actions:
         node,(ax1,ay1,ax2,ay2),label=actions[-1]

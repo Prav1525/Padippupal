@@ -54,7 +54,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 args = run.call_args.args[0]
                 self.assertEqual(args[-2:], ["424", "713"])
-                run.assert_has_calls([mock.call(["adb", "-s", "emulator-5554", "shell", "input", "tap", mock.ANY, mock.ANY], check=True, timeout=45), mock.call(["adb", "-s", "emulator-5554", "shell", "input", "tap", mock.ANY, mock.ANY], check=True, timeout=45)])
+                run.assert_called_once_with(["adb", "-s", "emulator-5554", "shell", "input", "tap", "424", "713"], check=True, timeout=45)
 
     def test_tap_file_command_selects_row_through_dispatcher(self):
         xml = """<hierarchy>
@@ -89,7 +89,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
     def test_file_selector_never_blindly_double_taps(self):
         source = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")
         start = source.index("def tap_file(")
-        end = source.index("\\ndef _contains_bounds", start)
+        end = source.index("\ndef _contains_bounds", start)
         selector = source[start:end]
         self.assertIn("One deliberate tap only", selector)
         self.assertNotIn("repeat only at the filename text", selector)

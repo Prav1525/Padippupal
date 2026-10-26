@@ -79,8 +79,6 @@ dump_ui diary-picker
 # PickVisualMedia should present the system Photo Picker (not DocumentsUI) on
 # this API level. Select the fixture by its accessible filename, then prove the
 # activity result returns to PadippuPal. Do not interact with preview affordances.
-dump_ui diary-picker
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/photo-picker.png
 if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker.xml; then
   log "FAIL: system Photo Picker does not expose the indexed fixture by filename; see diary-picker.xml and photo-picker.png"
   exit 1

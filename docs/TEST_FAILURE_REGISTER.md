@@ -189,3 +189,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause confirmed from source:** `tap_photo_picker_item()` used a raw regular expression with double-escaped backslashes (`r"\\\\[(\\\\d+)..."`), so it expected literal backslashes rather than the normal Android bounds format. This was a selector parser bug; this run does not prove the image was selected or that the crop flow works.
 - **Fix:** Commit `0dad865384c4df1112fb7f223fc8499ea6eae0de` corrects the regex to parse standard bounds. Commit `0657308d06d07848aaa82a05183f80f6746edc50` adds a regression that runs the picker helper against the exact API 35 bounds and asserts it taps the tile center at `(177, 1394)`.
 - **Regression prevention:** Fresh CI must prove the ADB tap returns to PadippuPal, opens crop, rescans, displays only the expected date-correct review tasks, and saves them to the planner. API 30 vs API 35 comparison is still outstanding. Keep PR #24 unmerged until the full acceptance flow passes.
+
+
+## Incident: review save action remains below the viewport after one swipe
+
+- **Symptom:** API 35 run [40274339686](https://github.com/Prav1525/Padippupal/actions/runs/40274339686) selected the photo, opened crop, rescanned, and displayed both expected tasks, but the script failed to locate `Save selected tasks` after one swipe.
+- **Root cause confirmed from the captured `diary-review-scrolled.xml` and `review-tasks-scrolled.png`:** The swipe successfully moved the form enough to expose `Write page 18`, but the save control was still below the viewport. The script incorrectly assumed one swipe would expose both the second task and the save action.
+- **Fix:** Commit `0e1c95ca552ce14dd85315d0a5344e6804c045d0` changes the emulator test to scroll in bounded increments, re-dump the UI tree after each swipe, and tap Save only when the control is actually present. It fails with a diagnostic screenshot/XML if the control never appears after eight attempts.
+- **Regression prevention:** Commit `2d651826bf2ab17da51d2945311331213eedf32f` adds a static regression check for the bounded loop, fresh UI dump, save visibility check, and diagnostic failure.
+- **Validation:** Fresh CI is required to verify the full photo-picker → crop → rescan → review → planner-save path. API 30 comparison remains outstanding; do not merge PR #24 until end-to-end acceptance passes.

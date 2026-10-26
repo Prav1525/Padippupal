@@ -51,6 +51,12 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("regression test", text.lower())
         self.assertIn("3dde5052105d82c1c54fa5968d6c495baef62b54", text)
 
+    def test_launcher_activity_preflight_passes_all_arguments_in_one_shell_command(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        command = "adb -s emulator-5554 shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER com.padippupal.app"
+        self.assertIn(command, workflow)
+        self.assertNotIn("resolve-activity --brief \\\n              -a android.intent.action.MAIN", workflow)
+
     def test_workflow_records_outcomes_even_when_a_step_fails(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("if: always()", workflow)

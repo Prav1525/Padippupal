@@ -153,13 +153,13 @@ tap_label ui-screenshots/diary-test/diary-crop-selected.xml "Rescan crop"
 for attempt in $(seq 1 20); do
   sleep 1
   dump_ui diary-review
-  if grep -qi "Learn chapter 5" ui-screenshots/diary-test/diary-review.xml; then break; fi
+  if grep -qi "Complete Q1-5" ui-screenshots/diary-test/diary-review.xml; then break; fi
 done
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/review-tasks.png
 # The review form is taller than the compact emulator viewport. Validate the
 # first visible task, scroll, then dump the newly visible second task and Save action.
-assert_has ui-screenshots/diary-test/diary-review.xml "Learn chapter 5"
-if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" ui-screenshots/diary-test/diary-review.xml; then
+assert_has ui-screenshots/diary-test/diary-review.xml "Complete Q1-5"
+if grep -Eqi "Read lesson 4|Finish worksheet 2|Label India map|short paragraph" ui-screenshots/diary-test/diary-review.xml; then
   log "FAIL: neighboring-date homework leaked into review"
   exit 1
 fi
@@ -173,8 +173,8 @@ for scroll_attempt in $(seq 1 8); do
   sleep 1
   dump_ui diary-review-scrolled
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/review-tasks-scrolled.png
-  if grep -qi "Write page 18" "$review_xml"; then
-    if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" "$review_xml"; then
+  if grep -qi "Revise Components of Food" "$review_xml"; then
+    if grep -Eqi "Read lesson 4|Finish worksheet 2|Label India map|short paragraph" "$review_xml"; then
       log "FAIL: neighboring-date homework leaked into scrolled review"
       exit 1
     fi
@@ -190,7 +190,7 @@ if [ "$save_visible" -ne 1 ]; then
   log "FAIL: Save selected tasks did not become visible after 8 review scroll attempts; see diary-review-scrolled.xml and review-tasks-scrolled.png"
   exit 1
 fi
-assert_has "$review_xml" "Write page 18"
+assert_has "$review_xml" "Revise Components of Food"
 log "Saving reviewed tasks and verifying them in today planner"
 tap_label "$review_xml" "Save selected tasks"
 for attempt in $(seq 1 20); do
@@ -200,9 +200,9 @@ for attempt in $(seq 1 20); do
 done
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/saved-planner.png
 assert_has ui-screenshots/diary-test/diary-planner.xml "Today's homework"
-assert_has ui-screenshots/diary-test/diary-planner.xml "Learn chapter 5"
-assert_has ui-screenshots/diary-test/diary-planner.xml "Write page 18"
-if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" ui-screenshots/diary-test/diary-planner.xml; then
+assert_has ui-screenshots/diary-test/diary-planner.xml "Complete Q1-5"
+assert_has ui-screenshots/diary-test/diary-planner.xml "Revise Components of Food"
+if grep -Eqi "Read lesson 4|Finish worksheet 2|Label India map|short paragraph" ui-screenshots/diary-test/diary-planner.xml; then
   log "FAIL: neighboring-date homework was saved to planner"
   exit 1
 fi

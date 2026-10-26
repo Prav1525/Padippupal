@@ -282,3 +282,12 @@ Use this format:
 - **Verification status:** Source and test changes are present on the PR branch. Exact-head CI has not yet been confirmed. This is not evidence of a live deployment or of a real approved chapter being served in production.
 - **Remaining risks / follow-up:** Existing tutor grounding still depends on successful passage retrieval. Next, test the full flow with a real reviewed chapter and verify the plan's chunk citations resolve to the same textbook edition; then implement learner progress only with a stable, privacy-safe learner/session identifier and explicit mastery transitions.
 - **Merge policy:** Keep PR #31 unmerged until curriculum tests and required Android regressions pass.
+
+### 2026-10-26 — Add learner topic progress and adaptive tutor signals
+- **Branch / implementation commits:** `feature/syllabus-synthesis-prototype`; backend `0c1a980eef2329b99369e6d66c2f7dc58a13e339`; regression test `4d1f740cd6054e337a50970a8cb3d492e673adf0`.
+- **Change made:** Added `learner_topic_progress` and idempotent `learner_topic_events` tables. Added `POST /tutor/progress` signals for `needs_help`, `understood`, `practice_correct`, and `practice_incorrect`. Three consecutive correct practice checks create a provisional `mastered` state; an incorrect check resets the streak and returns the topic to `needs_help`. Duplicate event IDs do not increment counters.
+- **Tutor integration:** `TutorChatRequest.learner_id` is optional and intended for a client-generated opaque UUID, not a child's name. When supplied, the tutor receives the exact learner/topic progress and is instructed to reteach the same topic gently after difficulty. Existing clients that omit this field continue to work; Android persistence/identifier wiring is still required to activate continuity across sessions.
+- **Privacy / correctness boundary:** Self-reported understanding does not mark mastery. Progress is keyed by learner UUID plus curriculum profile/chapter/topic. This is prototype support, not a validated educational mastery model.
+- **Regression test:** Added tests for the three-correct-check transition, duplicate-event idempotency, and reset on an incorrect check.
+- **Verification status:** Latest-head CI is pending. Do not claim the new schema/API or tests pass until exact-head curriculum checks complete.
+- **Next action:** Review latest CI and fix any failures. Then wire a persistent random learner UUID into Android tutor requests and record only actual practice outcomes; keep PR #31 unmerged until required regressions pass.

@@ -17,7 +17,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, Header, HTTPException, UploadFile
 from pydantic import BaseModel, Field, ValidationError
 
 MAX_PDF_BYTES = 25 * 1024 * 1024
@@ -164,8 +164,8 @@ CURRICULUM: board={scope.board}; year={scope.academic_year}; medium={scope.mediu
 standard={scope.standard}; subject={scope.subject}; textbook={scope.textbook_title};
 edition={scope.edition}.
 TOPIC: {topic_package.get('topic_title', '')}; chapter={topic_package.get('chapter', '')}.
-Use only the source evidence below for curriculum-specific claims. Do not invent page
-references, official learning outcomes, facts, or examples. Clearly label any everyday
+Use only the source evidence below for curriculum-specific claims. Do not invent page references,
+official learning outcomes, facts, or examples. Clearly label any everyday
 analogy as an analogy. Cover definitions, concept relationships, prerequisites, examples,
 likely misconceptions, and 2-3 understanding checks. Cite the source page for each
 supported claim. Explicitly list gaps and uncertainty. If evidence is absent or insufficient,
@@ -306,8 +306,8 @@ def _require_admin(x_admin_token: str | None) -> None:
 
 @router.post("/ingest-pdf")
 async def ingest_syllabus_pdf(
-    metadata_json: str,
-    syllabus_json: str,
+    metadata_json: str = Form(...),
+    syllabus_json: str = Form(...),
     file: UploadFile = File(...),
     x_admin_token: str | None = Header(default=None),
 ) -> dict[str, Any]:

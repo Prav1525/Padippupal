@@ -94,6 +94,10 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('grep -qi "Revise Components of Food" "$planner_xml"', source[source.index('planner_xml='):])
         self.assertIn('second saved task did not become visible after 8 planner viewport checks', source)
         self.assertIn('Both saved diary tasks visible in planner accessibility tree', source)
+        self.assertIn('grep -qi "Complete Q1-5" "$planner_xml"', source)
+        self.assertIn('grep -qi "Revise Components of Food" "$planner_xml"', source)
+        self.assertNotIn('assert_has "$planner_xml" "Today\'s homework"', source)
+        self.assertIn('current PlannerScreen does not render a "Today\'s homework" heading', source)
 
     def test_failure_register_exists_and_names_regression_expectations(self):
         register = ROOT / "docs" / "TEST_FAILURE_REGISTER.md"

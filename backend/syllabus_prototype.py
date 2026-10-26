@@ -80,6 +80,38 @@ def list_existing_books(x_admin_token: str | None = Header(default=None)) -> dic
         conn.close()
 
 
+
+@router.get("/api/sources/{existing_source_id}/preview")
+def preview_existing_book(
+    existing_source_id: str,
+    x_admin_token: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Inspect page-marked text from the existing indexed source before synthesis."""
+    _authorize(x_admin_token)
+    from syllabus_synthesis import _read_existing_curriculum_source
+
+    try:
+        source, pages = _read_existing_curriculum_source(existing_source_id)
+    except HTTPException:
+        raise
+    return {
+        "source_id": existing_source_id,
+        "title": source.get("title"),
+        "subject": source.get("subject"),
+        "status": source.get("status"),
+        "page_count": len(pages),
+        "pages_with_text": sum(bool(str(page.get("text", "")).strip()) for page in pages),
+        "pages_needing_ocr": [int(page["page"]) for page in pages if page.get("needs_ocr")],
+        "preview_pages": [{
+            "page": int(page["page"]),
+            "word_count": int(page.get("word_count", 0)),
+            "text_preview": str(page.get("text", ""))[:1800],
+        } for page in pages[:3]],
+        "rights_reviewed": False,
+        "approved": False,
+    }
+
+
 @router.post("/api/sources/{existing_source_id}/package")
 def create_test_package(
     existing_source_id: str,

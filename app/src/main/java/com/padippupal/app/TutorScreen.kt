@@ -75,6 +75,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
+import java.util.UUID
 import java.time.LocalDate
 import java.util.concurrent.Executors
 
@@ -1020,6 +1021,41 @@ internal fun TutorScreen(
     var listening by remember { mutableStateOf(false) }
     val speechRecognizer = remember(context) {
         if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null
+    }
+
+    fun recordProgressSignal(signal: String) {
+        if (learnerId.isBlank() || chapter.isBlank() || topic.isBlank()) return
+        tutorExecutor.execute {
+            runCatching {
+                val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+                require(base.startsWith("https://") || (BuildConfig.DEBUG && base == "http://10.0.2.2:8765"))
+                val body = JSONObject()
+                    .put("learner_id", learnerId)
+                    .put("event_id", UUID.randomUUID().toString())
+                    .put("board", board)
+                    .put("class_level", grade)
+                    .put("subject", subject)
+                    .put("medium", medium)
+                    .put("chapter", chapter)
+                    .put("topic", topic)
+                    .put("signal", signal)
+                    .toString()
+                    .toByteArray(StandardCharsets.UTF_8)
+                val connection = URL("$base/tutor/progress").openConnection() as HttpURLConnection
+                try {
+                    connection.requestMethod = "POST"
+                    connection.connectTimeout = 5000
+                    connection.readTimeout = 5000
+                    connection.setRequestProperty("Accept", "application/json")
+                    connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                    connection.doOutput = true
+                    connection.outputStream.use { it.write(body) }
+                    connection.responseCode
+                } finally {
+                    connection.disconnect()
+                }
+            }
+        }
     }
 
     fun startVoiceInput() {
@@ -2193,6 +2229,7 @@ internal fun TutorScreen(
                 Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
+                        recordProgressSignal("understood")
                         val nextIndex = liveSegmentIndex + 1
                         awaitingUnderstanding = false
                         currentCheckpoint = ""
@@ -2201,6 +2238,7 @@ internal fun TutorScreen(
                         tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
                     }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand", maxLines = 1) }
                     OutlinedButton(onClick = {
+                        recordProgressSignal("needs_help")
                         awaitingUnderstanding = false
                         val segment = liveSegments.getOrNull(liveSegmentIndex)
                         if (segment != null) {

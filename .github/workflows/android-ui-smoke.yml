@@ -116,11 +116,7 @@ jobs:
             # Run diary picker acceptance first so unrelated tutor failures cannot mask it.
             # Preserve its screenshots/UI trees outside ui-screenshots: the tutor retry
             # script intentionally clears that directory before each tutor attempt.
-            set +e
-            bash .github/scripts/diary_crop_emulator_test.sh
-            diary_test_status=$?
-            set -e
-            bash .github/scripts/preserve_diary_artifacts.sh "$diary_test_status"
+            set +e; bash .github/scripts/diary_crop_emulator_test.sh; diary_test_status=$?; set -e; bash .github/scripts/preserve_diary_artifacts.sh "$diary_test_status"
             bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Record test outcomes and failure diagnostics

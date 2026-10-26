@@ -932,6 +932,7 @@ internal fun TutorScreen(
     medium: String,
     appLanguage: String,
     studentName: String,
+    learnerId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     setupOnly: Boolean = false,
@@ -1799,6 +1800,7 @@ internal fun TutorScreen(
                     .put("medium", medium)
                     .put("app_language", selectedLanguage)
                     .put("student_name", studentName)
+                    .put("learner_id", learnerId)
                     .put("message", question)
                     .put("chapter", chapter)
                     .put("topic", topic)

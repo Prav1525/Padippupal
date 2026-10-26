@@ -198,3 +198,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `0e1c95ca552ce14dd85315d0a5344e6804c045d0` changes the emulator test to scroll in bounded increments, re-dump the UI tree after each swipe, and tap Save only when the control is actually present. It fails with a diagnostic screenshot/XML if the control never appears after eight attempts.
 - **Regression prevention:** Commit `2d651826bf2ab17da51d2945311331213eedf32f` adds a static regression check for the bounded loop, fresh UI dump, save visibility check, and diagnostic failure.
 - **Validation:** Fresh CI is required to verify the full photo-picker → crop → rescan → review → planner-save path. API 30 comparison remains outstanding; do not merge PR #24 until end-to-end acceptance passes.
+
+
+## Incident: planner assertion searched only the first visible viewport
+
+- **Symptom:** API 35 run 1072 saved two tasks (planner screenshot showed `0 / 2 tasks complete`, two subject totals of `0 / 1`, and the visible first card `Complete Q1-5`) but failed because `Revise Components of Food` was not in the initial `diary-planner.xml`.
+- **Root cause confirmed from screenshot + accessibility tree:** The planner is vertically scrollable and the first task card is already clipped by the bottom navigation in the initial screenshot. The test dumped the tree once and treated an off-screen second card as missing. The screenshot proves two tasks were saved; it does not prove the second title was lost.
+- **Fix:** Commit `e2cd1832692b1cb513ecaacde048f3b2102ef2c6` scrolls the planner in bounded increments, dumps a fresh accessibility tree and screenshot after each gesture, and asserts both expected titles together only after the second task becomes visible. A diagnostic failure remains if the second task is not exposed after eight checks.
+- **Regression prevention:** Commit `9147db0b6460befb636bd87a41419d4d9630d4cb` adds a static regression test requiring planner scrolling and a bounded visibility check.
+- **Validation:** Script/unit checks and a fresh API 35 emulator run are pending. API 30 vs API 35 and live OCR validation remain separate acceptance gaps. Keep PR #24 open until end-to-end checks pass.

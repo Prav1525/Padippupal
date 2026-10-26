@@ -150,3 +150,17 @@ Use this format:
 - **What remains unverified:** Targeted test execution on CI, actual DocumentsUI selection/URI return, crop, rescan, review, and planner save.
 - **Difference from previous attempt:** Replaces a single tap plus `DPAD_CENTER` with a double-tap on the row body; no unchanged retry.
 - **Next action and why:** Check the fresh workflow on this exact commit and inspect its screenshot/XML at the moment of activation. If the picker remains open, stop changing tap gestures and inspect DocumentsUI's actual activity/result semantics and test fixture launch path instead.
+
+
+### 2026-10-26 — Fix stale assertion blocking the double-tap picker diagnostic
+- **Branch / commit:** `fix/diary-image-picker-reliability`; assertion-fix commit 141355d53dec41067daa931eebf2d61c4313bb12.
+- **Test command or workflow URL:** Android UI smoke run [40257054355](https://github.com/Prav1525/Padippupal/actions/runs/40257054355), job [121361328034](https://github.com/Prav1525/Padippupal/actions/runs/40257054355).
+- **Result:** **FAIL** — smoke-script validation failed before emulator allocation; emulator test was skipped.
+- **Exact failure or assertion:** `test_picker_opens_filename_row_not_preview_affordance` failed because it expected the obsolete log text `Focusing DocumentsUI row`; the changed helper now logs `Double-tapping DocumentsUI row`. The run reports JVM tests and APK build passed, script validation failed.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Workflow run](https://github.com/Prav1525/Padippupal/actions/runs/40257054355); the uploaded artifact [12622748394](https://github.com/Prav1525/Padippupal/actions/runs/40257054355/artifacts/12622748394) contains only the failure report because emulator allocation was skipped.
+- **Change made (files + rationale):** `.github/scripts/test_diary_emulator_script.py` updates the brittle source-text assertion to match the helper's current `Double-tapping DocumentsUI row` log. This fixes a test-harness expectation mismatch only; it does not claim the gesture works.
+- **Root cause:** **CONFIRMED** for this CI failure: the regression test still expected a log message from the previous focus-plus-DPAD implementation. The actual picker interaction root cause remains **UNKNOWN**.
+- **What this attempt proves:** CI was blocked by a stale assertion before the double-tap could be exercised in the emulator.
+- **What remains unverified:** Actual double-tap behavior, DocumentsUI closing, URI callback receipt, and crop/rescan/save.
+- **Difference from previous attempt:** Corrects the exact test assertion identified in the CI traceback; no picker gesture or app behavior changed in this fix.
+- **Next action and why:** Let CI run on this updated test and inspect the emulator result. If validation passes but DocumentsUI still does not return, stop gesture guessing and use the captured activity/logcat/result data to diagnose the launch/result contract.

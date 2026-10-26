@@ -286,6 +286,23 @@ def init_db() -> None:
           ON syllabus_synthesis_rounds(source_id, chapter, created_at);
         CREATE INDEX IF NOT EXISTS idx_syllabus_topic_syntheses_round
           ON syllabus_topic_syntheses(round_id, approval_status);
+        CREATE TABLE IF NOT EXISTS learner_topic_progress (
+            learner_id TEXT NOT NULL, board TEXT NOT NULL, class_level INTEGER NOT NULL,
+            subject TEXT NOT NULL, medium TEXT NOT NULL, chapter TEXT NOT NULL, topic TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'learning', correct_streak INTEGER NOT NULL DEFAULT 0,
+            correct_checks INTEGER NOT NULL DEFAULT 0, incorrect_checks INTEGER NOT NULL DEFAULT 0,
+            understood_signals INTEGER NOT NULL DEFAULT 0, needs_help_signals INTEGER NOT NULL DEFAULT 0,
+            last_signal TEXT NOT NULL DEFAULT '', updated_at REAL NOT NULL,
+            PRIMARY KEY (learner_id, board, class_level, subject, medium, chapter, topic)
+        );
+        CREATE TABLE IF NOT EXISTS learner_topic_events (
+            learner_id TEXT NOT NULL, event_id TEXT NOT NULL, board TEXT NOT NULL,
+            class_level INTEGER NOT NULL, subject TEXT NOT NULL, medium TEXT NOT NULL,
+            chapter TEXT NOT NULL, topic TEXT NOT NULL, signal TEXT NOT NULL,
+            created_at REAL NOT NULL, PRIMARY KEY (learner_id, event_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_learner_topic_progress_lookup
+          ON learner_topic_progress(learner_id, board, class_level, subject, chapter);
         """)
         # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
         # by an administrator after the first deployment.
@@ -1199,7 +1216,20 @@ class TutorChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
     chapter: str = Field(default="", max_length=200)
     topic: str = Field(default="", max_length=200)
+    learner_id: str = Field(default="", max_length=36, pattern=r"^$|^[0-9a-fA-F-]{36}$")
     history: list[TutorTurn] = Field(default_factory=list, max_length=8)
+
+
+class TutorProgressRequest(BaseModel):
+    learner_id: str = Field(min_length=36, max_length=36, pattern=r"^[0-9a-fA-F-]{36}$")
+    event_id: str = Field(min_length=36, max_length=36, pattern=r"^[0-9a-fA-F-]{36}$")
+    board: str = Field(min_length=2, max_length=80)
+    class_level: int = Field(ge=1, le=12)
+    subject: str = Field(min_length=1, max_length=100)
+    medium: str = Field(min_length=2, max_length=40)
+    chapter: str = Field(min_length=2, max_length=200)
+    topic: str = Field(min_length=2, max_length=200)
+    signal: str = Field(pattern=r"^(needs_help|understood|practice_correct|practice_incorrect)$")
 
 
 def infer_tutor_subject(message: str, selected_subject: str = "General") -> str:
@@ -2002,6 +2032,75 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False}
 
+@app.post("/tutor/progress")
+def record_tutor_progress(payload: TutorProgressRequest) -> dict[str, Any]:
+    """Record explicit learner signals; three consecutive correct checks are provisional mastery."""
+    now = time.time()
+    with db() as conn:
+        inserted = conn.execute(
+            """INSERT INTO learner_topic_events
+               (learner_id,event_id,board,class_level,subject,medium,chapter,topic,signal,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(learner_id,event_id) DO NOTHING""",
+            (payload.learner_id, payload.event_id, payload.board, payload.class_level,
+             payload.subject, payload.medium, payload.chapter, payload.topic, payload.signal, now),
+        )
+        current = conn.execute(
+            """SELECT * FROM learner_topic_progress
+               WHERE learner_id=? AND LOWER(board)=LOWER(?) AND class_level=?
+                 AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?)
+                 AND LOWER(chapter)=LOWER(?) AND LOWER(topic)=LOWER(?)""",
+            (payload.learner_id, payload.board, payload.class_level, payload.subject,
+             payload.medium, payload.chapter, payload.topic),
+        ).fetchone()
+        if inserted.rowcount == 0:
+            if current:
+                return {"recorded": False, "duplicate_event": True, "status": current["status"],
+                        "correct_streak": current["correct_streak"]}
+            return {"recorded": False, "duplicate_event": True, "status": "learning", "correct_streak": 0}
+
+        old = dict(current) if current else {}
+        correct_streak = int(old.get("correct_streak", 0))
+        correct_checks = int(old.get("correct_checks", 0))
+        incorrect_checks = int(old.get("incorrect_checks", 0))
+        understood_signals = int(old.get("understood_signals", 0))
+        needs_help_signals = int(old.get("needs_help_signals", 0))
+        status = str(old.get("status", "learning"))
+        if payload.signal == "practice_correct":
+            correct_streak += 1
+            correct_checks += 1
+            status = "mastered" if correct_streak >= 3 else "learning"
+        elif payload.signal == "practice_incorrect":
+            correct_streak = 0
+            incorrect_checks += 1
+            status = "needs_help"
+        elif payload.signal == "needs_help":
+            correct_streak = 0
+            needs_help_signals += 1
+            status = "needs_help"
+        else:  # understood is a learner self-report, never enough to mark mastery
+            understood_signals += 1
+            if status != "mastered":
+                status = "learning"
+
+        conn.execute(
+            """INSERT INTO learner_topic_progress
+               (learner_id,board,class_level,subject,medium,chapter,topic,status,correct_streak,
+                correct_checks,incorrect_checks,understood_signals,needs_help_signals,last_signal,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(learner_id,board,class_level,subject,medium,chapter,topic) DO UPDATE SET
+                status=excluded.status,correct_streak=excluded.correct_streak,
+                correct_checks=excluded.correct_checks,incorrect_checks=excluded.incorrect_checks,
+                understood_signals=excluded.understood_signals,needs_help_signals=excluded.needs_help_signals,
+                last_signal=excluded.last_signal,updated_at=excluded.updated_at""",
+            (payload.learner_id, payload.board, payload.class_level, payload.subject, payload.medium,
+             payload.chapter, payload.topic, status, correct_streak, correct_checks, incorrect_checks,
+             understood_signals, needs_help_signals, payload.signal, now),
+        )
+    return {"recorded": True, "duplicate_event": False, "status": status,
+            "correct_streak": correct_streak, "correct_checks": correct_checks,
+            "incorrect_checks": incorrect_checks}
+
+
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     """Fast, child-friendly tutoring through a server-side Groq API key."""
@@ -2220,6 +2319,29 @@ PADIPPUPAL CHAT-FIRST TEACHING CONTRACT — overrides older step-by-step/short-r
         system_prompt += "\n\n" + approved_plan_context
     if blueprint_context:
         system_prompt += "\n\n" + blueprint_context
+
+    # Optional, opaque client-generated UUID keeps progress separate per learner without
+    # collecting a child's name. Self-report is a signal, not proof of mastery.
+    if payload.learner_id and payload.chapter and payload.topic:
+        with db() as conn:
+            progress = conn.execute(
+                """SELECT status,correct_streak,correct_checks,incorrect_checks,last_signal
+                   FROM learner_topic_progress
+                   WHERE learner_id=? AND LOWER(board)=LOWER(?) AND class_level=?
+                     AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?)
+                     AND LOWER(chapter)=LOWER(?) AND LOWER(topic)=LOWER(?)""",
+                (payload.learner_id, payload.board, payload.class_level, effective_subject,
+                 payload.medium, payload.chapter, payload.topic),
+            ).fetchone()
+        if progress:
+            system_prompt += (
+                "\n\nLEARNER TOPIC PROGRESS (adapt gently; never shame the learner): "
+                f"status={progress['status']}; consecutive correct practice checks={progress['correct_streak']}; "
+                f"total correct checks={progress['correct_checks']}; total incorrect checks={progress['incorrect_checks']}; "
+                f"last signal={progress['last_signal']}. "
+                "If they need help or recently answered incorrectly, re-explain the SAME topic more simply. "
+                "Treat three consecutive correct practice checks as a provisional mastery signal, not a guarantee."
+            )
 
     messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
     if context_blocks:

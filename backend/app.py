@@ -1543,10 +1543,43 @@ class ChapterLessonReviewRequest(BaseModel):
 @app.post("/admin/chapter-lessons/{lesson_id}/review", dependencies=[Depends(require_admin)])
 def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -> dict[str, Any]:
     status={"approve":"approved","reject":"rejected","request_changes":"review"}[payload.decision]
+    now = time.time()
     with db() as conn:
-        row=conn.execute("SELECT id FROM chapter_lessons WHERE id=?",(lesson_id,)).fetchone()
-        if not row: raise HTTPException(status_code=404,detail="Chapter lesson not found.")
-        conn.execute("UPDATE chapter_lessons SET status=?,review_feedback=?,updated_at=? WHERE id=?",(status,payload.feedback,time.time(),lesson_id))
+        row=conn.execute(
+            "SELECT id,source_refs_json,chapter FROM chapter_lessons WHERE id=?",
+            (lesson_id,),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404,detail="Chapter lesson not found.")
+        conn.execute(
+            "UPDATE chapter_lessons SET status=?,review_feedback=?,updated_at=? WHERE id=?",
+            (status,payload.feedback,now,lesson_id),
+        )
+        # Keep the synthesis review state aligned with the exact lesson whose
+        # source-backed content the tutor will serve. Never approve a different
+        # source or chapter just because its title happens to look similar.
+        refs = json.loads(row["source_refs_json"] or "[]")
+        source_ids = sorted({str(ref.get("source_id", "")) for ref in refs
+                             if isinstance(ref, dict) and ref.get("source_id")})
+        synthesis_status = {"approved":"approved","rejected":"rejected","review":"draft"}[status]
+        for source_id in source_ids:
+            round_row = conn.execute(
+                """SELECT id FROM syllabus_synthesis_rounds
+                   WHERE source_id=? AND chapter=?""",
+                (source_id, str(row["chapter"])),
+            ).fetchone()
+            if round_row:
+                conn.execute(
+                    "UPDATE syllabus_synthesis_rounds SET status=?,updated_at=? WHERE id=?",
+                    (synthesis_status,now,round_row["id"]),
+                )
+                topic_status = "approved" if synthesis_status == "approved" else (
+                    "rejected" if synthesis_status == "rejected" else "draft"
+                )
+                conn.execute(
+                    "UPDATE syllabus_topic_syntheses SET approval_status=?,updated_at=? WHERE round_id=?",
+                    (topic_status,now,round_row["id"]),
+                )
     return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback}
 
 

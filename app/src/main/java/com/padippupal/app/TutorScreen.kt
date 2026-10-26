@@ -1017,6 +1017,7 @@ internal fun TutorScreen(
     var liveSegmentIndex by remember { mutableIntStateOf(0) }
     var liveLessonActive by remember { mutableStateOf(false) }
     var hasCompletedLesson by remember { mutableStateOf(false) }
+    var pendingNextCurriculumTopic by remember { mutableStateOf<Pair<String, String>?>(null) }
     // Carries the completed topic into the next preview so the tutor can make a relevant transition.
     var previousCompletedTopic by remember { mutableStateOf("") }
     var livePaused by remember { mutableStateOf(false) }
@@ -1643,6 +1644,7 @@ internal fun TutorScreen(
     }
 
     fun advanceToNextCurriculumTopic(): Boolean {
+        // Stage the next curriculum item; never change lessons without an explicit learner action.
         val chapters = chapterOptions
         if (chapters.isEmpty() || chapter.isBlank() || topic.isBlank()) return false
         val chapterIndex = chapters.indexOfFirst { it.first.equals(chapter, ignoreCase = true) }
@@ -1655,11 +1657,17 @@ internal fun TutorScreen(
                 chapters[chapterIndex + 1].first to chapters[chapterIndex + 1].second.first()
             else -> null
         }
-        if (next == null) return false
+        pendingNextCurriculumTopic = next
+        return next != null
+    }
+
+    fun continueToNextCurriculumTopic(): Boolean {
+        val next = pendingNextCurriculumTopic ?: return false
         val completedChapter = chapter
         previousCompletedTopic = topic
         chapter = next.first
         topic = next.second
+        pendingNextCurriculumTopic = null
         preparedLessonSegments = emptyList()
         preparedLessonKey = ""
         previewAttemptKey = ""
@@ -1689,11 +1697,8 @@ internal fun TutorScreen(
             // If the outline has no next item, keep the normal completion state.
             hasCompletedLesson = true
             status = "Live lesson complete."
-            if (advanceToNextCurriculumTopic()) {
-                // The selected lesson key changes, so the existing preview loader prepares
-                // the next lesson while the learner stays on this screen.
-                hasCompletedLesson = false
-            }
+            pendingNextCurriculumTopic = null
+            advanceToNextCurriculumTopic()
             return
         }
         val segment = liveSegments[index]
@@ -2432,6 +2437,30 @@ internal fun TutorScreen(
                     },
                     modifier = Modifier.align(Alignment.End)
                 ) { Text("I have a question", color = TutorGreen) }
+            }
+        }
+
+        if (!liveLessonActive && !showLessonSettings && hasCompletedLesson) {
+            val nextItem = pendingNextCurriculumTopic
+            if (nextItem != null) {
+                Button(
+                    onClick = { continueToNextCurriculumTopic() },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(
+                        if (nextItem.first.equals(chapter, ignoreCase = true)) "Continue to next topic: ${nextItem.second}"
+                        else "Continue to next chapter: ${nextItem.first}",
+                        maxLines = 2
+                    )
+                }
+            } else {
+                Text(
+                    "You have reached the end of the available curriculum.",
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    color = TutorGrey,
+                    fontSize = 13.sp
+                )
             }
         }
 

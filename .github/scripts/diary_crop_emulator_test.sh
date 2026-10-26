@@ -193,16 +193,35 @@ fi
 assert_has "$review_xml" "Revise Components of Food"
 log "Saving reviewed tasks and verifying them in today planner"
 tap_label "$review_xml" "Save selected tasks"
-for attempt in $(seq 1 20); do
+planner_xml=ui-screenshots/diary-test/diary-planner.xml
+planner_has_both=0
+# The planner shows the first task near the bottom of the initial viewport.
+# A single UI dump cannot prove later cards are absent: scroll the actual task
+# list, capture a fresh tree after each gesture, and stop only when both saved
+# task titles are present in one tree.
+for attempt in $(seq 1 8); do
   sleep 1
   dump_ui diary-planner
-  if grep -qi "Today's homework" ui-screenshots/diary-test/diary-planner.xml; then break; fi
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/saved-planner.png
+  if grep -qi "Today's homework" "$planner_xml" && \
+     grep -qi "Complete Q1-5" "$planner_xml" && \
+     grep -qi "Revise Components of Food" "$planner_xml"; then
+    planner_has_both=1
+    log "Both saved diary tasks visible in planner accessibility tree after attempt $attempt"
+    break
+  fi
+  if ! grep -qi "Revise Components of Food" "$planner_xml"; then
+    log "Second saved task not in current planner viewport after attempt $attempt; scrolling task list"
+    "${ADB[@]}" shell input swipe 520 1350 520 650 450
+  fi
 done
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/saved-planner.png
-assert_has ui-screenshots/diary-test/diary-planner.xml "Today's homework"
-assert_has ui-screenshots/diary-test/diary-planner.xml "Complete Q1-5"
-assert_has ui-screenshots/diary-test/diary-planner.xml "Revise Components of Food"
-if grep -Eqi "Read lesson 4|Finish worksheet 2|Label India map|short paragraph" ui-screenshots/diary-test/diary-planner.xml; then
+assert_has "$planner_xml" "Today's homework"
+assert_has "$planner_xml" "Complete Q1-5"
+if [ "$planner_has_both" -ne 1 ]; then
+  log "FAIL: second saved task did not become visible after 8 planner viewport checks; inspect diary-planner.xml and saved-planner.png"
+  exit 1
+fi
+if grep -Eqi "Read lesson 4|Finish worksheet 2|Label India map|short paragraph" "$planner_xml"; then
   log "FAIL: neighboring-date homework was saved to planner"
   exit 1
 fi

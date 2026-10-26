@@ -1264,6 +1264,19 @@ class LessonSegment(BaseModel):
 class LessonPlanRequest(TutorChatRequest):
     max_segments: int = Field(default=5, ge=2, le=8)
 
+_TUTOR_META_SPEECH_PATTERNS = (
+    re.compile(r"\b(?:voice direction|instructions to the voice|system prompt|developer prompt)\b", re.I),
+    re.compile(r"\b(?:speak only the exact words|do not say these directions aloud|do not speak the tag names)\b", re.I),
+    re.compile(r"\b(?:return json only|with no markdown fences|spoken_text\s*:|caption_text\s*:)\b", re.I),
+    re.compile(r"<\s*/?\s*(?:say|system|assistant|instruction|voice_direction)\b", re.I),
+)
+
+
+def _contains_tutor_meta_instructions(text: str) -> bool:
+    """Reject leaked generation/voice directions before they can reach the learner."""
+    return any(pattern.search(text) for pattern in _TUTOR_META_SPEECH_PATTERNS)
+
+
 def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: int) -> dict[str, Any]:
     candidate = raw.strip()
     if candidate.startswith("```"):
@@ -1286,6 +1299,14 @@ def _validate_lesson_plan(raw: str, allowed_chunk_ids: set[str], max_segments: i
             raw_spoken = item.get("spoken_text")
             if not isinstance(raw_spoken, str) or not raw_spoken.strip():
                 raise HTTPException(status_code=502, detail=f"The lesson planner returned an empty spoken segment (segment {index}).")
+            raw_caption_for_check = item.get("caption_text")
+            if _contains_tutor_meta_instructions(raw_spoken) or (
+                isinstance(raw_caption_for_check, str) and _contains_tutor_meta_instructions(raw_caption_for_check)
+            ):
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"The lesson planner included internal voice or prompt instructions in segment {index}.",
+                )
             # Normalize presentation metadata that can safely default without changing
             # the lesson content. Never synthesize spoken text or textbook citations.
             raw_id = item.get("id")
@@ -1857,7 +1878,10 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         "The previous response failed lesson-plan JSON/schema validation. Return exactly one valid JSON object, "
         "with no markdown fences or extra prose. Each segment must have a string id, string spoken_text, string caption_text, "
         "source_chunk_ids containing only exact chunk_id values from the supplied passages, visual_action as an object "
-        "with string type/target/value fields, and checkpoint as a short string or null. Do not add facts or citations."
+        "with string type/target/value fields, and checkpoint as a short string or null. Do not add facts or citations. "
+        "CRITICAL: spoken_text and caption_text must contain ONLY the child's actual lesson explanation. Never include "
+        "voice directions, prompt instructions, labels, system/developer text, JSON guidance, or phrases telling the model "
+        "how to speak. Those instructions are never learner-facing content."
     )
     validated = None
     for attempt in range(2):
@@ -2520,10 +2544,14 @@ class TutorSpeechRequest(BaseModel):
 
 def _clean_tutor_speech_text(text: str) -> str:
     speech_text = re.sub(r"\s+", " ", text).strip()
+    # Strip wrapper tags if a caller accidentally passes the speech boundary itself.
+    speech_text = re.sub(r"</?SAY>", " ", speech_text, flags=re.IGNORECASE)
     speech_text = re.sub(
-        r"^(?:tutor reply|response|instructions to the voice|voice instructions)\s*:\s*",
+        r"^(?:tutor reply|response|instructions to the voice|voice instructions|voice direction)\s*:\s*",
         "", speech_text, flags=re.IGNORECASE,
     ).strip()
+    if _contains_tutor_meta_instructions(speech_text):
+        raise HTTPException(status_code=422, detail="Internal tutor instructions cannot be sent to speech playback.")
     sentences = re.split(r"(?<=[.!?。！？])\s+", speech_text)
     deduped: list[str] = []
     for sentence in sentences:
@@ -2531,6 +2559,26 @@ def _clean_tutor_speech_text(text: str) -> str:
         if sentence and (not deduped or sentence.casefold() != deduped[-1].casefold()):
             deduped.append(sentence)
     return " ".join(deduped)
+
+
+def _fade_pcm_tail(raw_audio: bytes, sample_rate: int, fade_ms: int = 80) -> bytes:
+    """Apply a short PCM fade-out to avoid a hard edge/pop at the end of generated speech."""
+    if sample_rate <= 0 or len(raw_audio) < 4:
+        return raw_audio
+    usable_length = len(raw_audio) - (len(raw_audio) % 2)
+    samples = usable_length // 2
+    fade_samples = min(samples, max(1, sample_rate * fade_ms // 1000))
+    if fade_samples <= 1:
+        return raw_audio
+    output = bytearray(raw_audio)
+    first_fade_sample = samples - fade_samples
+    for index in range(first_fade_sample, samples):
+        gain = (samples - 1 - index) / max(1, fade_samples - 1)
+        offset = index * 2
+        sample = int.from_bytes(raw_audio[offset:offset + 2], "little", signed=True)
+        faded = max(-32768, min(32767, round(sample * gain)))
+        output[offset:offset + 2] = faded.to_bytes(2, "little", signed=True)
+    return bytes(output[:usable_length]) + raw_audio[usable_length:]
 
 
 def _sarvam_prepare_tanglish_for_speech(text: str, api_key: str) -> str:
@@ -2814,6 +2862,9 @@ def tutor_speech(payload: TutorSpeechRequest) -> dict[str, Any]:
                 raise ValueError("Gemini returned an empty audio stream")
             rate_match = re.search(r"rate=(\d+)", mime_type)
             sample_rate = int(rate_match.group(1)) if rate_match else 24000
+            # Gemini returns raw 16-bit PCM, not a WAV container. Fade the final
+            # 80 ms to suppress a hard decoder boundary/pop without changing speech.
+            raw_audio = _fade_pcm_tail(raw_audio, sample_rate)
             wav_buffer = io.BytesIO()
             with wave.open(wav_buffer, "wb") as wav_file:
                 wav_file.setnchannels(1)

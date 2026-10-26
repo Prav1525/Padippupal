@@ -163,17 +163,36 @@ if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" ui-scre
   log "FAIL: neighboring-date homework leaked into review"
   exit 1
 fi
-"${ADB[@]}" shell input swipe 520 1450 520 700 450
-sleep 1
-dump_ui diary-review-scrolled
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/review-tasks-scrolled.png
-assert_has ui-screenshots/diary-test/diary-review-scrolled.xml "Write page 18"
-if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" ui-screenshots/diary-test/diary-review-scrolled.xml; then
-  log "FAIL: neighboring-date homework leaked into scrolled review"
+# The review form is taller than the emulator viewport. One swipe reveals the
+# second task but not the save action, so scroll in bounded increments and inspect
+# a fresh accessibility tree after every gesture rather than assuming one swipe.
+review_xml=ui-screenshots/diary-test/diary-review-scrolled.xml
+save_visible=0
+for scroll_attempt in $(seq 1 8); do
+  "${ADB[@]}" shell input swipe 520 1500 520 650 450
+  sleep 1
+  dump_ui diary-review-scrolled
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/review-tasks-scrolled.png
+  if grep -qi "Write page 18" "$review_xml"; then
+    if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" "$review_xml"; then
+      log "FAIL: neighboring-date homework leaked into scrolled review"
+      exit 1
+    fi
+  fi
+  if grep -qi "Save selected tasks" "$review_xml"; then
+    save_visible=1
+    log "Save action found after scroll attempt $scroll_attempt"
+    break
+  fi
+  log "Save action not visible after scroll attempt $scroll_attempt; continuing bounded scroll"
+done
+if [ "$save_visible" -ne 1 ]; then
+  log "FAIL: Save selected tasks did not become visible after 8 review scroll attempts; see diary-review-scrolled.xml and review-tasks-scrolled.png"
   exit 1
 fi
-log "Saving reviewed tasks and verifying they appear in today's planner"
-tap_label ui-screenshots/diary-test/diary-review-scrolled.xml "Save selected tasks"
+assert_has "$review_xml" "Write page 18"
+log "Saving reviewed tasks and verifying them in today planner"
+tap_label "$review_xml" "Save selected tasks"
 for attempt in $(seq 1 20); do
   sleep 1
   dump_ui diary-planner

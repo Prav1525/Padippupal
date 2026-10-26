@@ -12,11 +12,15 @@ permissions:
 
 # Keep only the newest emulator run for this branch; cold Android emulators are expensive.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.api-level }}
   cancel-in-progress: true
 
 jobs:
   emulator-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [30, 35]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -87,9 +91,9 @@ jobs:
         name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: ${{ matrix.api-level }}
           arch: x86_64
-          system-image-api-level: 35
+          system-image-api-level: ${{ matrix.api-level }}
           target: google_apis
           profile: pixel_2
           # Keep the guest memory modest so the emulator does not starve the hosted runner.

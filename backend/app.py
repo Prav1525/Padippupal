@@ -1562,12 +1562,23 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
         source_ids = sorted({str(ref.get("source_id", "")) for ref in refs
                              if isinstance(ref, dict) and ref.get("source_id")})
         synthesis_status = {"approved":"approved","rejected":"rejected","review":"draft"}[status]
+        expected_chunk_ids = {
+            str(ref.get("chunk_id", "")) for ref in refs
+            if isinstance(ref, dict) and ref.get("chunk_id")
+        }
         for source_id in source_ids:
-            round_row = conn.execute(
-                """SELECT id FROM syllabus_synthesis_rounds
-                   WHERE source_id=? AND chapter=?""",
+            round_rows = conn.execute(
+                """SELECT id,source_chunk_ids_json FROM syllabus_synthesis_rounds
+                   WHERE source_id=? AND chapter=? ORDER BY updated_at DESC""",
                 (source_id, str(row["chapter"])),
-            ).fetchone()
+            ).fetchall()
+            # A source can have multiple synthesis versions. Only synchronize the
+            # round whose evidence exactly matches the reviewed lesson's citations.
+            round_row = next(
+                (candidate for candidate in round_rows
+                 if set(json.loads(candidate["source_chunk_ids_json"] or "[]")) == expected_chunk_ids),
+                None,
+            )
             if round_row:
                 conn.execute(
                     "UPDATE syllabus_synthesis_rounds SET status=?,updated_at=? WHERE id=?",

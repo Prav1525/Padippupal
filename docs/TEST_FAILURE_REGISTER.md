@@ -207,3 +207,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `e2cd1832692b1cb513ecaacde048f3b2102ef2c6` scrolls the planner in bounded increments, dumps a fresh accessibility tree and screenshot after each gesture, and asserts both expected titles together only after the second task becomes visible. A diagnostic failure remains if the second task is not exposed after eight checks.
 - **Regression prevention:** Commit `9147db0b6460befb636bd87a41419d4d9630d4cb` adds a static regression test requiring planner scrolling and a bounded visibility check.
 - **Validation:** Script/unit checks and a fresh API 35 emulator run are pending. API 30 vs API 35 and live OCR validation remain separate acceptance gaps. Keep PR #24 open until end-to-end checks pass.
+
+
+## Incident: planner acceptance required a heading the app does not render
+
+- **Symptom:** API 35 run [40280727887](https://github.com/Prav1525/Padippupal/actions/runs/40280727887) completed Photo Picker selection, crop, rescan, review, and Save, then failed with `Today's homework not found`.
+- **Root cause confirmed from the uploaded `diary-planner.xml`:** The actual current `PlannerScreen` renders `Progress by subject`, `Tick tasks as you finish`, and task cards; it does not render a `Today's homework` heading. The captured accessibility tree already contains both expected task cards (`Complete Q1-5` and `Revise Components of Food`), each with due date `2026-10-26`. The failure was a stale test assertion against an obsolete UI label, not evidence that the save failed.
+- **Fix:** Commit `39c06d9fe54369e0c22595d9c21e8b3836021a7b` removes the obsolete heading condition from the planner visibility loop and final assertions. Acceptance now checks both actual task titles and still rejects neighboring-date fixture tasks.
+- **Regression prevention:** Commit `e57e9853250b0e015a41dc6d65a541fb5bd12333` adds a static test requiring both task-title checks and forbidding the obsolete heading assertion.
+- **Validation:** Fresh CI on the updated branch is required. The artifact proves the UI tree had both tasks, but the complete flow is not considered accepted until the rerun passes all planner and date-isolation assertions. Keep PR #24 open and unmerged until then.

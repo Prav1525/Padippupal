@@ -264,3 +264,13 @@ Use this format:
 - **What remains unverified:** Fresh curriculum suite, synthesis database persistence on the mocked endpoint, review endpoints, and Android build/UI checks on the latest head.
 - **Difference from previous attempt:** Moves beyond isolated synthesis helpers to the existing generation endpoint and persistence/review APIs, while adding a real mocked integration test.
 - **Next action and why:** Re-run CI on the corrected head. Fix any remaining synthesis integration or SQL errors based on the exact new traceback; do not merge until the curriculum suite and required regression checks pass.
+
+### 2026-10-26 — Synchronize tutor lesson approval with synthesis records
+- **Branch / commit:** `feature/syllabus-synthesis-prototype`; latest implementation commit `c306a42a326da95cd535556873078d398d521e5a`.
+- **Area:** Tutor lesson approval and syllabus synthesis review state.
+- **Change made:** When an administrator approves, rejects, or requests changes to a chapter lesson, synchronize the matching synthesis round and topic approval states. Match the round by source ID, chapter, and the exact set of source chunk IDs cited by the reviewed lesson so an older or different source revision is not accidentally approved.
+- **Regression test:** Extended `backend/test_syllabus_synthesis_api.py` to approve the generated test lesson and assert that its exact synthesis round and topic move to approved.
+- **Why:** The tutor lesson-plan endpoint already serves reviewed `chapter_lessons`; keeping synthesis status aligned makes review state truthful and traceable without allowing drafts into the tutor path.
+- **Verification status:** Test and regression workflows for the latest commit have not yet returned results. Earlier commit `8cc788620855f01c7c98446535667f480022c2b6` had passing Curriculum Engine Tests and Investigation Guidance Gate; Android APK passed, while Android UI smoke was still running at the last check. Do not treat those as verification of this latest change.
+- **What remains unverified:** Exact-head CI, real Gemini generation from an official source chapter, end-to-end tutor playback using an approved synthesized chapter, and full Science/Mathematics chapter coverage.
+- **Next action:** Confirm latest-head curriculum and Android checks; fix any test failures from their logs before advancing to batch chapter coverage or merging.

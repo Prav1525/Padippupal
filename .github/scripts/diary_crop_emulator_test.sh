@@ -76,15 +76,12 @@ tap_label ui-screenshots/diary-test/diary-scanner-return.xml "Choose photo"
 sleep 3
 dump_ui diary-picker
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/photo-picker.png
-# PickVisualMedia should present the system Photo Picker (not DocumentsUI) on
-# this API level. Select the fixture by its accessible filename, then prove the
-# activity result returns to PadippuPal. Do not interact with preview affordances.
-if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker.xml; then
-  log "FAIL: system Photo Picker does not expose the indexed fixture by filename; see diary-picker.xml and photo-picker.png"
-  exit 1
-fi
-log "Selecting the exact fixture in the system Photo Picker"
-tap_label ui-screenshots/diary-test/diary-picker.xml "PadippuPal-diary-test.jpg"
+# The API 35 system Photo Picker intentionally hides filesystem names and
+# exposes date-based descriptions on clickable photo tiles. The fixture is the
+# sole visible photo in this fresh emulator; select that one tile, failing closed
+# if the picker unexpectedly shows zero or multiple selectable photos.
+log "Selecting the sole visible fixture tile in the system Photo Picker"
+python3 .github/scripts/ui_smoke.py tap-photo-picker-item ui-screenshots/diary-test/diary-picker.xml
 sleep 1
 dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png

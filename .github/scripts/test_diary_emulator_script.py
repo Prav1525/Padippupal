@@ -16,85 +16,23 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_uses_clickable_preview_affordance_not_nonclickable_row(self):
+    def test_picker_uses_photo_picker_contract_and_selects_fixture_by_filename(self):
+        app = (ROOT / "app" / "src" / "main" / "java" / "com" / "padippupal" / "app" / "StudyFeatures.kt").read_text(encoding="utf-8")
         source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker-list.xml "PadippuPal-diary-test.jpg"', source)
-        self.assertIn('ui_smoke.py tap ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
+        self.assertIn("ActivityResultContracts.PickVisualMedia()", app)
+        self.assertIn("ActivityResultContracts.PickVisualMedia.ImageOnly", app)
+        self.assertIn('tap_label ui-screenshots/diary-test/diary-picker.xml "PadippuPal-diary-test.jpg"', source)
         self.assertIn('dump_ui diary-picker-selection-result', source)
-        self.assertIn('picker-selection-result.png', source)
-        self.assertIn('returned=0', source)
-        self.assertIn('for attempt in $(seq 1 8); do', source)
-        self.assertLess(source.index("returned=0"), source.index("for attempt in $(seq 1 8); do"))
-        selector_source = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")
-        self.assertIn('Tap clickable DocumentsUI preview control', selector_source)
-        self.assertNotIn('target_kind = "thumbnail"', selector_source)
-        self.assertIn('["adb", "-s", "emulator-5554", "shell",', selector_source)
-        self.assertIn('"input", "tap", str(x), str(y)', selector_source)
-        self.assertNotIn('"shell", "sh", "-c"', selector_source)
-        self.assertNotIn("control = row or next", selector_source)
-        self.assertNotIn("PY# Give the picker time", source)
-        self.assertIn('package="com.padippupal.app"', source)
+        self.assertIn('PickVisualMedia did not return to PadippuPal', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
-        self.assertNotIn('Tap DocumentsUI item row body at', source)
-
-
-    def test_tap_file_command_is_registered_in_dispatcher(self):
-        with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "picker.xml"
-            path.write_text("<hierarchy />", encoding="utf-8")
-            with mock.patch.object(ui_smoke, "tap_file") as selector, \
-                 mock.patch.object(ui_smoke.sys, "argv", ["ui_smoke.py", "tap-file", str(path), "PadippuPal-diary-test.jpg"]):
-                ui_smoke.main()
-            selector.assert_called_once_with(str(path), "PadippuPal-diary-test.jpg")
-
-    def test_file_selector_taps_exact_clickable_preview_control(self):
-        xml = """<hierarchy>
-          <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="false" bounds="[189,685][660,742]" />
-          <node resource-id="com.android.documentsui:id/item_root" clickable="false" focusable="true" bounds="[0,641][1080,830]" />
-          <node resource-id="com.google.android.documentsui:id/icon_thumb" clickable="false" bounds="[42,683][147,788]" />
-          <node resource-id="com.google.android.documentsui:id/preview_icon" text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" enabled="true" bounds="[891,641][1080,830]" />
-        </hierarchy>"""
-        with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "list.xml"
-            path.write_text(xml, encoding="utf-8")
-            with mock.patch("ui_smoke.subprocess.run") as run:
-                tap_file(str(path), "PadippuPal-diary-test.jpg")
-                run.assert_called_once_with(
-                    ["adb", "-s", "emulator-5554", "shell", "input", "tap", "985", "735"],
-                    check=True, timeout=45)
-
-    def test_file_selector_uses_preview_bounds_not_filename_or_row(self):
-        xml = """<hierarchy>
-          <node resource-id="com.google.android.documentsui:id/item_root" clickable="false" focusable="true" bounds="[0,80][400,200]" />
-          <node resource-id="com.google.android.documentsui:id/preview_icon" text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" enabled="true" bounds="[300,80][400,200]" />
-          <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="false" bounds="[20,100][250,160]" />
-        </hierarchy>"""
-        with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "list.xml"
-            path.write_text(xml, encoding="utf-8")
-            with mock.patch("ui_smoke.subprocess.run") as run:
-                tap_file(str(path), "PadippuPal-diary-test.jpg")
-                run.assert_called_once_with(
-                    ["adb", "-s", "emulator-5554", "shell", "input", "tap", "350", "140"],
-                    check=True, timeout=45)
-
-    def test_missing_filename_fails_safely_without_tapping_preview(self):
-        xml = """<hierarchy>
-          <node text="" content-desc="Preview the file other.jpg" clickable="true" bounds="[240,100][300,160]" />
-        </hierarchy>"""
-        with tempfile.TemporaryDirectory() as temp:
-            path = Path(temp) / "list.xml"
-            path.write_text(xml, encoding="utf-8")
-            with mock.patch("ui_smoke.subprocess.run") as run:
-                with self.assertRaises(SystemExit):
-                    tap_file(str(path), "PadippuPal-diary-test.jpg")
-                run.assert_not_called()
+        self.assertNotIn('ui_smoke.py tap-file', source)
+        self.assertNotIn('preview_icon', source)
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn('package="com.padippupal.app"', source)
         self.assertIn('dump_ui diary-picker-selection-result', source)
-        # Assert the diagnostic's intent, not a brittle, obsolete full message.
-        self.assertIn('did not return from DocumentsUI', source)
+        self.assertIn('FAIL: PickVisualMedia did not return to PadippuPal', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
 
     def test_failure_register_exists_and_names_regression_expectations(self):

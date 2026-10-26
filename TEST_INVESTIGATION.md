@@ -271,3 +271,14 @@ Use this format:
 - **What it proves / does not prove:** The source now contains a deterministic iterative orchestration and validation contract. It does not prove generated educational content is factually correct, does not automatically ingest every board/standard, and never auto-approves output.
 - **Next action:** Run focused backend tests, fix any failures, then wire the loop to the existing configured model provider and exercise a real PDF end-to-end.
 - **Merge status:** PR #29 remains draft and unmerged; no merge authorized.
+
+
+### 2026-10-26 — Wire iterative synthesis to Gemini and expose admin workflow
+- **Branch / commit:** `feat/syllabus-synthesis-engine`; provider/API commit `b73f5d64aead25ec919c41fb1d4fb94a694ec8bc`; documentation commit recorded by the following README update.
+- **Requirement / evidence:** The first iterative engine accepted a model callback but did not yet call a configured model or expose synthesis through the backend.
+- **Change made:** Added a Gemini JSON adapter using existing `GEMINI_API_KEY` and `PADIPPUPAL_GEMINI_CHAT_MODEL` settings, plus admin endpoint `POST /admin/syllabus/sources/{source_id}/topics/{topic_id}/synthesize`. It bounds passes, saves the full review history, validates cited pages against candidate evidence, blocks topics without evidence and never auto-approves.
+- **Root cause:** CONFIRMED for the missing operational integration — no API endpoint or configured-provider adapter existed for this new pipeline.
+- **Verification:** **UNVERIFIED** for runtime/API integration. The latest exact-head check visible so far is the Investigation Guidance Gate, not a backend pytest run. Local clone/test execution was blocked because this environment could not resolve github.com; no tests are claimed as passing.
+- **Known limitations:** The citation gate checks page membership and required fields, not semantic entailment. Topic-page matching is lexical and can miss relevant pages. OCR remains flagged rather than implemented. No board's full official corpus has been populated; source availability and rights review are still required. Gemini output remains draft/review material.
+- **Next action:** Obtain a CI run that executes `pytest backend/test_syllabus_synthesis.py` (and the backend regression suite), inspect its logs, then run a controlled end-to-end test against a permitted official PDF.
+- **Merge status:** PR #29 remains draft/unmerged; no merge authorized.

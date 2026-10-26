@@ -92,3 +92,77 @@ def test_upload_endpoint_is_admin_only(monkeypatch):
     app.include_router(router)
     response = TestClient(app).post(\n        "/admin/syllabus/ingest-pdf",\n        data={"metadata_json": "{}", "syllabus_json": "[]"},\n        files={"file": ("textbook.pdf", b"%PDF-1.4", "application/pdf")},\n    )
     assert response.status_code == 401
+
+
+
+def test_iterative_synthesis_refines_then_passes_page_citation_gate():
+    calls = []
+
+    def model(prompt):
+        calls.append(prompt)
+        if len(calls) == 1:
+            return {"explanation": "Plants make food."}
+        return {
+            "explanation": "Plants use light energy to make food.",
+            "key_points": ["Chlorophyll captures light."],
+            "worked_examples": ["A plant near a window receives light."],
+            "misconceptions": ["Plants get all their food from soil."],
+            "understanding_checks": ["What does chlorophyll do?", "Why is light needed?"],
+            "source_citations": [{"page": 1, "claim": "Chlorophyll captures light."}],
+            "gaps": ["The source excerpt does not explain every chemical step."],
+        }
+
+    package = {
+        "topic_id": "photosynthesis",
+        "topic_title": "Photosynthesis",
+        "page_matches": [{"page": 1, "matched_terms": ["photosynthesis"], "evidence_excerpt": "Chlorophyll captures light."}],
+    }
+    result = run_iterative_synthesis(scope(), package, model, max_rounds=3)
+    assert len(calls) == 2
+    assert "PREVIOUS DRAFT" in calls[1]
+    assert result["status"] == "ready_for_review"
+    assert result["approved"] is False
+    assert result["synthesis"]["source_citations"][0]["page"] == 1
+
+
+def test_iterative_synthesis_rejects_citations_outside_evidence():
+    def model(prompt):
+        return {
+            "explanation": "A concept.",
+            "key_points": ["Point"],
+            "worked_examples": ["Example"],
+            "misconceptions": ["Misconception"],
+            "understanding_checks": ["Q1", "Q2"],
+            "source_citations": [{"page": 99, "claim": "Claim"}],
+            "gaps": ["None known"],
+        }
+
+    result = run_iterative_synthesis(
+        scope(),
+        {"topic_id": "topic", "topic_title": "Topic", "page_matches": [{"page": 1, "matched_terms": ["topic"], "evidence_excerpt": "Topic text"}]},
+        model,
+        max_rounds=2,
+    )
+    assert result["status"] == "needs_review"
+    assert any("citation_page_not_in_evidence:99" in issue for issue in result["issues"])
+    assert result["approved"] is False
+
+
+def test_iterative_synthesis_blocks_topics_without_evidence():
+    called = False
+
+    def model(prompt):
+        nonlocal called
+        called = True
+        return {}
+
+    result = run_iterative_synthesis(
+        scope(), {"topic_id": "missing", "topic_title": "Missing", "page_matches": []}, model
+    )
+    assert result["status"] == "blocked_missing_evidence"
+    assert not called
+
+
+def test_synthesis_round_limit_is_bounded():
+    with pytest.raises(ValueError):
+        run_iterative_synthesis(scope(), {"page_matches": [{"page": 1}]}, lambda _: {}, max_rounds=99)

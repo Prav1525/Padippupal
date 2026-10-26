@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ui_smoke
-from ui_smoke import tap_file
+from ui_smoke import tap_file, photo_picker_item_candidates
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / ".github" / "scripts" / "diary_crop_emulator_test.sh"
@@ -24,7 +24,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("picker.launch(PickVisualMediaRequest(", app)
         self.assertNotIn("ActivityResultContracts.PickVisualMediaRequest", app)
         self.assertIn("ActivityResultContracts.PickVisualMedia.ImageOnly", app)
-        self.assertIn('tap_label ui-screenshots/diary-test/diary-picker.xml "PadippuPal-diary-test.jpg"', source)
+        self.assertIn('ui_smoke.py tap-photo-picker-item ui-screenshots/diary-test/diary-picker.xml', source)
+        self.assertNotIn('system Photo Picker does not expose the indexed fixture by filename', source)
         self.assertIn('dump_ui diary-picker-selection-result', source)
         self.assertIn('PickVisualMedia did not return to PadippuPal', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
@@ -35,6 +36,23 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertNotIn('List view', picker_section)
         self.assertNotIn('Downloads', picker_section)
         self.assertEqual(picker_section.count('dump_ui diary-picker\n'), 1)
+
+    def test_api35_photo_picker_tile_is_selected_without_relying_on_hidden_filename(self):
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring("""<hierarchy>
+          <node class="android.widget.FrameLayout" package="com.android.providers.media.module"
+                content-desc="Photo taken on Oct 26, 2026, 4:52 AM"
+                clickable="true" enabled="true" bounds="[0,1217][354,1571]" />
+          <node class="android.widget.FrameLayout" package="com.android.providers.media.module"
+                content-desc="" clickable="false" bounds="[0,1217][354,1571]" />
+        </hierarchy>""")
+        candidates = photo_picker_item_candidates(list(root.iter("node")))
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0].attrib["bounds"], "[0,1217][354,1571]")
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("tap-photo-picker-item", source)
+        self.assertIn("exactly one clickable photo tile", source)
+        self.assertNotIn('grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker.xml', source)
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")

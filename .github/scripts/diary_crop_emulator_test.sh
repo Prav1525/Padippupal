@@ -18,6 +18,8 @@ dump_ui(){
   # dump/pull/parse sequence instead of treating this transient empty tree as a
   # test failure. A malformed/empty tree is never accepted as a valid snapshot.
   for attempt in $(seq 1 8); do
+    # Remove any previous snapshot so a failed dump can never validate stale XML.
+    "${ADB[@]}" shell rm -f "$remote" >/dev/null 2>&1 || true
     if timeout 20s "${ADB[@]}" shell uiautomator dump "$remote" >"$dump_log" 2>&1 &&
        timeout 10s "${ADB[@]}" pull "$remote" "$local_xml" >/dev/null 2>&1; then
       if python3 - "$local_xml" <<'PY'

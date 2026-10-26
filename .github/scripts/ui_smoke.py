@@ -463,6 +463,44 @@ def tap_exact(path, target):
                    check=True, timeout=45)
 
 
+def photo_picker_item_candidates(nodes):
+    """Return clickable photo tiles from Android's system Photo Picker.
+
+    Android Photo Picker intentionally exposes a date-based content description,
+    not the underlying filename. Restrict selection to its actual clickable photo
+    tile rather than assuming filenames are accessibility labels.
+    """
+    return [
+        node for node in nodes
+        if node.attrib.get("package") == "com.android.providers.media.module"
+        and node.attrib.get("class") == "android.widget.FrameLayout"
+        and node.attrib.get("clickable") == "true"
+        and node.attrib.get("enabled", "true") == "true"
+        and node.attrib.get("content-desc", "").strip().lower().startswith("photo taken on ")
+    ]
+
+
+def tap_photo_picker_item(path):
+    """Tap the sole visible photo tile in the deterministic one-fixture emulator."""
+    nodes, _ = load(path)
+    candidates = photo_picker_item_candidates(nodes)
+    if len(candidates) != 1:
+        raise SystemExit(
+            "Expected exactly one clickable photo tile in the test Photo Picker, "
+            f"found {len(candidates)}; refusing ambiguous selection"
+        )
+    node = candidates[0]
+    bounds = node.attrib.get("bounds", "")
+    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    if not match:
+        raise SystemExit("Photo Picker tile has invalid accessibility bounds: " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    x, y = (x1 + x2) // 2, (y1 + y2) // 2
+    print(f"Tapping sole Photo Picker image tile at ({x}, {y}), bounds={bounds}, description={node.attrib.get('content-desc')!r}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+                   check=True, timeout=45)
+
+
 def tap_file(path, filename):
     """Activate the exact clickable DocumentsUI preview affordance for this file."""
     nodes, texts = load(path)
@@ -601,6 +639,8 @@ def main():
         tap_exact(path, sys.argv[3])
     elif action == "tap-file" and len(sys.argv) >= 4:
         tap_file(path, sys.argv[3])
+    elif action == "tap-photo-picker-item":
+        tap_photo_picker_item(path)
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-completed-lesson":

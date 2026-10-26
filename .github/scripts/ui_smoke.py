@@ -464,39 +464,26 @@ def tap_exact(path, target):
 
 
 def tap_file(path, filename):
-    """Focus and activate a focusable DocumentsUI row without tapping its label or preview."""
+    """Activate the exact clickable DocumentsUI preview affordance for this file."""
     nodes, texts = load(path)
     target = filename.strip().lower()
-    label = next((n for n in nodes if n.attrib.get("text", "").strip().lower() == target), None)
-    if label is None:
-        raise SystemExit("No filename node for " + repr(filename) + "; visible labels: " + " | ".join(texts[:80]))
-    def bounds(node):
-        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.attrib.get("bounds", ""))
-        return tuple(map(int, match.groups())) if match else None
-    lb = bounds(label)
-    if not lb:
-        raise SystemExit("Filename node has invalid bounds for " + repr(filename))
-    rows = []
-    for node in nodes:
-        rb = bounds(node)
-        if (node.attrib.get("resource-id", "").endswith(":id/item_root") and rb
-                and node.attrib.get("focusable") == "true"
-                and rb[0] <= lb[0] and rb[1] <= lb[1] and rb[2] >= lb[2] and rb[3] >= lb[3]):
-            rows.append((node, rb))
-    if not rows:
-        raise SystemExit("No focusable DocumentsUI item_root contains filename " + repr(filename) + "; refusing to tap a non-clickable label or preview")
-    row, (x1, y1, x2, y2) = min(rows, key=lambda item: (item[1][2]-item[1][0]) * (item[1][3]-item[1][1]))
+    preview = next((n for n in nodes
+                    if n.attrib.get("resource-id", "").endswith(":id/preview_icon")
+                    and target in n.attrib.get("content-desc", "").strip().lower()), None)
+    if preview is None:
+        raise SystemExit("No clickable preview control for " + repr(filename) + "; visible labels: " + " | ".join(texts[:80]))
+    if preview.attrib.get("clickable") != "true" or preview.attrib.get("enabled", "true") != "true":
+        raise SystemExit("DocumentsUI preview control is not enabled/clickable for " + repr(filename))
+    bounds = preview.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("Preview control has invalid bounds for " + repr(filename) + ": " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
     x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    preview = next((bounds(n) for n in nodes if n.attrib.get("resource-id", "").endswith(":id/preview_icon") and filename.lower() in n.attrib.get("content-desc", "").lower()), None)
-    if preview and preview[0] <= x <= preview[2] and preview[1] <= y <= preview[3]:
-        x = x1 + max(1, (preview[0] - x1) // 2)
-    print(f"Double-tapping DocumentsUI row for {filename!r} at ({x},{y}); bounds={row.attrib.get('bounds')}; focusable=true; clickable={row.attrib.get('clickable', 'unspecified')}; avoiding preview bounds={preview}")
-    # Latest emulator evidence proves tap + DPAD_CENTER only focuses the row
-    # (focused=true, selected=false). Change the interaction semantics rather
-    # than repeating the ineffective keyboard activation: double-tap the row
-    # body, outside the preview affordance, as users do to open a document.
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
-    time.sleep(0.25)
+    print(f"Tap clickable DocumentsUI preview control for {filename!r} at ({x},{y}), bounds={bounds}, clickable=true")
+    # Latest screenshots/XML show the row and filename are non-clickable, while
+    # this exact preview affordance is clickable. Test the supported affordance
+    # instead of repeating taps on the non-clickable row body.
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
 
 def _contains_bounds(outer, inner):

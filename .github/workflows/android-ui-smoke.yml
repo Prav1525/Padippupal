@@ -112,7 +112,18 @@ jobs:
             # ships with no TTS service and does not depend on Play Store sign-in.
             bash .github/scripts/android-tts-preflight.sh
             # Run diary picker acceptance first so unrelated tutor failures cannot mask it.
+            # Preserve its screenshots/UI trees outside ui-screenshots: the tutor retry
+            # script intentionally clears that directory before each tutor attempt.
+            set +e
             bash .github/scripts/diary_crop_emulator_test.sh
+            diary_test_status=$?
+            set -e
+            mkdir -p diary-artifacts
+            if [ -d ui-screenshots/diary-test ]; then
+              cp -a ui-screenshots/diary-test diary-artifacts/
+            fi
+            printf '%s\n' "$diary_test_status" > diary-artifacts/exit-code.txt
+            test "$diary_test_status" -eq 0
             bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Record test outcomes and failure diagnostics
@@ -131,6 +142,7 @@ jobs:
           name: padippupal-emulator-ui
           path: |
             ui-screenshots/
+            diary-artifacts/
             attempt-artifacts/
             test-failure-report.md
             home.xml

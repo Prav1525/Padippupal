@@ -2329,9 +2329,29 @@ internal fun TutorScreen(
                         Text(topic.ifBlank { "Choose a topic" }, color = TutorGreen, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         Divider(color = Color(0xFFE2E8F0))
                         if (preparedLessonKey == selectedLessonKey && preparedLessonSegments.isNotEmpty()) {
+                            val previewText = preparedLessonSegments
+                                .joinToString(" ") { it.optString("spoken_text").trim() }
+                                .replace(Regex("\\s+"), " ")
+                                .trim()
                             Text(
-                                preparedLessonSegments.joinToString(" ") { it.optString("spoken_text").trim() },
-                                color = TutorDeep, fontSize = 14.sp, lineHeight = 23.sp
+                                if (selectedLanguage == "தமிழ்") "இந்தப் பாடத்தின் முன்னோட்டம்"
+                                else if (selectedLanguage == "Tanglish") "Lesson preview"
+                                else "Lesson preview",
+                                color = TutorGrey, fontSize = 11.sp, fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                previewText,
+                                color = TutorDeep, fontSize = 14.sp, lineHeight = 21.sp,
+                                maxLines = 5,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Text(
+                                when (selectedLanguage) {
+                                    "தமிழ்" -> "எளிய விளக்கம் · எடுத்துக்காட்டு · முக்கிய கருத்து · சுருக்கம்"
+                                    "Tanglish" -> "Simple explanation · example · key idea · recap"
+                                    else -> "Simple explanation · worked example · key idea · recap"
+                                },
+                                color = TutorGreen, fontSize = 11.sp, lineHeight = 16.sp
                             )
                         } else {
                             Text(

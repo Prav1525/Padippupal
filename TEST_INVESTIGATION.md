@@ -310,3 +310,12 @@ Use this format:
 - **Comparison:** Previous run 40306273895 had 2 focused failures / 8 passes. This run passed both focused and full backend regression steps after multipart `Form(...)` binding and prompt contract correction.
 - **What this proves:** Backend tests pass for the code at the tested commit. It does not prove Gemini calls succeed with production credentials, content is semantically entailed by cited pages, OCR works, every board/standard is populated, or the Android tutor consumes the packages end-to-end.
 - **Next action:** Keep PR #29 in draft pending real permitted-PDF/Gemini end-to-end validation and coverage work. Do not merge without explicit authorization.
+
+
+### 2026-10-26 — Persist synthesis with the existing curriculum database
+- **Branch / commits:** `feat/syllabus-synthesis-engine`; DB storage `d415c680de8dc41b30a7536583a1b80924243c4c`, integration/topic seed `1000141d30be283a1c72d4cd2b6317b648cd90c4`, tests `a0eeb296bb22ffb78c155fbf8332abd01ddea4b7`, docs `08710507233b30a36e3d9dfcd7b909d67dbfbda4`.
+- **Requirement:** Reuse the existing PadippuPal curriculum DB rather than leaving synthesis as files alone, and reuse the existing Science/Mathematics topic scaffold where applicable.
+- **Change made:** Added relational DB records in the same DATABASE_URL Postgres/Neon or PADIPPUPAL_DB SQLite database: syllabus_sources, syllabus_source_pages, syllabus_source_images, syllabus_topics, syllabus_topic_syntheses, and syllabus_synthesis_rounds. Ingestion persists hierarchy, rights/provenance, page text/OCR flags, figure metadata, chapter/topic evidence. Each synthesis invocation stores every draft/validation round and latest unapproved topic package. Existing Class 6 CBSE Science/Mathematics scaffold topics can seed mapping when topic JSON is empty; this is metadata, not official textbook content.
+- **Test added:** SQLite temp-database test asserts source hierarchy, page evidence, image metadata, topic mapping, synthesis JSON, round history and approved=0; another test verifies existing Science/Mathematics topic seeds.
+- **Verification:** PENDING CI on this exact change. No real official book has been claimed ingested; a permitted PDF and real configured Gemini key are still needed for end-to-end provider validation.
+- **Merge status:** PR #29 remains draft and unmerged.

@@ -28,11 +28,11 @@ def _db(path):
     )
     conn.execute(
         "INSERT INTO source_content VALUES (?, ?)",
-        ("book-science-1", "[Page 1] Plants have roots, stems and leaves. Leaves use sunlight to make food."),
+        ("book-science-1", "[Page 1] Plants have roots, stems and leaves.\n\n[Page 2] Leaves use sunlight to make food."),
     )
     conn.execute(
         "INSERT INTO chunks VALUES (?, ?, ?, ?, ?, ?, ?)",
-        ("chunk-1", "book-science-1", 0, "Plants", 1, 1,
+        ("chunk-1", "book-science-1", 0, "Plants", 1, 2,
          "Plants have roots, stems and leaves. Leaves use sunlight to make food."),
     )
     conn.commit()
@@ -89,7 +89,7 @@ def test_prototype_builds_page_evidence_from_existing_database_text(monkeypatch,
     assert response.status_code == 200, response.text
     data = response.json()
     assert data["existing_curriculum_source_id"] == "book-science-1"
-    assert data["page_count"] == 1
+    assert data["page_count"] == 2
     assert data["topic"]["coverage_status"] == "evidence_found"
     assert data["topic"]["matched_page_count"] == 1
     assert data["approved"] is False
@@ -107,8 +107,10 @@ def test_prototype_previews_page_marked_text(monkeypatch, tmp_path):
     response = client.get('/admin/syllabus-prototype/api/sources/book-science-1/preview', headers={'x-admin-token': 'test-secret'})
     assert response.status_code == 200, response.text
     data = response.json()
-    assert data['pages_with_text'] == 1
+    assert data['pages_with_text'] == 2
     assert data['preview_pages'][0]['page'] == 1
     assert 'Plants have roots' in data['preview_pages'][0]['text_preview']
+    assert data['preview_pages'][1]['page'] == 2
+    assert 'sunlight to make food' in data['preview_pages'][1]['text_preview']
     assert data['approved'] is False
     assert data['rights_reviewed'] is False

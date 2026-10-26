@@ -36,8 +36,8 @@ def assert_tutor(path):
     if not any(term in joined.lower() for term in expected_any):
         raise SystemExit("Tutor screen has no recognizable tutor/lesson/chapter labels")
     labels = {text.strip().lower() for text in texts}
-    if "change" in labels:
-        raise SystemExit("Tutor ready screen must not duplicate chapter/topic selection; use the previous screen")
+    if "set up your lesson" in joined.lower():
+        raise SystemExit("Lesson setup must stay hidden until the learner taps Change")
     if not any(label.strip().lstrip("▶").strip().lower() == "teach" for label in labels):
         raise SystemExit("Tutor ready screen is missing the Teach action")
     if any("set up your lesson" in text.lower() for text in texts):

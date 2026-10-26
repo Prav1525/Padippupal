@@ -76,77 +76,32 @@ tap_label ui-screenshots/diary-test/diary-scanner-return.xml "Choose photo"
 sleep 3
 dump_ui diary-picker
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/photo-picker.png
-# The AOSP picker can show "No items" under Recent even when a file was pushed
-# successfully. Open its storage roots and select the fixture from Downloads;
-# never tap the Gallery provider tile as if it were an image.
-"${ADB[@]}" shell input tap 94 147
-sleep 1
-dump_ui diary-picker-roots
-if grep -qi "Downloads" ui-screenshots/diary-test/diary-picker-roots.xml; then
-  tap_label ui-screenshots/diary-test/diary-picker-roots.xml "Downloads"
-else
-  log "FAIL: Downloads root not exposed by Android photo picker"
+# PickVisualMedia should present the system Photo Picker (not DocumentsUI) on
+# this API level. Select the fixture by its accessible filename, then prove the
+# activity result returns to PadippuPal. Do not interact with preview affordances.
+dump_ui diary-picker
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/photo-picker.png
+if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker.xml; then
+  log "FAIL: system Photo Picker does not expose the indexed fixture by filename; see diary-picker.xml and photo-picker.png"
   exit 1
 fi
-sleep 2
-dump_ui diary-picker-downloads
-if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker-downloads.xml; then
-  log "FAIL: diary fixture is not listed in Downloads; refusing to tap a provider/app tile"
-  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
-  exit 1
-fi
-# Grid view exposes a non-clickable file tile and a separate clickable preview
-# action. Switch to List view so the test can target that exact action by filename.
-if grep -qi 'content-desc="List view"' ui-screenshots/diary-test/diary-picker-downloads.xml; then
-  python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-downloads.xml "List view"
-  sleep 1
-  dump_ui diary-picker-list
-else
-  log "FAIL: DocumentsUI List view control missing; cannot safely select a file from grid view"
-  exit 1
-fi
-if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker-list.xml; then
-  log "FAIL: fixture disappeared after switching DocumentsUI to List view"
-  exit 1
-fi
-# The latest screenshot/XML show the filename and item_root are non-clickable,
-# while the matching preview_icon is clickable. Activate that exact preview
-# affordance, then inspect whether DocumentsUI offers a confirmation control or
-# returns a URI. This tests a materially different, evidence-based interaction.
-python3 .github/scripts/ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker-list.xml "PadippuPal-diary-test.jpg"
+log "Selecting the exact fixture in the system Photo Picker"
+tap_label ui-screenshots/diary-test/diary-picker.xml "PadippuPal-diary-test.jpg"
 sleep 1
 dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png
 returned=0
 for attempt in $(seq 1 8); do
-  if ! grep -Eq 'package="(com\.android\.documentsui|com\.google\.android\.documentsui)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-    returned=1
-    break
-  fi
-  # A selected row can remain in DocumentsUI until its explicit confirmation
-  # button is pressed. Only tap a visible, accessible confirmation label.
-  if grep -Eqi 'text="(Open|Select|Use this file|Choose)"|content-desc="(Open|Select|Use this file|Choose)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-    if grep -Eqi 'text="Open"|content-desc="Open"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Open"
-    elif grep -Eqi 'text="Select"|content-desc="Select"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Select"
-    elif grep -Eqi 'text="Use this file"|content-desc="Use this file"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Use this file"
-    else
-      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Choose"
-    fi
-    sleep 1
-  fi
-  dump_ui diary-picker-selection-result
-  if ! grep -Eq 'package="(com\.android\.documentsui|com\.google\.android\.documentsui)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+  if grep -q 'package="com.padippupal.app"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
     returned=1
     break
   fi
   sleep 1
+  dump_ui diary-picker-selection-result
 done
 if [ "$returned" -ne 1 ]; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
-  log "FAIL: file selection did not return from DocumentsUI after row tap and any visible confirmation; inspect diary-picker-selection-result.xml and picker-selection-stuck.png"
+  log "FAIL: PickVisualMedia did not return to PadippuPal after selecting the fixture; inspect selection-result XML/screenshot"
   exit 1
 fi
 sleep 1

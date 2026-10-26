@@ -127,8 +127,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('tap-file ui-screenshots/diary-test/diary-picker.xml "PadippuPal-diary-test.jpg"', source)
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("api-level: [30, 35]", workflow)
-        self.assertIn("system-image-api-level: \${{ matrix.api-level }}", workflow)
-        self.assertIn("group: \${{ github.workflow }}-\${{ github.ref }}-\${{ matrix.api-level }}", workflow)
+        self.assertIn("system-image-api-level: ${{ matrix.api-level }}", workflow)
+        self.assertIn("group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.api-level }}", workflow)
 
 
 if __name__ == "__main__":

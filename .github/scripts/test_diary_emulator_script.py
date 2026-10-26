@@ -34,7 +34,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertNotIn('KEYCODE_DPAD_CENTER', picker_section)
         self.assertNotIn('List view', picker_section)
         self.assertNotIn('Downloads', picker_section)
-        self.assertEqual(picker_section.count('dump_ui diary-picker\\n'), 1)
+        self.assertEqual(picker_section.count('dump_ui diary-picker\n'), 1)
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")

@@ -23,6 +23,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPExcepti
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
+from syllabus_synthesis import EvidenceChunk, build_evidence_packet, make_run_id
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -261,6 +262,30 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS chapter_lessons_lookup
           ON chapter_lessons(board, class_level, subject, medium, chapter, status);
+        CREATE TABLE IF NOT EXISTS syllabus_synthesis_rounds (
+            id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+            board TEXT NOT NULL, class_level INTEGER NOT NULL, subject TEXT NOT NULL,
+            chapter TEXT NOT NULL, curriculum_version TEXT NOT NULL DEFAULT 'v1',
+            status TEXT NOT NULL DEFAULT 'draft', model TEXT NOT NULL DEFAULT '',
+            prompt_version TEXT NOT NULL DEFAULT 'v1', source_chunk_ids_json TEXT NOT NULL DEFAULT '[]',
+            evidence_fingerprint TEXT NOT NULL, validation_json TEXT NOT NULL DEFAULT '{}',
+            error_message TEXT NOT NULL DEFAULT '', created_at REAL NOT NULL, updated_at REAL NOT NULL,
+            UNIQUE(source_id, chapter, curriculum_version, evidence_fingerprint)
+        );
+        CREATE TABLE IF NOT EXISTS syllabus_topic_syntheses (
+            id TEXT PRIMARY KEY, round_id TEXT NOT NULL REFERENCES syllabus_synthesis_rounds(id) ON DELETE CASCADE,
+            source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+            topic TEXT NOT NULL, page_start INTEGER, page_end INTEGER,
+            learning_objectives_json TEXT NOT NULL DEFAULT '[]', explanation_json TEXT NOT NULL DEFAULT '{}',
+            examples_json TEXT NOT NULL DEFAULT '[]', practice_questions_json TEXT NOT NULL DEFAULT '[]',
+            citation_refs_json TEXT NOT NULL DEFAULT '[]', validation_status TEXT NOT NULL DEFAULT 'pending',
+            validation_notes_json TEXT NOT NULL DEFAULT '[]', approval_status TEXT NOT NULL DEFAULT 'draft',
+            created_at REAL NOT NULL, updated_at REAL NOT NULL, UNIQUE(round_id, topic)
+        );
+        CREATE INDEX IF NOT EXISTS idx_syllabus_rounds_source_chapter
+          ON syllabus_synthesis_rounds(source_id, chapter, created_at);
+        CREATE INDEX IF NOT EXISTS idx_syllabus_topic_syntheses_round
+          ON syllabus_topic_syntheses(round_id, approval_status);
         """)
         # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
         # by an administrator after the first deployment.
@@ -1316,6 +1341,19 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
     chunks = _chapter_source_chunks(payload)
     if not chunks:
         raise HTTPException(status_code=404, detail="No exact, ready textbook chapter was found in the selected curriculum profile.")
+    evidence_chunks = [
+        EvidenceChunk(
+            id=str(row["chunk_id"]), source_id=str(row["source_id"]),
+            chapter=payload.chapter, chunk_no=int(row.get("chunk_no") or 0),
+            page_start=int(row["page_start"]) if row.get("page_start") is not None else None,
+            page_end=int(row["page_end"]) if row.get("page_end") is not None else None,
+            text=str(row["text"]),
+        )
+        for row in chunks
+    ]
+    evidence_packet = build_evidence_packet(evidence_chunks)
+    evidence_fingerprint_value = evidence_packet["evidence_fingerprint"]
+    synthesis_round_id = make_run_id(str(evidence_packet["source_id"]), payload.chapter, "v1", evidence_fingerprint_value)
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Gemini lesson synthesis is not configured on the backend.")
@@ -1358,13 +1396,54 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
             if not ids or not ids.issubset(allowed):
                 raise ValueError("unverified concept citation")
         lesson_id, now = str(uuid.uuid4()), time.time()
+        validation = {
+            "valid": True,
+            "checks": ["non-empty teaching sequence", "all step citations match source chunks",
+                       "all concept citations match source chunks", "visual recipes use allowed types"],
+            "topic_count": len(lesson["teaching_sequence"]),
+        }
         with db() as conn:
             conn.execute("""INSERT INTO chapter_lessons
                 (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,source_refs_json,model,review_feedback,created_at,updated_at)
                 VALUES (?,?,?,?,?,?,?,'draft',?,?,?,'',?,?)""",
                 (lesson_id,payload.board,payload.class_level,payload.subject,payload.medium,payload.chapter,payload.topic,
                  json.dumps(lesson,ensure_ascii=False),json.dumps(refs,ensure_ascii=False),model,now,now))
-        return {"lesson_id":lesson_id,"status":"draft","source_chunk_count":len(chunks),"source_refs":refs,"lesson":lesson,"review_required":True}
+            conn.execute("""INSERT INTO syllabus_synthesis_rounds
+                (id,source_id,board,class_level,subject,chapter,curriculum_version,status,model,prompt_version,
+                 source_chunk_ids_json,evidence_fingerprint,validation_json,error_message,created_at,updated_at)
+                VALUES (?,?,?,?,?,?,?,'draft',?,?,?,?,?,'',?,?)
+                ON CONFLICT(id) DO UPDATE SET status='draft', model=excluded.model,
+                 source_chunk_ids_json=excluded.source_chunk_ids_json,
+                 validation_json=excluded.validation_json, updated_at=excluded.updated_at""",
+                (synthesis_round_id, str(evidence_packet["source_id"]), payload.board, payload.class_level,
+                 payload.subject, payload.chapter, "v1", model, "v1", json.dumps(evidence_packet["chunk_ids"]),
+                 evidence_fingerprint_value, json.dumps(validation), now, now))
+            conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=?", (synthesis_round_id,))
+            for index, step in enumerate(lesson["teaching_sequence"]):
+                topic = normalize(str(step.get("title") or step.get("id") or f"Topic {index + 1}"))
+                topic_id = hashlib.sha256(f"{synthesis_round_id}|{index}|{topic}".encode("utf-8")).hexdigest()
+                citations = [str(x) for x in step.get("source_chunk_ids", [])]
+                conn.execute("""INSERT INTO syllabus_topic_syntheses
+                    (id,round_id,source_id,topic,page_start,page_end,learning_objectives_json,
+                     explanation_json,examples_json,practice_questions_json,citation_refs_json,
+                     validation_status,validation_notes_json,approval_status,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (topic_id, synthesis_round_id, str(evidence_packet["source_id"]), topic,
+                     evidence_packet["page_start"], evidence_packet["page_end"],
+                     json.dumps(lesson.get("learning_objectives", []), ensure_ascii=False),
+                     json.dumps({"teacher_says": step.get("teacher_says", ""),
+                                 "caption": step.get("caption", ""),
+                                 "misconception": step.get("misconception", ""),
+                                 "checkpoint": step.get("checkpoint", "")}, ensure_ascii=False),
+                     json.dumps([step.get("example")] if step.get("example") else [], ensure_ascii=False),
+                     json.dumps([step.get("checkpoint")] if step.get("checkpoint") else [], ensure_ascii=False),
+                     json.dumps(citations, ensure_ascii=False), "passed",
+                     json.dumps(["Citations verified against this chapter's source chunks"], ensure_ascii=False),
+                     "draft", now, now))
+        return {"lesson_id":lesson_id,"synthesis_round_id":synthesis_round_id,
+                "evidence_fingerprint":evidence_fingerprint_value,"status":"draft",
+                "source_chunk_count":len(chunks),"source_refs":refs,"lesson":lesson,
+                "validation":validation,"review_required":True}
     except urllib.error.HTTPError as exc:
         logger.warning("Chapter synthesis rejected: status=%s model=%s",exc.code,model)
         raise HTTPException(status_code=503 if exc.code==429 else 502,detail="Chapter synthesis failed; no draft was published.") from exc

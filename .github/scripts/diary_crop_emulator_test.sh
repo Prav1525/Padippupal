@@ -9,8 +9,37 @@ REPORT=ui-screenshots/diary-test/report.txt
 log(){ printf '%s\n' "$*" | tee -a "$REPORT"; }
 dump_ui(){
   local name="$1"
-  timeout 20s "${ADB[@]}" shell uiautomator dump "/data/local/tmp/${name}.xml" >/dev/null
-  timeout 10s "${ADB[@]}" pull "/data/local/tmp/${name}.xml" "ui-screenshots/diary-test/${name}.xml" >/dev/null
+  local remote="/data/local/tmp/${name}.xml"
+  local local_xml="ui-screenshots/diary-test/${name}.xml"
+  local dump_log="/tmp/padippupal-uiautomator-${name}.log"
+  # The system Photo Picker can hand off its activity between the selection tap
+  # and the next accessibility dump. During that short transition UIAutomator
+  # may report "null root node returned by UiTestAutomationBridge". Retry the
+  # dump/pull/parse sequence instead of treating this transient empty tree as a
+  # test failure. A malformed/empty tree is never accepted as a valid snapshot.
+  for attempt in $(seq 1 8); do
+    if timeout 20s "${ADB[@]}" shell uiautomator dump "$remote" >"$dump_log" 2>&1 &&
+       timeout 10s "${ADB[@]}" pull "$remote" "$local_xml" >/dev/null 2>&1; then
+      if python3 - "$local_xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+try:
+    root = ET.parse(sys.argv[1]).getroot()
+    valid = root.tag == "hierarchy" and any(True for _ in root.iter("node"))
+except (OSError, ET.ParseError):
+    valid = False
+raise SystemExit(0 if valid else 1)
+PY
+      then
+        return 0
+      fi
+    fi
+    log "UI hierarchy not ready for $name (attempt $attempt/8); retrying after activity transition"
+    sleep 1
+  done
+  cat "$dump_log" >&2 || true
+  log "FAIL: could not capture a non-empty UI hierarchy for $name after 8 attempts"
+  return 1
 }
 tap_label(){
   local xml="$1" label="$2"

@@ -60,8 +60,10 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 self.assertEqual(run.call_count, 2)
-                run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "tap", "540", "735"], check=True, timeout=45)
-                run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "keyevent", "DPAD_CENTER"], check=True, timeout=45)
+                expected_tap = ["adb", "-s", "emulator-5554", "shell", "input", "tap", "540", "735"]
+                self.assertEqual(run.call_args_list[0].args[0], expected_tap)
+                self.assertEqual(run.call_args_list[1].args[0], expected_tap)
+                self.assertTrue(all(call.kwargs == {"check": True, "timeout": 45} for call in run.call_args_list))
 
     def test_file_selector_prefers_row_activation_over_preview(self):
         xml = """<hierarchy>
@@ -75,8 +77,10 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
                 self.assertEqual(run.call_count, 2)
-                run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "tap", "200", "140"], check=True, timeout=45)
-                run.assert_any_call(["adb", "-s", "emulator-5554", "shell", "input", "keyevent", "DPAD_CENTER"], check=True, timeout=45)
+                expected_tap = ["adb", "-s", "emulator-5554", "shell", "input", "tap", "200", "140"]
+                self.assertEqual(run.call_args_list[0].args[0], expected_tap)
+                self.assertEqual(run.call_args_list[1].args[0], expected_tap)
+                self.assertTrue(all(call.kwargs == {"check": True, "timeout": 45} for call in run.call_args_list))
 
     def test_missing_filename_fails_safely_without_tapping_preview(self):
         xml = """<hierarchy>

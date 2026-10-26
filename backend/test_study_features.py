@@ -136,7 +136,7 @@ def test_diary_scan_extracts_reviewable_tasks(monkeypatch, client):
     assert "dd/mm/yyyy" in prompt
     assert "dd.mm.yyyy" in prompt
     assert captured["payload"]["contents"][0]["parts"][1]["inlineData"]["mimeType"] == "image/jpeg"
-    assert captured["timeout"] == 35
+    assert captured["timeout"] == 75
 
 
 def test_diary_scan_discards_tasks_when_today_row_needs_crop(monkeypatch, client):

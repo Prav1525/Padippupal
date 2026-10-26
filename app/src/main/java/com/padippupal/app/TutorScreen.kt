@@ -1616,9 +1616,10 @@ internal fun TutorScreen(
         }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        // Normalize nullable API data before it enters UI state; optString may yield literal "null".
-        // Complete-lesson mode never interrupts playback with per-segment feedback.
-        currentCheckpoint = ""
+        // Preserve a source-grounded checkpoint supplied for this segment. The UI pauses
+        // after narration when one exists; do not silently erase it during playback.
+        val checkpoint = segment.optString("checkpoint").trim()
+        currentCheckpoint = if (checkpoint.isBlank() || checkpoint == "null") "" else checkpoint
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
@@ -1671,7 +1672,7 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Teach like a patient primary-school teacher: explain in your own simple child-friendly words instead of reading textbook sentences verbatim; define new terms, use a familiar everyday analogy, work through a clear example, explain the rule and a likely misconception, and recap. Tell the learner what to notice in the matching visual as each idea is explained. Return 4-6 ordered speech segments as a transport format; join them into one uninterrupted explanation, with no questions or checkpoints between segments. After the explanation, the UI must ask 2-3 understanding questions, give hints and reteach on wrong answers, and offer the next concept only after understanding is demonstrated. Use only retrieved textbook passages; do not invent page numbers or textbook image references. Keep the explanation complete." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
                     .put("message", lessonPrompt).put("max_segments", 6)
@@ -1708,20 +1709,14 @@ internal fun TutorScreen(
                             )
                         }
                     }
-                    // The API segments are transport chunks, not separate learner-facing steps.
-                    // Join them into one caption/audio response so no checkpoint interrupts the explanation.
+                    // Keep the API's ordered segments intact so their synchronized visual actions,
+                    // captions, and any source-grounded checkpoints survive to the player.
                     val completeText = lessonSegments.map { it.optString("spoken_text").trim() }
                         .filter { it.isNotBlank() }.joinToString(" ")
                     if (completeText.length < 220) {
                         throw IllegalStateException("The lesson was too short to explain the selected topic completely. Please try again.")
                     }
-                    val completeLesson = JSONObject()
-                        .put("id", "complete-lesson")
-                        .put("spoken_text", completeText)
-                        .put("caption_text", completeText)
-                        .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-                        .put("checkpoint", JSONObject.NULL)
-                    listOf(completeLesson)
+                    lessonSegments
                 } finally { connection.disconnect() }
             }
             tutorMainHandler.post {

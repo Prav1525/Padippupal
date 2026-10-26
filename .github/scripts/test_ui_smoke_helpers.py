@@ -223,16 +223,24 @@ class RetryIsolationTests(unittest.TestCase):
 
 
 class CompleteLessonRegressionTests(unittest.TestCase):
-    def test_live_lesson_joins_segments_and_does_not_create_checkpoints(self):
+    def test_live_lesson_preserves_api_segments_and_checkpoint_metadata(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
-        self.assertIn("The API segments are transport chunks, not separate learner-facing steps.", tutor)
-        self.assertIn('listOf(completeLesson)', tutor)
-        self.assertIn("currentCheckpoint = \"\"", tutor)
+        playback = tutor[tutor.index("fun playLiveSegment(index: Int)"):tutor.index("fun startLiveLesson()")]
+        self.assertIn('val checkpoint = segment.optString("checkpoint").trim()', playback)
+        self.assertIn('currentCheckpoint = if (checkpoint.isBlank()', playback)
+        self.assertIn("awaitingUnderstanding = true", playback)
+        start = tutor.index("fun startLiveLesson()")
+        lesson_setup = tutor[start:tutor.index("fun ", start + 8)]
+        self.assertIn("val lessonSegments = (0 until array.length()).mapNotNull { array.optJSONObject(it) }", lesson_setup)
+        # The network worker returns the ordered API segments; UI state is updated only on the main-thread success callback.
+        self.assertIn("lessonSegments\n                } finally { connection.disconnect() }", lesson_setup)
+        self.assertIn("outcome.fold(onSuccess = { segments -> liveSegments = segments;", tutor)
+        self.assertNotIn("listOf(completeLesson)", lesson_setup)
+        self.assertNotIn("The API segments are transport chunks, not separate learner-facing steps.", tutor)
         self.assertIn("The lesson was too short to explain the selected topic completely.", tutor)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
         self.assertIn("Per-segment checkpoint or animation UI reappeared", smoke)
-        self.assertNotIn("missing its passive auto-playing concept animation", smoke)
 
     def test_spoken_caption_groups_sentences_into_natural_paragraphs(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()

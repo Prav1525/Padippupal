@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ui_smoke
-from ui_smoke import tap_file, photo_picker_item_candidates
+from ui_smoke import tap_file, photo_picker_item_candidates, tap_photo_picker_item
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / ".github" / "scripts" / "diary_crop_emulator_test.sh"
@@ -49,6 +49,17 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         candidates = photo_picker_item_candidates(list(root.iter("node")))
         self.assertEqual(len(candidates), 1)
         self.assertEqual(candidates[0].attrib["bounds"], "[0,1217][354,1571]")
+        # Exercise the exact bounds parser and tap coordinates seen in API 35 CI.
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8") as picker_xml:
+            picker_xml.write(ET.tostring(root, encoding="unicode"))
+            picker_xml.flush()
+            with mock.patch("ui_smoke.subprocess.run") as adb_run:
+                tap_photo_picker_item(picker_xml.name)
+            adb_run.assert_called_once_with(
+                ["adb", "-s", "emulator-5554", "shell", "input", "tap", "177", "1394"],
+                check=True,
+                timeout=45,
+            )
         # Pixel/API image-provider builds can expose either package namespace.
         android_provider = ET.fromstring("""<hierarchy><node class="android.widget.FrameLayout"
           package="com.android.providers.media.module" content-desc="Photo taken on Oct 26, 2026"

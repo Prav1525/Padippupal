@@ -114,3 +114,25 @@ def test_prototype_previews_page_marked_text(monkeypatch, tmp_path):
     assert 'sunlight to make food' in data['preview_pages'][1]['text_preview']
     assert data['approved'] is False
     assert data['rights_reviewed'] is False
+
+
+def test_whole_chapter_package_includes_every_extracted_page(monkeypatch, tmp_path):
+    client = _client(monkeypatch, tmp_path)
+    response = client.post(
+        "/admin/syllabus-prototype/api/sources/book-science-1/chapter-package",
+        headers={"x-admin-token": "test-secret"},
+    )
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["page_count"] == 2
+    assert data["pages_with_text"] == 2
+    assert data["topic"]["matched_page_count"] == 2
+    assert [item["page"] for item in data["topic"]["page_matches"]] == [1, 2]
+    assert data["approved"] is False
+    assert data["rights_reviewed"] is False
+    package = client.get(
+        f"/admin/syllabus-prototype/api/packages/{data['source_id']}",
+        headers={"x-admin-token": "test-secret"},
+    )
+    assert package.status_code == 200
+    assert package.json()["topics"][0]["matched_page_count"] == 2

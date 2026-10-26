@@ -316,7 +316,7 @@ class CurriculumTransitionRegressionTests(unittest.TestCase):
 
     def test_end_of_curriculum_has_no_fake_next_destination(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertIn('else "You have reached the end of the available curriculum."', tutor)
+        self.assertIn('"You have reached the end of the available curriculum."', tutor)
         self.assertIn("pendingNextCurriculumTopic = null", tutor)
 
 

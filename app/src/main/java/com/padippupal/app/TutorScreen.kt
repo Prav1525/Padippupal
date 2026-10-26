@@ -997,7 +997,6 @@ internal fun TutorScreen(
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var preparedLessonSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var preparedLessonKey by remember { mutableStateOf("") }
-    val selectedLessonKey = listOf(board, grade.toString(), medium, subject, chapter, topic, selectedLanguage).joinToString("|")
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
@@ -1021,6 +1020,7 @@ internal fun TutorScreen(
     var currentCheckpoint by remember { mutableStateOf("") }
     var voiceReady by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf(savedSession.optString("language", appLanguage)) }
+    val selectedLessonKey = listOf(board, grade.toString(), medium, subject, chapter, topic, selectedLanguage).joinToString("|")
     var listening by remember { mutableStateOf(false) }
     val speechRecognizer = remember(context) {
         if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null

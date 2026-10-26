@@ -231,3 +231,59 @@ def test_source_and_synthesis_rounds_persist_in_existing_curriculum_db(tmp_path,
     assert synthesis[0] == "ready_for_review" and synthesis[1] == 0
     assert json.loads(synthesis[2])["explanation"] == "Original explanation"
     assert image_count == 1
+
+
+
+def test_existing_curriculum_book_is_reused_without_pdf_reupload(tmp_path, monkeypatch):
+    import sqlite3
+    from syllabus_synthesis import create_package_from_existing_source
+
+    db_path = tmp_path / "existing.sqlite3"
+    monkeypatch.setenv("PADIPPUPAL_DB", str(db_path))
+    conn = sqlite3.connect(db_path)
+    conn.executescript("""
+        CREATE TABLE sources (
+            id TEXT PRIMARY KEY, board TEXT, academic_year TEXT, class_level INTEGER,
+            subject TEXT, medium TEXT, term TEXT, edition TEXT, title TEXT, source_url TEXT,
+            license_note TEXT, sha256 TEXT, status TEXT, page_count INTEGER, created_at REAL
+        );
+        CREATE TABLE source_content (source_id TEXT PRIMARY KEY, content TEXT);
+        CREATE TABLE chunks (
+            id TEXT PRIMARY KEY, source_id TEXT, chunk_no INTEGER, chapter TEXT,
+            page_start INTEGER, page_end INTEGER, text TEXT
+        );
+    """)
+    conn.execute(
+        "INSERT INTO sources VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("existing-science-1", "CBSE", "2026-27", 6, "Science", "English", "", "2026",
+         "Science Textbook", "https://ncert.nic.in/textbook.php", "Internal review note",
+         "sha-existing", "ready", 1, 1.0),
+    )
+    conn.execute(
+        "INSERT INTO source_content VALUES (?, ?)",
+        ("existing-science-1", "[Page 1] Plants use chlorophyll for photosynthesis and make food using light."),
+    )
+    conn.execute(
+        "INSERT INTO chunks VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("chunk1", "existing-science-1", 0, "", 1, 1, "Plants use chlorophyll for photosynthesis and make food using light."),
+    )
+    conn.commit()
+    conn.close()
+
+    result = create_package_from_existing_source(
+        "existing-science-1",
+        [SyllabusTopic(id="photosynthesis", title="Photosynthesis", keywords=["chlorophyll"])],
+        tmp_path / "syllabus-library",
+    )
+    manifest = result["manifest"]
+    assert manifest["source_storage"] == "existing_curriculum_database"
+    assert manifest["existing_curriculum_source_id"] == "existing-science-1"
+    assert manifest["topics"][0]["coverage_status"] == "evidence_found"
+    assert manifest["scope"]["rights_reviewed"] is False
+    assert (Path(result["package_path"]) / "pages" / "page-0001.txt").exists()
+    conn = sqlite3.connect(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM syllabus_sources").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM syllabus_source_pages").fetchone()[0] == 1
+    finally:
+        conn.close()

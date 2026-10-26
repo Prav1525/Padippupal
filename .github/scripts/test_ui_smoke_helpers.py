@@ -70,7 +70,7 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertIn("no All 1s explanation or approved short transition", validator)
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "Start teaching"', smoke)
-        self.assertIn("Waiting for the selected textbook lesson preview to finish loading", smoke)
+        self.assertIn("Waiting for the selected textbook lesson preview and Start teaching action to become accessible", smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
@@ -267,12 +267,12 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
         self.assertIn("TextButton(onClick = { hasCompletedLesson = false; showLessonSettings = true }", tutor)
         self.assertIn("startLiveLesson(prepareOnly = true)", tutor)
-        self.assertIn("preparedLessonSegments.joinToString", tutor)
+        self.assertIn('joinToString(" ") { it.optString("spoken_text").trim() }', tutor)
         self.assertIn("if (!liveLessonActive && !showLessonSettings && !hasCompletedLesson)", tutor)
         self.assertNotIn('Text("▶ Teach"', tutor)
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "Start teaching"', script)
-        self.assertIn("Waiting for the selected textbook lesson preview to finish loading", script)
+        self.assertIn("Waiting for the selected textbook lesson preview and Start teaching action to become accessible", script)
         self.assertIn("Lesson preview ready", script)
         self.assertLess(
             script.index('if [ "$preview_ready" -ne 1 ]; then'),

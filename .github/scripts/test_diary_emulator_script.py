@@ -78,6 +78,14 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('FAIL: PickVisualMedia did not return to PadippuPal', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
 
+    def test_review_scrolls_until_save_action_is_exposed(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("for scroll_attempt in $(seq 1 8); do", source)
+        self.assertIn('dump_ui diary-review-scrolled', source)
+        self.assertIn('grep -qi "Save selected tasks" "$review_xml"', source)
+        self.assertIn('Save selected tasks did not become visible after 8 review scroll attempts', source)
+        self.assertIn('tap_label "$review_xml" "Save selected tasks"', source)
+        self.assertNotIn('tap_label ui-screenshots/diary-test/diary-review-scrolled.xml "Save selected tasks"\nfor attempt', source)
     def test_failure_register_exists_and_names_regression_expectations(self):
         register = ROOT / "docs" / "TEST_FAILURE_REGISTER.md"
         self.assertTrue(register.is_file(), "Recurring failures must be recorded in the repository")

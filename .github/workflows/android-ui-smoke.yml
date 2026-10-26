@@ -54,7 +54,9 @@ jobs:
           bash -n .github/scripts/android-ui-smoke.sh
           bash -n .github/scripts/android-tts-preflight.sh
           bash -n .github/scripts/diary_crop_emulator_test.sh
-          python3 -m py_compile .github/scripts/write_test_failure_report.py .github/scripts/test_diary_emulator_script.py .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py .github/scripts/test_diary_crop_contract.py .github/scripts/create_diary_test_fixture.py
+          bash -n .github/scripts/preserve_diary_artifacts.sh
+          python3 -m py_compile .github/scripts/write_test_failure_report.py .github/scripts/test_diary_emulator_script.py .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py .github/scripts/test_diary_crop_contract.py .github/scripts/create_diary_test_fixture.py .github/scripts/test_preserve_diary_artifacts.py
+          python3 .github/scripts/test_preserve_diary_artifacts.py
           python3 .github/scripts/test_diary_crop_contract.py
           python3 .github/scripts/test_diary_emulator_script.py
           python3 .github/scripts/test_ui_smoke_helpers.py
@@ -118,12 +120,7 @@ jobs:
             bash .github/scripts/diary_crop_emulator_test.sh
             diary_test_status=$?
             set -e
-            mkdir -p diary-artifacts
-            if [ -d ui-screenshots/diary-test ]; then
-              cp -a ui-screenshots/diary-test diary-artifacts/
-            fi
-            printf '%s\n' "$diary_test_status" > diary-artifacts/exit-code.txt
-            test "$diary_test_status" -eq 0
+            bash .github/scripts/preserve_diary_artifacts.sh "$diary_test_status"
             bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Record test outcomes and failure diagnostics

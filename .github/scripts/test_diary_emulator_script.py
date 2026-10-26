@@ -71,6 +71,15 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("exactly one clickable photo tile", helper)
         self.assertNotIn('grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker.xml', source)
 
+    def test_home_scan_tile_is_found_after_bounded_content_scrolls(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn('for home_scroll_attempt in $(seq 1 8); do', source)
+        self.assertIn('dump_ui diary-home', source)
+        self.assertIn('grep -qi "Scan homework" ui-screenshots/diary-test/diary-home.xml', source)
+        self.assertIn('Scan homework tile did not become accessible after 8 bounded home scroll attempts', source)
+        self.assertIn('tap ui-screenshots/diary-test/diary-home.xml "Scan homework"', source)
+        self.assertNotIn('input swipe 520 1450 520 650 450', source)
+
     def test_ui_dump_retries_transient_empty_root_during_picker_handoff(self):
         source = SCRIPT.read_text(encoding="utf-8")
         dump_helper = source[source.index("dump_ui(){"):source.index("\ntap_label(){")]

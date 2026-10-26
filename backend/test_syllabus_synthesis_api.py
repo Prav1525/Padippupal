@@ -215,6 +215,16 @@ def test_science_maths_coverage_audit_requires_current_evidence_and_approval():
     assert chapter_report["validation_passed"] is True
     assert chapter_report["approved_tutor_lesson"] is True
 
+    # A source that is still processing must never be reported as complete.
+    with curriculum.db() as conn:
+        conn.execute("UPDATE sources SET status='processing' WHERE id=?", (source_id,))
+    not_ready = client.get("/admin/syllabus-synthesis/coverage", headers=headers,
+                           params={"board": "CBSE", "class_level": 6, "medium": "English"})
+    assert not_ready.status_code == 200, not_ready.text
+    assert not_ready.json()["sources"][0]["chapters"][0]["coverage_status"] == "source_not_ready"
+    with curriculum.db() as conn:
+        conn.execute("UPDATE sources SET status='ready' WHERE id=?", (source_id,))
+
     # Editing extracted text without changing the chunk ID must invalidate the coverage result.
     with curriculum.db() as conn:
         conn.execute("UPDATE chunks SET text=? WHERE id=?", ("Changed textbook evidence.", chunk_id))

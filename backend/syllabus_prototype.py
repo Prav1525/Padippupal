@@ -111,7 +111,7 @@ def create_test_package(
         keywords=payload.keywords,
     )
     try:
-        result = create_package_from_existing_source(existing_source_id, [topic])
+        result = create_package_from_existing_source(existing_source_id, [topic], output_root=DEFAULT_OUTPUT_ROOT)
     except HTTPException:
         raise
     except (PermissionError, ValueError, FileExistsError) as exc:

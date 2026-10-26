@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Regression tests for accessibility-tree selectors; no emulator required."""
+import re
 import sys
 import unittest
 import xml.etree.ElementTree as ET
@@ -153,7 +154,12 @@ class TtsFailureRegressionTests(unittest.TestCase):
     def test_smoke_workflow_does_not_force_the_incompatible_hayai_engine(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows" /
                     "android-ui-smoke.yml").read_text()
-        self.assertIn("system-image: google_apis", workflow)
+        self.assertIn("api-level: [35]", workflow)
+        self.assertNotIn("api-level: [30, 35]", workflow)
+        self.assertIn("api-level: ${{ matrix.api-level }}", workflow)
+        self.assertIn("system-image-api-level: ${{ matrix.api-level }}", workflow)
+        self.assertIn("target: google_apis", workflow)
+        self.assertNotIn("system-image: google_apis", workflow)
         self.assertIn("bash .github/scripts/android-tts-preflight.sh", workflow)
         self.assertNotIn("dev.ahmedmohamed.hayaitts", workflow)
         self.assertNotIn("hayaitts-x86_64", workflow)

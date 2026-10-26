@@ -76,82 +76,35 @@ tap_label ui-screenshots/diary-test/diary-scanner-return.xml "Choose photo"
 sleep 3
 dump_ui diary-picker
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/photo-picker.png
-# The AOSP picker can show "No items" under Recent even when a file was pushed
-# successfully. Open its storage roots and select the fixture from Downloads;
-# never tap the Gallery provider tile as if it were an image.
-"${ADB[@]}" shell input tap 94 147
-sleep 1
-dump_ui diary-picker-roots
-if grep -qi "Downloads" ui-screenshots/diary-test/diary-picker-roots.xml; then
-  tap_label ui-screenshots/diary-test/diary-picker-roots.xml "Downloads"
-else
-  log "FAIL: Downloads root not exposed by Android photo picker"
-  exit 1
-fi
-sleep 2
-dump_ui diary-picker-downloads
-if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker-downloads.xml; then
-  log "FAIL: diary fixture is not listed in Downloads; refusing to tap a provider/app tile"
-  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
-  exit 1
-fi
-# Grid view exposes a non-clickable file tile and a clickable preview action,
-# so do not tap either. Switch to List view and inspect a fresh accessibility tree.
-if grep -qi 'content-desc="List view"' ui-screenshots/diary-test/diary-picker-downloads.xml; then
-  python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-downloads.xml "List view"
-  sleep 1
-  dump_ui diary-picker-list
-else
-  log "FAIL: DocumentsUI List view control missing; cannot safely select a file from grid view"
-  exit 1
-fi
-if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker-list.xml; then
-  log "FAIL: fixture disappeared after switching DocumentsUI to List view"
-  exit 1
-fi
-# Tap the file row, then handle both DocumentsUI behaviors: some picker builds
-# immediately return a URI; others first mark the row selected and require the
-# toolbar's Open/Select confirmation. Never activate the separate Preview action.
-python3 .github/scripts/ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker-list.xml "PadippuPal-diary-test.jpg"
+# The API 35 system Photo Picker intentionally hides filesystem names and
+# exposes date-based descriptions on clickable photo tiles. The fixture is the
+# sole visible photo in this fresh emulator; select that one tile, failing closed
+# if the picker unexpectedly shows zero or multiple selectable photos.
+# This acceptance workflow targets API 35, where the system Photo Picker
+# exposes a date-described media tile rather than the filesystem filename.
+log "Selecting the sole visible fixture tile in the API 35 system Photo Picker"
+python3 .github/scripts/ui_smoke.py tap-photo-picker-item ui-screenshots/diary-test/diary-picker.xml
 sleep 1
 dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png
 returned=0
 for attempt in $(seq 1 8); do
-  if ! grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-    returned=1
-    break
-  fi
-  # A selected row can remain in DocumentsUI until its explicit confirmation
-  # button is pressed. Only tap a visible, accessible confirmation label.
-  if grep -Eqi 'text="(Open|Select|Use this file|Choose)"|content-desc="(Open|Select|Use this file|Choose)"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-    if grep -Eqi 'text="Open"|content-desc="Open"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Open"
-    elif grep -Eqi 'text="Select"|content-desc="Select"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Select"
-    elif grep -Eqi 'text="Use this file"|content-desc="Use this file"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
-      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Use this file"
-    else
-      python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-selection-result.xml "Choose"
-    fi
-    sleep 1
-  fi
-  dump_ui diary-picker-selection-result
-  if ! grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+  if grep -q 'package="com.padippupal.app"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
     returned=1
     break
   fi
   sleep 1
+  dump_ui diary-picker-selection-result
 done
 if [ "$returned" -ne 1 ]; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
-  log "FAIL: file selection did not return from DocumentsUI after row tap and any visible confirmation; inspect diary-picker-selection-result.xml and picker-selection-stuck.png"
+  log "FAIL: PickVisualMedia did not return to PadippuPal after selecting the fixture; inspect selection-result XML/screenshot"
   exit 1
 fi
 sleep 1
 dump_ui diary-picker-confirmed
 cp ui-screenshots/diary-test/diary-picker-confirmed.xml ui-screenshots/diary-test/diary-picker-file-selected.xml
-if grep -q 'package="com.android.documentsui"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
+if grep -Eq 'package="(com\.android\.documentsui|com\.google\.android\.documentsui)"' ui-screenshots/diary-test/diary-picker-file-selected.xml; then
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-stuck.png
   log "FAIL: picker remained in DocumentsUI after selection confirmation; see diary-picker-confirmed.xml and picker-selection-stuck.png"
   exit 1
@@ -202,27 +155,76 @@ tap_label ui-screenshots/diary-test/diary-crop-selected.xml "Rescan crop"
 for attempt in $(seq 1 20); do
   sleep 1
   dump_ui diary-review
-  if grep -qi "Learn chapter 5" ui-screenshots/diary-test/diary-review.xml; then break; fi
+  if grep -qi "Complete Q1-5" ui-screenshots/diary-test/diary-review.xml; then break; fi
 done
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/review-tasks.png
-assert_has ui-screenshots/diary-test/diary-review.xml "Learn chapter 5"
-assert_has ui-screenshots/diary-test/diary-review.xml "Write page 18"
-if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" ui-screenshots/diary-test/diary-review.xml; then
+# The review form is taller than the compact emulator viewport. Validate the
+# first visible task, scroll, then dump the newly visible second task and Save action.
+assert_has ui-screenshots/diary-test/diary-review.xml "Complete Q1-5"
+if grep -Eqi "Read lesson 4|Finish worksheet 2|Label India map|short paragraph" ui-screenshots/diary-test/diary-review.xml; then
   log "FAIL: neighboring-date homework leaked into review"
   exit 1
 fi
-log "Saving reviewed tasks and verifying they appear in today's planner"
-tap_label ui-screenshots/diary-test/diary-review.xml "Save selected tasks"
-for attempt in $(seq 1 20); do
+# The review form is taller than the emulator viewport. One swipe reveals the
+# second task but not the save action, so scroll in bounded increments and inspect
+# a fresh accessibility tree after every gesture rather than assuming one swipe.
+review_xml=ui-screenshots/diary-test/diary-review-scrolled.xml
+save_visible=0
+for scroll_attempt in $(seq 1 8); do
+  "${ADB[@]}" shell input swipe 520 1500 520 650 450
+  sleep 1
+  dump_ui diary-review-scrolled
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/review-tasks-scrolled.png
+  if grep -qi "Revise Components of Food" "$review_xml"; then
+    if grep -Eqi "Read lesson 4|Finish worksheet 2|Label India map|short paragraph" "$review_xml"; then
+      log "FAIL: neighboring-date homework leaked into scrolled review"
+      exit 1
+    fi
+  fi
+  if grep -qi "Save selected tasks" "$review_xml"; then
+    save_visible=1
+    log "Save action found after scroll attempt $scroll_attempt"
+    break
+  fi
+  log "Save action not visible after scroll attempt $scroll_attempt; continuing bounded scroll"
+done
+if [ "$save_visible" -ne 1 ]; then
+  log "FAIL: Save selected tasks did not become visible after 8 review scroll attempts; see diary-review-scrolled.xml and review-tasks-scrolled.png"
+  exit 1
+fi
+assert_has "$review_xml" "Revise Components of Food"
+log "Saving reviewed tasks and verifying them in today planner"
+tap_label "$review_xml" "Save selected tasks"
+planner_xml=ui-screenshots/diary-test/diary-planner.xml
+planner_has_both=0
+# The planner shows the first task near the bottom of the initial viewport.
+# A single UI dump cannot prove later cards are absent: scroll the actual task
+# list, capture a fresh tree after each gesture, and stop only when both saved
+# task titles are present in one tree.
+for attempt in $(seq 1 8); do
   sleep 1
   dump_ui diary-planner
-  if grep -qi "Today's homework" ui-screenshots/diary-test/diary-planner.xml; then break; fi
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/saved-planner.png
+  # The current PlannerScreen does not render a "Today's homework" heading.
+  # Confirm the actual saved task cards instead of coupling acceptance to an obsolete label.
+  if grep -qi "Complete Q1-5" "$planner_xml" && \
+     grep -qi "Revise Components of Food" "$planner_xml"; then
+    planner_has_both=1
+    log "Both saved diary tasks visible in planner accessibility tree after attempt $attempt"
+    break
+  fi
+  if ! grep -qi "Revise Components of Food" "$planner_xml"; then
+    log "Second saved task not in current planner viewport after attempt $attempt; scrolling task list"
+    "${ADB[@]}" shell input swipe 520 1350 520 650 450
+  fi
 done
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/saved-planner.png
-assert_has ui-screenshots/diary-test/diary-planner.xml "Today's homework"
-assert_has ui-screenshots/diary-test/diary-planner.xml "Learn chapter 5"
-assert_has ui-screenshots/diary-test/diary-planner.xml "Write page 18"
-if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" ui-screenshots/diary-test/diary-planner.xml; then
+assert_has "$planner_xml" "Complete Q1-5"
+assert_has "$planner_xml" "Revise Components of Food"
+if [ "$planner_has_both" -ne 1 ]; then
+  log "FAIL: second saved task did not become visible after 8 planner viewport checks; inspect diary-planner.xml and saved-planner.png"
+  exit 1
+fi
+if grep -Eqi "Read lesson 4|Finish worksheet 2|Label India map|short paragraph" "$planner_xml"; then
   log "FAIL: neighboring-date homework was saved to planner"
   exit 1
 fi

@@ -463,38 +463,66 @@ def tap_exact(path, target):
                    check=True, timeout=45)
 
 
-def tap_file(path, filename):
-    """Select a DocumentsUI list row without activating its separate preview action."""
-    nodes, texts = load(path)
-    target = filename.strip().lower()
-    # Find the filename text and then its enclosing item_root row. On AOSP API 30
-    # the filename TextView and row both report clickable=false, but item_root
-    # is the touch target; the preview action is a separate control at far right.
-    target_node = next((n for n in nodes
-                        if n.attrib.get("text", "").strip().lower() == target), None)
-    if target_node is None:
-        observed = [f"text={n.attrib.get('text','')!r}, desc={n.attrib.get('content-desc','')!r}, bounds={n.attrib.get('bounds','')}"
-                    for n in nodes if filename.lower() in (n.attrib.get("text","") + " " + n.attrib.get("content-desc","")).lower()]
-        raise SystemExit("No filename row target for " + repr(filename) +
-                         "; matching nodes: " + (" | ".join(observed) if observed else "none") +
-                         "; visible labels: " + " | ".join(texts[:80]))
-    # Tap the bounds of the filename node itself. The item_root can span the full
-    # screen and its center may hit DocumentsUI's separate preview action; the
-    # filename node's center stays within the visible filename column.
-    bounds = target_node.attrib.get("bounds", "")
+def photo_picker_item_candidates(nodes):
+    """Return clickable photo tiles from Android's system Photo Picker.
+
+    Android Photo Picker intentionally exposes a date-based content description,
+    not the underlying filename. Restrict selection to its actual clickable photo
+    tile rather than assuming filenames are accessibility labels.
+    """
+    return [
+        node for node in nodes
+        if node.attrib.get("package", "").endswith(".providers.media.module")
+        and node.attrib.get("class") == "android.widget.FrameLayout"
+        and node.attrib.get("clickable") == "true"
+        and node.attrib.get("enabled", "true") == "true"
+        and node.attrib.get("content-desc", "").strip().lower().startswith("photo taken on ")
+    ]
+
+
+def tap_photo_picker_item(path):
+    """Tap the sole visible photo tile in the deterministic one-fixture emulator."""
+    nodes, _ = load(path)
+    candidates = photo_picker_item_candidates(nodes)
+    if len(candidates) != 1:
+        raise SystemExit(
+            "Expected exactly one clickable photo tile in the test Photo Picker, "
+            f"found {len(candidates)}; refusing ambiguous selection"
+        )
+    node = candidates[0]
+    bounds = node.attrib.get("bounds", "")
     match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
-        raise SystemExit("Invalid filename bounds: " + bounds)
+        raise SystemExit("Photo Picker tile has invalid accessibility bounds: " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())
     x, y = (x1 + x2) // 2, (y1 + y2) // 2
-    print(f"Tapping filename text {filename!r} at ({x},{y}), bounds={bounds}")
-    adb = ["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)]
-    subprocess.run(adb, check=True, timeout=45)
-    time.sleep(1.0)
-    # Some DocumentsUI builds first focus/select the row and require a second
-    # tap; repeat only at the filename text, never at the preview affordance.
-    subprocess.run(adb, check=True, timeout=45)
+    print(f"Tapping sole Photo Picker image tile at ({x}, {y}), bounds={bounds}, description={node.attrib.get('content-desc')!r}")
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)],
+                   check=True, timeout=45)
 
+
+def tap_file(path, filename):
+    """Activate the exact clickable DocumentsUI preview affordance for this file."""
+    nodes, texts = load(path)
+    target = filename.strip().lower()
+    preview = next((n for n in nodes
+                    if n.attrib.get("resource-id", "").endswith(":id/preview_icon")
+                    and target in n.attrib.get("content-desc", "").strip().lower()), None)
+    if preview is None:
+        raise SystemExit("No clickable preview control for " + repr(filename) + "; visible labels: " + " | ".join(texts[:80]))
+    if preview.attrib.get("clickable") != "true" or preview.attrib.get("enabled", "true") != "true":
+        raise SystemExit("DocumentsUI preview control is not enabled/clickable for " + repr(filename))
+    bounds = preview.attrib.get("bounds", "")
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+    if not match:
+        raise SystemExit("Preview control has invalid bounds for " + repr(filename) + ": " + bounds)
+    x1, y1, x2, y2 = map(int, match.groups())
+    x, y = (x1 + x2) // 2, (y1 + y2) // 2
+    print(f"Tap clickable DocumentsUI preview control for {filename!r} at ({x},{y}), bounds={bounds}, clickable=true")
+    # Latest screenshots/XML show the row and filename are non-clickable, while
+    # this exact preview affordance is clickable. Test the supported affordance
+    # instead of repeating taps on the non-clickable row body.
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
 
 def _contains_bounds(outer, inner):
     """Whether outer bounds fully contain inner bounds."""
@@ -611,6 +639,8 @@ def main():
         tap_exact(path, sys.argv[3])
     elif action == "tap-file" and len(sys.argv) >= 4:
         tap_file(path, sys.argv[3])
+    elif action == "tap-photo-picker-item":
+        tap_photo_picker_item(path)
     elif action == "assert-live":
         assert_live(path)
     elif action == "assert-completed-lesson":

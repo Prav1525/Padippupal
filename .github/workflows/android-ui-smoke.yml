@@ -2,7 +2,7 @@ name: Android UI smoke test
 
 on:
   push:
-    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan"]
+    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan", "fix/diary-image-picker-reliability"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
@@ -10,13 +10,16 @@ on:
 permissions:
   contents: read
 
-# Keep only the newest emulator run for this branch; cold Android emulators are expensive.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+# Run the Android UI acceptance flow on API 35.
 jobs:
   emulator-smoke:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.api-level }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [35]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -87,9 +90,10 @@ jobs:
         name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: ${{ matrix.api-level }}
           arch: x86_64
-          system-image: google_apis
+          system-image-api-level: ${{ matrix.api-level }}
+          target: google_apis
           profile: pixel_2
           # Keep the guest memory modest so the emulator does not starve the hosted runner.
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
@@ -98,12 +102,18 @@ jobs:
           script: |
             echo "Checking emulator acceleration from the SDK provisioned by android-emulator-runner"
             "$ANDROID_HOME/emulator/emulator" -accel-check
+            # The emulator runner boots a device but does not install this workflow's APK.
+            # Install the exact debug artifact built and tested above before any app launch.
+            adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+            adb -s emulator-5554 shell pm path com.padippupal.app | grep -q '^package:'
+            adb -s emulator-5554 shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER com.padippupal.app | grep -q 'com.padippupal.app/.MainActivity'
             # Install a checksum-verified, offline TTS engine from F-Droid's
             # signed repository index. This works even when the emulator image
             # ships with no TTS service and does not depend on Play Store sign-in.
             bash .github/scripts/android-tts-preflight.sh
-            bash .github/scripts/android-ui-smoke-retry.sh
+            # Run diary picker acceptance first so unrelated tutor failures cannot mask it.
             bash .github/scripts/diary_crop_emulator_test.sh
+            bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Record test outcomes and failure diagnostics
         if: always()

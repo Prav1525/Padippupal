@@ -106,8 +106,8 @@ class Handler(BaseHTTPRequestHandler):
                 "diary_date": today_date,
                 "match_status": "matched",
                 "tasks": [
-                    {"title": "Learn chapter 5", "subject": "Science", "details": "From today's diary row", "due_date": today_date, "minutes": 15, "confidence": "high"},
-                    {"title": "Write page 18", "subject": "Tamil", "details": "From today's diary row", "due_date": today_date, "minutes": 15, "confidence": "high"},
+                    {"title": "Complete Q1-5", "subject": "Mathematics", "details": "Class 6 CBSE Mathematics: Patterns in Mathematics", "due_date": today_date, "minutes": 15, "confidence": "high"},
+                    {"title": "Revise Components of Food", "subject": "Science", "details": "Class 6 CBSE Science: nutrients and balanced diet", "due_date": today_date, "minutes": 15, "confidence": "high"},
                 ],
                 "count": 2,
                 "model": "deterministic-diary-fixture",

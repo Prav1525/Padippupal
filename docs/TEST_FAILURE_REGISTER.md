@@ -145,3 +145,84 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `a86a8ddfcd5095a2ae9cbf71eec6f7c4b4d9b3a5` corrected the regex. Follow-up commit `d8daf4c4f5441a1ea1c95996632dceacb0b6b61f` also makes the tap use the filename node's actual bounds rather than a potentially screen-wide `item_root` center, while retaining the double-tap retry.
 - **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` exercises valid bounds and asserts expected filename-column tap coordinates. CI must pass static validation and then prove the emulator returns from DocumentsUI and completes crop, rescan, review, and planner save.
 - **Validation:** Pending the workflow run triggered by the follow-up fix. No merge until the complete emulator acceptance flow passes.
+
+
+## Incident: diary picker row tap did not select the file
+
+- **Symptom:** Emulator run [40184576935](https://github.com/Prav1525/Padippupal/actions/runs/40184576935) passed JVM tests, APK build, and smoke-script validation but timed out while DocumentsUI remained on the file list after tapping `PadippuPal-diary-test.jpg`.
+- **Root cause:** The filename TextView and item row were not clickable in the observed AOSP accessibility tree. Tapping the filename center did not select the file; the separate preview affordance must not be used. The selector now prefers a clickable item row, otherwise the file thumbnail, and performs one tap before inspecting fresh UI state.
+- **Fix:** PR #24, commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa`, also corrects indentation in `.github/scripts/ui_smoke.py` settings-bounds validation.
+- **Regression prevention:** Unit tests require one tap, thumbnail fallback when filename/row are not clickable, and safe failure when the fixture filename is absent. End-to-end acceptance must prove picker return, crop editor, rescan, date-correct review, and planner save.
+- **Validation:** CI on commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa` is running; keep PR #24 unmerged until Android UI smoke passes.
+
+
+## Incident: DocumentsUI tap sequence was not sent as one remote shell command
+
+- **Symptom:** Emulator run [40195732651](https://github.com/Prav1525/Padippupal/actions/runs/40195732651) passed JVM tests, APK build, and script validation but remained on Downloads after the filename-row double-tap. The captured screenshot and UI tree showed the fixture row unchanged and no selection confirmation.
+- **Root cause:** `.github/scripts/ui_smoke.py` invoked `adb shell sh -c` while passing the compound tap sequence as a separate argument. The ADB shell command was therefore subject to another layer of shell parsing; the regression test asserted the constructed string but did not verify the remote-shell invocation shape.
+- **Fix:** Send the full tap/sleep/tap sequence as one command argument directly to `adb shell`, and use a 350 ms gap so the two taps are distinct but remain within typical double-tap timing.
+- **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` asserts the exact ADB argument vector and rejects the broken `shell sh -c` form. The emulator acceptance test must still prove return to PadippuPal and complete crop, rescan, date review, and planner-save flow.
+- **Validation:** Local script regression tests and a fresh emulator workflow are required. This change is not considered verified until the emulator flow passes; do not merge PR #24 before then.
+
+
+## Incident: API 35 Photo Picker hides the fixture filename from accessibility
+
+- **Symptom:** Run [40270978743](https://github.com/Prav1525/Padippupal/actions/runs/40270978743) passed JVM tests, APK build, script validation, emulator boot, app installation, launcher preflight, and fixture MediaStore query, but stopped before selecting the image because the test expected `PadippuPal-diary-test.jpg` in the Photo Picker accessibility tree.
+- **Root cause confirmed from the uploaded `diary-picker.xml` and `photo-picker.png`:** Android's API 35 system Photo Picker displayed the fixture as a visible, clickable photo tile with a date-based content description (`Photo taken on ...`), while intentionally omitting the underlying filename. The image was present; the test's filename assertion was incompatible with the Photo Picker accessibility contract. This is a test-selector bug, not a missing fixture or APK/environment startup failure.
+- **Fix:** Commit `63e49c2574faf836f460f6131b6ed53d6f03fae3` adds a selector for actual clickable Photo Picker image tiles; `710fcbc2a672a7c9c9fa0efa6687666fca039f65` updates the end-to-end test to select the sole visible tile and fail closed if selection is ambiguous. Commits `c2b643c4d280bcd9cfa1be9606c688c2eb00d04b` and `cf1991fa725aa9ca2180ffaa8fb003ac06ea471b` add and correct regression coverage.
+- **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` now verifies a date-described clickable tile is selected and rejects the hidden-filename assumption. Fresh CI must prove the picker returns to PadippuPal, crop opens, rescan returns the expected date-correct tasks, and planner save succeeds.
+- **Validation:** Fix pushed; fresh CI pending. Keep PR #24 open. API 30 versus API 35 comparison remains outstanding; this run's evidence is from API 35 only.
+
+
+## Incident: API 35 Photo Picker provider package differs from selector assumption
+
+- **Symptom:** Run [40271643638](https://github.com/Prav1525/Padippupal/actions/runs/40271643638) passed JVM tests, APK build, script validation, emulator boot, app installation, fixture indexing, and picker launch, but the selector rejected the only visible image tile.
+- **Root cause confirmed from `diary-picker.xml`:** The clickable date-described tile used package `com.google.android.providers.media.module`, while `.github/scripts/ui_smoke.py` matched only `com.android.providers.media.module`. The image was visible and clickable; the selector's package-name assumption was too narrow.
+- **Fix:** Accept Photo Picker provider package names ending in `.providers.media.module`, while retaining the checks for FrameLayout, clickable/enabled, date-based content description, and exactly one candidate.
+- **Regression prevention:** Update the fixture regression to use the observed `com.google.android.providers.media.module` namespace and keep coverage for the `com.android.providers.media.module` namespace too. A fresh emulator run must still prove picker return, crop, rescan, correct review tasks, and planner save.
+- **Validation:** New fix committed; CI must pass before PR #24 can be considered mergeable. API 30 versus API 35 comparison remains outstanding.
+
+
+## Incident: Photo Picker bounds parser rejects valid tile bounds
+
+- **Symptom:** API 35 run [40272222653](https://github.com/Prav1525/Padippupal/actions/runs/40272222653) found the sole visible, clickable Photo Picker tile at bounds `[0,1217][354,1571]` but stopped with `Photo Picker tile has invalid accessibility bounds`, before sending an ADB tap.
+- **Root cause confirmed from source:** `tap_photo_picker_item()` used a raw regular expression with double-escaped backslashes (`r"\\\\[(\\\\d+)..."`), so it expected literal backslashes rather than the normal Android bounds format. This was a selector parser bug; this run does not prove the image was selected or that the crop flow works.
+- **Fix:** Commit `0dad865384c4df1112fb7f223fc8499ea6eae0de` corrects the regex to parse standard bounds. Commit `0657308d06d07848aaa82a05183f80f6746edc50` adds a regression that runs the picker helper against the exact API 35 bounds and asserts it taps the tile center at `(177, 1394)`.
+- **Regression prevention:** Fresh CI must prove the ADB tap returns to PadippuPal, opens crop, rescans, displays only the expected date-correct review tasks, and saves them to the planner. API 30 vs API 35 comparison is still outstanding. Keep PR #24 unmerged until the full acceptance flow passes.
+
+
+## Incident: review save action remains below the viewport after one swipe
+
+- **Symptom:** API 35 run [40274339686](https://github.com/Prav1525/Padippupal/actions/runs/40274339686) selected the photo, opened crop, rescanned, and displayed both expected tasks, but the script failed to locate `Save selected tasks` after one swipe.
+- **Root cause confirmed from the captured `diary-review-scrolled.xml` and `review-tasks-scrolled.png`:** The swipe successfully moved the form enough to expose `Write page 18`, but the save control was still below the viewport. The script incorrectly assumed one swipe would expose both the second task and the save action.
+- **Fix:** Commit `0e1c95ca552ce14dd85315d0a5344e6804c045d0` changes the emulator test to scroll in bounded increments, re-dump the UI tree after each swipe, and tap Save only when the control is actually present. It fails with a diagnostic screenshot/XML if the control never appears after eight attempts.
+- **Regression prevention:** Commit `2d651826bf2ab17da51d2945311331213eedf32f` adds a static regression check for the bounded loop, fresh UI dump, save visibility check, and diagnostic failure.
+- **Validation:** Fresh CI is required to verify the full photo-picker → crop → rescan → review → planner-save path. API 30 comparison remains outstanding; do not merge PR #24 until end-to-end acceptance passes.
+
+
+## Incident: planner assertion searched only the first visible viewport
+
+- **Symptom:** API 35 run 1072 saved two tasks (planner screenshot showed `0 / 2 tasks complete`, two subject totals of `0 / 1`, and the visible first card `Complete Q1-5`) but failed because `Revise Components of Food` was not in the initial `diary-planner.xml`.
+- **Root cause confirmed from screenshot + accessibility tree:** The planner is vertically scrollable and the first task card is already clipped by the bottom navigation in the initial screenshot. The test dumped the tree once and treated an off-screen second card as missing. The screenshot proves two tasks were saved; it does not prove the second title was lost.
+- **Fix:** Commit `e2cd1832692b1cb513ecaacde048f3b2102ef2c6` scrolls the planner in bounded increments, dumps a fresh accessibility tree and screenshot after each gesture, and asserts both expected titles together only after the second task becomes visible. A diagnostic failure remains if the second task is not exposed after eight checks.
+- **Regression prevention:** Commit `9147db0b6460befb636bd87a41419d4d9630d4cb` adds a static regression test requiring planner scrolling and a bounded visibility check.
+- **Validation:** Script/unit checks and a fresh API 35 emulator run are pending. API 30 vs API 35 and live OCR validation remain separate acceptance gaps. Keep PR #24 open until end-to-end checks pass.
+
+
+## Incident: planner acceptance required a heading the app does not render
+
+- **Symptom:** API 35 run [40280727887](https://github.com/Prav1525/Padippupal/actions/runs/40280727887) completed Photo Picker selection, crop, rescan, review, and Save, then failed with `Today's homework not found`.
+- **Root cause confirmed from the uploaded `diary-planner.xml`:** The actual current `PlannerScreen` renders `Progress by subject`, `Tick tasks as you finish`, and task cards; it does not render a `Today's homework` heading. The captured accessibility tree already contains both expected task cards (`Complete Q1-5` and `Revise Components of Food`), each with due date `2026-10-26`. The failure was a stale test assertion against an obsolete UI label, not evidence that the save failed.
+- **Fix:** Commit `39c06d9fe54369e0c22595d9c21e8b3836021a7b` removes the obsolete heading condition from the planner visibility loop and final assertions. Acceptance now checks both actual task titles and still rejects neighboring-date fixture tasks.
+- **Regression prevention:** Commit `e57e9853250b0e015a41dc6d65a541fb5bd12333` adds a static test requiring both task-title checks and forbidding the obsolete heading assertion.
+- **Validation:** Fresh CI on the updated branch is required. The artifact proves the UI tree had both tasks, but the complete flow is not considered accepted until the rerun passes all planner and date-isolation assertions. Keep PR #24 open and unmerged until then.
+
+
+## Incident: API 35 tutor smoke timed out because the installed TTS engine had no extracted voice data
+
+- **Symptom:** API 35 run [40281815102](https://github.com/Prav1525/Padippupal/actions/runs/40281815102) passed the diary picker acceptance flow, then failed while waiting for the tutor's live lesson to start.
+- **Root cause confirmed from the uploaded emulator logcat:** The preflight installed eSpeak and set it as Android's default, but only checked that its service was registered. At runtime eSpeak repeatedly logged `Missing base resource: .../app_voices/espeak-ng-data/version`; Android also blocked its `DownloadVoiceData` activity when the service attempted to launch it in the background. The tutor therefore loaded the lesson caption but speech initialization failed and the UI exposed **Resume** rather than **Pause**. The smoke test waited 150 seconds for a playing lesson and reported a misleading generic timeout because the detailed status message was not in the accessibility tree.
+- **Fix:** Commit `1769aa816d64baf0b344e6bffcb651a746b0e669` updates `.github/scripts/android-tts-preflight.sh` to launch eSpeak's voice-data initializer in the foreground, then reopen its status activity and fail early if logcat still reports missing data or extraction/initialization failures. It stops the TTS app before PadippuPal is launched.
+- **Regression prevention:** Commit `4f41137eda6fba6dfa57ff012448ae8af5b530a9` adds static regression coverage requiring the voice-data initialization steps and explicit failure checks. The next API 35 run must show the preflight passes and the tutor's speech starts; if not, the preflight should fail immediately with TTS diagnostics instead of burning 150 seconds.
+- **Diary picker status:** In the same run, Photo Picker → crop → rescan → review → save → today's planner passed, and both expected task titles were present after scrolling. The picker flow remains unchanged by this tutor/TTS fix. The diary parse API is deterministic in this test; this does not validate real OCR accuracy.
+- **Validation:** The TTS fix is committed but awaits a fresh API 35 emulator run. Keep PR #24 open and unmerged until the new preflight, tutor smoke, and all other required checks pass.

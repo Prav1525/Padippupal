@@ -2569,12 +2569,25 @@ def import_planner_tasks(payload: PlannerTaskImport) -> dict[str, Any]:
         for task in payload.tasks:
             if task.profile_id != payload.profile_id:
                 raise HTTPException(status_code=400, detail="All tasks must belong to the requested learner profile.")
+            title = normalize(task.title)
+            subject = normalize(task.subject) or "General"
+            details = normalize(task.details)
+            due_date = normalize(task.due_date)
+            # Re-scanning the same diary row must not create duplicate tasks or
+            # reset completion. Match only diary-sourced tasks for this learner,
+            # on the same date, with the same normalized title and subject.
+            existing = conn.execute(
+                "SELECT id FROM planner_tasks WHERE profile_id=? AND source='diary' "
+                "AND LOWER(title)=LOWER(?) AND LOWER(subject)=LOWER(?) AND due_date=? LIMIT 1",
+                (payload.profile_id, title, subject, due_date),
+            ).fetchone()
+            if existing:
+                continue
             task_id = str(uuid.uuid4())
             conn.execute(
                 "INSERT INTO planner_tasks(id, profile_id, title, subject, details, due_date, minutes, completed, source, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)",
-                (task_id, payload.profile_id, normalize(task.title), normalize(task.subject) or "General",
-                 normalize(task.details), normalize(task.due_date), task.minutes, "diary", created_at),
+                (task_id, payload.profile_id, title, subject, details, due_date, task.minutes, "diary", created_at),
             )
             inserted.append(task_id)
         rows = conn.execute(
@@ -2644,6 +2657,12 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
         headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
         method="POST",
     )
+    # Log enough context to diagnose upstream failures without logging API keys,
+    # image bytes/base64, student content, or the full provider response.
+    logger.info(
+        "Diary OCR request: model=%s mime_type=%s image_bytes=%d date_supplied=%s",
+        model, payload.mime_type, len(image_bytes), bool(payload.today_date),
+    )
     try:
         with urllib.request.urlopen(request, timeout=35) as response:
             result = json.loads(response.read().decode("utf-8"))
@@ -2673,11 +2692,24 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
         diary_date = normalize(str(parsed.get("diary_date", "")))[:40]
         return {"tasks": tasks, "count": len(tasks), "diary_date": diary_date, "match_status": match_status, "needs_review": True, "model": model}
     except urllib.error.HTTPError as exc:
-        logger.warning("Diary OCR provider HTTP error status=%s", exc.code)
+        # Provider body often contains the actionable reason (invalid model/key,
+        # quota, permissions). Keep a short sanitized excerpt for server logs only.
+        try:
+            provider_error = exc.read(2048).decode("utf-8", errors="replace")
+        except Exception:
+            provider_error = ""
+        provider_error = " ".join(provider_error.split())[:1000]
+        logger.warning(
+            "Diary OCR provider HTTP error: status=%s model=%s reason=%s",
+            exc.code, model, provider_error or "no response body",
+        )
         if exc.code == 429:
             raise HTTPException(status_code=503, detail="Diary scanning is temporarily at the AI usage limit.") from exc
         raise HTTPException(status_code=502, detail="The diary photo could not be read right now. Please try again.") from exc
     except (urllib.error.URLError, TimeoutError, KeyError, IndexError, StopIteration,
             ValueError, TypeError, json.JSONDecodeError) as exc:
-        logger.warning("Diary OCR failed: %s", type(exc).__name__)
+        logger.warning(
+            "Diary OCR failed: error_type=%s model=%s message=%s",
+            type(exc).__name__, model, " ".join(str(exc).split())[:500],
+        )
         raise HTTPException(status_code=502, detail="Diary scanning failed. Try a clearer photo with good lighting.") from exc

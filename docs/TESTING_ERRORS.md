@@ -360,3 +360,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add a focused diary UI contract test and keep the separate emulator screenshot/navigation check. A passing tutor smoke must not be reported as proof that camera/crop UI was exercised.
 - **Evidence:** Initial checks on commit `7205ded522030313232c1d24d873b52185d8667b`: [APK](https://github.com/Prav1525/Padippupal/actions/runs/40081220381), [backend tests](https://github.com/Prav1525/Padippupal/actions/runs/40081220374), [emulator smoke](https://github.com/Prav1525/Padippupal/actions/runs/40081220390). Follow-up fix is being verified on this branch.
 - **Status:** Camera action wiring corrected; dedicated interactive diary emulator test still required before feature acceptance.
+
+
+### TE-035 — Diary picker selection tap did not activate the file
+- **Date discovered:** 2026-10-25
+- **Area:** Android emulator picker helper / DocumentsUI accessibility interaction.
+- **Symptom/failure:** UI smoke run [40184576935](https://github.com/Prav1525/Padippupal/actions/runs/40184576935) passed JVM, APK, and script validation but failed after the picker remained on the same file-list hierarchy through repeated polling.
+- **Root cause:** The target filename TextView and row were exposed as non-clickable. The previous helper tapped the filename label, which did not activate the item; the far-right preview action is a distinct control and is not a safe substitute.
+- **Corrective action:** PR #24 selects a clickable row when exposed, otherwise taps the file thumbnail once and then re-reads the accessibility tree. A malformed indentation in settings-bounds validation was also corrected in commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa`.
+- **Regression protection:** Tests assert a single tap, thumbnail fallback for non-clickable filename/row, and no tap when the target filename is absent. The full emulator flow must verify picker return, crop, rescan, selected-date review, and planner save.
+- **Evidence:** Failing run [40184576935](https://github.com/Prav1525/Padippupal/actions/runs/40184576935); fix commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa`; current CI run [40189078614](https://github.com/Prav1525/Padippupal/actions/runs/40189078614).
+- **Status:** Fix committed; exact-head verification pending. Do not merge until all required checks pass.

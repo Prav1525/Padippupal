@@ -490,9 +490,14 @@ def tap_file(path, filename):
     preview = next((bounds(n) for n in nodes if n.attrib.get("resource-id", "").endswith(":id/preview_icon") and filename.lower() in n.attrib.get("content-desc", "").lower()), None)
     if preview and preview[0] <= x <= preview[2] and preview[1] <= y <= preview[3]:
         x = x1 + max(1, (preview[0] - x1) // 2)
-    print(f"Focusing DocumentsUI row for {filename!r} at ({x},{y}); bounds={row.attrib.get('bounds')}; focusable=true; clickable={row.attrib.get('clickable', 'unspecified')}; then activating with DPAD_CENTER")
+    print(f"Double-tapping DocumentsUI row for {filename!r} at ({x},{y}); bounds={row.attrib.get('bounds')}; focusable=true; clickable={row.attrib.get('clickable', 'unspecified')}; avoiding preview bounds={preview}")
+    # Latest emulator evidence proves tap + DPAD_CENTER only focuses the row
+    # (focused=true, selected=false). Change the interaction semantics rather
+    # than repeating the ineffective keyboard activation: double-tap the row
+    # body, outside the preview affordance, as users do to open a document.
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
-    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "keyevent", "DPAD_CENTER"], check=True, timeout=45)
+    time.sleep(0.25)
+    subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str(x), str(y)], check=True, timeout=45)
 
 def _contains_bounds(outer, inner):
     """Whether outer bounds fully contain inner bounds."""

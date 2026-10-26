@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
 from syllabus_synthesis import router as syllabus_synthesis_router
+from syllabus_prototype import router as syllabus_prototype_router
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -41,6 +42,7 @@ app = FastAPI(
 )
 app.include_router(exam_master_router)
 app.include_router(syllabus_synthesis_router)
+app.include_router(syllabus_prototype_router)
 
 # Allow browser-based API clients (including Swagger) to call the HTTPS API.
 # Admin endpoints remain protected by the x-admin-token dependency.

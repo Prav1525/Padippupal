@@ -118,3 +118,25 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     )
     assert detail.status_code == 200
     assert detail.json()["topics"][0]["citation_refs"] == ["chunk-test"]
+
+    # The tutor serves approved chapter_lessons; synthesis review state must follow
+    # the same explicit human decision instead of remaining misleadingly "draft".
+    lesson_id = data["lesson_id"]
+    reviewed = client.post(
+        f"/admin/chapter-lessons/{lesson_id}/review",
+        headers={"X-Admin-Token": "test-token"},
+        json={"decision": "approve", "feedback": "Source citations checked."},
+    )
+    assert reviewed.status_code == 200, reviewed.text
+    assert reviewed.json()["status"] == "approved"
+    with curriculum.db() as conn:
+        round_row = conn.execute(
+            "SELECT status FROM syllabus_synthesis_rounds WHERE id=?",
+            (data["synthesis_round_id"],),
+        ).fetchone()
+        topic_row = conn.execute(
+            "SELECT approval_status FROM syllabus_topic_syntheses WHERE round_id=?",
+            (data["synthesis_round_id"],),
+        ).fetchone()
+    assert round_row["status"] == "approved"
+    assert topic_row["approval_status"] == "approved"

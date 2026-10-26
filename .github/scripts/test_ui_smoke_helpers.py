@@ -274,6 +274,16 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         self.assertIn('tap-exact ready-to-teach.xml "Start teaching"', script)
         self.assertIn("Waiting for the selected textbook lesson preview to finish loading", script)
         self.assertIn("Lesson preview ready", script)
+        self.assertLess(
+            script.index('if [ "$preview_ready" -ne 1 ]; then'),
+            script.index('python3 .github/scripts/ui_smoke.py assert-tutor ready-to-teach.xml'),
+        )
+        self.assertLess(
+            script.index('python3 .github/scripts/ui_smoke.py assert-tutor ready-to-teach.xml'),
+            script.index('python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "Start teaching"'),
+        )
+        self.assertIn("maxLines = 5", tutor)
+        self.assertIn('"Lesson preview"', tutor)
 
     def test_lesson_selection_precedes_tutor_in_app_and_smoke_flow(self):
         root = Path(__file__).resolve().parents[2]

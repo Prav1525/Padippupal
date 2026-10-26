@@ -172,3 +172,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `63e49c2574faf836f460f6131b6ed53d6f03fae3` adds a selector for actual clickable Photo Picker image tiles; `710fcbc2a672a7c9c9fa0efa6687666fca039f65` updates the end-to-end test to select the sole visible tile and fail closed if selection is ambiguous. Commits `c2b643c4d280bcd9cfa1be9606c688c2eb00d04b` and `cf1991fa725aa9ca2180ffaa8fb003ac06ea471b` add and correct regression coverage.
 - **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` now verifies a date-described clickable tile is selected and rejects the hidden-filename assumption. Fresh CI must prove the picker returns to PadippuPal, crop opens, rescan returns the expected date-correct tasks, and planner save succeeds.
 - **Validation:** Fix pushed; fresh CI pending. Keep PR #24 open. API 30 versus API 35 comparison remains outstanding; this run's evidence is from API 35 only.
+
+
+## Incident: API 35 Photo Picker provider package differs from selector assumption
+
+- **Symptom:** Run [40271643638](https://github.com/Prav1525/Padippupal/actions/runs/40271643638) passed JVM tests, APK build, script validation, emulator boot, app installation, fixture indexing, and picker launch, but the selector rejected the only visible image tile.
+- **Root cause confirmed from `diary-picker.xml`:** The clickable date-described tile used package `com.google.android.providers.media.module`, while `.github/scripts/ui_smoke.py` matched only `com.android.providers.media.module`. The image was visible and clickable; the selector's package-name assumption was too narrow.
+- **Fix:** Accept Photo Picker provider package names ending in `.providers.media.module`, while retaining the checks for FrameLayout, clickable/enabled, date-based content description, and exactly one candidate.
+- **Regression prevention:** Update the fixture regression to use the observed `com.google.android.providers.media.module` namespace and keep coverage for the `com.android.providers.media.module` namespace too. A fresh emulator run must still prove picker return, crop, rescan, correct review tasks, and planner save.
+- **Validation:** New fix committed; CI must pass before PR #24 can be considered mergeable. API 30 versus API 35 comparison remains outstanding.

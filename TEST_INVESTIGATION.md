@@ -291,3 +291,10 @@ Use this format:
 - **Regression test:** Added tests for the three-correct-check transition, duplicate-event idempotency, and reset on an incorrect check.
 - **Verification status:** Latest-head CI is pending. Do not claim the new schema/API or tests pass until exact-head curriculum checks complete.
 - **Next action:** Review latest CI and fix any failures. Then wire a persistent random learner UUID into Android tutor requests and record only actual practice outcomes; keep PR #31 unmerged until required regressions pass.
+
+### 2026-10-26 — Wire learner identity and checkpoint signals from Android
+- **Branch / implementation commit:** `feature/syllabus-synthesis-prototype`; Android changes `8de421c41881137ef01eed26f5dce964e3a0fc5a`, `7e13e5a7a72d114bd7184d64a4ac8dc36fe5fe65`, `192afbc923ceba965fe6ec7ad53c417fb165ae1f`.
+- **Change made:** Reuse the already-persisted random `profile_id` from Android app preferences as the opaque tutor `learner_id`; include it on `/tutor/chat` requests. At the inline lesson checkpoint, “I understand” records an `understood` signal and “Explain again” records `needs_help` through `POST /tutor/progress`. Signals are sent asynchronously and do not block playback.
+- **Safety boundary:** These are self-report signals only. The Android UI does not send `practice_correct` or claim mastery; the backend's three-consecutive-correct rule remains unused until real scored practice checks exist. The identifier is a random UUID and does not use the student's name.
+- **Verification status:** Android source changes are committed; exact-head Android APK/UI workflows have not yet completed. The prior backend curriculum suite and guidance gate passed on commit `4d1f740cd6054e337a50970a8cb3d492e673adf0`, before these Android edits.
+- **Next action:** Check latest-head curriculum, APK, and API-35 emulator runs. Fix compile or runtime issues from logs before calling the learner-progress flow complete.

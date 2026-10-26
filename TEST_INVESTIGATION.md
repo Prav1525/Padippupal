@@ -220,3 +220,13 @@ Use this format:
 - **Change:** Correct the assertion to count the actual newline-terminated command and remove the duplicate picker dump/screenshot. No coordinate or gesture change.
 - **Verification plan:** Fresh CI static test and JVM suite, APK build, then emulator acceptance. Runtime picker return and crop/rescan/review/save remain **UNVERIFIED** until the emulator reaches and passes them.
 - **Outcome:** Fix committed; fresh CI pending. No merge performed.
+
+
+### 2026-10-26 — Isolate picker failure from API 30 emulator environment
+- **Branch / starting commit:** `fix/diary-image-picker-reliability`, API-30 failing source commit `9a85f998f78224a4afcd016606acfb7201fa951f`; diagnostic workflow commit `80910dde9e5e7c96bd243d944b599d909aed1b58`.
+- **Guidance:** Re-read `AGENTS.md` and `TESTING_GUIDANCE.md` before the workflow edit. No app source was changed.
+- **Exact prior evidence:** [API 30 emulator run 40262312607](https://github.com/Prav1525/Padippupal/actions/runs/40262312607): JVM tests, APK build, and script validation passed; emulator acceptance failed at selection. Logs report tapping `PadippuPal-diary-test.jpg` followed by repeated unchanged picker XML, then `PickVisualMedia did not return to PadippuPal`. The picker screenshot/XML showed DocumentsUI, not the dedicated Photo Picker.
+- **Root-cause confidence:** **PROBABLE environment/test compatibility contributor; app callback failure remains UNKNOWN.** Official Android documentation says `PickVisualMedia` falls back to `ACTION_OPEN_DOCUMENT` if a dedicated Photo Picker is unavailable. API 30 is the only environment in the failing workflow, so the prior run did not compare environments.
+- **Diagnostic change:** Change only `.github/workflows/android-ui-smoke.yml` emulator `api-level` and `system-image-api-level` from 30 to 35. Keep app source and the smoke script unchanged so the next run tests the same app/test against a newer Android system image. This is a controlled environment comparison against the retained API 30 evidence, not a claimed fix.
+- **Verification plan:** Inspect the triggered API 35 workflow result, runtime Android version, picker activity/UI XML and screenshot, whether the result returns to PadippuPal, and whether the crop editor is reached. If API 35 passes selection while API 30 failed, environment compatibility is strongly implicated; if it fails similarly, inspect the new activity/result evidence before changing the app or gestures.
+- **Outcome:** Diagnostic workflow change committed; CI result pending. No merge performed.

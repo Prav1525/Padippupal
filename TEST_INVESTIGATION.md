@@ -291,3 +291,13 @@ Use this format:
 - **Verification status:** **UNVERIFIED** until GitHub Actions runs against the new head. This workflow is intended to surface import, syntax, dependency and regression failures; it does not validate factual correctness of generated curriculum content or actual model quality.
 - **Next action:** Check the exact-head workflow runs and inspect failures; do not treat the source as tested until the focused and full backend test steps pass.
 - **Merge status:** PR #29 remains draft and unmerged.
+
+
+### 2026-10-26 — Fix first focused synthesis CI failures
+- **Branch / commit:** `feat/syllabus-synthesis-engine`; fix commit `7e761b5d7fe4e05fb92ee29f0afbed42f1cfb3ee`.
+- **Evidence:** Backend workflow run [40306273895](https://github.com/Prav1525/Padippupal/actions/runs/40306273895), job 121516045062, focused test step failed with 2 failures and 8 passes.
+- **Confirmed causes:** (1) The prompt said “Do not invent page references” across a newline, but the expected assertion looked for the contiguous phrase. (2) `metadata_json` and `syllabus_json` were unannotated FastAPI parameters, so multipart form submissions returned 422 before the admin-token guard; the endpoint contract and test both use multipart form data.
+- **Change made:** Kept the required prompt phrase contiguous and annotated both fields with `Form(...)` so the endpoint accepts the documented multipart contract.
+- **Verification status:** **UNVERIFIED after fix**; a new exact-head focused and regression CI run must confirm the change.
+- **Next action:** Poll the new workflow, inspect logs, and address any remaining failures based on their evidence.
+- **Merge status:** PR #29 remains draft/unmerged.

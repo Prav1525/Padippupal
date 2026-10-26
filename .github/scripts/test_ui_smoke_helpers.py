@@ -233,7 +233,9 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         start = tutor.index("fun startLiveLesson()")
         lesson_setup = tutor[start:tutor.index("fun ", start + 8)]
         self.assertIn("val lessonSegments = (0 until array.length()).mapNotNull { array.optJSONObject(it) }", lesson_setup)
-        self.assertIn("liveSegments = lessonSegments", lesson_setup)
+        # The network worker returns the ordered API segments; UI state is updated only on the main-thread success callback.
+        self.assertIn("lessonSegments\n                } finally { connection.disconnect() }", lesson_setup)
+        self.assertIn("outcome.fold(onSuccess = { segments -> liveSegments = segments;", tutor)
         self.assertNotIn("listOf(completeLesson)", lesson_setup)
         self.assertNotIn("The API segments are transport chunks, not separate learner-facing steps.", tutor)
         self.assertIn("The lesson was too short to explain the selected topic completely.", tutor)

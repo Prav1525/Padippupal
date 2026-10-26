@@ -1816,6 +1816,51 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False}
 
+class TeachingMasteryRequest(BaseModel):
+    """Answer evidence supplied by the lesson UI; this endpoint never asks Gemini to decide progression."""
+    correct_answers: int = Field(ge=0, le=20)
+    total_answers: int = Field(ge=1, le=20)
+    demonstrated_explanation_or_application: bool = False
+    subject: str = Field(min_length=1, max_length=100)
+    class_level: int = Field(ge=1, le=12)
+
+
+@app.get("/tutor/teaching-method")
+def get_teaching_method(class_level: int = Query(ge=1, le=12), subject: str = Query(min_length=1, max_length=100)) -> dict[str, Any]:
+    """Expose local teaching rules for supported pilot grades without embedding textbook text."""
+    if class_level != 6 or subject.strip().casefold() not in {"science", "mathematics", "math", "maths"}:
+        raise HTTPException(status_code=404, detail="The local teaching-method pilot currently supports Class 6 Science and Mathematics.")
+    from teaching_engine import load_teaching_dataset
+    dataset = load_teaching_dataset()
+    return {
+        "dataset_id": dataset["dataset_id"],
+        "curriculum": dataset["curriculum"],
+        "lesson_contract": dataset["lesson_contract"],
+        "chapters": [
+            {"subject": item["subject"], "chapter": item["chapter"], "topics": item["topics"]}
+            for item in dataset["chapters"] if item["subject"].casefold() == subject.strip().casefold()
+        ],
+        "completeness": dataset["completeness"],
+    }
+
+
+@app.post("/tutor/mastery-decision")
+def tutor_mastery_decision(payload: TeachingMasteryRequest) -> dict[str, Any]:
+    """Deterministic server-side gate: Gemini output cannot directly unlock a concept."""
+    if payload.class_level != 6 or payload.subject.strip().casefold() not in {"science", "mathematics", "math", "maths"}:
+        raise HTTPException(status_code=404, detail="The local teaching-method pilot currently supports Class 6 Science and Mathematics.")
+    from teaching_engine import mastery_decision
+    try:
+        decision = mastery_decision(
+            payload.correct_answers,
+            payload.total_answers,
+            payload.demonstrated_explanation_or_application,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return decision
+
+
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:
     """Fast, child-friendly tutoring through a server-side Groq API key."""

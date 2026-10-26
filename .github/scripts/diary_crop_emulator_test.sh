@@ -95,8 +95,8 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-downloads-empty.png
   exit 1
 fi
-# Grid view exposes a non-clickable file tile and a clickable preview action,
-# so do not tap either. Switch to List view and inspect a fresh accessibility tree.
+# Grid view exposes a non-clickable file tile and a separate clickable preview
+# action. Switch to List view so the test can target that exact action by filename.
 if grep -qi 'content-desc="List view"' ui-screenshots/diary-test/diary-picker-downloads.xml; then
   python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-picker-downloads.xml "List view"
   sleep 1
@@ -109,9 +109,10 @@ if ! grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker
   log "FAIL: fixture disappeared after switching DocumentsUI to List view"
   exit 1
 fi
-# Tap the file row, then handle both DocumentsUI behaviors: some picker builds
-# immediately return a URI; others first mark the row selected and require the
-# toolbar's Open/Select confirmation. Never activate the separate Preview action.
+# The latest screenshot/XML show the filename and item_root are non-clickable,
+# while the matching preview_icon is clickable. Activate that exact preview
+# affordance, then inspect whether DocumentsUI offers a confirmation control or
+# returns a URI. This tests a materially different, evidence-based interaction.
 python3 .github/scripts/ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker-list.xml "PadippuPal-diary-test.jpg"
 sleep 1
 dump_ui diary-picker-selection-result

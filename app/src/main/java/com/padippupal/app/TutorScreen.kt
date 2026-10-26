@@ -1015,6 +1015,7 @@ internal fun TutorScreen(
     var liveVisualTarget by remember { mutableStateOf("") }
     var liveSegmentIndex by remember { mutableIntStateOf(0) }
     var liveLessonActive by remember { mutableStateOf(false) }
+    var hasCompletedLesson by remember { mutableStateOf(false) }
     var livePaused by remember { mutableStateOf(false) }
     var awaitingUnderstanding by remember { mutableStateOf(false) }
     var currentCheckpoint by remember { mutableStateOf("") }
@@ -1651,6 +1652,7 @@ internal fun TutorScreen(
             livePaused = false
             awaitingUnderstanding = false
             currentCheckpoint = ""
+            hasCompletedLesson = true
             status = "Live lesson complete."
             return
         }
@@ -1702,6 +1704,8 @@ internal fun TutorScreen(
         val lessonKey = selectedLessonKey
         if (!prepareOnly && preparedLessonKey == lessonKey && preparedLessonSegments.isNotEmpty()) {
             liveSegments = preparedLessonSegments
+            messages.clear()
+            hasCompletedLesson = false
             liveLessonActive = true
             livePaused = false
             status = "Starting your prepared lesson…"
@@ -1782,6 +1786,8 @@ internal fun TutorScreen(
                         if (prepareOnly) {
                             status = "Lesson preview ready."
                         } else {
+                            messages.clear()
+                            hasCompletedLesson = false
                             liveSegments = segments
                             liveLessonActive = true
                             livePaused = false
@@ -1805,6 +1811,7 @@ internal fun TutorScreen(
     }
 
     fun stopLiveLesson() {
+        hasCompletedLesson = false
         liveLessonActive = false; livePaused = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null
@@ -2036,7 +2043,7 @@ internal fun TutorScreen(
                     Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
             } else if (!setupOnly) {
-                TextButton(onClick = { showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                TextButton(onClick = { hasCompletedLesson = false; showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
                     Text(if (selectedLanguage == "தமிழ்") "மாற்று" else if (selectedLanguage == "Tanglish") "Maathu" else "Change", color = TutorAccentSoft, fontSize = 11.sp)
                 }
                 Button(
@@ -2109,7 +2116,7 @@ internal fun TutorScreen(
             }
         }
 
-        if (!liveLessonActive && !showLessonSettings && false) {
+        if (!liveLessonActive && !showLessonSettings && hasCompletedLesson) {
         // Retained only as source history; the learner flow now uses the focused lesson screen.
         LazyColumn(
             state = chatListState,
@@ -2261,7 +2268,7 @@ internal fun TutorScreen(
             }
         }
 
-        if (!liveLessonActive && !showLessonSettings) {
+        if (!liveLessonActive && !showLessonSettings && !hasCompletedLesson) {
             Column(
                 modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -2310,7 +2317,7 @@ internal fun TutorScreen(
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(
-                        onClick = { showLessonSettings = true },
+                        onClick = { hasCompletedLesson = false; showLessonSettings = true },
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                         shape = RoundedCornerShape(14.dp)
                     ) { Text(if (selectedLanguage == "தமிழ்") "பாடத்தை மாற்று" else if (selectedLanguage == "Tanglish") "Topic maathu" else "Change lesson") }
@@ -2380,7 +2387,7 @@ internal fun TutorScreen(
         }
 
         // Keep setup focused; show the question composer only after selection.
-        if (!showLessonSettings && !liveLessonActive && false) {
+        if (!showLessonSettings && !liveLessonActive && hasCompletedLesson) {
         // The legacy chat composer is intentionally not part of the focused lesson flow.
         Surface(
             modifier = Modifier.fillMaxWidth(),

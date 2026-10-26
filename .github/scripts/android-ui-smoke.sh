@@ -182,7 +182,7 @@ if [ "$preview_ready" -ne 1 ]; then
 fi
 grep -q "All 1s" ready-to-teach.xml || { log "FAIL: preview is missing the selected topic"; cat ready-to-teach.xml | tee -a "$REPORT"; exit 1; }
 log "PASS: textbook lesson content is visible before Teach is pressed"
-python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
+python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "Start teaching"
 
 log "Waiting for a complete lesson caption (hard deadline 150s; each ADB call is separately bounded)"
 lesson_started=0

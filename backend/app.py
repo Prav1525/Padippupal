@@ -1543,7 +1543,7 @@ def syllabus_synthesis_coverage(
             grouped: dict[str, list[dict[str, Any]]] = {}
             unclassified_count = 0
             for chunk in chunks:
-                chapter_name = re.sub(r"\\s+", " ", str(chunk.get("chapter") or "")).strip()
+                chapter_name = re.sub(r"\s+", " ", str(chunk.get("chapter") or "")).strip()
                 if not chapter_name:
                     unclassified_count += 1
                     continue
@@ -1597,16 +1597,23 @@ def syllabus_synthesis_coverage(
                         and bool(current_evidence)
                         and evidence_fingerprint(current_evidence) == str(latest.get("evidence_fingerprint") or "")
                     )
+                    def citations_are_current(topic_row: dict[str, Any]) -> bool:
+                        try:
+                            citations = json.loads(topic_row.get("citation_refs_json") or "[]")
+                        except (TypeError, ValueError, json.JSONDecodeError):
+                            return False
+                        return (
+                            isinstance(citations, list)
+                            and bool(citations)
+                            and {str(value) for value in citations}.issubset(current_chunk_ids)
+                        )
+
                     validation_passed = (
                         stored_validation.get("valid") is True
                         and topic_count > 0
                         and all(str(topic_row.get("validation_status") or "").lower() == "passed"
                                 for topic_row in topic_rows)
-                        and all(
-                            bool((citations := json.loads(topic_row.get("citation_refs_json") or "[]")))
-                            and {str(value) for value in citations}.issubset(current_chunk_ids)
-                            for topic_row in topic_rows
-                        )
+                        and all(citations_are_current(topic_row) for topic_row in topic_rows)
                     )
                     topics_approved = topic_count > 0 and approved_topic_count == topic_count
                     lesson = conn.execute(

@@ -171,3 +171,63 @@ def test_iterative_synthesis_blocks_topics_without_evidence():
 def test_synthesis_round_limit_is_bounded():
     with pytest.raises(ValueError):
         run_iterative_synthesis(scope(), {"page_matches": [{"page": 1}]}, lambda _: {}, max_rounds=99)
+
+
+
+def test_existing_class6_science_math_topics_can_seed_mapping():
+    from syllabus_synthesis import load_existing_topic_seeds
+
+    science = load_existing_topic_seeds(scope(board="CBSE", standard="6", subject="Science", medium="English"))
+    maths = load_existing_topic_seeds(scope(board="CBSE", standard="6", subject="Mathematics", medium="English"))
+    assert science
+    assert maths
+    assert all(item["id"] and item["title"] and item["chapter"] for item in science + maths)
+    assert load_existing_topic_seeds(scope(board="Tamil Nadu State Board", subject="Science")) == []
+
+
+def test_source_and_synthesis_rounds_persist_in_existing_curriculum_db(tmp_path, monkeypatch):
+    import json
+    import sqlite3
+    from syllabus_synthesis import _persist_source_package, _persist_synthesis_result
+
+    monkeypatch.setenv("PADIPPUPAL_DB", str(tmp_path / "padippupal_curriculum.sqlite3"))
+    manifest = {
+        "source_id": "a1b2c3d4e5f60708",
+        "scope": scope().model_dump(),
+        "source_sha256": "source-hash",
+        "page_count": 1,
+        "overall_status": "needs_review",
+        "images": [{"id": "p1-i1", "page": 1, "path": "images/a.png", "review_status": "needs_topic_match"}],
+        "topics": [{
+            "topic_id": "photosynthesis", "topic_title": "Photosynthesis", "chapter": "Plants",
+            "syllabus_reference": "Chapter 1", "coverage_status": "evidence_found",
+            "page_matches": [{"page": 1, "matched_terms": ["photosynthesis"], "evidence_excerpt": "Plant text"}],
+            "synthesis_status": "needs_review",
+        }],
+    }
+    _persist_source_package(manifest, [{"page": 1, "text": "Plant text", "needs_ocr": False}])
+    result = {
+        "topic_id": "photosynthesis", "status": "ready_for_review",
+        "rounds": [{"round": 1, "draft": {"explanation": "Original explanation"}, "validation_issues": []}],
+        "synthesis": {"explanation": "Original explanation"}, "issues": [], "approved": False,
+    }
+    _persist_synthesis_result(manifest["source_id"], "photosynthesis", result)
+
+    conn = sqlite3.connect(tmp_path / "padippupal_curriculum.sqlite3")
+    try:
+        source = conn.execute("SELECT board, standard, subject, textbook_title FROM syllabus_sources").fetchone()
+        page = conn.execute("SELECT page_no, page_text FROM syllabus_source_pages").fetchone()
+        topic = conn.execute("SELECT chapter, topic_title, coverage_status FROM syllabus_topics").fetchone()
+        rounds = conn.execute("SELECT round_no, draft_json FROM syllabus_synthesis_rounds").fetchall()
+        synthesis = conn.execute("SELECT latest_status, approved, synthesis_json FROM syllabus_topic_syntheses").fetchone()
+        image_count = conn.execute("SELECT COUNT(*) FROM syllabus_source_images").fetchone()[0]
+    finally:
+        conn.close()
+
+    assert source == ("Tamil Nadu State Board", "6", "Science", "Science Textbook")
+    assert page == (1, "Plant text")
+    assert topic == ("Plants", "Photosynthesis", "evidence_found")
+    assert len(rounds) == 1 and json.loads(rounds[0][1])["explanation"] == "Original explanation"
+    assert synthesis[0] == "ready_for_review" and synthesis[1] == 0
+    assert json.loads(synthesis[2])["explanation"] == "Original explanation"
+    assert image_count == 1

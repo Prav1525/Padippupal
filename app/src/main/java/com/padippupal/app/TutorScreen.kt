@@ -2049,13 +2049,6 @@ internal fun TutorScreen(
                 TextButton(onClick = { hasCompletedLesson = false; showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
                     Text(if (selectedLanguage == "தமிழ்") "மாற்று" else if (selectedLanguage == "Tanglish") "Maathu" else "Change", color = TutorAccentSoft, fontSize = 11.sp)
                 }
-                Button(
-                    onClick = { startLiveLesson() },
-                    enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TutorGreen, contentColor = TutorNight)
-                ) { Text("▶ Teach", fontWeight = FontWeight.ExtraBold, maxLines = 1) }
             }
         }
 

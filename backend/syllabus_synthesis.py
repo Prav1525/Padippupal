@@ -15,7 +15,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, Header, HTTPException, UploadFile
 from pydantic import BaseModel, Field, ValidationError
 
 MAX_PDF_BYTES = 25 * 1024 * 1024
@@ -304,8 +304,8 @@ def _require_admin(x_admin_token: str | None) -> None:
 
 @router.post("/ingest-pdf")
 async def ingest_syllabus_pdf(
-    metadata_json: str,
-    syllabus_json: str,
+    metadata_json: str = Form(...),
+    syllabus_json: str = Form(...),
     file: UploadFile = File(...),
     x_admin_token: str | None = Header(default=None),
 ) -> dict[str, Any]:

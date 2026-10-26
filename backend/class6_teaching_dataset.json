@@ -1,0 +1,2194 @@
+{
+  "schema_version": 1,
+  "dataset_id": "cbse-class-6-teaching-pilot",
+  "curriculum": {
+    "board": "CBSE",
+    "class_level": 6,
+    "academic_year": "2026-27",
+    "textbook_medium": "English",
+    "explanation_languages": [
+      "English",
+      "Tanglish"
+    ]
+  },
+  "purpose": "Teacher-authored learning scaffolds and curriculum routing metadata; not a copy of NCERT textbook content and not a replacement for textbook verification.",
+  "content_policy": {
+    "textbook_text_embedded": false,
+    "official_textbook_url": "https://ncert.nic.in/textbook.php/?ln=en",
+    "note": "NCERT textbook reuse restrictions are recorded in source_registry.json. Do not ingest or redistribute full textbook text without permission. Add exact source/page references only after authorized review."
+  },
+  "teaching_method_version": "1.0",
+  "lesson_contract": {
+    "stages": [
+      "activate_prior_knowledge",
+      "explain_in_small_steps",
+      "worked_example_or_activity",
+      "check_understanding",
+      "feedback_or_reteach",
+      "mastery_decision",
+      "offer_next_concept"
+    ],
+    "checkpoint_question_count": {
+      "min": 2,
+      "max": 3
+    },
+    "mastery_policy": {
+      "min_correct": 2,
+      "require_explanation_or_application": true,
+      "on_not_mastered": [
+        "explain_misconception",
+        "give_hint",
+        "teach_again_using_different_example",
+        "ask_new_question"
+      ],
+      "never_auto_advance": true
+    },
+    "source_policy": "Curriculum claims must be grounded in approved retrieved source chunks. If unavailable, label as general explanation and do not claim textbook verification.",
+    "language_policy": {
+      "English": "Natural age-appropriate English. Explain terminology, then use it consistently.",
+      "Tanglish": "Natural Tamil-English code-switching written in Latin script; keep essential scientific/mathematical terms clear; do not return English-only text; captions must match spoken text."
+    }
+  },
+  "chapters": [
+    {
+      "subject": "Mathematics",
+      "chapter": "Data Handling and Presentation",
+      "topics": [
+        {
+          "id": "mathematics-data-handling-and-presentation-artistic-and-aesthetic-considerations",
+          "title": "Artistic and Aesthetic Considerations",
+          "topic": "Artistic and Aesthetic Considerations",
+          "scene_type": "bar_chart",
+          "learning_activity": "Change the category counts and read the chart to investigate artistic and aesthetic considerations.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in artistic and aesthetic considerations?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-data-handling-and-presentation-bar-graphs",
+          "title": "Bar graphs",
+          "topic": "Bar graphs",
+          "scene_type": "bar_chart",
+          "learning_activity": "Change category counts and compare bar heights and labels.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many more are in the tallest bar?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-data-handling-and-presentation-collecting-and-organising-data",
+          "title": "Collecting and Organising Data",
+          "topic": "Collecting and Organising Data",
+          "scene_type": "bar_chart",
+          "learning_activity": "Change the category counts and read the chart to investigate collecting and organising data.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How can you organise these observations into categories?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-data-handling-and-presentation-drawing-a-bar-graph",
+          "title": "Drawing a Bar Graph",
+          "topic": "Drawing a Bar Graph",
+          "scene_type": "bar_chart",
+          "learning_activity": "Change the category counts and read the chart to investigate drawing a bar graph.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What labels and scale does the graph need?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-data-handling-and-presentation-pictographs",
+          "title": "Pictographs",
+          "topic": "Pictographs",
+          "scene_type": "bar_chart",
+          "learning_activity": "Change the category counts and read the chart to investigate pictographs.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What does one picture represent in this pictograph?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-data-handling-and-presentation-read-and-interpret-data",
+          "title": "Read and interpret data",
+          "topic": "Read and interpret data",
+          "scene_type": "data_interpret",
+          "learning_activity": "Inspect a small chart and answer comparison questions using the displayed values.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What evidence supports your answer?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-data-handling-and-presentation-tally-and-frequency",
+          "title": "Tally and frequency",
+          "topic": "Tally and frequency",
+          "scene_type": "tally_chart",
+          "learning_activity": "Drag observations into categories and watch tally marks and totals update.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which category has the highest frequency?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "Fractions",
+      "topics": [
+        {
+          "id": "mathematics-fractions-a-pinch-of-history",
+          "title": "A Pinch of History",
+          "topic": "A Pinch of History",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Manipulate equal parts or fraction strips to model a pinch of history while keeping the whole the same.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in a pinch of history?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-fractions-addition-and-subtraction-of-fractions",
+          "title": "Addition and Subtraction of Fractions",
+          "topic": "Addition and Subtraction of Fractions",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Manipulate equal parts or fraction strips to model addition and subtraction of fractions while keeping the whole the same.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What is the result when these fractional parts are combined?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-fractions-compare-fractions",
+          "title": "Compare fractions",
+          "topic": "Compare fractions",
+          "scene_type": "fraction_compare",
+          "learning_activity": "Use fraction strips to line up two fractions and compare their lengths.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which fraction is larger and why?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-fractions-comparing-fractions",
+          "title": "Comparing Fractions",
+          "topic": "Comparing Fractions",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Manipulate equal parts or fraction strips to model comparing fractions while keeping the whole the same.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which fraction is larger when the wholes are equal?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-fractions-equivalent-fractions",
+          "title": "Equivalent fractions",
+          "topic": "Equivalent fractions",
+          "scene_type": "fraction_equivalence",
+          "learning_activity": "Resize the number of equal parts while keeping the same amount shaded.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Why do these fractions represent the same amount?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-fractions-fraction-as-equal-parts",
+          "title": "Fraction as equal parts",
+          "topic": "Fraction as equal parts",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Split a whole into equal parts and shade the numerator's number of parts.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What does the denominator tell us?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-fractions-fractional-units-and-equal-shares",
+          "title": "Fractional Units and Equal Shares",
+          "topic": "Fractional Units and Equal Shares",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Manipulate equal parts or fraction strips to model fractional units and equal shares while keeping the whole the same.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How much does each person receive when the whole is shared equally?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-fractions-fractional-units-as-parts-of-a-whole",
+          "title": "Fractional Units as Parts of a Whole",
+          "topic": "Fractional Units as Parts of a Whole",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Manipulate equal parts or fraction strips to model fractional units as parts of a whole while keeping the whole the same.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What does the denominator tell you?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-fractions-marking-fraction-lengths-on-the-number-line",
+          "title": "Marking Fraction Lengths on the Number Line",
+          "topic": "Marking Fraction Lengths on the Number Line",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Manipulate equal parts or fraction strips to model marking fraction lengths on the number line while keeping the whole the same.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where should this fraction be placed between zero and one?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-fractions-measuring-using-fractional-units",
+          "title": "Measuring Using Fractional Units",
+          "topic": "Measuring Using Fractional Units",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Manipulate equal parts or fraction strips to model measuring using fractional units while keeping the whole the same.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many fractional units fit along this length?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-fractions-mixed-fractions",
+          "title": "Mixed Fractions",
+          "topic": "Mixed Fractions",
+          "scene_type": "fraction_builder",
+          "learning_activity": "Manipulate equal parts or fraction strips to model mixed fractions while keeping the whole the same.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many wholes and how much extra make this mixed fraction?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "Lines and Angles",
+      "topics": [
+        {
+          "id": "mathematics-lines-and-angles-angle",
+          "title": "Angle",
+          "topic": "Angle",
+          "scene_type": "angle_builder",
+          "learning_activity": "Two rays with the same endpoint form an angle. The shared endpoint is the vertex; the rays are its arms.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What do we call the common endpoint of the two arms?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-comparing-angles",
+          "title": "Comparing Angles",
+          "topic": "Comparing Angles",
+          "scene_type": "angle_builder",
+          "learning_activity": "Compare the opening between the arms. Angle size depends on the opening, not on how long the arms are drawn.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "If an arm gets longer but does not rotate, does the angle change?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-drawing-angles",
+          "title": "Drawing Angles",
+          "topic": "Drawing Angles",
+          "scene_type": "angle_builder",
+          "learning_activity": "Draw a target angle by marking the vertex, aligning a protractor with the first arm, marking the target measure, and drawing the second arm.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What must align with the protractor's zero line?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-line",
+          "title": "Line",
+          "topic": "Line",
+          "scene_type": "line",
+          "learning_activity": "A line continues without end in both directions. The arrows show that it keeps going.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Does a line have endpoints?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-line-segment",
+          "title": "Line Segment",
+          "topic": "Line Segment",
+          "scene_type": "line_segment",
+          "learning_activity": "Move endpoints A and B. The segment joins them and has a fixed, finite length.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many endpoints does a line segment have?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-line-ray-and-segment",
+          "title": "Line, ray and segment",
+          "topic": "Line, ray and segment",
+          "scene_type": "line_ray_segment",
+          "learning_activity": "Compare three drawings: a segment stops at two endpoints, a ray starts at one endpoint and continues one way, and a line continues both ways.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which drawing has exactly one endpoint?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-making-rotating-arms",
+          "title": "Making Rotating Arms",
+          "topic": "Making Rotating Arms",
+          "scene_type": "angle_builder",
+          "learning_activity": "Keep the vertex fixed and rotate one arm. Predict whether the opening becomes wider or narrower before you move it.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "When you rotate one arm farther away from the other, what happens to the opening?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-measure-an-angle",
+          "title": "Measure an angle",
+          "topic": "Measure an angle",
+          "scene_type": "angle_builder",
+          "learning_activity": "Rotate a ray around a fixed vertex and estimate the opening before reading its measure.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What should stay fixed while you rotate the ray?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-measuring-angles",
+          "title": "Measuring Angles",
+          "topic": "Measuring Angles",
+          "scene_type": "angle_builder",
+          "learning_activity": "Estimate the opening first. When using a protractor, place its centre on the vertex and align the baseline with one arm.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where should the centre of the protractor be placed?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-point",
+          "title": "Point",
+          "topic": "Point",
+          "scene_type": "point_marker",
+          "learning_activity": "Place and label a point to show an exact location. A point marks a location; the dot is only a drawing convention.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What does point A represent in this drawing?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-ray",
+          "title": "Ray",
+          "topic": "Ray",
+          "scene_type": "ray",
+          "learning_activity": "A ray starts at one endpoint and continues endlessly in one direction.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many endpoints does a ray have?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-special-types-of-angles",
+          "title": "Special Types of Angles",
+          "topic": "Special Types of Angles",
+          "scene_type": "angle_classifier",
+          "learning_activity": "Change the angle opening and identify it using the chapter's angle categories.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What type of angle measures exactly 90 degrees?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-types-of-angles",
+          "title": "Types of angles",
+          "topic": "Types of angles",
+          "scene_type": "angle_classifier",
+          "learning_activity": "Adjust the angle and classify its opening as acute, right, obtuse or straight.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which angle is exactly 90 degrees?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-lines-and-angles-types-of-angles-and-their-measures",
+          "title": "Types of Angles and their Measures",
+          "topic": "Types of Angles and their Measures",
+          "scene_type": "angle_classifier",
+          "learning_activity": "Connect the angle's appearance with its measure and name. Estimate first, then use a protractor when needed.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "An angle is 120 degrees. Is it acute, right, obtuse, or straight?",
+            "success_feedback": "Good thinking! Explain the clue that helped you decide."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "Number Play",
+      "topics": [
+        {
+          "id": "mathematics-number-play-clock-and-calendar-numbers",
+          "title": "Clock and Calendar Numbers",
+          "topic": "Clock and Calendar Numbers",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind clock and calendar numbers.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What number pattern repeats in this clock or calendar?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-divisibility-clues",
+          "title": "Divisibility clues",
+          "topic": "Divisibility clues",
+          "scene_type": "divisibility_lab",
+          "learning_activity": "Test number tiles against divisibility rules and collect the ones that fit.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What clue shows divisibility by 5?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-number-play-estimate-and-compare",
+          "title": "Estimate and compare",
+          "topic": "Estimate and compare",
+          "scene_type": "number_compare",
+          "learning_activity": "Place numbers on a number line and compare their distances and order.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which number is greatest?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-number-play-games-and-winning-strategies",
+          "title": "Games and Winning Strategies",
+          "topic": "Games and Winning Strategies",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind games and winning strategies.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in games and winning strategies?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-mental-math",
+          "title": "Mental Math",
+          "topic": "Mental Math",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind mental math.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in mental math?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-numbers-can-tell-us-things",
+          "title": "Numbers can Tell us Things",
+          "topic": "Numbers can Tell us Things",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind numbers can tell us things.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in numbers can tell us things?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-patterns-of-numbers-on-the-number-line",
+          "title": "Patterns of Numbers on the Number Line",
+          "topic": "Patterns of Numbers on the Number Line",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind patterns of numbers on the number line.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What changes as you move right on the number line?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-place-value-and-number-puzzles",
+          "title": "Place value and number puzzles",
+          "topic": "Place value and number puzzles",
+          "scene_type": "place_value",
+          "learning_activity": "Move digit tiles between place-value columns to build a target number.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What value does this digit represent here?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-number-play-playing-with-digits",
+          "title": "Playing with Digits",
+          "topic": "Playing with Digits",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind playing with digits.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How does changing a digit's place change its value?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-playing-with-number-patterns",
+          "title": "Playing with Number Patterns",
+          "topic": "Playing with Number Patterns",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind playing with number patterns.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in playing with number patterns?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-pretty-palindromic-patterns",
+          "title": "Pretty Palindromic Patterns",
+          "topic": "Pretty Palindromic Patterns",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind pretty palindromic patterns.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What makes this number read the same both ways?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-simple-estimation",
+          "title": "Simple Estimation",
+          "topic": "Simple Estimation",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind simple estimation.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which nearby number makes a sensible estimate?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-supercells",
+          "title": "Supercells",
+          "topic": "Supercells",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind supercells.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which number is larger than its neighbouring numbers?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-the-collatz-conjecture",
+          "title": "The Collatz Conjecture",
+          "topic": "The Collatz Conjecture",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind the collatz conjecture.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in the collatz conjecture?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-number-play-the-magic-number-of-kaprekar",
+          "title": "The Magic Number of Kaprekar",
+          "topic": "The Magic Number of Kaprekar",
+          "scene_type": "number_machine",
+          "learning_activity": "Change the input or digit arrangement, observe the output and explain the rule behind the magic number of kaprekar.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What do you notice after repeating the digit steps?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "Patterns in Mathematics",
+      "topics": [
+        {
+          "id": "mathematics-patterns-in-mathematics-triangular-numbers",
+          "title": "Build Triangular Numbers",
+          "topic": "Visualising Number Sequences",
+          "scene_type": "number_pattern",
+          "learning_activity": "Triangular numbers can be shown as dots arranged in rows: 1, then 1+2, then 1+2+3.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "After 1, 3, 6, how many dots make the next triangular number?",
+            "success_feedback": "Correct. Six plus four makes 10."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-relations-between-sequences",
+          "title": "Compare Odd Numbers and Squares",
+          "topic": "Relations among Number Sequences",
+          "scene_type": "number_machine",
+          "learning_activity": "Adding consecutive odd numbers makes square numbers: 1; 1+3=4; 1+3+5=9; 1+3+5+7=16.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What is 1+3+5?",
+            "success_feedback": "Correct. The total is 9, which is 3×3."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-complete-graphs-topic-complete-graphs",
+          "title": "Complete Graphs",
+          "topic": "Complete Graphs",
+          "scene_type": "shape_pattern",
+          "learning_activity": "In a complete graph, every point connects to every other point. The edge counts for 2, 3, 4, 5 points are 1, 3, 6, 10.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many edges are in a complete graph with 4 points?",
+            "success_feedback": "Yes. Four fully connected points have 6 edges."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-complete-graphs",
+          "title": "Connect Complete Graphs to Triangular Numbers",
+          "topic": "Relation to Number Sequences",
+          "scene_type": "shape_pattern",
+          "learning_activity": "In a complete graph, every point connects to every other point. The edge counts for 2, 3, 4, 5 points are 1, 3, 6, 10.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many edges are in a complete graph with 4 points?",
+            "success_feedback": "Yes. Four fully connected points have 6 edges."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-patterns-in-shapes",
+          "title": "Continue a Repeating Shape Pattern",
+          "topic": "Patterns in Shapes",
+          "scene_type": "shape_pattern",
+          "learning_activity": "A repeating pattern uses the same group in the same order again and again.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which shape comes next?",
+            "success_feedback": "Correct. The next shape is a circle."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-counting-patterns",
+          "title": "Count Forward and Find the Rule",
+          "topic": "Patterns in Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "A number sequence is an ordered list. Look at how each number changes.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes after 2, 4, 6, 8?",
+            "success_feedback": "Yes. Adding 2 gives 10."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-counting-numbers",
+          "title": "Count in Order",
+          "topic": "Patterns in Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "Counting numbers follow 1, 2, 3, 4, 5, ... Each step adds one.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes after 5, 6, 7?",
+            "success_feedback": "Correct. Counting numbers increase by one."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-stacked-shapes",
+          "title": "Count Stacked Squares and Triangles",
+          "topic": "Patterns in Shapes",
+          "scene_type": "shape_pattern",
+          "learning_activity": "The textbook's stacked-square and stacked-triangle sequences contain 1, 4, 9, 16, 25, ... small pieces. The textbook labels this construction as stacked triangles as well as stacked squares.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which number sequence is shown by the number of small squares in the stacked-square sequence?",
+            "success_feedback": "Correct. The totals are square numbers."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-koch-snowflake-sequence",
+          "title": "Count the Koch Snowflake Edges",
+          "topic": "Patterns in Shapes",
+          "scene_type": "pattern_builder",
+          "learning_activity": "Each Koch snowflake step replaces every edge with four smaller edges, so the edge counts go 3, 12, 48, 192, ...",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many edges come after 3, 12, 48?",
+            "success_feedback": "Correct. 48 × 4 = 192."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-regular-polygons",
+          "title": "Count the Sides of Regular Polygons",
+          "topic": "Patterns in Shapes",
+          "scene_type": "shape_pattern",
+          "learning_activity": "Regular polygons follow a side-count pattern: triangle 3, square 4, pentagon 5, hexagon 6, and so on.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many sides does the next polygon have after a regular pentagon?",
+            "success_feedback": "Correct. A regular hexagon has 6 sides."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-cube-numbers-topic-cube-numbers",
+          "title": "Cube Numbers",
+          "topic": "Cube Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "Cube numbers count equal layers in a cube: 1, 8, 27, 64 for 1³, 2³, 3³, 4³.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which is 2 × 2 × 2?",
+            "success_feedback": "Correct. 2 cubed is 8."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-hexagonal-numbers",
+          "title": "Discover Hexagonal Numbers",
+          "topic": "Visualising Number Sequences",
+          "scene_type": "number_pattern",
+          "learning_activity": "Hexagonal numbers form one number pattern, while cube numbers are 1, 8, 27, 64. Compare the visual arrangements and the multiplication rules.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which sequence does the textbook identify as hexagonal numbers?",
+            "success_feedback": "Correct. The textbook calls 1, 7, 19, 37, ... hexagonal numbers."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-virahanka-sequence",
+          "title": "Discover the Virahanka Sequence",
+          "topic": "Patterns in Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "The Virahanka sequence shown in this chapter is 1, 2, 3, 5, 8, 13, ... Each new term is the sum of the previous two.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes after 3, 5, 8 in the Virahanka sequence?",
+            "success_feedback": "Correct. The next term is 13."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-describe-the-rule",
+          "title": "Explain a Pattern in Your Own Words",
+          "topic": "Relation to Number Sequences",
+          "scene_type": "number_pattern",
+          "learning_activity": "A useful pattern rule tells both what changes and how to continue the sequence.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which rule describes 1, 3, 5, 7?",
+            "success_feedback": "Correct. The difference is always 2."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-koch-snowflake",
+          "title": "Explore a Snowflake Pattern",
+          "topic": "Patterns in Shapes",
+          "scene_type": "pattern_builder",
+          "learning_activity": "A Koch snowflake starts with a triangle. Repeating a small construction on each side makes a more detailed edge.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What makes the snowflake outline more detailed?",
+            "success_feedback": "Yes. Repeating the construction creates the pattern."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-cube-numbers",
+          "title": "Explore Cube Numbers",
+          "topic": "Visualising Number Sequences",
+          "scene_type": "number_pattern",
+          "learning_activity": "Cube numbers count equal layers in a cube: 1, 8, 27, 64 for 1³, 2³, 3³, 4³.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which is 2 × 2 × 2?",
+            "success_feedback": "Correct. 2 cubed is 8."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-powers-of-two",
+          "title": "Explore Powers of 2 and 3",
+          "topic": "Patterns in Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "Compare two multiplication patterns: powers of 2 double each time (1, 2, 4, 8, 16), while powers of 3 triple each time (1, 3, 9, 27).",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes after 1, 2, 4, 8?",
+            "success_feedback": "Correct. Double 8 is 16."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-what-is-mathematics",
+          "title": "Find Mathematics Around Us",
+          "topic": "What is Mathematics?",
+          "scene_type": "pattern_builder",
+          "learning_activity": "Mathematics helps us notice patterns, compare quantities, describe shapes and explain how things change.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which activity uses mathematics?",
+            "success_feedback": "Correct. Counting is one way we use mathematics."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-hexagonal-numbers-topic-hexagonal-numbers-and-cubes",
+          "title": "Hexagonal Numbers and Cubes",
+          "topic": "Hexagonal Numbers and Cubes",
+          "scene_type": "number_pattern",
+          "learning_activity": "Hexagonal numbers form one number pattern, while cube numbers are 1, 8, 27, 64. Compare the visual arrangements and the multiplication rules.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which sequence does the textbook identify as hexagonal numbers?",
+            "success_feedback": "Correct. The textbook calls 1, 7, 19, 37, ... hexagonal numbers."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-koch-snowflake-topic-koch-snowflake",
+          "title": "Koch Snowflake",
+          "topic": "Koch Snowflake",
+          "scene_type": "pattern_builder",
+          "learning_activity": "A Koch snowflake starts with a triangle. Repeating a small construction on each side makes a more detailed edge.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What makes the snowflake outline more detailed?",
+            "success_feedback": "Yes. Repeating the construction creates the pattern."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-square-numbers",
+          "title": "Make Square Numbers",
+          "topic": "Visualising Number Sequences",
+          "scene_type": "shape_pattern",
+          "learning_activity": "Square numbers can be arranged in equal rows and columns: 1, 4, 9, 16.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many dots are in a 3 by 3 square?",
+            "success_feedback": "Exactly. 3 times 3 is 9."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-growing-shapes",
+          "title": "Notice Growing Shape Patterns",
+          "topic": "Patterns in Shapes",
+          "scene_type": "shape_pattern",
+          "learning_activity": "Some shape patterns grow by adding one more piece each time.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "In a pattern that adds one tile each time, how many tiles follow 3 tiles?",
+            "success_feedback": "Exactly. Three plus one is four."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-odd-numbers-topic-odd-and-even-numbers",
+          "title": "Odd and Even Numbers",
+          "topic": "Odd and Even Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "Odd numbers are 1, 3, 5, 7, ... and even numbers are 2, 4, 6, 8, ... Both patterns increase by 2.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes next: 1, 3, 5, 7?",
+            "success_feedback": "Right. The next odd number is 9."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-relations-between-sequences-topic-odd-numbers-make-squares",
+          "title": "Odd Numbers Make Squares",
+          "topic": "Odd Numbers Make Squares",
+          "scene_type": "number_machine",
+          "learning_activity": "Adding consecutive odd numbers makes square numbers: 1; 1+3=4; 1+3+5=9; 1+3+5+7=16.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What is 1+3+5?",
+            "success_feedback": "Correct. The total is 9, which is 3×3."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-powers-of-two-topic-powers-of-2-and-3",
+          "title": "Powers of 2 and 3",
+          "topic": "Powers of 2 and 3",
+          "scene_type": "number_pattern",
+          "learning_activity": "Compare powers of 2 (1, 2, 4, 8, 16) and powers of 3 (1, 3, 9, 27).",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes after 1, 2, 4, 8?",
+            "success_feedback": "Correct. Double 8 is 16."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-regular-polygons-topic-regular-polygons",
+          "title": "Regular Polygons",
+          "topic": "Regular Polygons",
+          "scene_type": "shape_pattern",
+          "learning_activity": "Regular polygons follow a side-count pattern: triangle 3, square 4, pentagon 5, hexagon 6, and so on.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many sides does the next polygon have after a regular pentagon?",
+            "success_feedback": "Correct. A regular hexagon has 6 sides."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-even-numbers",
+          "title": "Spot the Even-Number Pattern",
+          "topic": "Patterns in Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "Even numbers are 2, 4, 6, 8, 10, ... Each next even number is two more.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes after 2, 4, 6, 8?",
+            "success_feedback": "Yes. The next even number is 10."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-odd-numbers",
+          "title": "Spot the Odd-Number Pattern",
+          "topic": "Patterns in Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "Odd numbers go 1, 3, 5, 7, 9. Each next number is two more.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes next: 1, 3, 5, 7?",
+            "success_feedback": "Right. The next odd number is 9."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-square-numbers-topic-square-numbers",
+          "title": "Square Numbers",
+          "topic": "Square Numbers",
+          "scene_type": "shape_pattern",
+          "learning_activity": "Square numbers can be arranged in equal rows and columns: 1, 4, 9, 16.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many dots are in a 3 by 3 square?",
+            "success_feedback": "Exactly. 3 times 3 is 9."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-stacked-shapes-topic-stacked-shapes",
+          "title": "Stacked Shapes",
+          "topic": "Stacked Shapes",
+          "scene_type": "shape_pattern",
+          "learning_activity": "Compare stacked squares and stacked triangles. The arrangements reveal count patterns, including stacked triangles.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which number sequence is shown by the number of small squares in the stacked-square sequence?",
+            "success_feedback": "Correct. The totals are square numbers."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-all-ones",
+          "title": "The All-Ones Sequence",
+          "topic": "All 1s",
+          "scene_type": "number_pattern",
+          "learning_activity": "A simple sequence can repeat the same number: 1, 1, 1, 1, 1. Not every pattern has to grow.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes next: 1, 1, 1, 1, ...?",
+            "success_feedback": "Correct. This sequence keeps repeating 1."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-triangular-numbers-topic-triangular-numbers",
+          "title": "Triangular Numbers",
+          "topic": "Triangular Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "Triangular numbers can be shown as dots arranged in rows: 1, then 1+2, then 1+2+3.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "After 1, 3, 6, how many dots make the next triangular number?",
+            "success_feedback": "Correct. Six plus four makes 10."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-powers-of-three",
+          "title": "Triple to Make Powers of 3",
+          "topic": "Patterns in Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "Starting at 1, multiply by 3 each time: 1, 3, 9, 27, 81.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes after 1, 3, 9, 27?",
+            "success_feedback": "Right. 27 times 3 is 81."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums-topic-two-triangles-make-a-square",
+          "title": "Two Triangles Make a Square",
+          "topic": "Two Triangles Make a Square",
+          "scene_type": "number_machine",
+          "learning_activity": "Two consecutive triangular dot patterns fit together to make a square number: 1+3=4, 3+6=9, 6+10=16.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What is 3 + 6, the sum of two consecutive triangular numbers?",
+            "success_feedback": "Correct. 3 + 6 = 9 = 3 × 3."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-consecutive-triangular-sums",
+          "title": "Two Triangular Numbers Make a Square",
+          "topic": "Relations among Number Sequences",
+          "scene_type": "number_machine",
+          "learning_activity": "Adding consecutive triangular numbers makes square numbers: 1+3=4, 3+6=9, 6+10=16.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What is 3 + 6, the sum of two consecutive triangular numbers?",
+            "success_feedback": "Correct. 3 + 6 = 9 = 3 × 3."
+          }
+        },
+        {
+          "id": "mathematics-patterns-in-mathematics-virahanka-sequence-topic-virahanka-numbers",
+          "title": "Virahanka Numbers",
+          "topic": "Virahanka Numbers",
+          "scene_type": "number_pattern",
+          "learning_activity": "The Virahanka sequence shown in this chapter is 1, 2, 3, 5, 8, 13, ... Each new term is the sum of the previous two.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What comes after 3, 5, 8 in the Virahanka sequence?",
+            "success_feedback": "Correct. The next term is 13."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "Perimeter and Area",
+      "topics": [
+        {
+          "id": "mathematics-perimeter-and-area-area",
+          "title": "Area",
+          "topic": "Area",
+          "scene_type": "area_grid",
+          "learning_activity": "Move the shape on the grid and count unit squares or boundary lengths to explore area.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many unit squares cover this shape?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-perimeter-and-area-area-by-square-units",
+          "title": "Area by square units",
+          "topic": "Area by square units",
+          "scene_type": "area_grid",
+          "learning_activity": "Cover a shape with unit squares and count the covered squares.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many unit squares cover the shape?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-perimeter-and-area-area-of-a-triangle",
+          "title": "Area of a Triangle",
+          "topic": "Area of a Triangle",
+          "scene_type": "angle_builder",
+          "learning_activity": "Move the point or rotate a ray to explore area of a triangle. Compare the new position with the target.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How does the triangle's area compare with its matching rectangle?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-perimeter-and-area-perimeter",
+          "title": "Perimeter",
+          "topic": "Perimeter",
+          "scene_type": "area_grid",
+          "learning_activity": "Move the shape on the grid and count unit squares or boundary lengths to explore perimeter.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which edges must be added to find the perimeter?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-perimeter-and-area-perimeter-as-boundary-length",
+          "title": "Perimeter as boundary length",
+          "topic": "Perimeter as boundary length",
+          "scene_type": "perimeter_grid",
+          "learning_activity": "Drag a shape's corners on a grid and count the unit edges around its boundary.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which edges are counted for perimeter?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-perimeter-and-area-same-perimeter-different-area",
+          "title": "Same perimeter, different area",
+          "topic": "Same perimeter, different area",
+          "scene_type": "area_perimeter_compare",
+          "learning_activity": "Build different rectangles with the same perimeter and compare their areas.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Can equal perimeters have different areas?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "Playing with Constructions",
+      "topics": [
+        {
+          "id": "mathematics-playing-with-constructions-an-exploration-in-rectangles",
+          "title": "An Exploration in Rectangles",
+          "topic": "An Exploration in Rectangles",
+          "scene_type": "angle_builder",
+          "learning_activity": "Move the point or rotate a ray to explore an exploration in rectangles. Compare the new position with the target.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What changes and what stays the same as the rectangle changes?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-playing-with-constructions-artwork",
+          "title": "Artwork",
+          "topic": "Artwork",
+          "scene_type": "area_grid",
+          "learning_activity": "Move the shape on the grid and count unit squares or boundary lengths to explore artwork.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in artwork?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-playing-with-constructions-construct-a-circle",
+          "title": "Construct a circle",
+          "topic": "Construct a circle",
+          "scene_type": "circle_compass",
+          "learning_activity": "Adjust the compass radius and trace a circle from a fixed centre.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What stays fixed while drawing the circle?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-playing-with-constructions-constructing-squares-and-rectangles",
+          "title": "Constructing Squares and Rectangles",
+          "topic": "Constructing Squares and Rectangles",
+          "scene_type": "angle_builder",
+          "learning_activity": "Move the point or rotate a ray to explore constructing squares and rectangles. Compare the new position with the target.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which measurements must stay equal during construction?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-playing-with-constructions-copy-a-line-segment",
+          "title": "Copy a line segment",
+          "topic": "Copy a line segment",
+          "scene_type": "segment_copy",
+          "learning_activity": "Set a length with a compass and transfer the same distance to a new baseline.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How can you check the lengths match?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-playing-with-constructions-exploring-diagonals-of-rectangles-and-squares",
+          "title": "Exploring Diagonals of Rectangles and Squares",
+          "topic": "Exploring Diagonals of Rectangles and Squares",
+          "scene_type": "angle_builder",
+          "learning_activity": "Move the point or rotate a ray to explore exploring diagonals of rectangles and squares. Compare the new position with the target.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What do you notice when you compare the diagonals?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-playing-with-constructions-perpendicular-lines",
+          "title": "Perpendicular lines",
+          "topic": "Perpendicular lines",
+          "scene_type": "perpendicular_builder",
+          "learning_activity": "Rotate one line until it meets another at a right angle.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How do you know the lines are perpendicular?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-playing-with-constructions-points-equidistant-from-two-given-points",
+          "title": "Points Equidistant from Two Given Points",
+          "topic": "Points Equidistant from Two Given Points",
+          "scene_type": "angle_builder",
+          "learning_activity": "Move the point or rotate a ray to explore points equidistant from two given points. Compare the new position with the target.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where can a point be if it is equally far from both endpoints?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-playing-with-constructions-squares-and-rectangles",
+          "title": "Squares and Rectangles",
+          "topic": "Squares and Rectangles",
+          "scene_type": "angle_builder",
+          "learning_activity": "Move the point or rotate a ray to explore squares and rectangles. Compare the new position with the target.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which properties make this shape a rectangle?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "Prime Time",
+      "topics": [
+        {
+          "id": "mathematics-prime-time-co-prime-numbers-for-safekeeping-treasures",
+          "title": "Co-prime numbers for safekeeping treasures",
+          "topic": "Co-prime numbers for safekeeping treasures",
+          "scene_type": "factor_tree",
+          "learning_activity": "Split the number into factors, test divisibility and inspect the prime factors for co-prime numbers for safekeeping treasures.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Do these two numbers share a factor other than one?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-prime-time-common-multiples-and-common-factors",
+          "title": "Common Multiples and Common Factors",
+          "topic": "Common Multiples and Common Factors",
+          "scene_type": "factor_tree",
+          "learning_activity": "Split the number into factors, test divisibility and inspect the prime factors for common multiples and common factors.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which number is a common multiple of both numbers?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-prime-time-divisibility-tests",
+          "title": "Divisibility Tests",
+          "topic": "Divisibility Tests",
+          "scene_type": "factor_tree",
+          "learning_activity": "Split the number into factors, test divisibility and inspect the prime factors for divisibility tests.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which divisibility rule works for this number?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-prime-time-factors-and-multiples",
+          "title": "Factors and multiples",
+          "topic": "Factors and multiples",
+          "scene_type": "factor_tiles",
+          "learning_activity": "Arrange equal groups to find factors, then extend the sequence to find multiples.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which equal groups make this number?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-prime-time-fun-with-numbers",
+          "title": "Fun with numbers",
+          "topic": "Fun with numbers",
+          "scene_type": "factor_tree",
+          "learning_activity": "Split the number into factors, test divisibility and inspect the prime factors for fun with numbers.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in fun with numbers?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-prime-time-prime-and-composite-numbers",
+          "title": "Prime and composite numbers",
+          "topic": "Prime and composite numbers",
+          "scene_type": "prime_sorter",
+          "learning_activity": "Try arranging counters into equal rectangular arrays to distinguish prime and composite numbers.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Why does this number have only two factors?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-prime-time-prime-factorisation",
+          "title": "Prime factorisation",
+          "topic": "Prime factorisation",
+          "scene_type": "factor_tree",
+          "learning_activity": "Split a number into factor branches until every leaf is prime.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Are all final leaves prime?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-prime-time-prime-numbers",
+          "title": "Prime Numbers",
+          "topic": "Prime Numbers",
+          "scene_type": "factor_tree",
+          "learning_activity": "Split the number into factors, test divisibility and inspect the prime factors for prime numbers.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many factors does this prime number have?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "Symmetry",
+      "topics": [
+        {
+          "id": "mathematics-symmetry-complete-a-symmetric-shape",
+          "title": "Complete a symmetric shape",
+          "topic": "Complete a symmetric shape",
+          "scene_type": "symmetry_complete",
+          "learning_activity": "Place missing squares so each is a reflection across the symmetry line.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where should the matching square go?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-symmetry-line-of-symmetry",
+          "title": "Line of Symmetry",
+          "topic": "Line of Symmetry",
+          "scene_type": "symmetry_mirror",
+          "learning_activity": "Move the mirror line or shape to test line of symmetry by comparing both sides.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Do both sides match when folded along this line?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-symmetry-line-symmetry",
+          "title": "Line symmetry",
+          "topic": "Line symmetry",
+          "scene_type": "symmetry_mirror",
+          "learning_activity": "Drag a mirror line across a shape and compare the two reflected halves.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Do both sides match exactly?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-symmetry-rotational-symmetry",
+          "title": "Rotational symmetry",
+          "topic": "Rotational symmetry",
+          "scene_type": "rotation_symmetry",
+          "learning_activity": "Rotate a shape around its centre and note when it matches its starting position.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "After what turn does it match again?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Mathematics",
+      "chapter": "The Other Side of Zero",
+      "topics": [
+        {
+          "id": "mathematics-the-other-side-of-zero-a-pinch-of-history",
+          "title": "A Pinch of History",
+          "topic": "A Pinch of History",
+          "scene_type": "integer_line",
+          "learning_activity": "Move a token across the number line to explore a pinch of history and compare positions relative to zero.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in a pinch of history?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-the-other-side-of-zero-add-and-subtract-integers",
+          "title": "Add and subtract integers",
+          "topic": "Add and subtract integers",
+          "scene_type": "integer_moves",
+          "learning_activity": "Move a token left for subtraction and right for addition, starting at the chosen integer.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where do you land after the move?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-the-other-side-of-zero-bela-s-building-of-fun",
+          "title": "Bela’s Building of Fun",
+          "topic": "Bela’s Building of Fun",
+          "scene_type": "integer_line",
+          "learning_activity": "Move a token across the number line to explore bela’s building of fun and compare positions relative to zero.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in bela’s building of fun?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-the-other-side-of-zero-compare-integers",
+          "title": "Compare integers",
+          "topic": "Compare integers",
+          "scene_type": "integer_compare",
+          "learning_activity": "Place two integers on the number line and compare their positions.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which is greater: −4 or −1?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-the-other-side-of-zero-explorations-with-integers",
+          "title": "Explorations with Integers",
+          "topic": "Explorations with Integers",
+          "scene_type": "integer_line",
+          "learning_activity": "Move a token across the number line to explore explorations with integers and compare positions relative to zero.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where do you land after moving left or right on the number line?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-the-other-side-of-zero-integers-in-other-places",
+          "title": "Integers in Other Places",
+          "topic": "Integers in Other Places",
+          "scene_type": "integer_line",
+          "learning_activity": "Move a token across the number line to explore integers in other places and compare positions relative to zero.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern or relationship do you notice in integers in other places?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        },
+        {
+          "id": "mathematics-the-other-side-of-zero-positive-and-negative-integers",
+          "title": "Positive and negative integers",
+          "topic": "Positive and negative integers",
+          "scene_type": "integer_line",
+          "learning_activity": "Drag a point across zero and observe how signs and order change.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which side of zero is −2?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "mathematics-the-other-side-of-zero-the-token-model",
+          "title": "The Token Model",
+          "topic": "The Token Model",
+          "scene_type": "integer_line",
+          "learning_activity": "Move a token across the number line to explore the token model and compare positions relative to zero.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How does moving tokens across zero change the value?",
+            "success_feedback": "Well done! Explain the clue that helped you decide."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "A Journey through States of Water",
+      "topics": [
+        {
+          "id": "science-a-journey-through-states-of-water-evaporation-and-condensation",
+          "title": "Evaporation and condensation",
+          "topic": "Evaporation and condensation",
+          "scene_type": "evap_condense",
+          "learning_activity": "Warm a water surface to send particles upward, then cool vapour to form droplets.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What causes condensation?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-a-journey-through-states-of-water-melting-and-freezing",
+          "title": "Melting and freezing",
+          "topic": "Melting and freezing",
+          "scene_type": "phase_change",
+          "learning_activity": "Move the temperature slider through melting and freezing points in a simple model.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What happens as liquid water cools enough?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-a-journey-through-states-of-water-solid-liquid-and-gas",
+          "title": "Solid, liquid and gas",
+          "topic": "Solid, liquid and gas",
+          "scene_type": "particle_states",
+          "learning_activity": "Adjust heating and watch particle spacing and movement change across states.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What changes when water gains heat?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Beyond Earth",
+      "topics": [
+        {
+          "id": "science-beyond-earth-day-and-night",
+          "title": "Day and night",
+          "topic": "Day and night",
+          "scene_type": "day_night",
+          "learning_activity": "Rotate Earth and watch which side faces the Sun and which side is in darkness.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What causes day and night?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-beyond-earth-earth-moon-and-sun",
+          "title": "Earth, Moon and Sun",
+          "topic": "Earth, Moon and Sun",
+          "scene_type": "orbit_lab",
+          "learning_activity": "Move the Moon around Earth and Earth around the Sun to compare their paths.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which object orbits Earth?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-beyond-earth-phases-of-the-moon",
+          "title": "Phases of the Moon",
+          "topic": "Phases of the Moon",
+          "scene_type": "moon_phase",
+          "learning_activity": "Move the Moon around Earth and compare the sunlit portion visible from Earth.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Why does the Moon's appearance change?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Diversity in the Living World",
+      "topics": [
+        {
+          "id": "science-diversity-in-the-living-world-classifying-living-things",
+          "title": "Classifying living things",
+          "topic": "Classifying living things",
+          "scene_type": "living_sorter",
+          "learning_activity": "Sort organisms by observable features, then explain the rule you used.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which feature helped you classify them?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-diversity-in-the-living-world-habitats-and-adaptations",
+          "title": "Habitats and adaptations",
+          "topic": "Habitats and adaptations",
+          "scene_type": "habitat_match",
+          "learning_activity": "Move an organism to a suitable habitat and inspect the features that help it survive.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How does that feature help it survive?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-diversity-in-the-living-world-plant-diversity",
+          "title": "Plant diversity",
+          "topic": "Plant diversity",
+          "scene_type": "plant_sorter",
+          "learning_activity": "Compare roots, stems, leaves and habitats; move each plant into a matching group.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which feature distinguishes these plants?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Exploring Magnets",
+      "topics": [
+        {
+          "id": "science-exploring-magnets-magnetic-and-non-magnetic-materials",
+          "title": "Magnetic and non-magnetic materials",
+          "topic": "Magnetic and non-magnetic materials",
+          "scene_type": "magnet_test",
+          "learning_activity": "Drag the magnet near different objects; magnetic items respond while others stay put.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which objects were attracted?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-exploring-magnets-magnetic-field",
+          "title": "Magnetic field",
+          "topic": "Magnetic field",
+          "scene_type": "field_lines",
+          "learning_activity": "Move a compass around a magnet and observe how its direction changes.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where does the compass point?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-exploring-magnets-poles-attract-and-repel",
+          "title": "Poles attract and repel",
+          "topic": "Poles attract and repel",
+          "scene_type": "magnet_poles",
+          "learning_activity": "Rotate two bar magnets and bring like or unlike poles together to compare the force.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What happens when like poles face?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Living Creatures: Exploring their Characteristics",
+      "topics": [
+        {
+          "id": "science-living-creatures-exploring-their-characteristics-characteristics-of-living-things",
+          "title": "Characteristics of living things",
+          "topic": "Characteristics of living things",
+          "scene_type": "living_sorter",
+          "learning_activity": "Sort living, once-living and non-living examples using evidence such as growth and response.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which sign of life did you observe?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-living-creatures-exploring-their-characteristics-life-cycles",
+          "title": "Life cycles",
+          "topic": "Life cycles",
+          "scene_type": "life_cycle",
+          "learning_activity": "Move through the stages of a plant or animal life cycle in order.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which stage comes next?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-living-creatures-exploring-their-characteristics-response-to-stimuli",
+          "title": "Response to stimuli",
+          "topic": "Response to stimuli",
+          "scene_type": "stimulus_response",
+          "learning_activity": "Change light or touch in the model and observe a plant or animal response.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What stimulus caused the response?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Materials Around Us",
+      "topics": [
+        {
+          "id": "science-materials-around-us-choose-a-material-for-a-job",
+          "title": "Choose a material for a job",
+          "topic": "Choose a material for a job",
+          "scene_type": "material_choice",
+          "learning_activity": "Choose a material for an object and test whether its properties suit the purpose.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which property makes it suitable?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-materials-around-us-soluble-and-insoluble",
+          "title": "Soluble and insoluble",
+          "topic": "Soluble and insoluble",
+          "scene_type": "solubility_test",
+          "learning_activity": "Add different materials to water and observe which dissolve and which remain visible.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which material dissolved?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-materials-around-us-sort-materials-by-properties",
+          "title": "Sort materials by properties",
+          "topic": "Sort materials by properties",
+          "scene_type": "material_sorter",
+          "learning_activity": "Place materials into groups by hardness, flexibility, transparency or texture.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which property did you use?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Measurement of Length and Motion",
+      "topics": [
+        {
+          "id": "science-measurement-of-length-and-motion-describe-motion",
+          "title": "Describe motion",
+          "topic": "Describe motion",
+          "scene_type": "motion_track",
+          "learning_activity": "Move a toy along a track and compare positions at equal time intervals.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How can you tell it moved faster?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-measurement-of-length-and-motion-measure-length-correctly",
+          "title": "Measure length correctly",
+          "topic": "Measure length correctly",
+          "scene_type": "measure_length",
+          "learning_activity": "Drag the object endpoints to the ruler and read the length from zero.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Why should measurement start at zero?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-measurement-of-length-and-motion-standard-units",
+          "title": "Standard units",
+          "topic": "Standard units",
+          "scene_type": "unit_converter",
+          "learning_activity": "Compare the same length in centimetres and metres without changing the actual length.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "How many centimetres make one metre?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Methods of Separation in Everyday Life",
+      "topics": [
+        {
+          "id": "science-methods-of-separation-in-everyday-life-filtration-and-evaporation",
+          "title": "Filtration and evaporation",
+          "topic": "Filtration and evaporation",
+          "scene_type": "filter_evaporate",
+          "learning_activity": "Pass a mixture through a filter, then model evaporation to recover dissolved solid.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Can filtration remove dissolved salt?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-methods-of-separation-in-everyday-life-handpicking-and-sieving",
+          "title": "Handpicking and sieving",
+          "topic": "Handpicking and sieving",
+          "scene_type": "separation_sorter",
+          "learning_activity": "Choose handpicking, sieving or winnowing based on the mixture's properties.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which method separates different-sized solids?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-methods-of-separation-in-everyday-life-sedimentation-and-decantation",
+          "title": "Sedimentation and decantation",
+          "topic": "Sedimentation and decantation",
+          "scene_type": "settle_pour",
+          "learning_activity": "Let heavier particles settle, then carefully pour the clearer liquid away.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Why do we wait before pouring?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Mindful Eating: A Path to a Healthy Body",
+      "topics": [
+        {
+          "id": "science-mindful-eating-a-path-to-a-healthy-body-balanced-meal",
+          "title": "Balanced meal",
+          "topic": "Balanced meal",
+          "scene_type": "meal_builder",
+          "learning_activity": "Build a balanced plate by dragging food groups into the plate zones.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which food group is missing?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-mindful-eating-a-path-to-a-healthy-body-digestion-and-healthy-habits",
+          "title": "Digestion and healthy habits",
+          "topic": "Digestion and healthy habits",
+          "scene_type": "digestion_path",
+          "learning_activity": "Move a food particle through the digestive path and see where digestion and absorption happen.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where are many nutrients absorbed?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-mindful-eating-a-path-to-a-healthy-body-nutrients-in-food",
+          "title": "Nutrients in food",
+          "topic": "Nutrients in food",
+          "scene_type": "nutrient_sorter",
+          "learning_activity": "Match everyday foods to major nutrient groups and discuss their roles.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which nutrient helps growth and repair?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Nature's Treasures",
+      "topics": [
+        {
+          "id": "science-nature-s-treasures-natural-resources",
+          "title": "Natural resources",
+          "topic": "Natural resources",
+          "scene_type": "resource_sorter",
+          "learning_activity": "Sort items into renewable and non-renewable resources and discuss careful use.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which resource can be replenished quickly?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-nature-s-treasures-reduce-reuse-recycle",
+          "title": "Reduce, reuse, recycle",
+          "topic": "Reduce, reuse, recycle",
+          "scene_type": "recycle_sorter",
+          "learning_activity": "Drag household items to reuse, recycle or compost categories.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Why is reuse useful?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-nature-s-treasures-water-conservation",
+          "title": "Water conservation",
+          "topic": "Water conservation",
+          "scene_type": "water_budget",
+          "learning_activity": "Allocate limited water to daily needs and try reducing waste.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Where could you save water?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "Temperature and its Measurement",
+      "topics": [
+        {
+          "id": "science-temperature-and-its-measurement-compare-temperatures",
+          "title": "Compare temperatures",
+          "topic": "Compare temperatures",
+          "scene_type": "temperature_compare",
+          "learning_activity": "Set two temperatures and compare which is warmer and by how much.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What is the temperature difference?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-temperature-and-its-measurement-read-a-thermometer",
+          "title": "Read a thermometer",
+          "topic": "Read a thermometer",
+          "scene_type": "thermometer_lab",
+          "learning_activity": "Move the temperature marker and read the scale at eye level.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What unit is shown?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-temperature-and-its-measurement-safe-temperature-measurement",
+          "title": "Safe temperature measurement",
+          "topic": "Safe temperature measurement",
+          "scene_type": "thermometer_safety",
+          "learning_activity": "Choose a suitable thermometer and safe steps for measuring different situations.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Why must we use the right thermometer?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    },
+    {
+      "subject": "Science",
+      "chapter": "The Wonderful World of Science",
+      "topics": [
+        {
+          "id": "science-the-wonderful-world-of-science-observation-and-fair-tests",
+          "title": "Observation and fair tests",
+          "topic": "Observation and fair tests",
+          "scene_type": "experiment_builder",
+          "learning_activity": "Observe a seedling in light and shade. Change one condition at a time and compare results.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "Which condition did you change?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-the-wonderful-world-of-science-patterns-in-nature",
+          "title": "Patterns in nature",
+          "topic": "Patterns in nature",
+          "scene_type": "pattern_builder",
+          "learning_activity": "Arrange observations and find a repeating pattern before making a claim.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What pattern do you notice?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        },
+        {
+          "id": "science-the-wonderful-world-of-science-question-to-evidence",
+          "title": "Question to evidence",
+          "topic": "Question to evidence",
+          "scene_type": "hypothesis_test",
+          "learning_activity": "Make a prediction, run a simple test, then compare the result with your prediction.",
+          "source_status": "teacher_authored_blueprint_needs_textbook_review",
+          "source_references": [],
+          "assessment_seed": {
+            "question": "What evidence supports your conclusion?",
+            "success_feedback": "Good observation! Explain the evidence you used."
+          }
+        }
+      ]
+    }
+  ],
+  "completeness": {
+    "chapter_records": 22,
+    "topic_records": 154,
+    "status": "starter_scaffolds_only",
+    "caveat": "Coverage reflects existing interactive lesson blueprints, not a verified complete syllabus. Missing chapters must be added from the exact approved curriculum edition before claiming full coverage."
+  }
+}

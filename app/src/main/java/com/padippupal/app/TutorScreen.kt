@@ -1656,6 +1656,7 @@ internal fun TutorScreen(
             else -> null
         }
         if (next == null) return false
+        val completedChapter = chapter
         previousCompletedTopic = topic
         chapter = next.first
         topic = next.second
@@ -1663,8 +1664,11 @@ internal fun TutorScreen(
         preparedLessonKey = ""
         previewAttemptKey = ""
         hasCompletedLesson = false
-        status = if (next.first == chapter) "Great work! Let's connect what you learned to the next topic: ${next.second}."
-            else "Great work! You finished the chapter. Next, let's explore ${next.first}: ${next.second}."
+        status = if (next.first.equals(completedChapter, ignoreCase = true)) {
+            "Great work! Let's connect what you learned to the next topic: ${next.second}."
+        } else {
+            "Great work! You finished the chapter. Next, let's explore ${next.first}: ${next.second}."
+        }
         return true
     }
 

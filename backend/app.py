@@ -1265,7 +1265,7 @@ class LessonPlanRequest(TutorChatRequest):
     max_segments: int = Field(default=5, ge=2, le=8)
 
 _TUTOR_META_SPEECH_PATTERNS = (
-    re.compile(r"\b(?:voice direction|instructions to the voice|system prompt|developer prompt)\b", re.I),
+    re.compile(r"\b(?:voice direction|instructions to the voice|voice instructions|system prompt|developer prompt)\b", re.I),
     re.compile(r"\b(?:speak only the exact words|do not say these directions aloud|do not speak the tag names)\b", re.I),
     re.compile(r"\b(?:return json only|with no markdown fences|spoken_text\s*:|caption_text\s*:)\b", re.I),
     re.compile(r"<\s*/?\s*(?:say|system|assistant|instruction|voice_direction)\b", re.I),
@@ -2547,7 +2547,7 @@ def _clean_tutor_speech_text(text: str) -> str:
     # Strip wrapper tags if a caller accidentally passes the speech boundary itself.
     speech_text = re.sub(r"</?SAY>", " ", speech_text, flags=re.IGNORECASE)
     speech_text = re.sub(
-        r"^(?:tutor reply|response|instructions to the voice|voice instructions|voice direction)\s*:\s*",
+        r"^(?:tutor reply|response)\s*:\s*",
         "", speech_text, flags=re.IGNORECASE,
     ).strip()
     if _contains_tutor_meta_instructions(speech_text):

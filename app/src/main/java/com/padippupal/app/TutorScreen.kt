@@ -1017,6 +1017,8 @@ internal fun TutorScreen(
     var liveSegmentIndex by remember { mutableIntStateOf(0) }
     var liveLessonActive by remember { mutableStateOf(false) }
     var hasCompletedLesson by remember { mutableStateOf(false) }
+    // Carries the completed topic into the next preview so the tutor can make a relevant transition.
+    var previousCompletedTopic by remember { mutableStateOf("") }
     var livePaused by remember { mutableStateOf(false) }
     var awaitingUnderstanding by remember { mutableStateOf(false) }
     var currentCheckpoint by remember { mutableStateOf("") }
@@ -1640,6 +1642,32 @@ internal fun TutorScreen(
         }
     }
 
+    fun advanceToNextCurriculumTopic(): Boolean {
+        val chapters = chapterOptions
+        if (chapters.isEmpty() || chapter.isBlank() || topic.isBlank()) return false
+        val chapterIndex = chapters.indexOfFirst { it.first.equals(chapter, ignoreCase = true) }
+        if (chapterIndex < 0) return false
+        val currentTopics = chapters[chapterIndex].second
+        val topicIndex = currentTopics.indexOfFirst { it.equals(topic, ignoreCase = true) }
+        val next: Pair<String, String>? = when {
+            topicIndex >= 0 && topicIndex + 1 < currentTopics.size -> chapter to currentTopics[topicIndex + 1]
+            chapterIndex + 1 < chapters.size && chapters[chapterIndex + 1].second.isNotEmpty() ->
+                chapters[chapterIndex + 1].first to chapters[chapterIndex + 1].second.first()
+            else -> null
+        }
+        if (next == null) return false
+        previousCompletedTopic = topic
+        chapter = next.first
+        topic = next.second
+        preparedLessonSegments = emptyList()
+        preparedLessonKey = ""
+        previewAttemptKey = ""
+        hasCompletedLesson = false
+        status = if (next.first == chapter) "Great work! Let's connect what you learned to the next topic: ${next.second}."
+            else "Great work! You finished the chapter. Next, let's explore ${next.first}: ${next.second}."
+        return true
+    }
+
     fun playLiveSegment(index: Int) {
         if (!liveLessonActive || livePaused) return
         if (index >= liveSegments.size) {
@@ -1653,8 +1681,15 @@ internal fun TutorScreen(
             livePaused = false
             awaitingUnderstanding = false
             currentCheckpoint = ""
+            // Continue in curriculum order without sending the learner back to Home.
+            // If the outline has no next item, keep the normal completion state.
             hasCompletedLesson = true
             status = "Live lesson complete."
+            if (advanceToNextCurriculumTopic()) {
+                // The selected lesson key changes, so the existing preview loader prepares
+                // the next lesson while the learner stays on this screen.
+                hasCompletedLesson = false
+            }
             return
         }
         val segment = liveSegments[index]
@@ -1726,7 +1761,8 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
+                val transitionGuidance = if (previousCompletedTopic.isNotBlank()) " This is a continuation after the learner completed \"" + previousCompletedTopic + "\". Do not repeat the generic greeting or re-teach the previous topic. Open with one short, natural bridge only if it genuinely connects the previous topic to \"" + topic + "\"; otherwise introduce the new topic directly. Build on demonstrated understanding without assuming mastery beyond recorded signals." else " Start warmly but briefly; do not use a long generic welcome."
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Identify chapter " + chapter + " and topic " + topic + " naturally, without repeating a generic opening. Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + transitionGuidance + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
                     .put("message", lessonPrompt).put("max_segments", 6)

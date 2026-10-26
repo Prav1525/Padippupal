@@ -51,7 +51,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertEqual(candidates[0].attrib["bounds"], "[0,1217][354,1571]")
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("tap-photo-picker-item", source)
-        self.assertIn("exactly one clickable photo tile", source)
+        helper = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")
+        self.assertIn("exactly one clickable photo tile", helper)
         self.assertNotIn('grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker.xml', source)
 
     def test_picker_return_is_verified_before_crop_assertions(self):

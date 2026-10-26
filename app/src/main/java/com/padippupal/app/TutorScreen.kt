@@ -1616,9 +1616,10 @@ internal fun TutorScreen(
         }
         val segment = liveSegments[index]
         awaitingUnderstanding = false
-        // Normalize nullable API data before it enters UI state; optString may yield literal "null".
-        // Complete-lesson mode never interrupts playback with per-segment feedback.
-        currentCheckpoint = ""
+        // Preserve a source-grounded checkpoint supplied for this segment. The UI pauses
+        // after narration when one exists; do not silently erase it during playback.
+        val checkpoint = segment.optString("checkpoint").trim()
+        currentCheckpoint = if (checkpoint.isBlank() || checkpoint == "null") "" else checkpoint
         val caption = segment.optString("caption_text").ifBlank { segment.optString("spoken_text") }
         val action = segment.optJSONObject("visual_action")
         val visualCue = if (action == null || action.optString("type") == "none") "" else listOf(action.optString("type"), action.optString("target"), action.optString("value")).filter { it.isNotBlank() }.joinToString(" · ")
@@ -1708,20 +1709,14 @@ internal fun TutorScreen(
                             )
                         }
                     }
-                    // The API segments are transport chunks, not separate learner-facing steps.
-                    // Join them into one caption/audio response so no checkpoint interrupts the explanation.
+                    // Keep the API's ordered segments intact so their synchronized visual actions,
+                    // captions, and any source-grounded checkpoints survive to the player.
                     val completeText = lessonSegments.map { it.optString("spoken_text").trim() }
                         .filter { it.isNotBlank() }.joinToString(" ")
                     if (completeText.length < 220) {
                         throw IllegalStateException("The lesson was too short to explain the selected topic completely. Please try again.")
                     }
-                    val completeLesson = JSONObject()
-                        .put("id", "complete-lesson")
-                        .put("spoken_text", completeText)
-                        .put("caption_text", completeText)
-                        .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-                        .put("checkpoint", JSONObject.NULL)
-                    listOf(completeLesson)
+                    lessonSegments
                 } finally { connection.disconnect() }
             }
             tutorMainHandler.post {

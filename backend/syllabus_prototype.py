@@ -273,3 +273,96 @@ $('load').onclick=async()=>{try{const d=await call('/admin/syllabus-prototype/ap
 $('preview').onclick=async()=>{try{const d=await call('/admin/syllabus-prototype/api/sources/'+encodeURIComponent($('book').value)+'/preview');show('evidence',d)}catch(e){show('evidence',e.message)}};\n$('prepare').onclick=async()=>{try{const keywords=$('keywords').value.split(',').map(x=>x.trim()).filter(Boolean);const d=await call('/admin/syllabus-prototype/api/sources/'+encodeURIComponent($('book').value)+'/package',{method:'POST',body:JSON.stringify({topic_title:$('topic').value,keywords,chapter:$('chapter').value})});activePackage=d.source_id;activeTopic=d.topic.topic_id;show('evidence',d);$('result').textContent='Package ready for review. Synthesis has not run yet.'}catch(e){show('evidence',e.message)}};
 $('synthesize').onclick=async()=>{if(!activePackage||!activeTopic){show('result','Build an evidence package first.');return}try{const d=await call('/admin/syllabus-prototype/api/packages/'+activePackage+'/topics/'+encodeURIComponent(activeTopic)+'/synthesize',{method:'POST',body:JSON.stringify({max_rounds:Number($('rounds').value)})});show('result',d)}catch(e){show('result',e.message)}};
 </script></body></html>"""
+
+
+@router.post("/api/sources/{existing_source_id}/chapter-package")
+def create_whole_chapter_package(
+    existing_source_id: str,
+    x_admin_token: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Build one review package spanning every extracted page of an existing chapter PDF."""
+    _authorize(x_admin_token)
+    from syllabus_synthesis import (
+        _read_existing_curriculum_source,
+        _persist_source_package,
+        build_synthesis_prompt,
+        render_topic_review_sheet,
+    )
+
+    try:
+        source, pages = _read_existing_curriculum_source(existing_source_id)
+    except HTTPException:
+        raise
+    if str(source.get("subject", "")).casefold() not in {"science", "mathematics"} or int(source.get("class_level", 0)) != 6:
+        raise HTTPException(status_code=422, detail="Prototype is currently limited to Class 6 Science and Mathematics")
+    if not pages or not any(str(page.get("text", "")).strip() for page in pages):
+        raise HTTPException(status_code=422, detail="No extracted page text is available for this chapter")
+
+    title = str(source.get("title") or "Class 6 chapter")
+    chapter_name = title.split("— Chapter PDF")[0].strip()
+    topic = SyllabusTopic(
+        id="whole-chapter-" + slug(title),
+        title="Whole chapter: " + chapter_name,
+        chapter=chapter_name,
+        keywords=[],
+    )
+    try:
+        result = create_package_from_existing_source(existing_source_id, [topic], output_root=DEFAULT_OUTPUT_ROOT)
+    except HTTPException:
+        raise
+    except (PermissionError, ValueError, FileExistsError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    manifest = result["manifest"]
+    item = manifest["topics"][0]
+    # Whole-chapter mode deliberately includes every extracted page, rather than
+    # relying on keyword matching which can silently omit sections.
+    item["page_matches"] = [
+        {
+            "page": int(page["page"]),
+            "matched_terms": ["whole_chapter_page"],
+            "score": 1.0 if str(page.get("text", "")).strip() else 0.0,
+            "evidence_excerpt": str(page.get("text", ""))[:900],
+            "text_available": bool(str(page.get("text", "")).strip()),
+        }
+        for page in pages
+    ]
+    item["coverage_status"] = "evidence_found" if any(p["text_available"] for p in item["page_matches"]) else "missing_source"
+    item["review_notes"] = [
+        "All extracted pages are included; short excerpts are used for evidence previews.",
+        "This is a chapter-wide evidence map, not proof of factual correctness or syllabus completeness.",
+        "Check pages flagged as needing OCR and inspect diagrams separately.",
+    ]
+    scope = CurriculumScope.model_validate(manifest["scope"])
+    item["synthesis_prompt"] = build_synthesis_prompt(scope, item)
+    manifest["overall_status"] = "needs_review"
+    (Path(result["package_path"]) / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    topic_dir = Path(result["package_path"]) / "topics" / slug(item["topic_id"])
+    topic_dir.mkdir(parents=True, exist_ok=True)
+    (topic_dir / "evidence.json").write_text(json.dumps(item, ensure_ascii=False, indent=2), encoding="utf-8")
+    (topic_dir / "synthesis-review.md").write_text(render_topic_review_sheet(item), encoding="utf-8")
+    _persist_source_package(manifest, pages)
+    return {
+        "source_id": manifest["source_id"],
+        "existing_curriculum_source_id": existing_source_id,
+        "book_title": title,
+        "chapter": chapter_name,
+        "page_count": len(pages),
+        "pages_with_text": sum(bool(str(page.get("text", "")).strip()) for page in pages),
+        "pages_needing_ocr": [int(page["page"]) for page in pages if page.get("needs_ocr")],
+        "topic": {
+            "topic_id": item["topic_id"],
+            "topic_title": item["topic_title"],
+            "matched_page_count": len(item["page_matches"]),
+            "page_matches": [
+                {"page": p["page"], "text_available": p["text_available"], "preview": p["evidence_excerpt"][:180]}
+                for p in item["page_matches"]
+            ],
+        },
+        "status": "needs_review",
+        "approved": False,
+        "rights_reviewed": False,
+        "next_step": "Run the synthesis endpoint for this whole-chapter topic, then review every claim and citation.",
+    }

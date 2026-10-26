@@ -1536,6 +1536,7 @@ def syllabus_synthesis_coverage(
 
         inventory: list[dict[str, Any]] = []
         for source in sources:
+            source_status = str(source.get("status") or "unknown").lower()
             chunks = [dict(row) for row in conn.execute(
                 "SELECT id,chunk_no,chapter,page_start,page_end,text FROM chunks WHERE source_id=? ORDER BY chunk_no",
                 (source["id"],),
@@ -1626,7 +1627,9 @@ def syllabus_synthesis_coverage(
                     ).fetchone()
                     lesson_approved = lesson is not None
 
-                if not latest:
+                if source_status != "ready":
+                    coverage_status = "source_not_ready"
+                elif not latest:
                     coverage_status = "not_synthesized"
                 elif not evidence_current:
                     coverage_status = "stale_evidence"
@@ -1655,7 +1658,6 @@ def syllabus_synthesis_coverage(
                     "coverage_status": coverage_status,
                 })
 
-            source_status = str(source.get("status") or "unknown").lower()
             if source_status != "ready":
                 inventory_status = "source_not_ready"
             elif not chunks:

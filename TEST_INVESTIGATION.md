@@ -259,3 +259,15 @@ Use this format:
 - **Known gaps:** This prompt change does not itself implement or prove the UI checkpoint state machine, grading, mastery progression, Tanglish audio/caption alignment, or textbook-image/2D-animation matching. These remain acceptance blockers.
 - **Verification status:** CI is running for PR #26. The investigation-guidance workflow initially failed because this ledger was not updated; rerun after this entry. No local build or emulator/audio acceptance has been performed in this entry.
 - **Merge status:** Draft PR #26 only; do not merge until functional implementation and all regression checks pass.
+
+
+### 2026-10-26 — Add iterative source-grounded synthesis quality gates
+- **Branch / commit:** `feat/syllabus-synthesis-engine`; implementation commits `498ce315cafa31683251f65b15b1e5f36cbfa01b`, `2ace7ba8875718062280ea0e7460d502b0040e4b`, `d68cedb37f698036c04a1c0ad5b117370a5ef668`.
+- **Requirement / evidence:** The first draft only extracted PDFs and created prompt worksheets; it had no repeatable draft/refine/validate loop. PR #29 explicitly documented that gap.
+- **Change made:** Added an injected-model iterative engine with bounded 1–5 rounds, previous-draft feedback, required teaching sections, 2–3 understanding checks, source-page citation validation, explicit missing-evidence blocking, round-by-round history, and a non-approval status even when quality gates pass. Added tests for refinement, invalid citations, missing evidence and round limits. Corrected the multipart endpoint test's malformed call syntax.
+- **Root cause:** CONFIRMED for the synthesis capability gap — no synthesis orchestration/validation function existed in the prior module. The engine is model-adapter agnostic; this change does not yet configure a live model provider or populate official all-board content.
+- **Verification plan:** Run the focused pytest suite in backend CI, inspect exact-head workflow results and the investigation gate; add a real provider adapter only after confirming the project's existing provider and key configuration.
+- **Result at commit time:** **UNVERIFIED** — source changes are committed to the draft branch; no local Python test execution or green CI evidence has yet been obtained.
+- **What it proves / does not prove:** The source now contains a deterministic iterative orchestration and validation contract. It does not prove generated educational content is factually correct, does not automatically ingest every board/standard, and never auto-approves output.
+- **Next action:** Run focused backend tests, fix any failures, then wire the loop to the existing configured model provider and exercise a real PDF end-to-end.
+- **Merge status:** PR #29 remains draft and unmerged; no merge authorized.

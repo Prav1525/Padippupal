@@ -211,3 +211,12 @@ Use this format:
 - **Change:** Call the imported `PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)` directly. Add static regression assertions for the import and call, and forbid the invalid qualified name.
 - **Verification plan:** Fresh CI must pass JVM compilation/tests, debug APK build, script validation, and emulator test. The actual image URI return and crop/rescan/review/save flow remain **UNVERIFIED** until emulator evidence confirms them.
 - **Result at time of entry:** Change committed; verification pending. No merge authorized or performed.
+
+
+### 2026-10-26 — Fix picker-section static assertion and remove duplicate capture
+- **Branch / failing commit:** `fix/diary-image-picker-reliability`, `3f365b31196f6e28123075b2079440e16d2b3dda`.
+- **Failure evidence:** Android UI smoke run [40261764690](https://github.com/Prav1525/Padippupal/actions/runs/40261764690) failed in Python static validation at `test_diary_emulator_script.py:37` with `AssertionError: 0 != 1`; emulator test did not run. APK [40261764614](https://github.com/Prav1525/Padippupal/actions/runs/40261764614) and JVM tests [40261764621](https://github.com/Prav1525/Padippupal/actions/runs/40261764621) passed on that commit, but do not validate picker runtime.
+- **Root cause confidence:** **CONFIRMED** — the Python assertion used a literal backslash followed by `n` rather than Python's newline escape, so it counted zero actual script lines. Source also had duplicate `dump_ui diary-picker` and screenshot commands despite the assertion intending one capture.
+- **Change:** Correct the assertion to count the actual newline-terminated command and remove the duplicate picker dump/screenshot. No coordinate or gesture change.
+- **Verification plan:** Fresh CI static test and JVM suite, APK build, then emulator acceptance. Runtime picker return and crop/rescan/review/save remain **UNVERIFIED** until the emulator reaches and passes them.
+- **Outcome:** Fix committed; fresh CI pending. No merge performed.

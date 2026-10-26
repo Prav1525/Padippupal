@@ -63,7 +63,7 @@ def test_topic_mapping_returns_page_evidence_and_flags_gaps():
 def test_prompt_is_source_grounded_and_discloses_missing_evidence():
     package = {"topic_title": "Fractions", "chapter": "Numbers", "page_matches": []}
     prompt = build_synthesis_prompt(scope(), package)
-    assert "Do not invent page references" in prompt
+    assert "Do not invent page\\nreferences" in prompt
     assert "No matching source evidence was found." in prompt
     assert "needs_review" in prompt
 
@@ -92,7 +92,7 @@ def test_upload_endpoint_is_admin_only(monkeypatch):
     app.include_router(router)
     response = TestClient(app).post(
         "/admin/syllabus/ingest-pdf",
-        data={"metadata_json": "{}", "syllabus_json": "[]"},
+        data={"metadata_json": "{\\"board\\":\\"CBSE\\",\\"academic_year\\":\\"2026-27\\",\\"medium\\":\\"English\\",\\"standard\\":\\"6\\",\\"subject\\":\\"Science\\",\\"textbook_title\\":\\"Science\\",\\"edition\\":\\"2026\\",\\"source_authority\\":\\"NCERT\\",\\"rights_reviewed\\":true,\\"rights_note\\":\\"reviewed\\"}",\n        "syllabus_json": "[{\\"id\\":\\"t1\\",\\"title\\":\\"Photosynthesis\\"}]",
         files={"file": ("textbook.pdf", b"%PDF-1.4", "application/pdf")},
     )
     assert response.status_code == 401

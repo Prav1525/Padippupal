@@ -319,3 +319,12 @@ Use this format:
 - **Test added:** SQLite temp-database test asserts source hierarchy, page evidence, image metadata, topic mapping, synthesis JSON, round history and approved=0; another test verifies existing Science/Mathematics topic seeds.
 - **Verification:** PENDING CI on this exact change. No real official book has been claimed ingested; a permitted PDF and real configured Gemini key are still needed for end-to-end provider validation.
 - **Merge status:** PR #29 remains draft and unmerged.
+
+
+### 2026-10-26 — Reuse already-indexed Science/Mathematics books
+- **Branch / code commits:** `feat/syllabus-synthesis-engine`; existing-source adapter `cde2a545d355b1ec594dbcbf1d61d08afb77343e`, no-reupload test `fa0a0c87cc0480c230f5d289dfddb8db304ba405`, documentation `f2059c50bfd82a0c1d0b5c23e1e92f493ded9d6a`.
+- **Change:** Added `POST /admin/syllabus/sources/from-curriculum-db/{existing_source_id}`. It reuses a ready source from the existing `sources`, `source_content`, and `chunks` tables, builds page-level evidence from stored page markers or chunk page ranges, and seeds topics from the existing Class 6 CBSE Science/Mathematics scaffold when the request provides an empty topic list. It does not re-upload the PDF or treat scaffold metadata as official book content. Existing rights notes remain unchanged; `rights_reviewed` is not silently set to true.
+- **Database persistence:** source hierarchy, page text, images, topic evidence, current synthesis and each refinement round are stored in the same configured SQLite/Neon database used by the existing curriculum backend. PDF/image binaries remain in the review package directory.
+- **Verification:** **PASS** — [Backend Syllabus Synthesis Tests run 40307503331](https://github.com/Prav1525/Padippupal/actions/runs/40307503331), job 121520142750. Both the focused synthesis tests and full backend regression suite completed successfully, including the new SQLite persistence and existing-source reuse tests.
+- **Limitations:** This proves DB reuse with a representative ready-source fixture, not that the deployed DB currently contains a ready Science and Mathematics source, nor that real Gemini calls/semantic entailment have been validated. Query the deployed catalog/source records before claiming a particular book is present.
+- **Merge status:** PR #29 remains draft and unmerged.

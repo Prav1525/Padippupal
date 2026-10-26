@@ -26,7 +26,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('for attempt in $(seq 1 8); do', source)
         self.assertLess(source.index("returned=0"), source.index("for attempt in $(seq 1 8); do"))
         selector_source = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")
-        self.assertIn('Focusing DocumentsUI row', selector_source)
+        self.assertIn('Double-tapping DocumentsUI row', selector_source)
         self.assertNotIn('target_kind = "thumbnail"', selector_source)
         self.assertIn('["adb", "-s", "emulator-5554", "shell",', selector_source)
         self.assertIn('"input", "tap", str(x), str(y)', selector_source)

@@ -86,6 +86,15 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('Save selected tasks did not become visible after 8 review scroll attempts', source)
         self.assertIn('tap_label "$review_xml" "Save selected tasks"', source)
         self.assertNotIn('tap_label ui-screenshots/diary-test/diary-review-scrolled.xml "Save selected tasks"\nfor attempt', source)
+    def test_planner_scrolls_before_asserting_second_saved_task(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn('for attempt in $(seq 1 8); do', source[source.index('planner_xml='):])
+        self.assertIn('dump_ui diary-planner', source[source.index('planner_xml='):])
+        self.assertIn('input swipe 520 1350 520 650 450', source[source.index('planner_xml='):])
+        self.assertIn('grep -qi "Revise Components of Food" "$planner_xml"', source[source.index('planner_xml='):])
+        self.assertIn('second saved task did not become visible after 8 planner viewport checks', source)
+        self.assertIn('Both saved diary tasks visible in planner accessibility tree', source)
+
     def test_failure_register_exists_and_names_regression_expectations(self):
         register = ROOT / "docs" / "TEST_FAILURE_REGISTER.md"
         self.assertTrue(register.is_file(), "Recurring failures must be recorded in the repository")

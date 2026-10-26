@@ -997,6 +997,7 @@ internal fun TutorScreen(
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var preparedLessonSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var preparedLessonKey by remember { mutableStateOf("") }
+    var previewAttemptKey by remember { mutableStateOf("") }
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
@@ -1713,6 +1714,7 @@ internal fun TutorScreen(
             return
         }
         loading = true
+        if (prepareOnly) previewAttemptKey = lessonKey
         status = if (prepareOnly) "Preparing your lesson preview…" else "Preparing a textbook-grounded live lesson…"
         tutorExecutor.execute {
             val outcome = runCatching {
@@ -1806,6 +1808,7 @@ internal fun TutorScreen(
     LaunchedEffect(selectedLessonKey, liveLessonActive, loading, showLessonSettings, setupOnly) {
         if (loading || liveLessonActive || showLessonSettings || setupOnly || chapter.isBlank() || topic.isBlank()) return@LaunchedEffect
         if (preparedLessonKey == selectedLessonKey && preparedLessonSegments.isNotEmpty()) return@LaunchedEffect
+        if (previewAttemptKey == selectedLessonKey) return@LaunchedEffect
         delay(250L)
         if (!loading && !liveLessonActive) startLiveLesson(prepareOnly = true)
     }

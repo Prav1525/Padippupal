@@ -172,6 +172,52 @@ SOURCE EVIDENCE:
 {evidence_text}"""
 
 
+def render_topic_review_sheet(topic_package: dict[str, Any]) -> str:
+    """Render an auditable topic synthesis worksheet, never a falsely approved lesson."""
+    lines = [
+        f"# {topic_package.get('topic_title', 'Untitled topic')}",
+        "",
+        f"- Topic ID: `{topic_package.get('topic_id', '')}`",
+        f"- Chapter: {topic_package.get('chapter', '') or 'Not supplied'}",
+        f"- Syllabus reference: {topic_package.get('syllabus_reference', '') or 'Not supplied'}",
+        f"- Evidence status: **{topic_package.get('coverage_status', 'missing_source')}**",
+        "- Synthesis status: **needs_review**",
+        "",
+        "## Source evidence to review",
+    ]
+    matches = topic_package.get("page_matches", [])
+    if not matches:
+        lines += ["", "No candidate source pages matched this topic. Obtain the official source or revise the topic keywords."]
+    else:
+        for item in matches:
+            lines += [
+                "",
+                f"### PDF page {item['page']} (lexical score {item['score']})",
+                f"Matched terms: {', '.join(item['matched_terms'])}",
+                "",
+                item["evidence_excerpt"],
+            ]
+    lines += [
+        "",
+        "## Required synthesis review",
+        "- [ ] Verify this topic is required by the selected official syllabus.",
+        "- [ ] Check every factual claim against the cited source pages.",
+        "- [ ] Write an original, age-appropriate explanation; do not copy textbook passages.",
+        "- [ ] Add definitions, concept relationships, prerequisites and worked examples.",
+        "- [ ] Add likely misconceptions and 2-3 understanding checks.",
+        "- [ ] Match relevant figures to this topic and verify captions/page numbers.",
+        "- [ ] Record missing evidence and approve only after review.",
+        "",
+        "## Synthesis prompt contract",
+        "",
+        topic_package.get("synthesis_prompt", "No prompt generated."),
+        "",
+        "This file is a review worksheet, not an approved teaching synthesis.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def create_source_package(
     pdf_path: Path,
     scope: CurriculumScope,
@@ -240,6 +286,9 @@ def create_source_package(
             topic_dir.mkdir(parents=True, exist_ok=True)
             (topic_dir / "evidence.json").write_text(
                 json.dumps(package, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            (topic_dir / "synthesis-review.md").write_text(
+                render_topic_review_sheet(package), encoding="utf-8"
             )
         return {"package_path": str(base), "manifest": manifest}
     except Exception:

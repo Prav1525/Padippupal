@@ -99,6 +99,13 @@ jobs:
           script: |
             echo "Checking emulator acceleration from the SDK provisioned by android-emulator-runner"
             "$ANDROID_HOME/emulator/emulator" -accel-check
+            # The emulator runner boots a device but does not install this workflow's APK.
+            # Install the exact debug artifact built and tested above before any app launch.
+            adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
+            adb -s emulator-5554 shell pm path com.padippupal.app | grep -q '^package:'
+            adb -s emulator-5554 shell cmd package resolve-activity --brief \\
+              -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \\
+              com.padippupal.app | grep -q 'com.padippupal.app/.MainActivity'
             # Install a checksum-verified, offline TTS engine from F-Droid's
             # signed repository index. This works even when the emulator image
             # ships with no TTS service and does not depend on Play Store sign-in.

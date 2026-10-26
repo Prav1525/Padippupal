@@ -64,7 +64,7 @@ private fun featureRequest(url: String, method: String = "GET", body: JSONObject
     val c = URL(url).openConnection() as HttpURLConnection
     c.requestMethod = method
     c.connectTimeout = 10000
-    c.readTimeout = 40000
+    c.readTimeout = 85000
     c.setRequestProperty("Accept", "application/json")
     if (body != null) {
         c.doOutput = true

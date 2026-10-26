@@ -137,3 +137,16 @@ Use this format:
 - **What remains unverified:** Script regression result, actual row focus/activation, Android content-URI return, and crop/rescan/save.
 - **Difference from previous attempt:** Replaces the repeated non-clickable filename tap with a keyboard activation attempt on the focusable row; avoids preview control.
 - **Next action and why:** Inspect the newly triggered workflow, including the exact failing step and screenshot/XML artifact. Do not retry unchanged if DPAD_CENTER fails; use fresh UI evidence to select a different diagnostic or correct the app's picker intent/result handling.
+
+
+### 2026-10-26 — Replace failed focus-plus-DPAD activation with row double-tap diagnostic
+- **Branch / commit:** `fix/diary-image-picker-reliability`; helper change commit `e95be55901a09d6d84a7672103d89284e04b11ae`; test and ledger updates follow.
+- **Test command or workflow URL:** Fresh push-triggered Android UI smoke workflow; targeted regression `python3 .github/scripts/test_diary_emulator_script.py`.
+- **Result:** **UNVERIFIED** — interaction changed; no emulator result yet.
+- **Exact failure or assertion:** Latest run [40215174588](https://github.com/Prav1525/Padippupal/actions/runs/40215174588) failed at picker selection. Its screenshot [artifact](https://github.com/Prav1525/Padippupal/actions/runs/40215174588/artifacts/12607905643) and UI XML show `item_root focused=true`, `selected=false`; one row tap plus `DPAD_CENTER` did not activate the file. The current branch head before this change was `b3323c04ea38b64e28c25a342a31c941cc126456`; the failing run tested that exact SHA. APK build and curriculum tests passed, but the UI acceptance test failed.
+- **Change made (files + rationale):** `.github/scripts/ui_smoke.py` now taps the same focusable row body twice, 250 ms apart, outside the separate preview control. This is materially different from the proven-ineffective focus + keyboard sequence and tests whether DocumentsUI requires a double-tap to open the file. `.github/scripts/test_diary_emulator_script.py` updates the selector expectations. No app URI-processing code changed because the callback is not reached.
+- **Root cause:** **PROBABLE** test interaction mismatch; not yet confirmed. Evidence localizes the failure before URI return, but only the next emulator run can show whether double-tap returns a URI.
+- **What this attempt proves:** A new activation strategy is committed for CI to exercise; source-level regression assertions are updated.
+- **What remains unverified:** Targeted test execution on CI, actual DocumentsUI selection/URI return, crop, rescan, review, and planner save.
+- **Difference from previous attempt:** Replaces a single tap plus `DPAD_CENTER` with a double-tap on the row body; no unchanged retry.
+- **Next action and why:** Check the fresh workflow on this exact commit and inspect its screenshot/XML at the moment of activation. If the picker remains open, stop changing tap gestures and inspect DocumentsUI's actual activity/result semantics and test fixture launch path instead.

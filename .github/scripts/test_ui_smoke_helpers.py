@@ -260,13 +260,17 @@ class CompleteLessonRegressionTests(unittest.TestCase):
 
 
 class PreviousScreenSelectionTests(unittest.TestCase):
-    def test_tutor_ready_screen_does_not_duplicate_selection_controls(self):
+    def test_focused_tutor_has_change_action_and_preloaded_lesson_preview(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        self.assertIn('if "change" in labels:', smoke)
-        self.assertNotIn('if "change" not in labels:', smoke)
-        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertNotIn("TextButton(onClick = { showLessonSettings = true }", tutor)
-        self.assertIn("onClick = { startLiveLesson() }", tutor)
+        self.assertIn('if "set up your lesson" in joined.lower():', smoke)
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/TutorScreen.kt").read_text()
+        self.assertIn("TextButton(onClick = { hasCompletedLesson = false; showLessonSettings = true }", tutor)
+        self.assertIn("startLiveLesson(prepareOnly = true)", tutor)
+        self.assertIn("preparedLessonSegments.joinToString", tutor)
+        self.assertIn("if (!liveLessonActive && !showLessonSettings && !hasCompletedLesson)", tutor)
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn("Waiting for the selected textbook lesson preview to finish loading", script)
+        self.assertIn("Lesson preview ready", script)
 
     def test_lesson_selection_precedes_tutor_in_app_and_smoke_flow(self):
         root = Path(__file__).resolve().parents[2]

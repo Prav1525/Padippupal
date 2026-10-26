@@ -1832,13 +1832,14 @@ def get_teaching_method(class_level: int = Query(ge=1, le=12), subject: str = Qu
         raise HTTPException(status_code=404, detail="The local teaching-method pilot currently supports Class 6 Science and Mathematics.")
     from teaching_engine import load_teaching_dataset
     dataset = load_teaching_dataset()
+    canonical_subject = "Mathematics" if subject.strip().casefold() in {"mathematics", "math", "maths"} else "Science"
     return {
         "dataset_id": dataset["dataset_id"],
         "curriculum": dataset["curriculum"],
         "lesson_contract": dataset["lesson_contract"],
         "chapters": [
             {"subject": item["subject"], "chapter": item["chapter"], "topics": item["topics"]}
-            for item in dataset["chapters"] if item["subject"].casefold() == subject.strip().casefold()
+            for item in dataset["chapters"] if item["subject"].casefold() == canonical_subject.casefold()
         ],
         "completeness": dataset["completeness"],
     }

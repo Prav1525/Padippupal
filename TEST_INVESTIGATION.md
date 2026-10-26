@@ -274,3 +274,11 @@ Use this format:
 - **Verification status:** Test and regression workflows for the latest commit have not yet returned results. Earlier commit `8cc788620855f01c7c98446535667f480022c2b6` had passing Curriculum Engine Tests and Investigation Guidance Gate; Android APK passed, while Android UI smoke was still running at the last check. Do not treat those as verification of this latest change.
 - **What remains unverified:** Exact-head CI, real Gemini generation from an official source chapter, end-to-end tutor playback using an approved synthesized chapter, and full Science/Mathematics chapter coverage.
 - **Next action:** Confirm latest-head curriculum and Android checks; fix any test failures from their logs before advancing to batch chapter coverage or merging.
+
+### 2026-10-26 — Connect approved chapter plans to tutor runtime
+- **Branch / implementation commits:** `feature/syllabus-synthesis-prototype`; tutor integration `410726e5107fb89ac0ba2817963637ad1a516c3d`; regression test `cc2393aab70bd74bc4f59defc1450f4e76c2ab4d`.
+- **Change made:** `/tutor/chat` now loads only a human-approved chapter lesson for the exact board, class, subject, medium and chapter. A topic-specific plan is used only when its topic exactly matches the selected topic; chapter-wide plans remain eligible. Its overview, objectives, concept order, teaching sequence and cited chunk IDs are added as a teaching-plan context. Draft/rejected lessons are not used, and retrieved textbook passages remain the factual evidence.
+- **Regression test:** Extended `backend/test_tutor.py` to assert that the approved plan and its source chunk IDs are present in Gemini's system instruction.
+- **Verification status:** Source and test changes are present on the PR branch. Exact-head CI has not yet been confirmed. This is not evidence of a live deployment or of a real approved chapter being served in production.
+- **Remaining risks / follow-up:** Existing tutor grounding still depends on successful passage retrieval. Next, test the full flow with a real reviewed chapter and verify the plan's chunk citations resolve to the same textbook edition; then implement learner progress only with a stable, privacy-safe learner/session identifier and explicit mastery transitions.
+- **Merge policy:** Keep PR #31 unmerged until curriculum tests and required Android regressions pass.

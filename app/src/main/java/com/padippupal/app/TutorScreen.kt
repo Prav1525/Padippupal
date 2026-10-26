@@ -2101,7 +2101,7 @@ internal fun TutorScreen(
                     Text("Subject", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("Mathematics", "Science", "English", "Tamil", "Social Science", "Computer Science").forEach { option ->
-                            FilterChip(selected = subject == option, onClick = { subject = option; chapter = ""; topic = "" }, label = { Text(option, maxLines = 1) })
+                            FilterChip(selected = subject == option, onClick = { subject = option; chapter = ""; topic = ""; previousCompletedTopic = "" }, label = { Text(option, maxLines = 1) })
                         }
                     }
                     Text("Chapter", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
@@ -2111,7 +2111,7 @@ internal fun TutorScreen(
                         }
                         DropdownMenu(expanded = chapterMenuExpanded, onDismissRequest = { chapterMenuExpanded = false }) {
                             chapterOptions.forEachIndexed { index, option ->
-                                DropdownMenuItem(text = { Text("${index + 1}. ${option.first}") }, onClick = { chapter = option.first; topic = option.second.firstOrNull().orEmpty(); chapterMenuExpanded = false })
+                                DropdownMenuItem(text = { Text("${index + 1}. ${option.first}") }, onClick = { chapter = option.first; topic = option.second.firstOrNull().orEmpty(); previousCompletedTopic = ""; chapterMenuExpanded = false })
                             }
                             if (!outlineLoading && chapterOptions.isEmpty()) DropdownMenuItem(text = { Text("No chapter list is available") }, onClick = { chapterMenuExpanded = false }, enabled = false)
                         }
@@ -2124,7 +2124,7 @@ internal fun TutorScreen(
                         DropdownMenu(expanded = topicMenuExpanded, onDismissRequest = { topicMenuExpanded = false }) {
                             val topics = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
                             topics.forEachIndexed { index, option ->
-                                DropdownMenuItem(text = { Text("${index + 1}. $option") }, onClick = { topic = option; topicMenuExpanded = false })
+                                DropdownMenuItem(text = { Text("${index + 1}. $option") }, onClick = { topic = option; previousCompletedTopic = ""; topicMenuExpanded = false })
                             }
                             if (topics.isEmpty()) DropdownMenuItem(text = { Text("Choose a chapter first") }, onClick = { topicMenuExpanded = false }, enabled = false)
                         }

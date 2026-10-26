@@ -268,7 +268,9 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         self.assertIn("startLiveLesson(prepareOnly = true)", tutor)
         self.assertIn("preparedLessonSegments.joinToString", tutor)
         self.assertIn("if (!liveLessonActive && !showLessonSettings && !hasCompletedLesson)", tutor)
+        self.assertNotIn('Text("▶ Teach"', tutor)
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn('tap-exact ready-to-teach.xml "Start teaching"', script)
         self.assertIn("Waiting for the selected textbook lesson preview to finish loading", script)
         self.assertIn("Lesson preview ready", script)
 

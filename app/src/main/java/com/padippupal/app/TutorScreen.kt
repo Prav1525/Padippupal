@@ -1906,8 +1906,11 @@ internal fun TutorScreen(
     // character offsets. Some engines emit only one range callback, however, so
     // keep a weighted elapsed-time fallback ready and use it whenever native ranges
     // stop arriving. This prevents a single callback freezing the inline highlight.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, livePaused, audioPlayer.value, hostedWordTimings, speechWordIndexOffset) {
-        if (!speechActive || !liveLessonActive || liveCaption.isBlank()) {
+    LaunchedEffect(speechActive, speechPlaybackObserved, liveCaption, liveLessonActive, livePaused, audioPlayer.value, hostedWordTimings, speechWordIndexOffset) {
+        // Do not animate captions while the hosted voice is still being generated.
+        // Otherwise the whole caption can scroll by silently, then jump back to word 1
+        // when audio finally starts.
+        if (!speechActive || !speechPlaybackObserved || !liveLessonActive || liveCaption.isBlank()) {
             if (!speechActive) liveWordIndex = 0
             return@LaunchedEffect
         }

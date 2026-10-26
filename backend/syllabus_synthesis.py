@@ -221,6 +221,34 @@ def render_topic_review_sheet(topic_package: dict[str, Any]) -> str:
 
 
 
+
+def load_existing_topic_seeds(scope: CurriculumScope) -> list[dict[str, Any]]:
+    """Reuse the repository's reviewed teaching scaffold IDs as topic seeds, not as textbook evidence."""
+    if scope.board.strip().casefold() not in {"cbse", "cbse-related / ncert-aligned"}:
+        return []
+    if scope.standard.strip().casefold() not in {"6", "class 6", "grade 6", "standard 6"}:
+        return []
+    dataset_path = Path(__file__).with_name("class6_teaching_dataset.json")
+    try:
+        data = json.loads(dataset_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    wanted = scope.subject.strip().casefold()
+    topics: list[dict[str, Any]] = []
+    for chapter in data.get("chapters", []):
+        if str(chapter.get("subject", "")).strip().casefold() != wanted:
+            continue
+        for item in chapter.get("topics", []):
+            topics.append({
+                "id": item["id"],
+                "title": item["title"],
+                "chapter": chapter["chapter"],
+                "keywords": item.get("keywords", []),
+                "syllabus_reference": "",
+            })
+    return topics
+
+
 def _synthesis_db_connect():
     """Connect to the same curriculum database used by backend/app.py."""
     database_url = os.getenv("DATABASE_URL", "").strip()
@@ -460,6 +488,7 @@ def create_source_package(
             (topic_dir / "synthesis-review.md").write_text(
                 render_topic_review_sheet(package), encoding="utf-8"
             )
+        _persist_source_package(manifest, pages)
         return {"package_path": str(base), "manifest": manifest}
     except Exception:
         shutil.rmtree(base, ignore_errors=True)
@@ -484,8 +513,12 @@ async def ingest_syllabus_pdf(
     try:
         scope = CurriculumScope.model_validate_json(metadata_json)
         raw_topics = json.loads(syllabus_json)
-        if not isinstance(raw_topics, list) or not raw_topics:
-            raise ValueError("syllabus_json must be a non-empty JSON array of topics")
+        if not isinstance(raw_topics, list):
+            raise ValueError("syllabus_json must be a JSON array of topics")
+        if not raw_topics:
+            raw_topics = load_existing_topic_seeds(scope)
+        if not raw_topics:
+            raise ValueError("No topic seeds found; provide syllabus topics or use the existing Class 6 CBSE Science/Mathematics scaffold.")
         topics = [SyllabusTopic.model_validate(item) for item in raw_topics]
     except (ValidationError, json.JSONDecodeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=f"Invalid source metadata or syllabus topics: {exc}") from exc
@@ -755,6 +788,7 @@ def synthesize_source_topic(
     topic_dir.mkdir(parents=True, exist_ok=True)
     output_path = topic_dir / "synthesis.json"
     output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    _persist_synthesis_result(source_id, str(topic.get("topic_id", "")), result)
     return {
         "source_id": source_id,
         "topic_id": topic.get("topic_id"),

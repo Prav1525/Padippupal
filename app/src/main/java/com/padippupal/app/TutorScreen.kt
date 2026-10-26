@@ -2001,6 +2001,9 @@ internal fun TutorScreen(
                     Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
             } else if (!setupOnly) {
+                TextButton(onClick = { showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                    Text(if (selectedLanguage == "தமிழ்") "மாற்று" else if (selectedLanguage == "Tanglish") "Maathu" else "Change", color = TutorAccentSoft, fontSize = 11.sp)
+                }
                 Button(
                     onClick = { startLiveLesson() },
                     enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),
@@ -2071,8 +2074,8 @@ internal fun TutorScreen(
             }
         }
 
-        if (!liveLessonActive && !showLessonSettings) {
-        // The chat owns the flexible space and scrolls independently of the fixed composer.
+        if (!liveLessonActive && !showLessonSettings && false) {
+        // Retained only as source history; the learner flow now uses the focused lesson screen.
         LazyColumn(
             state = chatListState,
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
@@ -2223,6 +2226,63 @@ internal fun TutorScreen(
             }
         }
 
+        if (!liveLessonActive && !showLessonSettings) {
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    when (selectedLanguage) {
+                        "Tanglish" -> "Innaikku namma enna kathukka porom?"
+                        "தமிழ்" -> "இன்று நாம் என்ன கற்கப் போகிறோம்?"
+                        else -> "Ready for your lesson?"
+                    },
+                    color = TutorDeep, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold
+                )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFFF8FAFC),
+                    shape = RoundedCornerShape(22.dp),
+                    border = BorderStroke(1.dp, Color(0xFFDCE3ED))
+                ) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(subject.uppercase(Locale.ROOT), color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text(chapter.ifBlank { "Choose a chapter" }, color = TutorDeep, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                        Text(topic.ifBlank { "Choose a topic" }, color = TutorGreen, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Divider(color = Color(0xFFE2E8F0))
+                        Text(
+                            when (selectedLanguage) {
+                                "Tanglish" -> "Lesson-la simple explanation, oru worked example, mukkiyamaana rule, common mistake, kadaisila short recap irukkum. Full lesson Tanglish-la irukkum."
+                                "தமிழ்" -> "இந்தப் பாடத்தில் எளிய விளக்கம், ஒரு எடுத்துக்காட்டு, முக்கிய விதி, பொதுவான தவறு, இறுதியில் சுருக்கம் இருக்கும். முழுப் பாடமும் தமிழில் இருக்கும்."
+                                else -> "Your lesson will include a simple explanation, a worked example, the key rule, a common mistake, and a short recap."
+                            },
+                            color = TutorDeep, fontSize = 14.sp, lineHeight = 22.sp
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(color = TutorAccentSoft, shape = RoundedCornerShape(50)) {
+                                Text(selectedLanguage, modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp), color = TutorGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                            Text("Class $grade · $medium medium", color = TutorGrey, fontSize = 11.sp)
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { showLessonSettings = true },
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) { Text(if (selectedLanguage == "தமிழ்") "பாடத்தை மாற்று" else if (selectedLanguage == "Tanglish") "Topic maathu" else "Change lesson") }
+                    Button(
+                        onClick = { startLiveLesson() },
+                        modifier = Modifier.weight(1.2f).heightIn(min = 48.dp),
+                        enabled = !loading && chapter.isNotBlank() && topic.isNotBlank(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)
+                    ) { Text(if (selectedLanguage == "தமிழ்") "கற்கத் தொடங்கு" else if (selectedLanguage == "Tanglish") "Kathukka start pannalaam" else "Start teaching", maxLines = 2) }
+                }
+            }
+        }
+
         // Inline learner checkpoint: part of the teaching flow, not a floating card.
         if (awaitingUnderstanding && liveLessonActive) {
             Column(
@@ -2278,8 +2338,8 @@ internal fun TutorScreen(
         }
 
         // Keep setup focused; show the question composer only after selection.
-        if (!showLessonSettings && !liveLessonActive) {
-        // Keep the question composer for regular tutor chat, not setup or full-screen teaching.
+        if (!showLessonSettings && !liveLessonActive && false) {
+        // The legacy chat composer is intentionally not part of the focused lesson flow.
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,

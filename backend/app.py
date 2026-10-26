@@ -1541,6 +1541,26 @@ def syllabus_synthesis_coverage(
                 "SELECT id,chunk_no,chapter,page_start,page_end,text FROM chunks WHERE source_id=? ORDER BY chunk_no",
                 (source["id"],),
             ).fetchall()]
+            # A ready source and stable chunk IDs do not prove that the whole book was
+            # extracted. Compare observed chunk page ranges against the source's declared
+            # page_count; missing pages conservatively block chapter completion.
+            page_count = int(source.get("page_count") or 0)
+            covered_pages: set[int] = set()
+            for chunk in chunks:
+                first = chunk.get("page_start")
+                last = chunk.get("page_end")
+                if first is None or last is None:
+                    continue
+                first_page, last_page = int(first), int(last)
+                if first_page > 0 and last_page >= first_page:
+                    covered_pages.update(range(first_page, min(last_page, page_count or last_page) + 1))
+            missing_page_numbers = (
+                [page for page in range(1, page_count + 1) if page not in covered_pages]
+                if page_count > 0 else []
+            )
+            page_coverage_known = page_count > 0
+            page_coverage_complete = page_coverage_known and not missing_page_numbers
+
             grouped: dict[str, list[dict[str, Any]]] = {}
             unclassified_count = 0
             for chunk in chunks:
@@ -1629,6 +1649,10 @@ def syllabus_synthesis_coverage(
 
                 if source_status != "ready":
                     coverage_status = "source_not_ready"
+                elif page_coverage_known and not page_coverage_complete:
+                    coverage_status = "source_page_coverage_incomplete"
+                elif not page_coverage_known:
+                    coverage_status = "source_page_coverage_unknown"
                 elif not latest:
                     coverage_status = "not_synthesized"
                 elif not evidence_current:
@@ -1662,6 +1686,10 @@ def syllabus_synthesis_coverage(
                 inventory_status = "source_not_ready"
             elif not chunks:
                 inventory_status = "no_extracted_chunks"
+            elif not page_coverage_known:
+                inventory_status = "page_coverage_unknown"
+            elif not page_coverage_complete:
+                inventory_status = "incomplete_page_extraction"
             elif not grouped:
                 inventory_status = "chapter_headings_missing"
             else:
@@ -1679,6 +1707,11 @@ def syllabus_synthesis_coverage(
                 "inventory_status": inventory_status,
                 "chunk_count": len(chunks),
                 "unclassified_chunk_count": unclassified_count,
+                "declared_page_count": page_count or None,
+                "page_coverage_known": page_coverage_known,
+                "page_coverage_complete": page_coverage_complete,
+                "covered_page_count": len(covered_pages),
+                "missing_page_numbers": missing_page_numbers,
                 "chapter_count": len(chapter_reports),
                 "chapters": chapter_reports,
             })
@@ -1703,7 +1736,7 @@ def syllabus_synthesis_coverage(
         "coverage_status_counts": status_counts,
         "subject_summary": subject_counts,
         "sources": inventory,
-        "note": "Complete requires current source evidence, valid topic citations, approved topic syntheses, and an approved tutor lesson. Chapter coverage is based on headings present in ingested textbook chunks.",
+        "note": "A chapter is complete only when the source is ready, declared source page coverage is known and complete, evidence fingerprints and citations are current, topic validation and approvals pass, and an approved tutor lesson exists. Page coverage is conservative: blank or unnumbered PDF pages may need explicit handling rather than being silently assumed complete.",
     }
 
 

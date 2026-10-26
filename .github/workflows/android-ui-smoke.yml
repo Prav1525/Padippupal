@@ -103,8 +103,9 @@ jobs:
             # signed repository index. This works even when the emulator image
             # ships with no TTS service and does not depend on Play Store sign-in.
             bash .github/scripts/android-tts-preflight.sh
-            bash .github/scripts/android-ui-smoke-retry.sh
+            # Run diary picker acceptance first so unrelated tutor failures cannot mask it.
             bash .github/scripts/diary_crop_emulator_test.sh
+            bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Record test outcomes and failure diagnostics
         if: always()

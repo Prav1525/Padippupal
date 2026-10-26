@@ -140,3 +140,85 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
         ).fetchone()
     assert round_row["status"] == "approved"
     assert topic_row["approval_status"] == "approved"
+
+
+def test_science_maths_coverage_audit_requires_current_evidence_and_approval():
+    curriculum.DB_PATH = Path(tempfile.mkstemp(suffix=".sqlite3")[1])
+    curriculum.ADMIN_TOKEN = "coverage-test-token"
+    curriculum.init_db()
+    source_id = "coverage-test-source"
+    chunk_id = "coverage-chunk-1"
+    chapter = "Chapter A"
+    source_text = "Evidence explaining the chapter's central concept."
+    now = time.time()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO sources
+            (id,board,academic_year,class_level,subject,medium,term,edition,title,source_url,
+             license_note,sha256,status,page_count,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (source_id, "CBSE", "2026-27", 6, "Science", "English", "", "2026",
+             "Official Science test book", "", "Test fixture", "coverage-test-sha",
+             "ready", 2, now),
+        )
+        conn.execute(
+            "INSERT INTO chunks (id,source_id,chunk_no,chapter,page_start,page_end,text) VALUES (?,?,?,?,?,?,?)",
+            (chunk_id, source_id, 0, chapter, 1, 2, source_text),
+        )
+
+    evidence = curriculum.build_evidence_packet([
+        curriculum.EvidenceChunk(chunk_id, source_id, chapter, 0, 1, 2, source_text)
+    ])
+    round_id = "coverage-round-1"
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO syllabus_synthesis_rounds
+            (id,source_id,board,class_level,subject,chapter,curriculum_version,status,model,
+             prompt_version,source_chunk_ids_json,evidence_fingerprint,validation_json,error_message,
+             created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,'approved',?,?,?,?,?,'',?,?)""",
+            (round_id, source_id, "CBSE", 6, "Science", chapter, "v1", "test-model", "v1",
+             json.dumps([chunk_id]), evidence["evidence_fingerprint"], json.dumps({"valid": True}), now, now),
+        )
+        conn.execute(
+            """INSERT INTO syllabus_topic_syntheses
+            (id,round_id,source_id,topic,page_start,page_end,learning_objectives_json,
+             explanation_json,examples_json,practice_questions_json,citation_refs_json,
+             validation_status,validation_notes_json,approval_status,created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            ("coverage-topic-1", round_id, source_id, "Central concept", 1, 2,
+             json.dumps(["Explain the central concept"]), json.dumps({"teacher_says": "Let's explore it"}),
+             json.dumps(["Source-supported example"]), json.dumps(["Explain in your own words"]),
+             json.dumps([chunk_id]), "passed", json.dumps(["Citations checked"]), "approved", now, now),
+        )
+        conn.execute(
+            """INSERT INTO chapter_lessons
+            (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,source_refs_json,
+             model,review_feedback,created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,'approved',?,?,?,?,?,?)""",
+            ("coverage-lesson-1", "CBSE", 6, "Science", "English", chapter, "",
+             json.dumps({"chapter_title": chapter}), json.dumps([{"chunk_id": chunk_id}]),
+             "test-model", "Reviewed against textbook", now, now),
+        )
+
+    client = TestClient(curriculum.app)
+    headers = {"X-Admin-Token": "coverage-test-token"}
+    response = client.get("/admin/syllabus-synthesis/coverage", headers=headers,
+                          params={"board": "CBSE", "class_level": 6, "medium": "English"})
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["source_count"] == 1
+    assert data["chapter_count"] == 1
+    chapter_report = data["sources"][0]["chapters"][0]
+    assert chapter_report["coverage_status"] == "complete"
+    assert chapter_report["evidence_current"] is True
+    assert chapter_report["validation_passed"] is True
+    assert chapter_report["approved_tutor_lesson"] is True
+
+    # Editing extracted text without changing the chunk ID must invalidate the coverage result.
+    with curriculum.db() as conn:
+        conn.execute("UPDATE chunks SET text=? WHERE id=?", ("Changed textbook evidence.", chunk_id))
+    stale = client.get("/admin/syllabus-synthesis/coverage", headers=headers,
+                       params={"board": "CBSE", "class_level": 6, "medium": "English"})
+    assert stale.status_code == 200, stale.text
+    assert stale.json()["sources"][0]["chapters"][0]["coverage_status"] == "stale_evidence"

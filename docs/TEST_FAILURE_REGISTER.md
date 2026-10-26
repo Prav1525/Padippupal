@@ -181,3 +181,11 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Accept Photo Picker provider package names ending in `.providers.media.module`, while retaining the checks for FrameLayout, clickable/enabled, date-based content description, and exactly one candidate.
 - **Regression prevention:** Update the fixture regression to use the observed `com.google.android.providers.media.module` namespace and keep coverage for the `com.android.providers.media.module` namespace too. A fresh emulator run must still prove picker return, crop, rescan, correct review tasks, and planner save.
 - **Validation:** New fix committed; CI must pass before PR #24 can be considered mergeable. API 30 versus API 35 comparison remains outstanding.
+
+
+## Incident: Photo Picker bounds parser rejects valid tile bounds
+
+- **Symptom:** API 35 run [40272222653](https://github.com/Prav1525/Padippupal/actions/runs/40272222653) found the sole visible, clickable Photo Picker tile at bounds `[0,1217][354,1571]` but stopped with `Photo Picker tile has invalid accessibility bounds`, before sending an ADB tap.
+- **Root cause confirmed from source:** `tap_photo_picker_item()` used a raw regular expression with double-escaped backslashes (`r"\\\\[(\\\\d+)..."`), so it expected literal backslashes rather than the normal Android bounds format. This was a selector parser bug; this run does not prove the image was selected or that the crop flow works.
+- **Fix:** Commit `0dad865384c4df1112fb7f223fc8499ea6eae0de` corrects the regex to parse standard bounds. Commit `0657308d06d07848aaa82a05183f80f6746edc50` adds a regression that runs the picker helper against the exact API 35 bounds and asserts it taps the tile center at `(177, 1394)`.
+- **Regression prevention:** Fresh CI must prove the ADB tap returns to PadippuPal, opens crop, rescans, displays only the expected date-correct review tasks, and saves them to the planner. API 30 vs API 35 comparison is still outstanding. Keep PR #24 unmerged until the full acceptance flow passes.

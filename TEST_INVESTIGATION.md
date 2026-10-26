@@ -201,3 +201,13 @@ Use this format:
 - **What remains unverified:** Compilation, JVM tests, emulator selection/URI callback, crop/rescan, review and planner save.
 - **Difference from previous attempt:** Fixes a source-level import defect and removes an unintended old navigation sequence; it is not another gesture/coordinate retry.
 - **Next action and why:** Run fresh CI on the corrected head. If the test reaches the picker, inspect screenshot/XML and the return-to-app evidence before claiming selection works.
+
+
+### 2026-10-26 — Fix remaining qualified Photo Picker request reference
+- **Branch / starting commit:** `fix/diary-image-picker-reliability`; prior source HEAD `e81844d72eb18a0a6c55af8bf93d4fae7960daa5`.
+- **Guidance applied:** Re-read `TESTING_GUIDANCE.md` and `AGENTS.md`; checked README build instructions, Android Gradle dependencies, and UI workflow before changing code.
+- **Exact failure:** APK run [40261087137](https://github.com/Prav1525/Padippupal/actions/runs/40261087137) failed at `:app:compileDebugKotlin`, `StudyFeatures.kt:213:86 Unresolved reference 'PickVisualMediaRequest'`. UI run [40261087192](https://github.com/Prav1525/Padippupal/actions/runs/40261087192) failed in its first JVM test step and skipped emulator execution.
+- **Root cause confidence:** **CONFIRMED** — source imported the top-level `androidx.activity.result.PickVisualMediaRequest`, but the call incorrectly referenced `ActivityResultContracts.PickVisualMediaRequest`; the request type is not nested inside ActivityResultContracts.
+- **Change:** Call the imported `PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)` directly. Add static regression assertions for the import and call, and forbid the invalid qualified name.
+- **Verification plan:** Fresh CI must pass JVM compilation/tests, debug APK build, script validation, and emulator test. The actual image URI return and crop/rescan/review/save flow remain **UNVERIFIED** until emulator evidence confirms them.
+- **Result at time of entry:** Change committed; verification pending. No merge authorized or performed.

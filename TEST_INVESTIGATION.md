@@ -301,3 +301,12 @@ Use this format:
 - **Verification status:** **UNVERIFIED after fix**; a new exact-head focused and regression CI run must confirm the change.
 - **Next action:** Poll the new workflow, inspect logs, and address any remaining failures based on their evidence.
 - **Merge status:** PR #29 remains draft/unmerged.
+
+
+### 2026-10-26 — Verify synthesis fixes on GitHub Actions
+- **Branch / tested commit:** `feat/syllabus-synthesis-engine`; tested code commit `7e761b5d7fe4e05fb92ee29f0afbed42f1cfb3ee`; latest log-only commit is separate.
+- **Workflow:** [Backend Syllabus Synthesis Tests run 40306444399](https://github.com/Prav1525/Padippupal/actions/runs/40306444399), job 121516618704.
+- **Result:** **PASS** — dependency installation, focused `python -m pytest -q test_syllabus_synthesis.py`, and full backend `python -m pytest -q` all completed successfully after the fixes.
+- **Comparison:** Previous run 40306273895 had 2 focused failures / 8 passes. This run passed both focused and full backend regression steps after multipart `Form(...)` binding and prompt contract correction.
+- **What this proves:** Backend tests pass for the code at the tested commit. It does not prove Gemini calls succeed with production credentials, content is semantically entailed by cited pages, OCR works, every board/standard is populated, or the Android tutor consumes the packages end-to-end.
+- **Next action:** Keep PR #29 in draft pending real permitted-PDF/Gemini end-to-end validation and coverage work. Do not merge without explicit authorization.

@@ -251,3 +251,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `1823627d3f00c4445e5cef9b20650d9d96680044` updates `.github/scripts/diary_crop_emulator_test.sh` to retry dump/pull/parse up to eight times and reject empty or malformed hierarchy snapshots. Commit `11a3b7c75148715f35484754e14da08664283f4b` adds regression coverage for retry bounds, hierarchy validation, and the explicit failure diagnostic.
 - **Regression prevention:** Script validation checks the retry/validation contract. The next API 35 run must prove the selection callback returns to PadippuPal and continue through crop, deterministic rescan, review, and planner save. This is a targeted fix, not yet an end-to-end pass.
 - **Validation:** Pending fresh CI. Keep PR #31 open and unmerged until the full emulator acceptance flow passes.
+
+
+## Incident: diary acceptance used a stale one-swipe home navigation assumption
+
+- **Symptom:** Android emulator run [40350921936](https://github.com/Prav1525/Padippupal/actions/runs/40350921936) passed JVM tests, APK build, and smoke-script validation, then failed before opening the diary scanner: `Could not find target text 'Scan homework'`. The captured accessibility tree contained the current home hero and first set of tiles, but not the diary tile.
+- **Root cause:** The home screen is a Compose `LazyColumn` with a bottom navigation bar and content height that varies with emulator layout. The test performed one fixed swipe from `(520,1450)`, then assumed the diary tile would be visible. The gesture did not expose the tile, so the test stopped before exercising the picker or diary feature. This is a test navigation failure, not evidence of an ADB or photo-picker defect.
+- **Fix:** The diary emulator script now re-dumps the live accessibility hierarchy and performs up to eight bounded content scrolls, tapping `Scan homework` only after the label is actually present. It fails with an explicit diagnostic if the tile never becomes accessible.
+- **Regression prevention:** Added a static regression assertion that the bounded scroll/dump loop exists and that the obsolete single-swipe coordinate is not used.
+- **Validation:** Awaiting the new CI run on the fix commit. Do not close this incident until the emulator passes the full scan, picker, crop, rescan, review, and planner-save flow.

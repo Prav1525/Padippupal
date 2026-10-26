@@ -297,5 +297,28 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         self.assertNotIn('tap tutor.xml "Change"', script)
 
 
+class CurriculumTransitionRegressionTests(unittest.TestCase):
+    def test_completion_stages_next_item_and_requires_explicit_continue(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        advance_start = tutor.index("fun advanceToNextCurriculumTopic(): Boolean")
+        continue_start = tutor.index("fun continueToNextCurriculumTopic(): Boolean", advance_start)
+        advance_body = tutor[advance_start:continue_start]
+        continue_end = tutor.index("\n    fun playLiveSegment", continue_start)
+        continue_body = tutor[continue_start:continue_end]
+        self.assertIn("pendingNextCurriculumTopic = next", advance_body)
+        self.assertNotIn("chapter = next.first", advance_body)
+        self.assertNotIn("topic = next.second", advance_body)
+        self.assertIn("chapter = next.first", continue_body)
+        self.assertIn("topic = next.second", continue_body)
+        self.assertIn('onClick = { continueToNextCurriculumTopic() }', tutor)
+        self.assertIn('"Continue to next topic:', tutor)
+        self.assertIn('"Continue to next chapter:', tutor)
+
+    def test_end_of_curriculum_has_no_fake_next_destination(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn('else "You have reached the end of the available curriculum."', tutor)
+        self.assertIn("pendingNextCurriculumTopic = null", tutor)
+
+
 if __name__ == "__main__":
     unittest.main()

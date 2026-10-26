@@ -156,14 +156,24 @@ for attempt in $(seq 1 20); do
   if grep -qi "Learn chapter 5" ui-screenshots/diary-test/diary-review.xml; then break; fi
 done
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/review-tasks.png
+# The review form is taller than the compact emulator viewport. Validate the
+# first visible task, scroll, then dump the newly visible second task and Save action.
 assert_has ui-screenshots/diary-test/diary-review.xml "Learn chapter 5"
-assert_has ui-screenshots/diary-test/diary-review.xml "Write page 18"
 if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" ui-screenshots/diary-test/diary-review.xml; then
   log "FAIL: neighboring-date homework leaked into review"
   exit 1
 fi
+"${ADB[@]}" shell input swipe 520 1450 520 700 450
+sleep 1
+dump_ui diary-review-scrolled
+"${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/review-tasks-scrolled.png
+assert_has ui-screenshots/diary-test/diary-review-scrolled.xml "Write page 18"
+if grep -Eqi "Read lesson 4|Questions 1 - 5|Revise map|Workbook page 32" ui-screenshots/diary-test/diary-review-scrolled.xml; then
+  log "FAIL: neighboring-date homework leaked into scrolled review"
+  exit 1
+fi
 log "Saving reviewed tasks and verifying they appear in today's planner"
-tap_label ui-screenshots/diary-test/diary-review.xml "Save selected tasks"
+tap_label ui-screenshots/diary-test/diary-review-scrolled.xml "Save selected tasks"
 for attempt in $(seq 1 20); do
   sleep 1
   dump_ui diary-planner

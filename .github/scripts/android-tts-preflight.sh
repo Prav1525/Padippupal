@@ -51,4 +51,24 @@ if [ "$selected" != "$PACKAGE" ]; then
   echo "::error::Could not select the installed offline TTS engine (selected=$selected)."
   exit 1
 fi
-echo "Offline TTS engine ready: $selected"
+# The APK bundles eSpeak voice data, but Android can start its service before its
+# internal data directory has been extracted. A package/service query alone is
+# insufficient: the previous CI run selected eSpeak successfully while it had
+# no usable English voice, so the tutor paused and the smoke test timed out.
+# Run the engine's own data installer in the foreground to avoid Android 14/15
+# background-activity-launch blocking, then re-open its status activity to force
+# a fresh voice-data check before launching PadippuPal.
+adb -s emulator-5554 shell am start -W -n "$PACKAGE/.DownloadVoiceData"
+sleep 3
+adb -s emulator-5554 shell am force-stop "$PACKAGE"
+adb -s emulator-5554 logcat -c
+adb -s emulator-5554 shell am start -W -n "$PACKAGE/.eSpeakActivity"
+sleep 2
+tts_diagnostics="$(adb -s emulator-5554 logcat -d -s eSpeakTTS:E)"
+if printf '%s\n' "$tts_diagnostics" | grep -Eqi "Missing base resource|Failed to extract voice data|Voice data check failed|Initialization failed"; then
+  echo "::error::eSpeak is installed but its bundled voice data is not ready; refusing to run tutor UI tests with a broken TTS engine."
+  printf '%s\n' "$tts_diagnostics"
+  exit 1
+fi
+adb -s emulator-5554 shell am force-stop "$PACKAGE"
+echo "Offline TTS engine and bundled voice data ready: $selected"

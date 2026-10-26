@@ -472,7 +472,7 @@ def photo_picker_item_candidates(nodes):
     """
     return [
         node for node in nodes
-        if node.attrib.get("package") == "com.android.providers.media.module"
+        if node.attrib.get("package", "").endswith(".providers.media.module")
         and node.attrib.get("class") == "android.widget.FrameLayout"
         and node.attrib.get("clickable") == "true"
         and node.attrib.get("enabled", "true") == "true"

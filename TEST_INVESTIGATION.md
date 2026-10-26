@@ -298,3 +298,17 @@ Use this format:
 - **Safety boundary:** These are self-report signals only. The Android UI does not send `practice_correct` or claim mastery; the backend's three-consecutive-correct rule remains unused until real scored practice checks exist. The identifier is a random UUID and does not use the student's name.
 - **Verification status:** Android source changes are committed; exact-head Android APK/UI workflows have not yet completed. The prior backend curriculum suite and guidance gate passed on commit `4d1f740cd6054e337a50970a8cb3d492e673adf0`, before these Android edits.
 - **Next action:** Check latest-head curriculum, APK, and API-35 emulator runs. Fix compile or runtime issues from logs before calling the learner-progress flow complete.
+
+
+### 2026-10-26 — Prevent API-35 emulator acceptance run from being cancelled by overlapping runs
+- **Branch / commit:** `feature/syllabus-synthesis-prototype`; latest inspected head before this change: `992e698e1989ff42cb8d632eb7b2c712633834d6`.
+- **Test command or workflow URL:** [Cancelled API-35 UI smoke run #1148](https://github.com/Prav1525/Padippupal/actions/runs/40324509807), job `121577630937`.
+- **Result:** **CANCELLED**; this is not a passing test and did not verify the picker.
+- **Exact failure or assertion:** The only emulator job ended with conclusion `cancelled`; no step-level test result was reported for that attempt.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Workflow run #1148](https://github.com/Prav1525/Padippupal/actions/runs/40324509807).
+- **Change made (files + rationale):** Change `.github/workflows/android-ui-smoke.yml` concurrency from `cancel-in-progress: true` to `false`, so an overlapping run on the same workflow/ref/API level queues instead of automatically cancelling the in-flight acceptance run.
+- **Root cause:** **CONFIRMED for cancellation risk, not the picker bug** — the workflow explicitly enabled cancellation of an in-progress run in its concurrency group. The exact actor/event that cancelled run #1148 is not exposed in the job summary.
+- **What this attempt proves:** The CI configuration allowed in-flight UI acceptance runs to be cancelled; the cancellation itself provides no evidence that the app picker passes or fails.
+- **What remains unverified:** A full API-35 emulator run, DocumentsUI URI return, crop/rescan/save flow, and whether any runtime picker defect remains.
+- **Difference from previous attempt:** Addresses CI run cancellation policy rather than changing picker taps or app code.
+- **Next action and why:** Commit the non-cancelling concurrency policy and rerun API-35 UI acceptance; inspect the new job result and its artifacts before claiming a fix.

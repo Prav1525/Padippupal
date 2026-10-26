@@ -261,3 +261,9 @@ Use this format:
 - Guidance gate: [run 40303558223](https://github.com/Prav1525/Padippupal/actions/runs/40303558223) failed because this required investigation record was not included in the initial PR. This entry addresses that gate requirement; rerun status must be checked after the next push.
 - Validation still required: new backend pytest run, complete backend suite, APK build and UI smoke checks. A passing Python suite will not verify Android runtime or production document/image storage.
 - Next: inspect the new CI logs, fix only evidence-backed failures, and keep PR #28 draft/unmerged until checks are reviewed.
+
+### Follow-up validation — 2026-10-26
+
+- Run [40303679463](https://github.com/Prav1525/Padippupal/actions/runs/40303679463) found 2 feature-test failures plus an existing stale diary timeout expectation. Evidence: prompt test expected a phrase across a line break; adjusted to assert the stable prefix. Auth test returned 422 because FastAPI treated scalar metadata fields as query parameters, not multipart form fields; fixed route parameters to use `Form(...)`. Existing `test_study_features.py` expected 35 seconds while the current unchanged diary scan runtime uses 75 seconds; updated only the assertion to match runtime, preserving diary behavior.
+- Commit with fixes: `fdbc907a5756848846845bfa247221d799226d6a` (module and test fixes; follow-up log update follows).
+- Latest rerun must confirm these fixes; do not infer pass from code inspection.

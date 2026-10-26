@@ -69,7 +69,8 @@ class ExactSelectorTests(unittest.TestCase):
                      "java" / "com" / "padippupal" / "app" / "AllOnesTopicValidator.kt").read_text()
         self.assertIn("no All 1s explanation or approved short transition", validator)
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
+        self.assertIn('tap-exact ready-to-teach.xml "Start teaching"', smoke)
+        self.assertIn("Waiting for the selected textbook lesson preview to finish loading", smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
@@ -263,7 +264,7 @@ class PreviousScreenSelectionTests(unittest.TestCase):
     def test_focused_tutor_has_change_action_and_preloaded_lesson_preview(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
         self.assertIn('if "set up your lesson" in joined.lower():', smoke)
-        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/TutorScreen.kt").read_text()
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
         self.assertIn("TextButton(onClick = { hasCompletedLesson = false; showLessonSettings = true }", tutor)
         self.assertIn("startLiveLesson(prepareOnly = true)", tutor)
         self.assertIn("preparedLessonSegments.joinToString", tutor)

@@ -113,6 +113,15 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn(command, workflow)
         self.assertNotIn("resolve-activity --brief \\\n              -a android.intent.action.MAIN", workflow)
 
+    def test_tts_preflight_extracts_voice_data_before_tutor_smoke(self):
+        preflight = (ROOT / ".github" / "scripts" / "android-tts-preflight.sh").read_text(encoding="utf-8")
+        self.assertIn('settings put secure tts_default_synth "$PACKAGE"', preflight)
+        self.assertIn('am start -W -n "$PACKAGE/.DownloadVoiceData"', preflight)
+        self.assertIn('am start -W -n "$PACKAGE/.eSpeakActivity"', preflight)
+        self.assertIn("Missing base resource", preflight)
+        self.assertIn("Failed to extract voice data", preflight)
+        self.assertIn("refusing to run tutor UI tests with a broken TTS engine", preflight)
+
     def test_workflow_records_outcomes_even_when_a_step_fails(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("if: always()", workflow)

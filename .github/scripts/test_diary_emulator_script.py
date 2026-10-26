@@ -121,12 +121,13 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("write_test_failure_report.py", workflow)
 
 
-    def test_picker_uses_legacy_documentsui_fallback_and_api_matrix(self):
+    def test_workflow_targets_api35_only_and_uses_independent_job_concurrency(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        self.assertIn('providers\\.media\\.module', source)
-        self.assertIn('tap-file ui-screenshots/diary-test/diary-picker.xml "PadippuPal-diary-test.jpg"', source)
+        self.assertIn("tap-photo-picker-item", source)
+        self.assertNotIn("ui_smoke.py tap-file", source)
         workflow = WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("api-level: [30, 35]", workflow)
+        self.assertIn("api-level: [35]", workflow)
+        self.assertNotIn("api-level: [30, 35]", workflow)
         self.assertIn("system-image-api-level: ${{ matrix.api-level }}", workflow)
         self.assertIn("group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.api-level }}", workflow)
 

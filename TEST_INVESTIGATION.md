@@ -250,3 +250,14 @@ Use this format:
 - **Change made:** Add explicit `adb install -r app/build/outputs/apk/debug/app-debug.apk`, verify package path with `pm path`, and verify launcher resolution for `com.padippupal.app/.MainActivity` before running TTS setup and the diary acceptance script. No app source, picker interaction, API level, or lesson-preparation code changed.
 - **Verification plan:** Let exact-head CI run static tests, JVM tests, APK build, then the API-35 emulator test. Confirm installation/launcher checks pass; inspect whether the test reaches the Photo Picker and captures the selection-result screenshot/XML; only then assess picker URI return and crop/rescan/review/save.
 - **Result at edit time:** Workflow change proposed and committed below; emulator acceptance is still unverified. No PR merge performed.
+
+## 2026-10-26 — Syllabus synthesis engine PR #28
+
+- Branch: `feat/syllabus-synthesis-engine-mainline`; current code commit before this log entry: `3c550d0eb71117d05e145181040df5931162da25`.
+- Requirement: add multi-board/all-standard PDF curriculum intake, page-level evidence mapping, extracted images, hierarchical topic packages, and review gates without changing live tutor or diary-scan behavior.
+- Changes: added `backend/syllabus_synthesis.py`, admin route `POST /admin/syllabus/ingest-pdf`, metadata schema keyed by board/academic year/medium/standard/subject/textbook edition, page text extraction, optional embedded-image extraction with page/hash provenance, topic-to-page lexical candidate mapping, missing-source flags, and per-topic review worksheets. Added `backend/test_syllabus_synthesis.py`, `pymupdf` dependency, and backend documentation.
+- Trust constraints: rights review must be explicitly attested before ingestion; all packages remain `needs_review`; no arbitrary URL crawling, no automatic source approval, and no claim that lexical matches prove completeness. OCR is not implemented; image-topic association still needs review.
+- CI attempt 1: [Curriculum Engine Tests run 40303419482](https://github.com/Prav1525/Padippupal/actions/runs/40303419482) failed during test collection with a syntax error in the newly added auth test: the multiline call had literal `\\n` sequences. Fixed in commit `3c550d0eb71117d05e145181040df5931162da25`; the corrected run is pending.
+- Guidance gate: [run 40303558223](https://github.com/Prav1525/Padippupal/actions/runs/40303558223) failed because this required investigation record was not included in the initial PR. This entry addresses that gate requirement; rerun status must be checked after the next push.
+- Validation still required: new backend pytest run, complete backend suite, APK build and UI smoke checks. A passing Python suite will not verify Android runtime or production document/image storage.
+- Next: inspect the new CI logs, fix only evidence-backed failures, and keep PR #28 draft/unmerged until checks are reviewed.

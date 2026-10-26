@@ -90,5 +90,5 @@ def test_upload_endpoint_is_admin_only(monkeypatch):
     monkeypatch.delenv("PADIPPUPAL_ADMIN_TOKEN", raising=False)
     app = FastAPI()
     app.include_router(router)
-    response = TestClient(app).post("/admin/syllabus/ingest-pdf")
+    response = TestClient(app).post(\n        "/admin/syllabus/ingest-pdf",\n        data={"metadata_json": "{}", "syllabus_json": "[]"},\n        files={"file": ("textbook.pdf", b"%PDF-1.4", "application/pdf")},\n    )
     assert response.status_code == 401

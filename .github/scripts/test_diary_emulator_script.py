@@ -27,6 +27,11 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
         self.assertNotIn('ui_smoke.py tap-file', source)
         self.assertNotIn('preview_icon', source)
+        picker_section = source[source.index('log "Opening gallery/photo picker"'):source.index('log "Opening crop editor')]
+        self.assertNotIn('KEYCODE_DPAD_CENTER', picker_section)
+        self.assertNotIn('List view', picker_section)
+        self.assertNotIn('Downloads', picker_section)
+        self.assertEqual(picker_section.count('dump_ui diary-picker\\n'), 1)
 
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")

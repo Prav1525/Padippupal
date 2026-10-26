@@ -48,6 +48,14 @@ def assert_tutor(path):
         raise SystemExit("Concept lab still uses the detached pale-green panel styling")
     print("PASS: concept lab does not use the detached pale-green panel styling")
     print("PASS: tutor ready screen exposes Teach without duplicating chapter/topic selection or showing setup")
+    if "fun advanceToNextCurriculumTopic()" not in source:
+        raise SystemExit("Tutor does not implement curriculum-ordered next-topic navigation")
+    if "previousCompletedTopic" not in source or "Do not repeat the generic greeting" not in source:
+        raise SystemExit("Tutor continuation prompt does not prevent repeated generic lesson openings")
+    if "preparedLessonKey = \"\"" not in source or "previewAttemptKey = \"\"" not in source:
+        raise SystemExit("Next-topic transition does not invalidate the prior lesson preview cache")
+    print("PASS: completion advances through the curriculum outline and invalidates the old preview")
+    print("PASS: continuation prompt connects to the previous topic without repeating a generic welcome")
 
 def assert_checkpoint(path, screenshot_path=None):
     _, texts = load(path)

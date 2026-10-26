@@ -154,9 +154,10 @@ class TtsFailureRegressionTests(unittest.TestCase):
     def test_smoke_workflow_does_not_force_the_incompatible_hayai_engine(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows" /
                     "android-ui-smoke.yml").read_text()
-        api_levels = re.findall(r"(?m)^\s*(?:api-level|system-image-api-level):\s*(\d+)\s*$", workflow)
-        self.assertEqual(len(api_levels), 2, "workflow must configure both emulator API levels")
-        self.assertEqual(len(set(api_levels)), 1, "emulator API and system image API must match")
+        self.assertIn("api-level: [35]", workflow)
+        self.assertNotIn("api-level: [30, 35]", workflow)
+        self.assertIn("api-level: ${{ matrix.api-level }}", workflow)
+        self.assertIn("system-image-api-level: ${{ matrix.api-level }}", workflow)
         self.assertIn("target: google_apis", workflow)
         self.assertNotIn("system-image: google_apis", workflow)
         self.assertIn("bash .github/scripts/android-tts-preflight.sh", workflow)

@@ -491,7 +491,7 @@ def tap_photo_picker_item(path):
         )
     node = candidates[0]
     bounds = node.attrib.get("bounds", "")
-    match = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]", bounds)
+    match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
     if not match:
         raise SystemExit("Photo Picker tile has invalid accessibility bounds: " + bounds)
     x1, y1, x2, y2 = map(int, match.groups())

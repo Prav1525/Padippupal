@@ -46,7 +46,7 @@ def _fake_gemini_response():
         def read(self):
             return json.dumps(response_body).encode("utf-8")
 
-    return FakeResponse
+    return FakeResponse()
 
 
 def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):

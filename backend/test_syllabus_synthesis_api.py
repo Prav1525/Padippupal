@@ -232,3 +232,24 @@ def test_science_maths_coverage_audit_requires_current_evidence_and_approval():
                        params={"board": "CBSE", "class_level": 6, "medium": "English"})
     assert stale.status_code == 200, stale.text
     assert stale.json()["sources"][0]["chapters"][0]["coverage_status"] == "stale_evidence"
+
+    # Missing textbook pages must block "complete" even when the remaining chunk,
+    # synthesis, citations, and approval records are otherwise valid.
+    with curriculum.db() as conn:
+        conn.execute("UPDATE chunks SET text=?,page_start=1,page_end=1 WHERE id=?",
+                     (source_text, chunk_id))
+        refreshed = curriculum.build_evidence_packet([
+            curriculum.EvidenceChunk(chunk_id, source_id, chapter, 0, 1, 1, source_text)
+        ])
+        conn.execute(
+            "UPDATE syllabus_synthesis_rounds SET source_chunk_ids_json=?,evidence_fingerprint=? WHERE id=?",
+            (json.dumps([chunk_id]), refreshed["evidence_fingerprint"], round_id),
+        )
+    incomplete = client.get("/admin/syllabus-synthesis/coverage", headers=headers,
+                            params={"board": "CBSE", "class_level": 6, "medium": "English"})
+    assert incomplete.status_code == 200, incomplete.text
+    incomplete_source = incomplete.json()["sources"][0]
+    assert incomplete_source["page_coverage_complete"] is False
+    assert incomplete_source["missing_page_numbers"] == [2]
+    assert incomplete_source["inventory_status"] == "incomplete_page_extraction"
+    assert incomplete_source["chapters"][0]["coverage_status"] == "source_page_coverage_incomplete"

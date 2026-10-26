@@ -16,7 +16,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
-    def test_picker_opens_filename_row_not_preview_affordance(self):
+    def test_picker_uses_clickable_preview_affordance_not_nonclickable_row(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker-list.xml "PadippuPal-diary-test.jpg"', source)
         self.assertIn('ui_smoke.py tap ui-screenshots/diary-test/diary-picker-downloads.xml "List view"', source)
@@ -26,7 +26,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('for attempt in $(seq 1 8); do', source)
         self.assertLess(source.index("returned=0"), source.index("for attempt in $(seq 1 8); do"))
         selector_source = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")
-        self.assertIn('Double-tapping DocumentsUI row', selector_source)
+        self.assertIn('Tap clickable DocumentsUI preview control', selector_source)
         self.assertNotIn('target_kind = "thumbnail"', selector_source)
         self.assertIn('["adb", "-s", "emulator-5554", "shell",', selector_source)
         self.assertIn('"input", "tap", str(x), str(y)', selector_source)
@@ -47,11 +47,11 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
                 ui_smoke.main()
             selector.assert_called_once_with(str(path), "PadippuPal-diary-test.jpg")
 
-    def test_file_selector_focuses_row_then_activates_without_preview(self):
+    def test_file_selector_taps_exact_clickable_preview_control(self):
         xml = """<hierarchy>
           <node text="PadippuPal-diary-test.jpg" content-desc="" clickable="false" bounds="[189,685][660,742]" />
           <node resource-id="com.android.documentsui:id/item_root" clickable="false" focusable="true" bounds="[0,641][1080,830]" />
-          <node resource-id="com.android.documentsui:id/icon_thumb" clickable="false" bounds="[42,683][147,788]" />
+          <node resource-id="com.google.android.documentsui:id/icon_thumb" clickable="false" bounds="[42,683][147,788]" />
           <node resource-id="com.google.android.documentsui:id/preview_icon" text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" enabled="true" bounds="[891,641][1080,830]" />
         </hierarchy>"""
         with tempfile.TemporaryDirectory() as temp:
@@ -59,13 +59,11 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             path.write_text(xml, encoding="utf-8")
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
-                self.assertEqual(run.call_count, 2)
-                expected_tap = ["adb", "-s", "emulator-5554", "shell", "input", "tap", "540", "735"]
-                self.assertEqual(run.call_args_list[0].args[0], expected_tap)
-                self.assertEqual(run.call_args_list[1].args[0], expected_tap)
-                self.assertTrue(all(call.kwargs == {"check": True, "timeout": 45} for call in run.call_args_list))
+                run.assert_called_once_with(
+                    ["adb", "-s", "emulator-5554", "shell", "input", "tap", "985", "735"],
+                    check=True, timeout=45)
 
-    def test_file_selector_prefers_row_activation_over_preview(self):
+    def test_file_selector_uses_preview_bounds_not_filename_or_row(self):
         xml = """<hierarchy>
           <node resource-id="com.google.android.documentsui:id/item_root" clickable="false" focusable="true" bounds="[0,80][400,200]" />
           <node resource-id="com.google.android.documentsui:id/preview_icon" text="" content-desc="Preview the file PadippuPal-diary-test.jpg" clickable="true" enabled="true" bounds="[300,80][400,200]" />
@@ -76,11 +74,9 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
             path.write_text(xml, encoding="utf-8")
             with mock.patch("ui_smoke.subprocess.run") as run:
                 tap_file(str(path), "PadippuPal-diary-test.jpg")
-                self.assertEqual(run.call_count, 2)
-                expected_tap = ["adb", "-s", "emulator-5554", "shell", "input", "tap", "200", "140"]
-                self.assertEqual(run.call_args_list[0].args[0], expected_tap)
-                self.assertEqual(run.call_args_list[1].args[0], expected_tap)
-                self.assertTrue(all(call.kwargs == {"check": True, "timeout": 45} for call in run.call_args_list))
+                run.assert_called_once_with(
+                    ["adb", "-s", "emulator-5554", "shell", "input", "tap", "350", "140"],
+                    check=True, timeout=45)
 
     def test_missing_filename_fails_safely_without_tapping_preview(self):
         xml = """<hierarchy>

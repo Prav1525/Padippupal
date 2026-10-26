@@ -1803,8 +1803,8 @@ internal fun TutorScreen(
         }
     }
 
-    LaunchedEffect(selectedLessonKey, liveLessonActive, loading) {
-        if (loading || liveLessonActive || chapter.isBlank() || topic.isBlank()) return@LaunchedEffect
+    LaunchedEffect(selectedLessonKey, liveLessonActive, loading, showLessonSettings, setupOnly) {
+        if (loading || liveLessonActive || showLessonSettings || setupOnly || chapter.isBlank() || topic.isBlank()) return@LaunchedEffect
         if (preparedLessonKey == selectedLessonKey && preparedLessonSegments.isNotEmpty()) return@LaunchedEffect
         delay(250L)
         if (!loading && !liveLessonActive) startLiveLesson(prepareOnly = true)

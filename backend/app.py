@@ -1454,6 +1454,69 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         raise HTTPException(status_code=502,detail="Synthesis returned invalid or unverified lesson data; no draft was published.") from exc
 
 
+@app.get("/admin/syllabus-synthesis/rounds", dependencies=[Depends(require_admin)])
+def list_syllabus_synthesis_rounds(
+    board: str | None = None,
+    class_level: int | None = Query(default=None, ge=1, le=12),
+    subject: str | None = None,
+    chapter: str | None = None,
+    status: str = "draft",
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict[str, Any]:
+    if status not in {"draft", "validating", "approved", "rejected", "failed"}:
+        raise HTTPException(status_code=422, detail="Invalid synthesis status.")
+    sql = """SELECT id,source_id,board,class_level,subject,chapter,curriculum_version,status,
+                    model,source_chunk_ids_json,evidence_fingerprint,validation_json,created_at,updated_at
+             FROM syllabus_synthesis_rounds WHERE status=?"""
+    args: list[Any] = [status]
+    for field, value in (("board", board), ("class_level", class_level),
+                         ("subject", subject), ("chapter", chapter)):
+        if value is not None:
+            sql += f" AND LOWER({field})=LOWER(?)" if field != "class_level" else " AND class_level=?"
+            args.append(value)
+    sql += " ORDER BY updated_at DESC LIMIT ?"
+    args.append(limit)
+    with db() as conn:
+        rows = conn.execute(sql, args).fetchall()
+    rounds = []
+    for raw in rows:
+        item = dict(raw)
+        item["source_chunk_ids"] = json.loads(item.pop("source_chunk_ids_json") or "[]")
+        item["validation"] = json.loads(item.pop("validation_json") or "{}")
+        rounds.append(item)
+    return {"count": len(rounds), "rounds": rounds}
+
+
+@app.get("/admin/syllabus-synthesis/rounds/{round_id}", dependencies=[Depends(require_admin)])
+def get_syllabus_synthesis_round(round_id: str) -> dict[str, Any]:
+    with db() as conn:
+        row = conn.execute("SELECT * FROM syllabus_synthesis_rounds WHERE id=?", (round_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Synthesis round not found.")
+        topics = conn.execute(
+            "SELECT * FROM syllabus_topic_syntheses WHERE round_id=? ORDER BY page_start,topic",
+            (round_id,),
+        ).fetchall()
+    item = dict(row)
+    item["source_chunk_ids"] = json.loads(item.pop("source_chunk_ids_json") or "[]")
+    item["validation"] = json.loads(item.pop("validation_json") or "{}")
+    decoded_topics = []
+    for raw in topics:
+        topic = dict(raw)
+        for field, public_field in (
+            ("learning_objectives_json", "learning_objectives"),
+            ("explanation_json", "explanation"),
+            ("examples_json", "examples"),
+            ("practice_questions_json", "practice_questions"),
+            ("citation_refs_json", "citation_refs"),
+            ("validation_notes_json", "validation_notes"),
+        ):
+            topic[public_field] = json.loads(topic.pop(field) or "[]")
+        decoded_topics.append(topic)
+    item["topics"] = decoded_topics
+    return item
+
+
 @app.get("/admin/chapter-lessons", dependencies=[Depends(require_admin)])
 def list_chapter_lessons(status: str = "draft", limit: int = 50) -> dict[str, Any]:
     if status not in {"draft","review","approved","rejected"} or not 1 <= limit <= 200:

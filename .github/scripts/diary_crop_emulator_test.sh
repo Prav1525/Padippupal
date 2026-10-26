@@ -205,8 +205,9 @@ for attempt in $(seq 1 8); do
   sleep 1
   dump_ui diary-planner
   "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/saved-planner.png
-  if grep -qi "Today's homework" "$planner_xml" && \
-     grep -qi "Complete Q1-5" "$planner_xml" && \
+  # The current PlannerScreen does not render a "Today's homework" heading.
+  # Confirm the actual saved task cards instead of coupling acceptance to an obsolete label.
+  if grep -qi "Complete Q1-5" "$planner_xml" && \
      grep -qi "Revise Components of Food" "$planner_xml"; then
     planner_has_both=1
     log "Both saved diary tasks visible in planner accessibility tree after attempt $attempt"
@@ -217,8 +218,8 @@ for attempt in $(seq 1 8); do
     "${ADB[@]}" shell input swipe 520 1350 520 650 450
   fi
 done
-assert_has "$planner_xml" "Today's homework"
 assert_has "$planner_xml" "Complete Q1-5"
+assert_has "$planner_xml" "Revise Components of Food"
 if [ "$planner_has_both" -ne 1 ]; then
   log "FAIL: second saved task did not become visible after 8 planner viewport checks; inspect diary-planner.xml and saved-planner.png"
   exit 1

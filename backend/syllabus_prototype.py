@@ -324,7 +324,7 @@ def create_whole_chapter_package(
             "page": int(page["page"]),
             "matched_terms": ["whole_chapter_page"],
             "score": 1.0 if str(page.get("text", "")).strip() else 0.0,
-            "evidence_excerpt": str(page.get("text", ""))[:900],
+            "evidence_excerpt": str(page.get("text", "")),
             "text_available": bool(str(page.get("text", "")).strip()),
         }
         for page in pages

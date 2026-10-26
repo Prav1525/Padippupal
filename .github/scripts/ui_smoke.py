@@ -38,8 +38,8 @@ def assert_tutor(path):
     labels = {text.strip().lower() for text in texts}
     if "set up your lesson" in joined.lower():
         raise SystemExit("Lesson setup must stay hidden until the learner taps Change")
-    if not any(label.strip().lstrip("▶").strip().lower() == "teach" for label in labels):
-        raise SystemExit("Tutor ready screen is missing the Teach action")
+    if not any(label.strip().lower() in ("start teaching", "கற்கத் தொடங்கு", "kathukka start pannalaam") for label in labels):
+        raise SystemExit("Tutor ready screen is missing the single Start teaching action")
     if any("set up your lesson" in text.lower() for text in texts):
         raise SystemExit("Lesson setup must open only after the learner chooses Change")
     source_path = Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt"

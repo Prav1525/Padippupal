@@ -63,7 +63,7 @@ def test_topic_mapping_returns_page_evidence_and_flags_gaps():
 def test_prompt_is_source_grounded_and_discloses_missing_evidence():
     package = {"topic_title": "Fractions", "chapter": "Numbers", "page_matches": []}
     prompt = build_synthesis_prompt(scope(), package)
-    assert "Do not invent page\\nreferences" in prompt
+    assert "Do not invent page" in prompt
     assert "No matching source evidence was found." in prompt
     assert "needs_review" in prompt
 

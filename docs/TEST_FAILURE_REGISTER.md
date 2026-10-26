@@ -226,3 +226,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Regression prevention:** Commit `4f41137eda6fba6dfa57ff012448ae8af5b530a9` adds static regression coverage requiring the voice-data initialization steps and explicit failure checks. The next API 35 run must show the preflight passes and the tutor's speech starts; if not, the preflight should fail immediately with TTS diagnostics instead of burning 150 seconds.
 - **Diary picker status:** In the same run, Photo Picker → crop → rescan → review → save → today's planner passed, and both expected task titles were present after scrolling. The picker flow remains unchanged by this tutor/TTS fix. The diary parse API is deterministic in this test; this does not validate real OCR accuracy.
 - **Validation:** The TTS fix is committed but awaits a fresh API 35 emulator run. Keep PR #24 open and unmerged until the new preflight, tutor smoke, and all other required checks pass.
+
+
+## Incident: tutor preview regression checks blocked Android emulator validation
+
+- **Symptom:** Android UI smoke run 40334233073 passed JVM tests and built the debug APK, but failed in smoke-script validation before emulator allocation (one error, one failure).
+- **Root cause:** Two stale static-test assumptions: the tutor source path omitted the `app/` package directory, and the lesson-start assertion still expected the removed `▶ Teach` action instead of the new single `Start teaching` action after the preview is ready.
+- **Fix:** Updated `.github/scripts/test_ui_smoke_helpers.py` to point at the actual `app/src/main/java/com/padippupal/app/TutorScreen.kt` file and assert the current preview-first flow and label.
+- **Regression prevention:** Keep the source path consistent with the other tutor tests and assert the preview wait plus exact current action. Require a fresh API 35 emulator run to exercise preview loading, lesson playback/highlighting, completion, follow-up Q&A, and return-to-Home.
+- **Validation:** Fix committed; fresh CI pending. This incident is not closed until the emulator run completes successfully.

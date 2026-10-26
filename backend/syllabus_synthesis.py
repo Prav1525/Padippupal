@@ -12,6 +12,8 @@ import os
 import re
 import shutil
 import uuid
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -469,4 +471,130 @@ def run_iterative_synthesis(
         "issues": history[-1]["validation_issues"] if history else ["No synthesis rounds completed."],
         "approved": False,
         "approval_note": "Human source-page review is required before publishing to the tutor.",
+    }
+
+
+
+class SynthesisRequest(BaseModel):
+    max_rounds: int = Field(default=3, ge=1, le=5)
+
+
+def _gemini_json_generator():
+    """Build a Gemini JSON adapter using the backend's existing secret/model settings."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Syllabus synthesis needs GEMINI_API_KEY configured on the backend.",
+        )
+    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+
+    def generate(prompt: str) -> dict[str, Any]:
+        body = json.dumps({
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.15,
+                "maxOutputTokens": 5000,
+            },
+        }).encode("utf-8")
+        request = urllib.request.Request(
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            + model + ":generateContent",
+            data=body,
+            headers={
+                "x-goog-api-key": api_key,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=90) as response:
+                result = json.loads(response.read().decode("utf-8"))
+            raw = "".join(
+                part.get("text", "")
+                for part in result["candidates"][0]["content"]["parts"]
+                if isinstance(part, dict)
+            )
+            parsed = json.loads(raw)
+            if not isinstance(parsed, dict):
+                raise ValueError("Gemini synthesis response must be a JSON object")
+            return parsed
+        except urllib.error.HTTPError as exc:
+            detail = exc.read(600).decode("utf-8", errors="replace")
+            raise HTTPException(
+                status_code=502,
+                detail=f"Gemini synthesis request failed with HTTP {exc.code}: {detail[:240]}",
+            ) from exc
+        except (KeyError, IndexError, TypeError, json.JSONDecodeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="Gemini returned an invalid JSON synthesis draft.",
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Gemini synthesis could not reach the configured provider.",
+            ) from exc
+
+    return generate
+
+
+@router.post("/sources/{source_id}/topics/{topic_id}/synthesize")
+def synthesize_source_topic(
+    source_id: str,
+    topic_id: str,
+    payload: SynthesisRequest,
+    x_admin_token: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Run bounded multi-pass synthesis for an ingested topic; always leaves it unapproved."""
+    _require_admin(x_admin_token)
+    if not re.fullmatch(r"[a-f0-9]{16}", source_id):
+        raise HTTPException(status_code=404, detail="Source package not found")
+    safe_topic_id = slug(topic_id)
+    if safe_topic_id == "unknown":
+        raise HTTPException(status_code=422, detail="Topic id must contain ASCII letters or digits")
+    root = DEFAULT_OUTPUT_ROOT
+    matches = [path for path in root.rglob(source_id) if path.is_dir() and path.name == source_id]
+    if len(matches) != 1:
+        raise HTTPException(status_code=404, detail="Source package not found or ambiguous")
+    base = matches[0]
+    try:
+        manifest = json.loads((base / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=500, detail="Source manifest is missing or unreadable") from exc
+    topic = next(
+        (item for item in manifest.get("topics", []) if slug(str(item.get("topic_id", ""))) == safe_topic_id),
+        None,
+    )
+    if topic is None:
+        raise HTTPException(status_code=404, detail="Topic not found in source package")
+    if topic.get("coverage_status") != "evidence_found" or not topic.get("page_matches"):
+        return {
+            "source_id": source_id,
+            "topic_id": topic.get("topic_id"),
+            "status": "blocked_missing_evidence",
+            "synthesis": None,
+            "approved": False,
+            "issues": ["No candidate source pages exist; synthesis is blocked."],
+        }
+    scope = CurriculumScope.model_validate(manifest["scope"])
+    result = run_iterative_synthesis(
+        scope, topic, _gemini_json_generator(), max_rounds=payload.max_rounds
+    )
+    topic_dir = base / "topics" / safe_topic_id
+    topic_dir.mkdir(parents=True, exist_ok=True)
+    output_path = topic_dir / "synthesis.json"
+    output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {
+        "source_id": source_id,
+        "topic_id": topic.get("topic_id"),
+        "status": result["status"],
+        "rounds_completed": len(result.get("rounds", [])),
+        "synthesis_path": str(output_path),
+        "synthesis": result.get("synthesis"),
+        "issues": result.get("issues", []),
+        "approved": False,
+        "review_required": True,
     }

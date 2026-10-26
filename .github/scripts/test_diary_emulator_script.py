@@ -75,6 +75,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         source = SCRIPT.read_text(encoding="utf-8")
         dump_helper = source[source.index("dump_ui(){"):source.index("\ntap_label(){")]
         self.assertIn('for attempt in $(seq 1 8); do', dump_helper)
+        self.assertIn('shell rm -f "$remote"', dump_helper)
         self.assertIn('null root node returned by UiTestAutomationBridge', dump_helper)
         self.assertIn('root.tag == "hierarchy"', dump_helper)
         self.assertIn('root.iter("node")', dump_helper)

@@ -260,3 +260,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** The diary emulator script now re-dumps the live accessibility hierarchy and performs up to eight bounded content scrolls, tapping `Scan homework` only after the label is actually present. It fails with an explicit diagnostic if the tile never becomes accessible.
 - **Regression prevention:** Added a static regression assertion that the bounded scroll/dump loop exists and that the obsolete single-swipe coordinate is not used.
 - **Validation:** Awaiting the new CI run on the fix commit. Do not close this incident until the emulator passes the full scan, picker, crop, rescan, review, and planner-save flow.
+
+
+## Incident: curriculum transition regression test overfit to Kotlin formatting
+
+- **Symptom:** Android UI smoke workflow [40359855867](https://github.com/Prav1525/Padippupal/actions/runs/40359855867) passed JVM tests and APK build but failed during smoke-script validation, before allocating the emulator. The failing assertion was `test_end_of_curriculum_has_no_fake_next_destination`.
+- **Root cause:** The new test required the end-of-curriculum message to appear in a specific inline `else "message"` expression, while the actual UI correctly renders the same message inside an `else { Text(...) }` block. The test was too coupled to source formatting and did not indicate an app behavior defect.
+- **Fix:** The regression assertion now checks for the exact user-facing end-of-curriculum message independently of Kotlin expression layout.
+- **Regression prevention:** Keep assertions focused on observable UI strings and progression behavior, not incidental formatting. Re-run script validation and the Android API 35 end-to-end smoke test on the corrected commit.
+- **Validation:** JVM curriculum tests and APK build passed on the failed run; smoke-script validation failed and the emulator stage was skipped. Fresh CI is required before treating this as verified.

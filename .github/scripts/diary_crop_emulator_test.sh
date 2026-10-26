@@ -82,11 +82,25 @@ fi
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity >/dev/null
 sleep 6
-# The scan tile is below the first viewport on the compact emulator. Scroll the
-# actual home list so the tile is rendered and exposed to accessibility before tapping.
-"${ADB[@]}" shell input swipe 520 1450 520 650 450
-sleep 1
-dump_ui diary-home
+# Home is a LazyColumn and its content height varies with emulator density,
+# saved profile text, and Compose layout. A single hard-coded swipe can land on
+# the bottom navigation or move too little. Re-dump after bounded scrolls and
+# tap only after the real Scan homework tile is exposed in the accessibility tree.
+scan_tile_visible=0
+for home_scroll_attempt in $(seq 1 8); do
+  dump_ui diary-home
+  if grep -qi "Scan homework" ui-screenshots/diary-test/diary-home.xml; then
+    scan_tile_visible=1
+    break
+  fi
+  log "Scan homework tile not visible on home scroll attempt $home_scroll_attempt; scrolling the content"
+  "${ADB[@]}" shell input swipe 520 1350 520 650 450
+  sleep 1
+done
+if [ "$scan_tile_visible" -ne 1 ]; then
+  log "FAIL: Scan homework tile did not become accessible after 8 bounded home scroll attempts"
+  exit 1
+fi
 python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-home.xml "Scan homework"
 sleep 3
 dump_ui diary-scanner

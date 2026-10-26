@@ -352,3 +352,121 @@ async def ingest_syllabus_pdf(
         "pages_needing_ocr": result["manifest"]["pages_needing_ocr"],
         "status": "needs_review",
     }
+
+
+
+# ---------- Iterative, evidence-checked synthesis core ----------
+
+SYNTHESIS_REQUIRED_SECTIONS = (
+    "explanation",
+    "key_points",
+    "worked_examples",
+    "misconceptions",
+    "understanding_checks",
+    "source_citations",
+    "gaps",
+)
+
+
+def _validate_synthesis_draft(draft: Any, allowed_pages: set[int]) -> list[str]:
+    """Return concrete quality-gate failures; never silently approve model output."""
+    issues: list[str] = []
+    if not isinstance(draft, dict):
+        return ["draft must be a JSON object"]
+    for section in SYNTHESIS_REQUIRED_SECTIONS:
+        value = draft.get(section)
+        if value is None or value == "" or value == []:
+            issues.append(f"missing_required_section:{section}")
+    citations = draft.get("source_citations", [])
+    if not isinstance(citations, list):
+        issues.append("source_citations_must_be_a_list")
+    else:
+        for citation in citations:
+            if not isinstance(citation, dict):
+                issues.append("citation_must_be_an_object")
+                continue
+            page = citation.get("page")
+            if not isinstance(page, int) or page not in allowed_pages:
+                issues.append(f"citation_page_not_in_evidence:{page}")
+            if not str(citation.get("claim", "")).strip():
+                issues.append("citation_missing_claim")
+    checks = draft.get("understanding_checks")
+    if isinstance(checks, list) and not 2 <= len(checks) <= 3:
+        issues.append("understanding_checks_must_contain_2_or_3_items")
+    return issues
+
+
+def run_iterative_synthesis(
+    scope: CurriculumScope,
+    topic_package: dict[str, Any],
+    generate_json: Any,
+    *,
+    max_rounds: int = 3,
+) -> dict[str, Any]:
+    """Run draft -> critique/refine passes through an injected model adapter.
+
+    generate_json(prompt) must return a parsed JSON object. The engine never
+    approves a synthesis automatically: even a passing draft is 'ready_for_review'.
+    Each round is retained so omissions and refinements are auditable.
+    """
+    if not 1 <= max_rounds <= 5:
+        raise ValueError("max_rounds must be between 1 and 5")
+    evidence = topic_package.get("page_matches") or []
+    allowed_pages = {
+        int(item["page"]) for item in evidence
+        if isinstance(item, dict) and str(item.get("page", "")).isdigit()
+    }
+    if not allowed_pages:
+        return {
+            "topic_id": topic_package.get("topic_id", ""),
+            "status": "blocked_missing_evidence",
+            "rounds": [],
+            "synthesis": None,
+            "issues": ["No candidate source pages exist; synthesis is blocked."],
+        }
+
+    history: list[dict[str, Any]] = []
+    previous: dict[str, Any] | None = None
+    issues: list[str] = []
+    for round_number in range(1, max_rounds + 1):
+        if previous is None:
+            instruction = (
+                "Create the first original, age-appropriate topic synthesis as strict JSON. "
+                "Include: explanation, key_points, worked_examples, misconceptions, "
+                "understanding_checks (2-3 items), source_citations (each has page and claim), "
+                "and gaps. Cite only the supplied evidence pages. Do not reproduce long "
+                "textbook passages; use your own words."
+            )
+        else:
+            instruction = (
+                "Improve the previous draft using the validation issues below. Keep every "
+                "curriculum-specific claim grounded in the supplied pages. Return the complete "
+                "revised JSON object, not a patch. If the evidence cannot support a claim, "
+                "move it to gaps instead of guessing. Issues: " + json.dumps(issues)
+            )
+        prompt = build_synthesis_prompt(scope, topic_package) + (
+            "\n\nITERATION " + str(round_number) + "\n" + instruction
+        )
+        if previous is not None:
+            prompt += "\nPREVIOUS DRAFT:\n" + json.dumps(previous, ensure_ascii=False)
+        candidate = generate_json(prompt)
+        issues = _validate_synthesis_draft(candidate, allowed_pages)
+        history.append({
+            "round": round_number,
+            "draft": candidate,
+            "validation_issues": issues,
+        })
+        previous = candidate if isinstance(candidate, dict) else None
+        if not issues:
+            break
+
+    passed = bool(history) and not history[-1]["validation_issues"]
+    return {
+        "topic_id": topic_package.get("topic_id", ""),
+        "status": "ready_for_review" if passed else "needs_review",
+        "rounds": history,
+        "synthesis": previous,
+        "issues": history[-1]["validation_issues"] if history else ["No synthesis rounds completed."],
+        "approved": False,
+        "approval_note": "Human source-page review is required before publishing to the tutor.",
+    }

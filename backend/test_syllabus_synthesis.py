@@ -90,9 +90,19 @@ def test_upload_endpoint_is_admin_only(monkeypatch):
     monkeypatch.delenv("PADIPPUPAL_ADMIN_TOKEN", raising=False)
     app = FastAPI()
     app.include_router(router)
+    import json
+
     response = TestClient(app).post(
         "/admin/syllabus/ingest-pdf",
-        data={"metadata_json": "{\\"board\\":\\"CBSE\\",\\"academic_year\\":\\"2026-27\\",\\"medium\\":\\"English\\",\\"standard\\":\\"6\\",\\"subject\\":\\"Science\\",\\"textbook_title\\":\\"Science\\",\\"edition\\":\\"2026\\",\\"source_authority\\":\\"NCERT\\",\\"rights_reviewed\\":true,\\"rights_note\\":\\"reviewed\\"}",\n        "syllabus_json": "[{\\"id\\":\\"t1\\",\\"title\\":\\"Photosynthesis\\"}]",
+        data={
+            "metadata_json": json.dumps({
+                "board": "CBSE", "academic_year": "2026-27", "medium": "English",
+                "standard": "6", "subject": "Science", "textbook_title": "Science",
+                "edition": "2026", "source_authority": "NCERT",
+                "rights_reviewed": True, "rights_note": "reviewed",
+            }),
+            "syllabus_json": json.dumps([{"id": "t1", "title": "Photosynthesis"}]),
+        },
         files={"file": ("textbook.pdf", b"%PDF-1.4", "application/pdf")},
     )
     assert response.status_code == 401

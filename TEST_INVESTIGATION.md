@@ -259,3 +259,72 @@ Use this format:
 - **Known gaps:** This prompt change does not itself implement or prove the UI checkpoint state machine, grading, mastery progression, Tanglish audio/caption alignment, or textbook-image/2D-animation matching. These remain acceptance blockers.
 - **Verification status:** CI is running for PR #26. The investigation-guidance workflow initially failed because this ledger was not updated; rerun after this entry. No local build or emulator/audio acceptance has been performed in this entry.
 - **Merge status:** Draft PR #26 only; do not merge until functional implementation and all regression checks pass.
+
+
+### 2026-10-26 — Add iterative source-grounded synthesis quality gates
+- **Branch / commit:** `feat/syllabus-synthesis-engine`; implementation commits `498ce315cafa31683251f65b15b1e5f36cbfa01b`, `2ace7ba8875718062280ea0e7460d502b0040e4b`, `d68cedb37f698036c04a1c0ad5b117370a5ef668`.
+- **Requirement / evidence:** The first draft only extracted PDFs and created prompt worksheets; it had no repeatable draft/refine/validate loop. PR #29 explicitly documented that gap.
+- **Change made:** Added an injected-model iterative engine with bounded 1–5 rounds, previous-draft feedback, required teaching sections, 2–3 understanding checks, source-page citation validation, explicit missing-evidence blocking, round-by-round history, and a non-approval status even when quality gates pass. Added tests for refinement, invalid citations, missing evidence and round limits. Corrected the multipart endpoint test's malformed call syntax.
+- **Root cause:** CONFIRMED for the synthesis capability gap — no synthesis orchestration/validation function existed in the prior module. The engine is model-adapter agnostic; this change does not yet configure a live model provider or populate official all-board content.
+- **Verification plan:** Run the focused pytest suite in backend CI, inspect exact-head workflow results and the investigation gate; add a real provider adapter only after confirming the project's existing provider and key configuration.
+- **Result at commit time:** **UNVERIFIED** — source changes are committed to the draft branch; no local Python test execution or green CI evidence has yet been obtained.
+- **What it proves / does not prove:** The source now contains a deterministic iterative orchestration and validation contract. It does not prove generated educational content is factually correct, does not automatically ingest every board/standard, and never auto-approves output.
+- **Next action:** Run focused backend tests, fix any failures, then wire the loop to the existing configured model provider and exercise a real PDF end-to-end.
+- **Merge status:** PR #29 remains draft and unmerged; no merge authorized.
+
+
+### 2026-10-26 — Wire iterative synthesis to Gemini and expose admin workflow
+- **Branch / commit:** `feat/syllabus-synthesis-engine`; provider/API commit `b73f5d64aead25ec919c41fb1d4fb94a694ec8bc`; documentation commit recorded by the following README update.
+- **Requirement / evidence:** The first iterative engine accepted a model callback but did not yet call a configured model or expose synthesis through the backend.
+- **Change made:** Added a Gemini JSON adapter using existing `GEMINI_API_KEY` and `PADIPPUPAL_GEMINI_CHAT_MODEL` settings, plus admin endpoint `POST /admin/syllabus/sources/{source_id}/topics/{topic_id}/synthesize`. It bounds passes, saves the full review history, validates cited pages against candidate evidence, blocks topics without evidence and never auto-approves.
+- **Root cause:** CONFIRMED for the missing operational integration — no API endpoint or configured-provider adapter existed for this new pipeline.
+- **Verification:** **UNVERIFIED** for runtime/API integration. The latest exact-head check visible so far is the Investigation Guidance Gate, not a backend pytest run. Local clone/test execution was blocked because this environment could not resolve github.com; no tests are claimed as passing.
+- **Known limitations:** The citation gate checks page membership and required fields, not semantic entailment. Topic-page matching is lexical and can miss relevant pages. OCR remains flagged rather than implemented. No board's full official corpus has been populated; source availability and rights review are still required. Gemini output remains draft/review material.
+- **Next action:** Obtain a CI run that executes `pytest backend/test_syllabus_synthesis.py` (and the backend regression suite), inspect its logs, then run a controlled end-to-end test against a permitted official PDF.
+- **Merge status:** PR #29 remains draft/unmerged; no merge authorized.
+
+
+### 2026-10-26 — Add focused backend CI for synthesis validation
+- **Branch / commit:** `feat/syllabus-synthesis-engine`; workflow commit `67146720b0019c880637a14e1a2fc180a237ee8c`.
+- **Reason:** The repository's observed PR check only validates investigation guidance; it does not execute the new pytest suite. A local clone attempt was blocked by DNS/network resolution.
+- **Change made:** Added `.github/workflows/backend-syllabus-tests.yml` to install `backend/requirements.txt`, run `test_syllabus_synthesis.py`, then run the full backend pytest suite on backend changes and workflow edits.
+- **Verification status:** **UNVERIFIED** until GitHub Actions runs against the new head. This workflow is intended to surface import, syntax, dependency and regression failures; it does not validate factual correctness of generated curriculum content or actual model quality.
+- **Next action:** Check the exact-head workflow runs and inspect failures; do not treat the source as tested until the focused and full backend test steps pass.
+- **Merge status:** PR #29 remains draft and unmerged.
+
+
+### 2026-10-26 — Fix first focused synthesis CI failures
+- **Branch / commit:** `feat/syllabus-synthesis-engine`; fix commit `7e761b5d7fe4e05fb92ee29f0afbed42f1cfb3ee`.
+- **Evidence:** Backend workflow run [40306273895](https://github.com/Prav1525/Padippupal/actions/runs/40306273895), job 121516045062, focused test step failed with 2 failures and 8 passes.
+- **Confirmed causes:** (1) The prompt said “Do not invent page references” across a newline, but the expected assertion looked for the contiguous phrase. (2) `metadata_json` and `syllabus_json` were unannotated FastAPI parameters, so multipart form submissions returned 422 before the admin-token guard; the endpoint contract and test both use multipart form data.
+- **Change made:** Kept the required prompt phrase contiguous and annotated both fields with `Form(...)` so the endpoint accepts the documented multipart contract.
+- **Verification status:** **UNVERIFIED after fix**; a new exact-head focused and regression CI run must confirm the change.
+- **Next action:** Poll the new workflow, inspect logs, and address any remaining failures based on their evidence.
+- **Merge status:** PR #29 remains draft/unmerged.
+
+
+### 2026-10-26 — Verify synthesis fixes on GitHub Actions
+- **Branch / tested commit:** `feat/syllabus-synthesis-engine`; tested code commit `7e761b5d7fe4e05fb92ee29f0afbed42f1cfb3ee`; latest log-only commit is separate.
+- **Workflow:** [Backend Syllabus Synthesis Tests run 40306444399](https://github.com/Prav1525/Padippupal/actions/runs/40306444399), job 121516618704.
+- **Result:** **PASS** — dependency installation, focused `python -m pytest -q test_syllabus_synthesis.py`, and full backend `python -m pytest -q` all completed successfully after the fixes.
+- **Comparison:** Previous run 40306273895 had 2 focused failures / 8 passes. This run passed both focused and full backend regression steps after multipart `Form(...)` binding and prompt contract correction.
+- **What this proves:** Backend tests pass for the code at the tested commit. It does not prove Gemini calls succeed with production credentials, content is semantically entailed by cited pages, OCR works, every board/standard is populated, or the Android tutor consumes the packages end-to-end.
+- **Next action:** Keep PR #29 in draft pending real permitted-PDF/Gemini end-to-end validation and coverage work. Do not merge without explicit authorization.
+
+
+### 2026-10-26 — Persist synthesis with the existing curriculum database
+- **Branch / commits:** `feat/syllabus-synthesis-engine`; DB storage `d415c680de8dc41b30a7536583a1b80924243c4c`, integration/topic seed `1000141d30be283a1c72d4cd2b6317b648cd90c4`, tests `a0eeb296bb22ffb78c155fbf8332abd01ddea4b7`, docs `08710507233b30a36e3d9dfcd7b909d67dbfbda4`.
+- **Requirement:** Reuse the existing PadippuPal curriculum DB rather than leaving synthesis as files alone, and reuse the existing Science/Mathematics topic scaffold where applicable.
+- **Change made:** Added relational DB records in the same DATABASE_URL Postgres/Neon or PADIPPUPAL_DB SQLite database: syllabus_sources, syllabus_source_pages, syllabus_source_images, syllabus_topics, syllabus_topic_syntheses, and syllabus_synthesis_rounds. Ingestion persists hierarchy, rights/provenance, page text/OCR flags, figure metadata, chapter/topic evidence. Each synthesis invocation stores every draft/validation round and latest unapproved topic package. Existing Class 6 CBSE Science/Mathematics scaffold topics can seed mapping when topic JSON is empty; this is metadata, not official textbook content.
+- **Test added:** SQLite temp-database test asserts source hierarchy, page evidence, image metadata, topic mapping, synthesis JSON, round history and approved=0; another test verifies existing Science/Mathematics topic seeds.
+- **Verification:** PENDING CI on this exact change. No real official book has been claimed ingested; a permitted PDF and real configured Gemini key are still needed for end-to-end provider validation.
+- **Merge status:** PR #29 remains draft and unmerged.
+
+
+### 2026-10-26 — Reuse already-indexed Science/Mathematics books
+- **Branch / code commits:** `feat/syllabus-synthesis-engine`; existing-source adapter `cde2a545d355b1ec594dbcbf1d61d08afb77343e`, no-reupload test `fa0a0c87cc0480c230f5d289dfddb8db304ba405`, documentation `f2059c50bfd82a0c1d0b5c23e1e92f493ded9d6a`.
+- **Change:** Added `POST /admin/syllabus/sources/from-curriculum-db/{existing_source_id}`. It reuses a ready source from the existing `sources`, `source_content`, and `chunks` tables, builds page-level evidence from stored page markers or chunk page ranges, and seeds topics from the existing Class 6 CBSE Science/Mathematics scaffold when the request provides an empty topic list. It does not re-upload the PDF or treat scaffold metadata as official book content. Existing rights notes remain unchanged; `rights_reviewed` is not silently set to true.
+- **Database persistence:** source hierarchy, page text, images, topic evidence, current synthesis and each refinement round are stored in the same configured SQLite/Neon database used by the existing curriculum backend. PDF/image binaries remain in the review package directory.
+- **Verification:** **PASS** — [Backend Syllabus Synthesis Tests run 40307503331](https://github.com/Prav1525/Padippupal/actions/runs/40307503331), job 121520142750. Both the focused synthesis tests and full backend regression suite completed successfully, including the new SQLite persistence and existing-source reuse tests.
+- **Limitations:** This proves DB reuse with a representative ready-source fixture, not that the deployed DB currently contains a ready Science and Mathematics source, nor that real Gemini calls/semantic entailment have been validated. Query the deployed catalog/source records before claiming a particular book is present.
+- **Merge status:** PR #29 remains draft and unmerged.

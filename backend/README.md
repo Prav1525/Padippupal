@@ -74,3 +74,30 @@ This is a working starter engine, not a production deployment. The Android app a
 ## Release and source-trust gates
 
 The lesson catalog is a teaching/visual blueprint, not an authoritative substitute for the current official textbook. `source_registry.json` currently marks all source entries as not approved for automatic ingestion. Before describing an answer as NCERT-grounded, verify the exact official syllabus/textbook edition, chapter and medium and ensure the required usage rights are in place. Gemini Live is intentionally not part of the current release; add it only after the request/response tutor, session restoration, visual lesson and speech paths pass phone testing.
+
+## Multi-board syllabus synthesis engine (review-first release)
+
+The `syllabus_synthesis.py` pipeline prepares source-grounded packages in this hierarchy:
+
+`board / academic-year / medium / standard / subject / textbook-edition / source-id/`
+
+Each package keeps the original PDF, page-level extracted text, embedded images (when PyMuPDF can extract them), a source manifest, and per-topic evidence packages. Each topic records candidate page matches, matched terms, evidence excerpts, a synthesis prompt contract, coverage status, and a review status. Topics with no matching evidence are explicitly marked `missing_source`.
+
+### Admin API
+
+`POST /admin/syllabus/ingest-pdf` accepts multipart fields:
+- `file`: a PDF (maximum 25 MiB)
+- `metadata_json`: JSON for board, academic_year, medium, standard, subject, textbook_title, edition, source_authority, source_url, rights_reviewed and rights_note
+- `syllabus_json`: JSON array of topic objects (`id`, `title`, optional `chapter`, `keywords`, `syllabus_reference`)
+
+The endpoint requires `x-admin-token` and the existing server-side `PADIPPUPAL_ADMIN_TOKEN`. Source ingestion fails closed unless `rights_reviewed=true` and a non-empty `rights_note` are supplied. This is an explicit operator attestation, not a legal determination; only process materials whose usage rights have actually been reviewed.
+
+After ingestion, call `POST /admin/syllabus/sources/{source_id}/topics/{topic_id}/synthesize` with `x-admin-token` and optional JSON `{ "max_rounds": 3 }`. The endpoint uses the existing `GEMINI_API_KEY` and `PADIPPUPAL_GEMINI_CHAT_MODEL` settings, runs bounded draft/refine passes, checks required teaching sections, 2–3 understanding checks and citations against matched PDF pages, and stores each round in `topics/{topic-id}/synthesis.json`. Results can be `ready_for_review`, `needs_review`, or `blocked_missing_evidence`; **none is auto-approved**. A citation passing the page-membership check is a structural gate, not proof that the claim is factually supported by that page.
+
+**Reuse books already in the DB:** call `POST /admin/syllabus/sources/from-curriculum-db/{existing_source_id}` with `x-admin-token` and optional multipart `syllabus_json`. This reads a source whose existing `sources.status` is `ready` from `sources` + `source_content` + `chunks`, builds page-level evidence from the stored `[Page N]` markers or chunk page ranges, and does not require uploading the same PDF again. If `syllabus_json` is `[]`, it can use the existing Class 6 CBSE Science/Mathematics topic scaffold. This scaffold is only topic routing metadata; the actual book evidence must come from the ready database source. Existing source license notes are preserved but are not silently upgraded to a rights approval.
+
+**Database storage:** synthesis uses the same `DATABASE_URL` (Postgres/Neon) or `PADIPPUPAL_DB` SQLite database as the existing curriculum API. It stores source hierarchy in `syllabus_sources` (board/year/medium/standard/subject/book/edition/rights/provenance), extracted page text in `syllabus_source_pages`, figure metadata in `syllabus_source_images`, topic/chapter/evidence mappings in `syllabus_topics`, the current unapproved synthesis in `syllabus_topic_syntheses`, and each draft/refinement plus validation issues in `syllabus_synthesis_rounds`. The source PDF and image files remain in the existing review package directory; the DB contains metadata, evidence text and synthesis JSON so the records can be queried with the rest of the backend data. Existing Class 6 CBSE Science/Mathematics scaffold topic IDs can seed topic mapping when `syllabus_json` is an empty array; they are routing metadata, not textbook content or proof of official syllabus coverage.
+
+Install `pymupdf` (included in backend requirements) to extract embedded figures. Text extraction uses the existing `pypdf` dependency. Scanned pages are flagged for OCR and are not silently treated as readable. PDF images retain source page numbers and checksums; topic links/captions remain pending review.
+
+**Trust boundary:** this first release does not claim that lexical matching is complete syllabus coverage, does not auto-approve AI-generated synthesis, and does not fetch arbitrary publisher URLs. Every package remains `needs_review` until source pages, image links and topic coverage are checked. Multi-board/all-standard support is in the schema; actual curriculum coverage depends on supplying each board's official syllabus and textbook sources.

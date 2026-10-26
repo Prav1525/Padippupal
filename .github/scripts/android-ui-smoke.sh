@@ -163,6 +163,25 @@ sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml
 python3 .github/scripts/ui_smoke.py assert-tutor ready-to-teach.xml | tee -a "$REPORT"
+log "Waiting for the selected textbook lesson preview to finish loading"
+preview_ready=0
+preview_deadline=$((SECONDS + 90))
+while [ "$SECONDS" -lt "$preview_deadline" ]; do
+  timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/ready-to-teach.xml >/dev/null 2>&1 || true
+  timeout 10s "${ADB[@]}" pull /data/local/tmp/ready-to-teach.xml ready-to-teach.xml >/dev/null 2>&1 || true
+  if [ -s ready-to-teach.xml ] && grep -q "Lesson preview ready" ready-to-teach.xml; then
+    preview_ready=1
+    break
+  fi
+  sleep 2
+done
+if [ "$preview_ready" -ne 1 ]; then
+  log "FAIL: selected lesson content did not preload into the preview"
+  [ ! -s ready-to-teach.xml ] || cat ready-to-teach.xml | tee -a "$REPORT"
+  exit 1
+fi
+grep -q "All 1s" ready-to-teach.xml || { log "FAIL: preview is missing the selected topic"; cat ready-to-teach.xml | tee -a "$REPORT"; exit 1; }
+log "PASS: textbook lesson content is visible before Teach is pressed"
 python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
 log "Waiting for a complete lesson caption (hard deadline 150s; each ADB call is separately bounded)"

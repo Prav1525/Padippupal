@@ -252,7 +252,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f7fa;padding:12px;
 <div><label for="topic">Test topic</label><input id="topic" value="Patterns in Mathematics"></div></div>
 <label for="keywords">Keywords (comma separated)</label><input id="keywords" value="patterns, number patterns, rules, mathematics">
 <label for="chapter">Chapter label (optional)</label><input id="chapter" placeholder="Use selected book title if blank">
-<button id="prepare">Build evidence package from stored book text</button>
+<button id="preview" class="secondary">Preview extracted pages first</button>\n<button id="prepare">Build evidence package from stored book text</button>
 <div id="evidence"></div>
 </section>
 <section class="panel">
@@ -270,6 +270,6 @@ async function call(url,options={}){const r=await fetch(url,{...options,headers:
 function show(id,value){$(id).innerHTML='<pre>'+esc(typeof value==='string'?value:JSON.stringify(value,null,2))+'</pre>'}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 $('load').onclick=async()=>{try{const d=await call('/admin/syllabus-prototype/api/sources');$('book').innerHTML=d.sources.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.subject+' · '+s.title+' · '+s.page_count+' pages · '+s.chunk_count+' chunks')+'</option>').join('');$('status').textContent='Found '+d.sources.length+' ready Class 6 Science/Mathematics source records with stored text.';if(!d.sources.length)$('status').textContent='No eligible source records found.'}catch(e){$('status').textContent=e.message}};
-$('prepare').onclick=async()=>{try{const keywords=$('keywords').value.split(',').map(x=>x.trim()).filter(Boolean);const d=await call('/admin/syllabus-prototype/api/sources/'+encodeURIComponent($('book').value)+'/package',{method:'POST',body:JSON.stringify({topic_title:$('topic').value,keywords,chapter:$('chapter').value})});activePackage=d.source_id;activeTopic=d.topic.topic_id;show('evidence',d);$('result').textContent='Package ready for review. Synthesis has not run yet.'}catch(e){show('evidence',e.message)}};
+$('preview').onclick=async()=>{try{const d=await call('/admin/syllabus-prototype/api/sources/'+encodeURIComponent($('book').value)+'/preview');show('evidence',d)}catch(e){show('evidence',e.message)}};\n$('prepare').onclick=async()=>{try{const keywords=$('keywords').value.split(',').map(x=>x.trim()).filter(Boolean);const d=await call('/admin/syllabus-prototype/api/sources/'+encodeURIComponent($('book').value)+'/package',{method:'POST',body:JSON.stringify({topic_title:$('topic').value,keywords,chapter:$('chapter').value})});activePackage=d.source_id;activeTopic=d.topic.topic_id;show('evidence',d);$('result').textContent='Package ready for review. Synthesis has not run yet.'}catch(e){show('evidence',e.message)}};
 $('synthesize').onclick=async()=>{if(!activePackage||!activeTopic){show('result','Build an evidence package first.');return}try{const d=await call('/admin/syllabus-prototype/api/packages/'+activePackage+'/topics/'+encodeURIComponent(activeTopic)+'/synthesize',{method:'POST',body:JSON.stringify({max_rounds:Number($('rounds').value)})});show('result',d)}catch(e){show('result',e.message)}};
 </script></body></html>"""

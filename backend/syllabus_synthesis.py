@@ -742,6 +742,162 @@ def _gemini_json_generator():
     return generate
 
 
+
+def _read_existing_curriculum_source(existing_source_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Read a book already ingested into the curriculum DB; do not require re-uploading its PDF."""
+    conn = _synthesis_db_connect()
+    try:
+        source = conn.execute("SELECT * FROM sources WHERE id=?", (existing_source_id,)).fetchone()
+        stored = conn.execute("SELECT content FROM source_content WHERE source_id=?", (existing_source_id,)).fetchone()
+        if source is None or stored is None or str(source["status"]) != "ready":
+            raise HTTPException(status_code=404, detail="Existing curriculum source not found or not indexed as ready")
+        raw_text = str(stored["content"] or "")
+        marker = re.compile(r"(?:^|\\n)\\s*\\[Page\\s+(\\d+)\\]\\s*", re.IGNORECASE)
+        matches = list(marker.finditer(raw_text))
+        pages: list[dict[str, Any]] = []
+        if matches:
+            for index, match in enumerate(matches):
+                end = matches[index + 1].start() if index + 1 < len(matches) else len(raw_text)
+                page_text = _normalise(raw_text[match.end():end])
+                pages.append({"page": int(match.group(1)), "text": page_text, "word_count": len(page_text.split()), "needs_ocr": not bool(page_text)})
+        else:
+            chunks = conn.execute(
+                "SELECT page_start, page_end, text FROM chunks WHERE source_id=? ORDER BY chunk_no",
+                (existing_source_id,),
+            ).fetchall()
+            by_page: dict[int, list[str]] = {}
+            for chunk in chunks:
+                start = chunk["page_start"]
+                end = chunk["page_end"]
+                if start is not None and end is not None:
+                    for page_no in range(int(start), int(end) + 1):
+                        by_page.setdefault(page_no, []).append(str(chunk["text"] or ""))
+            pages = [
+                {"page": page_no, "text": _normalise(" ".join(parts)), "word_count": len(" ".join(parts).split()), "needs_ocr": False}
+                for page_no, parts in sorted(by_page.items())
+            ]
+        if not pages:
+            raise HTTPException(status_code=422, detail="Existing source has no page-level evidence; re-ingest a page-marked PDF/text source first")
+        metadata = dict(source)
+        metadata["content"] = raw_text
+        return metadata, pages
+    finally:
+        conn.close()
+
+
+def create_package_from_existing_source(
+    existing_source_id: str,
+    topics: list[SyllabusTopic],
+    output_root: Path = DEFAULT_OUTPUT_ROOT,
+) -> dict[str, Any]:
+    """Create a review package from existing DB book content and keep its original provenance."""
+    source, pages = _read_existing_curriculum_source(existing_source_id)
+    authority = "Existing PadippuPal curriculum source"
+    if source.get("source_url"):
+        authority = str(source["source_url"])
+    scope = CurriculumScope(
+        board=str(source["board"]), academic_year=str(source["academic_year"]),
+        medium=str(source["medium"]), standard=str(source["class_level"]),
+        subject=str(source["subject"]), textbook_title=str(source["title"]),
+        edition=str(source["edition"]), source_url=str(source.get("source_url") or "") or None,
+        source_authority=authority, rights_reviewed=False,
+        rights_note=str(source.get("license_note") or "Previously ingested source; reuse review status not inferred."),
+    )
+    package_id = hashlib.sha256(
+        f"existing-db:{existing_source_id}:{source['sha256']}".encode("utf-8")
+    ).hexdigest()[:16]
+    base = (
+        output_root / slug(scope.board) / slug(scope.academic_year) / slug(scope.medium)
+        / f"standard-{slug(scope.standard)}" / slug(scope.subject)
+        / f"{slug(scope.textbook_title)}-{slug(scope.edition)}" / package_id
+    )
+    if base.exists():
+        manifest_path = base / "manifest.json"
+        if manifest_path.exists():
+            return {"package_path": str(base), "manifest": json.loads(manifest_path.read_text(encoding="utf-8"))}
+        raise FileExistsError("Existing DB source package path exists but has no readable manifest")
+    base.mkdir(parents=True, exist_ok=False)
+    try:
+        (base / "pages").mkdir()
+        for page in pages:
+            (base / "pages" / f"page-{page['page']:04d}.txt").write_text(page["text"], encoding="utf-8")
+        (base / "images").mkdir()
+        topic_packages = map_topics_to_pages(topics, pages)
+        for topic in topic_packages:
+            topic["synthesis_prompt"] = build_synthesis_prompt(scope, topic)
+        manifest = {
+            "schema_version": 1, "source_id": package_id,
+            "existing_curriculum_source_id": existing_source_id,
+            "scope": scope.model_dump(), "source_filename": "",
+            "source_sha256": str(source["sha256"]), "page_count": len(pages),
+            "pages_needing_ocr": [page["page"] for page in pages if page["needs_ocr"]],
+            "images": [], "topics": topic_packages, "overall_status": "needs_review",
+            "source_storage": "existing_curriculum_database",
+            "limitations": [
+                "The original book content is reused from the existing curriculum DB; no PDF or image binaries are duplicated.",
+                "Existing source license_note is preserved, but does not imply rights_reviewed approval.",
+                "Page/topic matching is lexical and must be reviewed before use.",
+            ],
+        }
+        (base / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+        for topic in topic_packages:
+            topic_dir = base / "topics" / slug(topic["topic_id"])
+            topic_dir.mkdir(parents=True, exist_ok=True)
+            (topic_dir / "evidence.json").write_text(json.dumps(topic, ensure_ascii=False, indent=2), encoding="utf-8")
+            (topic_dir / "synthesis-review.md").write_text(render_topic_review_sheet(topic), encoding="utf-8")
+        _persist_source_package(manifest, pages)
+        return {"package_path": str(base), "manifest": manifest}
+    except Exception:
+        shutil.rmtree(base, ignore_errors=True)
+        raise
+
+
+@router.post("/sources/from-curriculum-db/{existing_source_id}")
+def synthesize_existing_book_source(
+    existing_source_id: str,
+    syllabus_json: str = Form("[]"),
+    x_admin_token: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Reuse an already indexed Science/Maths book in the existing curriculum DB."""
+    _require_admin(x_admin_token)
+    try:
+        source, _pages = _read_existing_curriculum_source(existing_source_id)
+        if syllabus_json.strip() in {"", "[]"}:
+            existing_scope = CurriculumScope(
+                board=str(source["board"]), academic_year=str(source["academic_year"]),
+                medium=str(source["medium"]), standard=str(source["class_level"]),
+                subject=str(source["subject"]), textbook_title=str(source["title"]),
+                edition=str(source["edition"]), source_url=str(source.get("source_url") or "") or None,
+                source_authority="Existing PadippuPal curriculum source",
+                rights_reviewed=False, rights_note=str(source.get("license_note") or ""),
+            )
+            topic_items = load_existing_topic_seeds(existing_scope)
+        else:
+            raw = json.loads(syllabus_json)
+            if not isinstance(raw, list):
+                raise ValueError("syllabus_json must be a JSON array")
+            topic_items = raw
+        topics = [SyllabusTopic.model_validate(item) for item in topic_items]
+        if not topics:
+            raise ValueError("No matching topic seeds; provide syllabus_json or use the existing Class 6 CBSE Science/Mathematics scaffold.")
+        result = create_package_from_existing_source(existing_source_id, topics)
+    except HTTPException:
+        raise
+    except (ValidationError, json.JSONDecodeError, ValueError, FileExistsError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    manifest = result["manifest"]
+    return {
+        "source_id": manifest["source_id"],
+        "existing_curriculum_source_id": existing_source_id,
+        "package_path": result["package_path"],
+        "page_count": manifest["page_count"],
+        "topic_count": len(manifest["topics"]),
+        "topics_missing_source": [item["topic_id"] for item in manifest["topics"] if item["coverage_status"] == "missing_source"],
+        "status": "needs_review",
+        "source_storage": "existing_curriculum_database",
+    }
+
+
 @router.post("/sources/{source_id}/topics/{topic_id}/synthesize")
 def synthesize_source_topic(
     source_id: str,

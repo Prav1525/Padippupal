@@ -80,8 +80,16 @@ dump_ui diary-picker
 # exposes date-based descriptions on clickable photo tiles. The fixture is the
 # sole visible photo in this fresh emulator; select that one tile, failing closed
 # if the picker unexpectedly shows zero or multiple selectable photos.
-log "Selecting the sole visible fixture tile in the system Photo Picker"
-python3 .github/scripts/ui_smoke.py tap-photo-picker-item ui-screenshots/diary-test/diary-picker.xml
+# Android 13+ exposes the system Photo Picker's date-described media tile.
+# Older Android versions fall back to DocumentsUI, where the fixture filename is
+# exposed and the exact preview/open affordance must be selected instead.
+if grep -Eq 'package="[^"]*providers\.media\.module"' ui-screenshots/diary-test/diary-picker.xml; then
+  log "Selecting the sole visible fixture tile in the system Photo Picker"
+  python3 .github/scripts/ui_smoke.py tap-photo-picker-item ui-screenshots/diary-test/diary-picker.xml
+else
+  log "Legacy Android picker fallback detected; selecting the exact DocumentsUI fixture affordance"
+  python3 .github/scripts/ui_smoke.py tap-file ui-screenshots/diary-test/diary-picker.xml "PadippuPal-diary-test.jpg"
+fi
 sleep 1
 dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png

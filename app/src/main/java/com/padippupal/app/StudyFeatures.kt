@@ -210,7 +210,7 @@ internal fun DiaryScanScreen(
                     Button(onClick = { camera.launch(null) }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.CameraAlt, null); Text("  Take photo")
                     }
-                    OutlinedButton(onClick = { picker.launch(ActivityResultContracts.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, enabled = !loading, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.UploadFile, null); Text("  Choose photo")
                     }
                     if (selectedName.isNotBlank()) Text("Photo selected", color = FeatureGrey, fontSize = 12.sp)

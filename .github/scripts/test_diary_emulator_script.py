@@ -40,15 +40,20 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
     def test_api35_photo_picker_tile_is_selected_without_relying_on_hidden_filename(self):
         import xml.etree.ElementTree as ET
         root = ET.fromstring("""<hierarchy>
-          <node class="android.widget.FrameLayout" package="com.android.providers.media.module"
-                content-desc="Photo taken on Oct 26, 2026, 4:52 AM"
+          <node class="android.widget.FrameLayout" package="com.google.android.providers.media.module"
+                content-desc="Photo taken on Oct 26, 2026, 5:02 AM"
                 clickable="true" enabled="true" bounds="[0,1217][354,1571]" />
-          <node class="android.widget.FrameLayout" package="com.android.providers.media.module"
+          <node class="android.widget.FrameLayout" package="com.google.android.providers.media.module"
                 content-desc="" clickable="false" bounds="[0,1217][354,1571]" />
         </hierarchy>""")
         candidates = photo_picker_item_candidates(list(root.iter("node")))
         self.assertEqual(len(candidates), 1)
         self.assertEqual(candidates[0].attrib["bounds"], "[0,1217][354,1571]")
+        # Pixel/API image-provider builds can expose either package namespace.
+        android_provider = ET.fromstring("""<hierarchy><node class="android.widget.FrameLayout"
+          package="com.android.providers.media.module" content-desc="Photo taken on Oct 26, 2026"
+          clickable="true" enabled="true" bounds="[0,1][10,10]" /></hierarchy>""")
+        self.assertEqual(len(photo_picker_item_candidates(list(android_provider.iter("node")))), 1)
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("tap-photo-picker-item", source)
         helper = (ROOT / ".github" / "scripts" / "ui_smoke.py").read_text(encoding="utf-8")

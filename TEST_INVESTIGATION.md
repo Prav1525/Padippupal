@@ -282,3 +282,12 @@ Use this format:
 - **Known limitations:** The citation gate checks page membership and required fields, not semantic entailment. Topic-page matching is lexical and can miss relevant pages. OCR remains flagged rather than implemented. No board's full official corpus has been populated; source availability and rights review are still required. Gemini output remains draft/review material.
 - **Next action:** Obtain a CI run that executes `pytest backend/test_syllabus_synthesis.py` (and the backend regression suite), inspect its logs, then run a controlled end-to-end test against a permitted official PDF.
 - **Merge status:** PR #29 remains draft/unmerged; no merge authorized.
+
+
+### 2026-10-26 — Add focused backend CI for synthesis validation
+- **Branch / commit:** `feat/syllabus-synthesis-engine`; workflow commit `67146720b0019c880637a14e1a2fc180a237ee8c`.
+- **Reason:** The repository's observed PR check only validates investigation guidance; it does not execute the new pytest suite. A local clone attempt was blocked by DNS/network resolution.
+- **Change made:** Added `.github/workflows/backend-syllabus-tests.yml` to install `backend/requirements.txt`, run `test_syllabus_synthesis.py`, then run the full backend pytest suite on backend changes and workflow edits.
+- **Verification status:** **UNVERIFIED** until GitHub Actions runs against the new head. This workflow is intended to surface import, syntax, dependency and regression failures; it does not validate factual correctness of generated curriculum content or actual model quality.
+- **Next action:** Check the exact-head workflow runs and inspect failures; do not treat the source as tested until the focused and full backend test steps pass.
+- **Merge status:** PR #29 remains draft and unmerged.

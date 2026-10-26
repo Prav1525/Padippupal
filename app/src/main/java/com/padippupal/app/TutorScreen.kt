@@ -995,6 +995,9 @@ internal fun TutorScreen(
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var preparedLessonSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var preparedLessonKey by remember { mutableStateOf("") }
+    val selectedLessonKey = listOf(board, grade.toString(), medium, subject, chapter, topic, selectedLanguage).joinToString("|")
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
@@ -1693,11 +1696,20 @@ internal fun TutorScreen(
         }
     }
 
-    fun startLiveLesson() {
+    fun startLiveLesson(prepareOnly: Boolean = false) {
         if (loading || liveLessonActive) return
-        if (chapter.isBlank() && topic.isBlank()) { status = "Choose a chapter or concept first."; return }
+        if (chapter.isBlank() || topic.isBlank()) { status = "Choose a chapter and topic first."; return }
+        val lessonKey = selectedLessonKey
+        if (!prepareOnly && preparedLessonKey == lessonKey && preparedLessonSegments.isNotEmpty()) {
+            liveSegments = preparedLessonSegments
+            liveLessonActive = true
+            livePaused = false
+            status = "Starting your prepared lesson…"
+            playLiveSegment(0)
+            return
+        }
         loading = true
-        status = "Preparing a textbook-grounded live lesson…"
+        status = if (prepareOnly) "Preparing your lesson preview…" else "Preparing a textbook-grounded live lesson…"
         tutorExecutor.execute {
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
@@ -1763,10 +1775,33 @@ internal fun TutorScreen(
             }
             tutorMainHandler.post {
                 loading = false
-                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; livePaused = false; playLiveSegment(0) },
-                    onFailure = { error -> status = error.message ?: "Could not prepare the live lesson." })
+                outcome.fold(
+                    onSuccess = { segments ->
+                        preparedLessonSegments = segments
+                        preparedLessonKey = lessonKey
+                        if (prepareOnly) {
+                            status = "Lesson preview ready."
+                        } else {
+                            liveSegments = segments
+                            liveLessonActive = true
+                            livePaused = false
+                            playLiveSegment(0)
+                        }
+                    },
+                    onFailure = { error ->
+                        status = error.message ?: "Could not prepare the live lesson."
+                        preparedLessonKey = ""
+                    }
+                )
             }
         }
+    }
+
+    LaunchedEffect(selectedLessonKey, liveLessonActive) {
+        if (liveLessonActive || chapter.isBlank() || topic.isBlank()) return@LaunchedEffect
+        if (preparedLessonKey == selectedLessonKey && preparedLessonSegments.isNotEmpty()) return@LaunchedEffect
+        delay(250L)
+        if (!loading && !liveLessonActive) startLiveLesson(prepareOnly = true)
     }
 
     fun stopLiveLesson() {
@@ -2250,14 +2285,21 @@ internal fun TutorScreen(
                         Text(chapter.ifBlank { "Choose a chapter" }, color = TutorDeep, fontSize = 19.sp, fontWeight = FontWeight.Bold)
                         Text(topic.ifBlank { "Choose a topic" }, color = TutorGreen, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         Divider(color = Color(0xFFE2E8F0))
-                        Text(
-                            when (selectedLanguage) {
-                                "Tanglish" -> "Lesson-la simple explanation, oru worked example, mukkiyamaana rule, common mistake, kadaisila short recap irukkum. Full lesson Tanglish-la irukkum."
-                                "தமிழ்" -> "இந்தப் பாடத்தில் எளிய விளக்கம், ஒரு எடுத்துக்காட்டு, முக்கிய விதி, பொதுவான தவறு, இறுதியில் சுருக்கம் இருக்கும். முழுப் பாடமும் தமிழில் இருக்கும்."
-                                else -> "Your lesson will include a simple explanation, a worked example, the key rule, a common mistake, and a short recap."
-                            },
-                            color = TutorDeep, fontSize = 14.sp, lineHeight = 22.sp
-                        )
+                        if (preparedLessonKey == selectedLessonKey && preparedLessonSegments.isNotEmpty()) {
+                            Text(
+                                preparedLessonSegments.joinToString(" ") { it.optString("spoken_text").trim() },
+                                color = TutorDeep, fontSize = 14.sp, lineHeight = 23.sp
+                            )
+                        } else {
+                            Text(
+                                when (selectedLanguage) {
+                                    "Tanglish" -> if (loading) "Lesson content ready aagudhu… konjam wait pannunga." else "Lesson-la simple explanation, oru worked example, mukkiyamaana rule, common mistake, kadaisila short recap irukkum. Full lesson Tanglish-la irukkum."
+                                    "தமிழ்" -> if (loading) "பாட உள்ளடக்கம் தயாராகிறது… சிறிது காத்திருக்கவும்." else "இந்தப் பாடத்தில் எளிய விளக்கம், ஒரு எடுத்துக்காட்டு, முக்கிய விதி, பொதுவான தவறு, இறுதியில் சுருக்கம் இருக்கும். முழுப் பாடமும் தமிழில் இருக்கும்."
+                                    else -> if (loading) "Preparing your textbook-based lesson…" else "Your lesson will include a simple explanation, a worked example, the key rule, a common mistake, and a short recap."
+                                },
+                                color = TutorDeep, fontSize = 14.sp, lineHeight = 23.sp
+                            )
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Surface(color = TutorAccentSoft, shape = RoundedCornerShape(50)) {
                                 Text(selectedLanguage, modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp), color = TutorGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)

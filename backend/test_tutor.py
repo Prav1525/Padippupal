@@ -1102,3 +1102,40 @@ def test_tutor_prompt_requires_complete_grade_aware_chat_and_text_only_visuals()
     assert "Adapt vocabulary, sentence length, abstraction, and example complexity to class" in source
     assert "Current product mode: text/chat examples only" in source
     assert "Do not request lesson feedback until the complete explanation" in source
+
+def test_tutor_progress_requires_three_consecutive_correct_checks_for_mastery(tmp_path):
+    import uuid
+
+    curriculum.DB_PATH = tmp_path / "learner-progress.sqlite3"
+    curriculum.init_db()
+    client = TestClient(curriculum.app)
+    learner_id = str(uuid.uuid4())
+
+    def signal(name, event_id=None):
+        return client.post("/tutor/progress", json={
+            "learner_id": learner_id,
+            "event_id": event_id or str(uuid.uuid4()),
+            "board": "CBSE", "class_level": 6, "subject": "Science",
+            "medium": "English", "chapter": "Life Processes",
+            "topic": "Photosynthesis", "signal": name,
+        })
+
+    first = signal("practice_correct")
+    second = signal("practice_correct")
+    assert first.status_code == 200 and first.json()["status"] == "learning"
+    assert second.status_code == 200 and second.json()["status"] == "learning"
+    third_event = str(uuid.uuid4())
+    third = signal("practice_correct", third_event)
+    assert third.status_code == 200 and third.json()["status"] == "mastered"
+    assert third.json()["correct_streak"] == 3
+
+    duplicate = signal("practice_incorrect", third_event)
+    assert duplicate.status_code == 200
+    assert duplicate.json()["duplicate_event"] is True
+    assert duplicate.json()["status"] == "mastered"
+
+    wrong = signal("practice_incorrect")
+    assert wrong.status_code == 200
+    assert wrong.json()["status"] == "needs_help"
+    assert wrong.json()["correct_streak"] == 0
+

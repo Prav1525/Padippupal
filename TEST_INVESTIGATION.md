@@ -250,3 +250,12 @@ Use this format:
 - **Change made:** Add explicit `adb install -r app/build/outputs/apk/debug/app-debug.apk`, verify package path with `pm path`, and verify launcher resolution for `com.padippupal.app/.MainActivity` before running TTS setup and the diary acceptance script. No app source, picker interaction, API level, or lesson-preparation code changed.
 - **Verification plan:** Let exact-head CI run static tests, JVM tests, APK build, then the API-35 emulator test. Confirm installation/launcher checks pass; inspect whether the test reaches the Photo Picker and captures the selection-result screenshot/XML; only then assess picker URI return and crop/rescan/review/save.
 - **Result at edit time:** Workflow change proposed and committed below; emulator acceptance is still unverified. No PR merge performed.
+
+
+### 2026-10-26 — Tutor teaching prompt update
+- **Branch / starting commit:** `feat/teacher-learning-clean`, based on `main` at `f57614d70ffaa0ec19217e4c1e0f7e6b231573b3`.
+- **Scope:** Prompt-only update in `backend/app.py` and `app/src/main/java/com/padippupal/app/TutorScreen.kt`; teach in child-friendly original wording, ground concepts and visuals in supplied textbook chunks, and request 2–3 understanding-check questions with hint/reteach guidance.
+- **Implementation commits:** `d859bb3c1351a641057eaff4bbe9f86b17f9aa3e` (Android prompt), `bf4c229763058f1d9f4ffd7b1b3a9eff039be8ba` (backend prompt).
+- **Known gaps:** This prompt change does not itself implement or prove the UI checkpoint state machine, grading, mastery progression, Tanglish audio/caption alignment, or textbook-image/2D-animation matching. These remain acceptance blockers.
+- **Verification status:** CI is running for PR #26. The investigation-guidance workflow initially failed because this ledger was not updated; rerun after this entry. No local build or emulator/audio acceptance has been performed in this entry.
+- **Merge status:** Draft PR #26 only; do not merge until functional implementation and all regression checks pass.

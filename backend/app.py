@@ -1330,11 +1330,11 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         context.append(json.dumps(ref, ensure_ascii=False) + "\n" + str(chunk["text"])[:1800])
     allowed = {ref["chunk_id"] for ref in refs}
     model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
-    prompt = ("You are PadippuPal's curriculum synthesizer. Use ONLY the supplied textbook chunks; never fill gaps with general knowledge. "
+    prompt = ("You are PadippuPal's curriculum synthesizer and instructional designer. Use ONLY the supplied textbook chunks; never fill gaps with general knowledge. Write for a child, in warm teacher-like language, and explain ideas freshly rather than copying textbook prose. "
         "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
         "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, source_chunk_ids, visual). "
         "visual has type (number_pattern, number_line, geometry, compare, process, table, diagram, none), objects, actions, narration_sync. "
-        "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. No code; draft only.")
+        "Include a warm opening, sequenced small steps, source-supported examples, likely misconceptions, and a recap. Each concept and step must cite exact supplied chunk_id values. For each visual, specify only a visual type and objects/actions supported by the source; narration_sync must map each action to the exact teaching step. Never fabricate textbook page numbers, figure numbers, or image URLs. Include 2-3 short understanding-check questions per concept in checkpoint data, with answer key and a brief hint/reteach note for likely wrong answers. No code; draft only.")
     body = json.dumps({"systemInstruction":{"parts":[{"text":prompt}]},
         "contents":[{"role":"user","parts":[{"text":"Profile: "+payload.board+", class "+str(payload.class_level)+", subject "+payload.subject+", medium "+payload.medium+", chapter "+payload.chapter+", topic "+(payload.topic or "whole chapter")+"\nALL STORED CHAPTER CHUNKS:\n"+"\n\n---\n\n".join(context)}]}],
         "generationConfig":{"responseMimeType":"application/json","temperature":0.15,"maxOutputTokens":7000}}).encode("utf-8")

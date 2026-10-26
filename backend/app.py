@@ -2664,7 +2664,7 @@ Do not claim image cropping or certainty that you did not perform. Return an emp
         model, payload.mime_type, len(image_bytes), bool(payload.today_date),
     )
     try:
-        with urllib.request.urlopen(request, timeout=35) as response:
+        with urllib.request.urlopen(request, timeout=75) as response:
             result = json.loads(response.read().decode("utf-8"))
         text_output = "".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"])
         parsed = json.loads(text_output.strip())

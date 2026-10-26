@@ -220,6 +220,174 @@ def render_topic_review_sheet(topic_package: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+
+def _synthesis_db_connect():
+    """Connect to the same curriculum database used by backend/app.py."""
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if database_url:
+        import psycopg
+        from psycopg.rows import dict_row
+
+        class _PostgresCompat:
+            def __init__(self, raw):
+                self.raw = raw
+            def execute(self, sql, params=()):
+                return self.raw.execute(sql.replace("?", "%s"), params)
+            def commit(self):
+                self.raw.commit()
+            def close(self):
+                self.raw.close()
+
+        return _PostgresCompat(psycopg.connect(database_url, connect_timeout=10, row_factory=dict_row))
+    import sqlite3
+    db_path = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path, timeout=20)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys=ON")
+    return conn
+
+
+def _ensure_synthesis_schema(conn) -> None:
+    """Keep durable synthesis data in the existing PadippuPal curriculum database."""
+    statements = [
+        """CREATE TABLE IF NOT EXISTS syllabus_sources (
+            source_id TEXT PRIMARY KEY, board TEXT NOT NULL, academic_year TEXT NOT NULL,
+            medium TEXT NOT NULL, standard TEXT NOT NULL, subject TEXT NOT NULL,
+            textbook_title TEXT NOT NULL, edition TEXT NOT NULL, source_authority TEXT NOT NULL,
+            source_url TEXT NOT NULL DEFAULT '', source_sha256 TEXT NOT NULL,
+            rights_reviewed INTEGER NOT NULL, rights_note TEXT NOT NULL,
+            page_count INTEGER NOT NULL, overall_status TEXT NOT NULL,
+            manifest_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )""",
+        """CREATE TABLE IF NOT EXISTS syllabus_source_pages (
+            source_id TEXT NOT NULL REFERENCES syllabus_sources(source_id) ON DELETE CASCADE,
+            page_no INTEGER NOT NULL, page_text TEXT NOT NULL, needs_ocr INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(source_id, page_no)
+        )""",
+        """CREATE TABLE IF NOT EXISTS syllabus_source_images (
+            source_id TEXT NOT NULL REFERENCES syllabus_sources(source_id) ON DELETE CASCADE,
+            image_id TEXT NOT NULL, page_no INTEGER NOT NULL, image_json TEXT NOT NULL,
+            PRIMARY KEY(source_id, image_id)
+        )""",
+        """CREATE TABLE IF NOT EXISTS syllabus_topics (
+            source_id TEXT NOT NULL REFERENCES syllabus_sources(source_id) ON DELETE CASCADE,
+            topic_id TEXT NOT NULL, chapter TEXT NOT NULL DEFAULT '', topic_title TEXT NOT NULL,
+            syllabus_reference TEXT NOT NULL DEFAULT '', coverage_status TEXT NOT NULL,
+            evidence_json TEXT NOT NULL, synthesis_status TEXT NOT NULL DEFAULT 'needs_review',
+            PRIMARY KEY(source_id, topic_id)
+        )""",
+        """CREATE TABLE IF NOT EXISTS syllabus_topic_syntheses (
+            source_id TEXT NOT NULL, topic_id TEXT NOT NULL, latest_status TEXT NOT NULL,
+            latest_round INTEGER NOT NULL, synthesis_json TEXT, issues_json TEXT NOT NULL,
+            approved INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(source_id, topic_id),
+            FOREIGN KEY(source_id, topic_id) REFERENCES syllabus_topics(source_id, topic_id) ON DELETE CASCADE
+        )""",
+        """CREATE TABLE IF NOT EXISTS syllabus_synthesis_rounds (
+            source_id TEXT NOT NULL, topic_id TEXT NOT NULL, round_no INTEGER NOT NULL,
+            draft_json TEXT, validation_issues_json TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(source_id, topic_id, round_no),
+            FOREIGN KEY(source_id, topic_id) REFERENCES syllabus_topics(source_id, topic_id) ON DELETE CASCADE
+        )""",
+    ]
+    for statement in statements:
+        conn.execute(statement)
+
+
+def _persist_source_package(manifest: dict[str, Any], pages: list[dict[str, Any]]) -> None:
+    """Persist the book hierarchy, page evidence, topic map and image provenance in app DB."""
+    conn = _synthesis_db_connect()
+    try:
+        _ensure_synthesis_schema(conn)
+        scope = manifest["scope"]
+        conn.execute(
+            """INSERT INTO syllabus_sources
+            (source_id, board, academic_year, medium, standard, subject, textbook_title, edition,
+             source_authority, source_url, source_sha256, rights_reviewed, rights_note,
+             page_count, overall_status, manifest_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(source_id) DO UPDATE SET manifest_json=excluded.manifest_json,
+             overall_status=excluded.overall_status, page_count=excluded.page_count""",
+            (manifest["source_id"], scope["board"], scope["academic_year"], scope["medium"],
+             scope["standard"], scope["subject"], scope["textbook_title"], scope["edition"],
+             scope["source_authority"], scope.get("source_url") or "", manifest["source_sha256"],
+             int(bool(scope.get("rights_reviewed"))), scope.get("rights_note", ""),
+             manifest["page_count"], manifest["overall_status"],
+             json.dumps(manifest, ensure_ascii=False)),
+        )
+        for page in pages:
+            conn.execute(
+                """INSERT INTO syllabus_source_pages(source_id, page_no, page_text, needs_ocr)
+                VALUES (?, ?, ?, ?) ON CONFLICT(source_id, page_no) DO UPDATE SET
+                page_text=excluded.page_text, needs_ocr=excluded.needs_ocr""",
+                (manifest["source_id"], page["page"], page.get("text", ""), int(bool(page.get("needs_ocr")))),
+            )
+        for image in manifest.get("images", []):
+            conn.execute(
+                """INSERT INTO syllabus_source_images(source_id, image_id, page_no, image_json)
+                VALUES (?, ?, ?, ?) ON CONFLICT(source_id, image_id) DO UPDATE SET
+                page_no=excluded.page_no, image_json=excluded.image_json""",
+                (manifest["source_id"], image["id"], image["page"], json.dumps(image, ensure_ascii=False)),
+            )
+        for topic in manifest.get("topics", []):
+            conn.execute(
+                """INSERT INTO syllabus_topics
+                (source_id, topic_id, chapter, topic_title, syllabus_reference, coverage_status, evidence_json, synthesis_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(source_id, topic_id) DO UPDATE SET
+                chapter=excluded.chapter, topic_title=excluded.topic_title,
+                syllabus_reference=excluded.syllabus_reference, coverage_status=excluded.coverage_status,
+                evidence_json=excluded.evidence_json, synthesis_status=excluded.synthesis_status""",
+                (manifest["source_id"], topic["topic_id"], topic.get("chapter", ""),
+                 topic["topic_title"], topic.get("syllabus_reference", ""), topic["coverage_status"],
+                 json.dumps(topic, ensure_ascii=False), topic.get("synthesis_status", "needs_review")),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _persist_synthesis_result(source_id: str, topic_id: str, result: dict[str, Any]) -> None:
+    """Store every synthesis round and the latest unapproved topic package in the curriculum DB."""
+    conn = _synthesis_db_connect()
+    try:
+        _ensure_synthesis_schema(conn)
+        rounds = result.get("rounds", [])
+        for item in rounds:
+            conn.execute(
+                """INSERT INTO syllabus_synthesis_rounds
+                (source_id, topic_id, round_no, draft_json, validation_issues_json)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(source_id, topic_id, round_no) DO UPDATE SET
+                draft_json=excluded.draft_json, validation_issues_json=excluded.validation_issues_json""",
+                (source_id, topic_id, item["round"],
+                 json.dumps(item.get("draft"), ensure_ascii=False) if item.get("draft") is not None else None,
+                 json.dumps(item.get("validation_issues", []), ensure_ascii=False)),
+            )
+        conn.execute(
+            """INSERT INTO syllabus_topic_syntheses
+            (source_id, topic_id, latest_status, latest_round, synthesis_json, issues_json, approved, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP)
+            ON CONFLICT(source_id, topic_id) DO UPDATE SET
+            latest_status=excluded.latest_status, latest_round=excluded.latest_round,
+            synthesis_json=excluded.synthesis_json, issues_json=excluded.issues_json,
+            approved=0, updated_at=CURRENT_TIMESTAMP""",
+            (source_id, topic_id, result.get("status", "needs_review"), len(rounds),
+             json.dumps(result.get("synthesis"), ensure_ascii=False) if result.get("synthesis") is not None else None,
+             json.dumps(result.get("issues", []), ensure_ascii=False)),
+        )
+        conn.execute(
+            """UPDATE syllabus_topics SET synthesis_status=?
+            WHERE source_id=? AND topic_id=?""",
+            (result.get("status", "needs_review"), source_id, topic_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def create_source_package(
     pdf_path: Path,
     scope: CurriculumScope,

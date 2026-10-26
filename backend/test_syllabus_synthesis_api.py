@@ -104,3 +104,17 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert topics[0]["validation_status"] == "passed"
     assert topics[0]["approval_status"] == "draft"
     assert json.loads(topics[0]["citation_refs_json"]) == ["chunk-test"]
+
+    listed = client.get(
+        "/admin/syllabus-synthesis/rounds",
+        headers={"X-Admin-Token": "test-token"},
+        params={"board": "CBSE", "class_level": 6, "subject": "Science"},
+    )
+    assert listed.status_code == 200
+    assert listed.json()["count"] == 1
+    detail = client.get(
+        f"/admin/syllabus-synthesis/rounds/{data['synthesis_round_id']}",
+        headers={"X-Admin-Token": "test-token"},
+    )
+    assert detail.status_code == 200
+    assert detail.json()["topics"][0]["citation_refs"] == ["chunk-test"]

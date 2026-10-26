@@ -87,9 +87,9 @@ jobs:
         name: Launch app in Android emulator and test navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: 35
           arch: x86_64
-          system-image-api-level: 30
+          system-image-api-level: 35
           target: google_apis
           profile: pixel_2
           # Keep the guest memory modest so the emulator does not starve the hosted runner.

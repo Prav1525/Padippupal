@@ -235,3 +235,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Updated `.github/scripts/test_ui_smoke_helpers.py` to point at the actual `app/src/main/java/com/padippupal/app/TutorScreen.kt` file and assert the current preview-first flow and label.
 - **Regression prevention:** Keep the source path consistent with the other tutor tests and assert the preview wait plus exact current action. Require a fresh API 35 emulator run to exercise preview loading, lesson playback/highlighting, completion, follow-up Q&A, and return-to-Home.
 - **Validation:** Fix committed; fresh CI pending. This incident is not closed until the emulator run completes successfully.
+
+
+## Incident: Android emulator workflow truncated the diary artifact-preservation shell block
+
+- **Symptom:** API 35 run [40337366144](https://github.com/Prav1525/Padippupal/actions/runs/40337366144) built the APK, passed JVM tests and script validation, and completed the diary picker → crop → rescan → review → planner-save flow. The workflow then failed before tutor smoke with `/usr/bin/sh: 1: Syntax error: end of file unexpected (expecting "fi")`.
+- **Root cause:** The artifact-copy/exit-code shell logic was embedded inline in the `reactivecircus/android-emulator-runner` script. The executed command arrived with an unterminated `if` block, despite the workflow file currently showing a closing `fi`. Keeping this multi-line conditional nested in the action's script field made the failure hard to isolate and lacked a focused behavioral regression test.
+- **Fix:** Extracted the logic to `.github/scripts/preserve_diary_artifacts.sh`; the workflow now invokes that script with the diary test's exit status. The script preserves diagnostics before propagating failures and rejects malformed status arguments.
+- **Regression prevention:** Added `.github/scripts/test_preserve_diary_artifacts.py`, covering successful artifact copy, failure-status preservation/propagation, and invalid input. Workflow script validation now runs `bash -n` and this test before allocating the emulator.
+- **Validation:** Source changes committed on `feature/syllabus-synthesis-prototype`. A fresh CI run is required to verify script validation and API 35 end-to-end behavior. This incident remains open until that run passes; PR #31 stays unmerged.

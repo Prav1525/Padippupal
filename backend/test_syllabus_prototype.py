@@ -100,3 +100,15 @@ def test_prototype_builds_page_evidence_from_existing_database_text(monkeypatch,
     )
     assert package.status_code == 200
     assert package.json()["topics"][0]["topic_title"] == "Plant Food Making"
+
+
+def test_prototype_previews_page_marked_text(monkeypatch, tmp_path):
+    client = _client(monkeypatch, tmp_path)
+    response = client.get('/admin/syllabus-prototype/api/sources/book-science-1/preview', headers={'x-admin-token': 'test-secret'})
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data['pages_with_text'] == 1
+    assert data['preview_pages'][0]['page'] == 1
+    assert 'Plants have roots' in data['preview_pages'][0]['text_preview']
+    assert data['approved'] is False
+    assert data['rights_reviewed'] is False

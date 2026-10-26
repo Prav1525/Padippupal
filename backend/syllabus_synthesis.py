@@ -752,7 +752,7 @@ def _read_existing_curriculum_source(existing_source_id: str) -> tuple[dict[str,
         if source is None or stored is None or str(source["status"]) != "ready":
             raise HTTPException(status_code=404, detail="Existing curriculum source not found or not indexed as ready")
         raw_text = str(stored["content"] or "")
-        marker = re.compile(r"(?:^|\\n)\\s*\\[Page\\s+(\\d+)\\]\\s*", re.IGNORECASE)
+        marker = re.compile(r"(?:^|\n)\s*\[Page\s+(\d+)\]\s*", re.IGNORECASE)
         matches = list(marker.finditer(raw_text))
         pages: list[dict[str, Any]] = []
         if matches:

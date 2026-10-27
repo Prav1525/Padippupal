@@ -78,6 +78,17 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('FAIL: PickVisualMedia did not return to PadippuPal', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
 
+    def test_photo_picker_retries_only_when_fresh_tree_shows_unselected_tile(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        picker_section = source[source.index('log "Selecting the sole visible fixture tile'):source.index('sleep 1\ndump_ui diary-picker-confirmed')]
+        self.assertIn('selected="false"', picker_section)
+        self.assertIn('retrying once from the fresh accessibility tree', picker_section)
+        self.assertGreaterEqual(picker_section.count('tap-photo-picker-item'), 2)
+        # The retry is guarded by a fresh provider tree; it must not blindly tap
+        # again after the picker has returned to the app.
+        self.assertIn('dump_ui diary-picker-selection-result', picker_section)
+        self.assertIn('if grep -q \'package="com.google.android.providers.media.module"\'', picker_section)
+
     def test_review_scrolls_until_save_action_is_exposed(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("for scroll_attempt in $(seq 1 8); do", source)

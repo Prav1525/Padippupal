@@ -72,10 +72,6 @@ class SyllabusSynthesisTests(unittest.TestCase):
         )
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
     def test_chapter_lesson_validator_requires_complete_teaching_contract(self):
         lesson = {
             "chapter_title": "Chapter A",
@@ -124,3 +120,7 @@ if __name__ == "__main__":
         invalid_empty = validate_chapter_lesson_payload(lesson, {"chunk-a"})
         self.assertFalse(invalid_empty["valid"])
         self.assertTrue(any("concept_map must be a non-empty list" in error for error in invalid_empty["errors"]))
+
+
+if __name__ == "__main__":
+    unittest.main()

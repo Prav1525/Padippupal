@@ -308,3 +308,13 @@ Use this format:
 - **Result:** **UNVERIFIED** at ledger append time; CI has not yet completed for this branch. No merge, deployment, or production data mutation performed.
 - **What this proves / does not prove:** The source change and regression cases are committed to the isolated branch. It does not yet prove tests pass, that the exact chapter-lesson 404 has no additional cause, or that production is fixed.
 - **Next action and why:** Open an isolated PR, inspect exact-head CI and required checks, and keep it unmerged until checks pass and the remaining request-to-error link is confirmed.
+
+### 2026-10-27 — Correct topic evidence ranges and avoid copied objectives
+- **Branch:** `fix/synthesis-topic-evidence-ranges`; reconciled on top of current main `e039d2c7010a189e19b4dd9d451e206cc612a885` to retain the merged detail-ID normalization fix.
+- **Observed evidence:** Production audit of the CBSE Class 6 Mathematics chapter “Lines and Angles” found four topic rows each assigned the chapter-wide page range 1–53, even though their citation sets cover different page spans. The same two chapter-level learning objectives were copied into all four rows.
+- **Root cause:** Topic persistence assigned chapter-wide page boundaries and chapter-level objectives to every topic rather than deriving them from each teaching step's cited evidence.
+- **Change:** Build a chunk-ID-to-page map from the supplied evidence packet, derive each topic's page range only from its cited chunks, request step-specific objectives, and store those objectives when provided. If omitted, persist an empty list with an explicit validation note.
+- **Regression coverage:** Assert topic page boundaries and that omitted step objectives are not copied from chapter-level objectives.
+- **Safety:** Draft-only behavior and strict source-citation validation remain unchanged. No production DB rows changed and no lessons were approved.
+- **Verification status:** Reconciled commit prepared; CI must pass on the updated PR head before merge. Production re-synthesis remains pending deployment and review.
+

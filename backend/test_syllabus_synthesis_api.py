@@ -199,7 +199,7 @@ def test_science_maths_coverage_audit_requires_current_evidence_and_approval():
              created_at,updated_at)
             VALUES (?,?,?,?,?,?,?,'approved',?,?,?,?,?,'',?,?)""",
             (round_id, source_id, "CBSE", 6, "Science", chapter, "v1", "test-model", "v1",
-             json.dumps([chunk_id]), evidence["evidence_fingerprint"], json.dumps({"valid": True}), now, now),
+             json.dumps([chunk_id]), evidence["evidence_fingerprint"], json.dumps({"valid": True, "source_chunk_count": 1, "cited_chunk_count": 1, "uncited_chunk_count": 0}), now, now),
         )
         conn.execute(
             """INSERT INTO syllabus_topic_syntheses

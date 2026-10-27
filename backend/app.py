@@ -1932,8 +1932,28 @@ def list_syllabus_synthesis_rounds(
     return {"count": len(rounds), "rounds": rounds}
 
 
+def _normalize_detail_id(raw_id: str, expected_key: str) -> str:
+    """Accept a plain path ID, plus legacy clients that put {id_key: value} in the path."""
+    candidate = raw_id.strip()
+    if candidate.startswith("{"):
+        try:
+            payload = json.loads(candidate)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid detail identifier.")
+        if not isinstance(payload, dict) or set(payload) != {expected_key}:
+            raise HTTPException(status_code=400, detail="Invalid detail identifier.")
+        candidate = payload.get(expected_key)
+        if not isinstance(candidate, str) or not candidate.strip():
+            raise HTTPException(status_code=400, detail="Invalid detail identifier.")
+        candidate = candidate.strip()
+    if not candidate or "/" in candidate:
+        raise HTTPException(status_code=400, detail="Invalid detail identifier.")
+    return candidate
+
+
 @app.get("/admin/syllabus-synthesis/rounds/{round_id}", dependencies=[Depends(require_admin)])
 def get_syllabus_synthesis_round(round_id: str) -> dict[str, Any]:
+    round_id = _normalize_detail_id(round_id, "round_id")
     with db() as conn:
         row = conn.execute("SELECT * FROM syllabus_synthesis_rounds WHERE id=?", (round_id,)).fetchone()
         if not row:
@@ -1973,6 +1993,7 @@ def list_chapter_lessons(status: str = "draft", limit: int = 50) -> dict[str, An
 
 @app.get("/admin/chapter-lessons/{lesson_id}", dependencies=[Depends(require_admin)])
 def get_chapter_lesson(lesson_id: str) -> dict[str, Any]:
+    lesson_id = _normalize_detail_id(lesson_id, "lesson_id")
     with db() as conn:
         row=conn.execute("SELECT * FROM chapter_lessons WHERE id=?",(lesson_id,)).fetchone()
     if not row: raise HTTPException(status_code=404,detail="Chapter lesson not found.")

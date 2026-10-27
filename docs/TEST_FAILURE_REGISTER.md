@@ -235,3 +235,11 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix attempt:** Commit `0797cca191e416a733deb65fb46841f54aa84884` adds one guarded retry only when the fresh accessibility tree still shows the Photo Picker provider, a date-described tile, and `selected="false"`. It does not send a second tap after PadippuPal has regained control. Commit `7d7d37a3fc475c939063719bf6ccde72aacd4f27` adds a static regression test for this guard.
 - **Regression prevention:** The static test must verify the guarded retry and the existing return-to-app assertion. Fresh API 35 emulator CI must prove picker return, crop, rescan, correct review tasks, and planner save; this retry is only a fix attempt until the full flow passes.
 - **Validation:** Pending CI on the latest branch head. Do not merge PR #40 until the emulator smoke test passes.
+
+
+## Incident: successful diary acceptance evidence was erased before artifact upload
+
+- **Symptom:** The API 35 job log proves Photo Picker selection, crop, rescan, review, and planner save passed, but the uploaded artifact omitted `ui-screenshots/diary-test/` and its acceptance XML/screenshots.
+- **Root cause:** `.github/scripts/android-ui-smoke-retry.sh` starts by deleting `ui-screenshots/` to isolate the tutor smoke run. The diary test ran immediately before it, so its evidence was removed before the artifact-upload step. The test result was valid in the job log, but post-run diagnosis and independent artifact review were unnecessarily weakened.
+- **Fix:** Commit `498f0c902ac51d1d8bb74636dbc930522f790245` copies diary acceptance evidence into `attempt-artifacts/diary-acceptance/` before cleanup. Commit `5efed0e0d7c5e53185d03b88bfcf56bd66861cc4` adds a regression test asserting preservation occurs before `rm -rf ui-screenshots` and that the workflow uploads `attempt-artifacts/`.
+- **Validation:** Pending CI on the updated PR head. The prior run's job log records a successful full diary flow; this fix preserves the supporting XML/screenshots in future artifacts. Keep PR #40 draft and unmerged until all checks pass.

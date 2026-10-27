@@ -204,7 +204,7 @@ def main() -> int:
             print(f"  - {change}")
 
     if not args.apply:
-        print("\\nPreflight passed for all three lessons. DRY RUN — no changes sent.")
+        print("\nPreflight passed for all three lessons. DRY RUN — no changes sent.")
         print("Re-run with --apply from a trusted environment to save via the authenticated API.")
         return 0
 
@@ -229,7 +229,7 @@ def main() -> int:
         saved.append(chapter)
         print("  SAVED as draft; validation:", json.dumps(result.get("validation", {}), ensure_ascii=False))
 
-    print("\\nAll requested corrections saved as drafts. No lesson was approved or published.")
+    print("\nAll requested corrections saved as drafts. No lesson was approved or published.")
     return 0
 
 

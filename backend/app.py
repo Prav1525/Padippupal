@@ -1476,7 +1476,7 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Gemini lesson synthesis is not configured on the backend.")
-    if len(chunks) > 80:
+    if len(chunks) > 120:
         raise HTTPException(status_code=413, detail="Chapter is too large for one synthesis pass; split into verified sections first.")
     refs, context = [], []
     for chunk in chunks:
@@ -1491,10 +1491,10 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
         "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, source_chunk_ids, visual). "
         "visual has type (number_pattern, number_line, geometry, compare, process, table, diagram, none), objects, actions, narration_sync. "
-        "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. No code; draft only.")
+        "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. Across the complete concept map and teaching sequence, cite EVERY supplied chunk_id at least once; do not omit a content-bearing chunk. No code; draft only.")
     body = json.dumps({"systemInstruction":{"parts":[{"text":prompt}]},
         "contents":[{"role":"user","parts":[{"text":"Profile: "+payload.board+", class "+str(payload.class_level)+", subject "+payload.subject+", medium "+payload.medium+", chapter "+payload.chapter+", topic "+(payload.topic or "whole chapter")+"\nALL STORED CHAPTER CHUNKS:\n"+"\n\n---\n\n".join(context)}]}],
-        "generationConfig":{"responseMimeType":"application/json","temperature":0.15,"maxOutputTokens":7000}}).encode("utf-8")
+        "generationConfig":{"responseMimeType":"application/json","temperature":0.15,"maxOutputTokens":10000}}).encode("utf-8")
     req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",
         data=body, headers={"x-goog-api-key":api_key,"Content-Type":"application/json","Accept":"application/json"}, method="POST")
     try:

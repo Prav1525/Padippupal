@@ -23,7 +23,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPExcepti
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
-from syllabus_synthesis import EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id
+from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -1451,25 +1451,14 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
             result = json.loads(response.read().decode("utf-8"))
         raw = " ".join(part.get("text","") for part in result["candidates"][0]["content"]["parts"] if isinstance(part,dict))
         lesson = json.loads(raw.strip())
-        if not isinstance(lesson,dict) or not isinstance(lesson.get("teaching_sequence"),list) or not lesson["teaching_sequence"]:
-            raise ValueError("missing teaching sequence")
-        for step in lesson["teaching_sequence"]:
-            ids = {str(x) for x in step.get("source_chunk_ids",[])}
-            if not ids or not ids.issubset(allowed):
-                raise ValueError("unverified step citation")
-            if (step.get("visual") or {}).get("type","none") not in {"number_pattern","number_line","geometry","compare","process","table","diagram","none"}:
-                raise ValueError("invalid visual recipe")
-        for concept in lesson.get("concept_map",[]):
-            ids = {str(x) for x in concept.get("source_chunk_ids",[])}
-            if not ids or not ids.issubset(allowed):
-                raise ValueError("unverified concept citation")
+        if not isinstance(lesson, dict):
+            raise ValueError("lesson response must be a JSON object")
+        validation = validate_chapter_lesson_payload(lesson, allowed)
+        if not validation["valid"]:
+            # Keep the response out of the database when required teaching content or
+            # source traceability is missing. The caller receives a generic safe error.
+            raise ValueError("lesson failed structural or source-citation validation")
         lesson_id, now = str(uuid.uuid4()), time.time()
-        validation = {
-            "valid": True,
-            "checks": ["non-empty teaching sequence", "all step citations match source chunks",
-                       "all concept citations match source chunks", "visual recipes use allowed types"],
-            "topic_count": len(lesson["teaching_sequence"]),
-        }
         with db() as conn:
             conn.execute("""INSERT INTO chapter_lessons
                 (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,source_refs_json,model,review_feedback,created_at,updated_at)

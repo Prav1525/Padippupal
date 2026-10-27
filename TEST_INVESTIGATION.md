@@ -275,3 +275,24 @@ Use this format:
 - **What remains unverified:** Android UI smoke completion; retry behavior against the failing production Science chapter; production deployment and saved-draft verification.
 - **Difference from previous attempt:** Adds the missing evidence-ledger record instead of changing application behavior or weakening validation.
 - **Next action and why:** Re-run the gate and wait for Android smoke to complete; only then evaluate all checks. Do not merge or deploy without explicit authorization, and keep source-citation validation strict and lesson status draft-only.
+
+
+### 2026-10-27 — Improve chapter synthesis citation retry diagnostics
+- **Branch / commit:** `fix/synthesis-citation-retry-diagnostics`; commits `d9dbf310f4c7993169c5f8ea5accbbe0e94829a1` and `f99d53986196389416b3b95269bcf2def1438eef`.
+- **Test command or workflow URL:** [Curriculum Engine Tests](https://github.com/Prav1525/Padippupal/actions/runs/40461379063); [Investigation Guidance Gate](https://github.com/Prav1525/Padippupal/actions/runs/40461379160); [Android UI smoke](https://github.com/Prav1525/Padippupal/actions/runs/40461379077); [Android APK](https://github.com/Prav1525/Padippupal/actions/runs/40461379084).
+- **Result:** Curriculum Engine Tests **PASS**; Investigation Guidance Gate **FAIL** due to the ledger not being included in the PR; Android UI smoke and APK build were **IN PROGRESS** at last check.
+- **Exact failure or assertion:** The gate reported: `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence links (logs/screenshots/XML/artifacts):** [Investigation gate job log](https://github.com/Prav1525/Padippupal/actions/runs/40461379160); production Render logs on 2026-10-27 reported `lesson leaves 1 supplied source chunks uncited` and `concept_map[1] cites an unknown source chunk` with two supplied chunks uncited.
+- **Change made (files + rationale):** Updated `backend/syllabus_synthesis.py` to report exact unknown and missing chunk IDs in validation errors, and updated `backend/test_syllabus_synthesis.py` to assert that missing chunk IDs appear. This gives the existing retry actionable diagnostics without relaxing citation validation.
+- **Root cause:** **CONFIRMED** for the PR gate failure: the code-changing PR omitted the required append-only investigation ledger update. The production generation failure is also confirmed as citation mismatch/coverage errors; this PR improves retry feedback but does not yet prove that the model will correct all citations.
+- **What this attempt proves:** Curriculum Engine Tests passed on the PR head. The required guidance gate failed for documentation-only reasons; other checks were still running when inspected.
+- **What remains unverified:** Android UI smoke and APK checks must finish; retry behavior on the failing Mathematics chapters must be tested after the fix is reviewed and deployed. No merge or production deployment has been performed.
+- **Next action and why:** Append this entry to satisfy the investigation gate, verify all required CI checks, then review the diff. Keep PR draft-only until checks are green; do not merge or deploy without authorization. After deployment, retry only `Lines and Angles` and `Number Play` and confirm exact source citation coverage before continuing.
+
+
+### 2026-10-27 — Improve synthesis citation retry diagnostics
+- **Branch / PR:** `fix/synthesis-citation-retry-diagnostics`; [PR #34](https://github.com/Prav1525/Padippupal/pull/34).
+- **Production evidence:** Render application logs from 2026-10-27 show rejected Mathematics synthesis retries with `concept_map[1] cites an unknown source chunk` and `lesson leaves 1 supplied source chunks uncited`. These are strict citation-validation failures; invalid lessons are not persisted.
+- **Change in this batch:** Report the exact unknown citation IDs and exact missing supplied chunk IDs in validator errors. Update the regression test to assert the missing chunk ID is exposed. Citation validation remains strict; draft approval/persistence behavior is unchanged.
+- **Verification:** Curriculum Engine Tests run [40461379063](https://github.com/Prav1525/Padippupal/actions/runs/40461379063) passed. Investigation Guidance Gate run [40461379160](https://github.com/Prav1525/Padippupal/actions/runs/40461379160) failed because this PR did not append this required ledger entry; this is a documentation-gate failure, not a test assertion failure. Android APK run [40461379084](https://github.com/Prav1525/Padippupal/actions/runs/40461379084) and Android UI smoke run [40461379077](https://github.com/Prav1525/Padippupal/actions/runs/40461379077) were still in progress at time of entry.
+- **Next action:** Include this append-only entry, rerun required checks, and inspect any remaining failures. Do not merge/deploy or regenerate the failing production chapters until the required checks and draft-only regression verification are complete.

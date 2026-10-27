@@ -167,10 +167,14 @@ def validate_chapter_lesson_payload(
         citations = concept.get("source_chunk_ids")
         if not isinstance(citations, list) or not citations:
             errors.append(f"concept_map[{index}] must cite source chunks")
-        elif not {str(value) for value in citations}.issubset(allowed_chunk_ids):
-            errors.append(f"concept_map[{index}] cites an unknown source chunk")
         else:
-            cited_chunk_ids.update(str(value) for value in citations)
+            citation_ids = {str(value) for value in citations}
+            unknown_ids = sorted(citation_ids - allowed_chunk_ids)
+            if unknown_ids:
+                errors.append(
+                    f"concept_map[{index}] cites unknown source chunk IDs: {', '.join(unknown_ids[:20])}"
+                )
+            cited_chunk_ids.update(citation_ids & allowed_chunk_ids)
 
     steps = payload.get("teaching_sequence")
     if not isinstance(steps, list) or not steps:
@@ -187,17 +191,25 @@ def validate_chapter_lesson_payload(
         citations = step.get("source_chunk_ids")
         if not isinstance(citations, list) or not citations:
             errors.append(f"teaching_sequence[{index}] must cite source chunks")
-        elif not {str(value) for value in citations}.issubset(allowed_chunk_ids):
-            errors.append(f"teaching_sequence[{index}] cites an unknown source chunk")
         else:
-            cited_chunk_ids.update(str(value) for value in citations)
+            citation_ids = {str(value) for value in citations}
+            unknown_ids = sorted(citation_ids - allowed_chunk_ids)
+            if unknown_ids:
+                errors.append(
+                    f"teaching_sequence[{index}] cites unknown source chunk IDs: {', '.join(unknown_ids[:20])}"
+                )
+            cited_chunk_ids.update(citation_ids & allowed_chunk_ids)
         visual = step.get("visual") or {}
         if not isinstance(visual, Mapping) or visual.get("type", "none") not in allowed_visuals:
             errors.append(f"teaching_sequence[{index}] has an unsupported visual recipe")
 
     missing_citations = allowed_chunk_ids - cited_chunk_ids
     if missing_citations:
-        errors.append(f"lesson leaves {len(missing_citations)} supplied source chunks uncited")
+        errors.append(
+            "lesson leaves supplied source chunks uncited; include these exact IDs: "
+            + ", ".join(sorted(missing_citations)[:40])
+            + (f" (and {len(missing_citations) - 40} more)" if len(missing_citations) > 40 else "")
+        )
 
     return {
         "valid": not errors,

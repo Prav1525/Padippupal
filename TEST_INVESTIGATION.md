@@ -250,3 +250,14 @@ Use this format:
 - **Change made:** Add explicit `adb install -r app/build/outputs/apk/debug/app-debug.apk`, verify package path with `pm path`, and verify launcher resolution for `com.padippupal.app/.MainActivity` before running TTS setup and the diary acceptance script. No app source, picker interaction, API level, or lesson-preparation code changed.
 - **Verification plan:** Let exact-head CI run static tests, JVM tests, APK build, then the API-35 emulator test. Confirm installation/launcher checks pass; inspect whether the test reaches the Photo Picker and captures the selection-result screenshot/XML; only then assess picker URI return and crop/rescan/review/save.
 - **Result at edit time:** Workflow change proposed and committed below; emulator acceptance is still unverified. No PR merge performed.
+
+
+### 2026-10-27 — Isolated syllabus synthesis integration checks
+- **Branch:** `feature/production-syllabus-synthesis-only`
+- **Starting commit:** `d08cdba5d3cf646b9ee9337ae50906133173f0b9`
+- **Guidance applied:** Re-read `AGENTS.md` and the full `TESTING_GUIDANCE.md` before this code-edit batch. Keep the synthesis change backend-only; do not deploy or merge until the exact-head checks and production-safe acceptance gates pass.
+- **Exact evidence:** Curriculum Engine Tests run [40432954843](https://github.com/Prav1525/Padippupal/actions/runs/40432954843), job 121954804894, reported 68 passed and 2 failed. Synthesis API test failed because lesson review returned `approved` but its associated synthesis round remained `draft` (`test_syllabus_synthesis_api.py:141`). Diary scan test failed because runtime passed timeout 75 while the test asserted 35 (`test_study_features.py`); current `backend/app.py` explicitly uses `urlopen(..., timeout=75)`.
+- **Root cause:** **CONFIRMED** for synthesis review synchronization: the main-branch review handler updated only `chapter_lessons`, unlike the prototype handler, which also synchronizes the exact evidence-matching synthesis round and topic approval state. **CONFIRMED** for diary test: the assertion was stale against the current backend timeout.
+- **Change in this batch:** Port the evidence-matched review-state synchronization into the isolated backend; update the stale diary test assertion to 75; retain this record append-only. This does not change diary runtime behavior.
+- **Verification plan:** Re-run exact-head Curriculum Engine Tests, check Android/workflow gates, inspect failures if any, then run the production-safe draft-only synthesis acceptance process. No production database writes, lesson generation, merge, or deployment has been performed by this investigation entry.
+- **Outcome at edit time:** Fixes committed for CI verification; exact commit/run result to be appended after the next workflow completes.

@@ -253,3 +253,79 @@ def test_science_maths_coverage_audit_requires_current_evidence_and_approval():
     assert incomplete_source["missing_page_numbers"] == [2]
     assert incomplete_source["inventory_status"] == "incomplete_page_extraction"
     assert incomplete_source["chapters"][0]["coverage_status"] == "source_page_coverage_incomplete"
+
+
+def test_batch_synthesis_inventory_is_read_only_bounded_and_source_specific(monkeypatch):
+    curriculum.DB_PATH = Path(tempfile.mkstemp(suffix=".sqlite3")[1])
+    curriculum.ADMIN_TOKEN = "batch-test-token"
+    curriculum.init_db()
+    now = time.time()
+    sources = [
+        ("batch-source-a", "Official Science book A", "Science", "ready"),
+        ("batch-source-b", "Official Science book B", "Science", "ready"),
+        ("batch-source-processing", "Processing Science book", "Science", "processing"),
+    ]
+    with curriculum.db() as conn:
+        for source_id, title, subject, status in sources:
+            conn.execute(
+                """INSERT INTO sources
+                (id,board,academic_year,class_level,subject,medium,term,edition,title,source_url,
+                 license_note,sha256,status,page_count,created_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (source_id, "CBSE", "2026-27", 6, subject, "English", "", "2026",
+                 title, "", "Test fixture", source_id + "-sha", status, 4, now),
+            )
+        for source_id, chapter, chunk_no in (
+            ("batch-source-a", "Chapter One", 0),
+            ("batch-source-a", "Chapter Two", 1),
+            ("batch-source-b", "Chapter One", 0),
+            ("batch-source-processing", "Hidden Chapter", 0),
+        ):
+            conn.execute(
+                """INSERT INTO chunks
+                (id,source_id,chunk_no,chapter,page_start,page_end,text)
+                VALUES (?,?,?,?,?,?,?)""",
+                (source_id + "-" + str(chunk_no), source_id, chunk_no, chapter,
+                 chunk_no + 1, chunk_no + 1, "Textbook evidence for " + chapter),
+            )
+
+    client = TestClient(curriculum.app)
+    headers = {"X-Admin-Token": "batch-test-token"}
+    preview = client.post("/admin/syllabus-synthesis/batch", headers=headers, json={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+        "max_chapters": 10,
+    })
+    assert preview.status_code == 200, preview.text
+    data = preview.json()
+    assert data["mode"] == "inventory_only"
+    assert data["source_count"] == 2
+    assert data["available_chapter_count"] == 3
+    assert data["draft_count"] == 0
+    assert all(item["status"] == "inventory_only" for item in data["results"])
+    with curriculum.db() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM syllabus_synthesis_rounds").fetchone()[0] == 0
+
+    captured = []
+    def fake_generate(request):
+        captured.append(request)
+        return {
+            "status": "draft",
+            "lesson_id": "draft-" + request.source_id,
+            "synthesis_round_id": "round-" + request.source_id,
+            "validation": {"valid": True},
+        }
+    monkeypatch.setattr(curriculum, "generate_chapter_lesson", fake_generate)
+    generated = client.post("/admin/syllabus-synthesis/batch", headers=headers, json={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+        "source_id": "batch-source-b", "max_chapters": 1, "generate": True,
+    })
+    assert generated.status_code == 200, generated.text
+    result = generated.json()
+    assert result["mode"] == "generate_drafts"
+    assert result["available_chapter_count"] == 1
+    assert result["selected_chapter_count"] == 1
+    assert result["truncated"] is False
+    assert result["draft_count"] == 1
+    assert result["failed_count"] == 0
+    assert captured[0].source_id == "batch-source-b"
+    assert captured[0].chapter == "Chapter One"

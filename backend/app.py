@@ -1366,24 +1366,41 @@ class ChapterLessonGenerateRequest(BaseModel):
     medium: str = Field(min_length=2, max_length=40)
     chapter: str = Field(min_length=2, max_length=200)
     topic: str = Field(default="", max_length=200)
+    # Optional exact source selector lets batch runs avoid mixing editions/books
+    # that happen to reuse the same chapter title.
+    source_id: str = Field(default="", max_length=100)
+
+
+class ChapterSynthesisBatchRequest(BaseModel):
+    board: str = Field(min_length=2, max_length=80)
+    class_level: int = Field(ge=1, le=12)
+    subject: str = Field(min_length=1, max_length=100)
+    medium: str = Field(min_length=2, max_length=40)
+    source_id: str = Field(default="", max_length=100)
+    max_chapters: int = Field(default=12, ge=1, le=40)
+    # Safe by default: inventory first; generation is an explicit admin action.
+    generate: bool = False
 
 
 def _chapter_source_chunks(payload: ChapterLessonGenerateRequest) -> list[dict[str, Any]]:
+    sql = """SELECT c.id AS chunk_id, c.chunk_no, c.chapter AS chunk_chapter,
+                    c.page_start, c.page_end, c.text, s.id AS source_id,
+                    s.title, s.academic_year, s.edition
+             FROM chunks c JOIN sources s ON s.id=c.source_id
+             WHERE s.status='ready' AND LOWER(s.board)=LOWER(?)
+               AND s.class_level=? AND LOWER(s.subject)=LOWER(?)
+               AND LOWER(s.medium)=LOWER(?)"""
+    params: list[Any] = [payload.board, payload.class_level, payload.subject, payload.medium]
+    if payload.source_id:
+        sql += " AND s.id=?"
+        params.append(payload.source_id)
+    sql += " ORDER BY s.academic_year DESC, c.chunk_no"
     with db() as conn:
-        rows = conn.execute(
-            """SELECT c.id AS chunk_id, c.chunk_no, c.chapter AS chunk_chapter,
-                      c.page_start, c.page_end, c.text, s.id AS source_id,
-                      s.title, s.academic_year, s.edition
-               FROM chunks c JOIN sources s ON s.id=c.source_id
-               WHERE s.status='ready' AND LOWER(s.board)=LOWER(?)
-                 AND s.class_level=? AND LOWER(s.subject)=LOWER(?)
-                 AND LOWER(s.medium)=LOWER(?)
-               ORDER BY s.academic_year DESC, c.chunk_no""",
-            (payload.board, payload.class_level, payload.subject, payload.medium)).fetchall()
-    rows = [dict(row) for row in rows if chapter_matches_chunk(payload.chapter, str(row["title"]), row["chunk_chapter"])]
+        rows = [dict(row) for row in conn.execute(sql, params).fetchall()]
+    rows = [row for row in rows if chapter_matches_chunk(payload.chapter, str(row["title"]), row["chunk_chapter"])]
     if not rows:
         return []
-    source_id = str(rows[0]["source_id"])
+    source_id = str(payload.source_id or rows[0]["source_id"])
     return [row for row in rows if str(row["source_id"]) == source_id]
 
 

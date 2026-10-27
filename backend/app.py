@@ -1519,18 +1519,29 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                  payload.subject, payload.chapter, "v1", model, "v1", json.dumps(evidence_packet["chunk_ids"]),
                  evidence_fingerprint_value, json.dumps(validation), now, now))
             conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=?", (synthesis_round_id,))
+            evidence_by_id = {str(item["chunk_id"]): item for item in evidence_packet["evidence"]}
             for index, step in enumerate(lesson["teaching_sequence"]):
                 topic = normalize(str(step.get("title") or step.get("id") or f"Topic {index + 1}"))
                 topic_id = hashlib.sha256(f"{synthesis_round_id}|{index}|{topic}".encode("utf-8")).hexdigest()
                 citations = [str(x) for x in step.get("source_chunk_ids", [])]
+                cited_evidence = [evidence_by_id[cid] for cid in citations if cid in evidence_by_id]
+                cited_starts = [int(item["page_start"]) for item in cited_evidence if item.get("page_start") is not None]
+                cited_ends = [int(item["page_end"]) for item in cited_evidence if item.get("page_end") is not None]
+                topic_page_start = min(cited_starts) if cited_starts else None
+                topic_page_end = max(cited_ends) if cited_ends else None
+                # Do not repeat chapter-wide objectives in every topic row.
+                topic_objectives = [topic]
+                checkpoint = str(step.get("checkpoint") or "").strip()
+                if checkpoint and checkpoint.casefold() not in {topic.casefold(), "none", "n/a"}:
+                    topic_objectives.append("Answer: " + checkpoint[:180])
                 conn.execute("""INSERT INTO syllabus_topic_syntheses
                     (id,round_id,source_id,topic,page_start,page_end,learning_objectives_json,
                      explanation_json,examples_json,practice_questions_json,citation_refs_json,
                      validation_status,validation_notes_json,approval_status,created_at,updated_at)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (topic_id, synthesis_round_id, str(evidence_packet["source_id"]), topic,
-                     evidence_packet["page_start"], evidence_packet["page_end"],
-                     json.dumps(lesson.get("learning_objectives", []), ensure_ascii=False),
+                     topic_page_start, topic_page_end,
+                     json.dumps(topic_objectives, ensure_ascii=False),
                      json.dumps({"teacher_says": step.get("teacher_says", ""),
                                  "caption": step.get("caption", ""),
                                  "misconception": step.get("misconception", ""),
@@ -1538,7 +1549,8 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                      json.dumps([step.get("example")] if step.get("example") else [], ensure_ascii=False),
                      json.dumps([step.get("checkpoint")] if step.get("checkpoint") else [], ensure_ascii=False),
                      json.dumps(citations, ensure_ascii=False), "passed",
-                     json.dumps(["Citations verified against this chapter's source chunks"], ensure_ascii=False),
+                     json.dumps(["Citations verified against this topic's cited source chunks",
+                                 f"Topic page range derived from {len(cited_evidence)} cited chunks"], ensure_ascii=False),
                      "draft", now, now))
         return {"lesson_id":lesson_id,"synthesis_round_id":synthesis_round_id,
                 "evidence_fingerprint":evidence_fingerprint_value,"status":"draft",

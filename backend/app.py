@@ -1796,6 +1796,7 @@ def syllabus_synthesis_coverage(
 
                     validation_passed = (
                         stored_validation.get("valid") is True
+                        and stored_validation.get("source_chunk_count") == len(current_chunk_ids)
                         and stored_validation.get("cited_chunk_count") == len(current_chunk_ids)
                         and stored_validation.get("uncited_chunk_count") == 0
                         and topic_count > 0

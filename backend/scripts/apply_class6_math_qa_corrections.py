@@ -147,11 +147,12 @@ def revise_lesson(chapter: str, lesson: dict[str, Any]) -> tuple[dict[str, Any],
         expected = "a diagonal line is longer than a straight grid unit!"
         if expected.casefold() not in old.casefold():
             raise QAError("Diagonal-unit narration no longer matches the expected draft")
-        step["teacher_says"] = old.replace(
-            expected,
-            "a diagonal across one unit square is longer than one side of that square. "
-            "This comparison applies to that square; compare actual lengths rather than assuming "
-            "every diagonal is longer than every straight grid segment.",
+        step["teacher_says"] = (
+            "Let's examine running tracks and grid shapes. Akshi and Toshi run along rectangular "
+            "tracks, and we can find their distances. On a square grid, a diagonal across one unit "
+            "square is longer than one side of that square. This comparison applies to that square; "
+            "compare actual lengths rather than assuming every diagonal is longer than every straight "
+            "grid segment. A shape's perimeter can be expressed using straight units (s) and diagonal units (d)."
         )
         changes.append("limit the diagonal-length statement to a unit square")
 

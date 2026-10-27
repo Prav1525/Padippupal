@@ -160,10 +160,11 @@ def revise_lesson(chapter: str, lesson: dict[str, Any]) -> tuple[dict[str, Any],
         expected = "Therefore, the area of a triangle is always half the area of the corresponding rectangle (or half of base times height)."
         if expected not in old:
             raise QAError("Triangle-area narration no longer matches the expected draft")
-        step["teacher_says"] = old.replace(
-            expected,
-            "So a triangle's area is half the area of a rectangle with the same base and corresponding "
-            "perpendicular height: area = 1/2 × base × height.",
+        step["teacher_says"] = (
+            "A rectangle cut along its diagonal forms two triangles of equal area. For any triangle, "
+            "choose a base and its corresponding perpendicular height. The triangle's area is half "
+            "the area of a rectangle with that same base and height: area = 1/2 × base × height. "
+            "We can also find areas of composite figures by splitting them into rectangles and triangles."
         )
         changes.append("clarify triangle area uses the same base and corresponding perpendicular height")
 

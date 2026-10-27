@@ -78,6 +78,17 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('FAIL: PickVisualMedia did not return to PadippuPal', source)
         self.assertIn('assert_has ui-screenshots/diary-test/diary-photo-selected.xml "Crop this photo and rescan"', source)
 
+    def test_photo_picker_retries_only_when_fresh_tree_shows_unselected_tile(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        picker_section = source[source.index('log "Selecting the sole visible fixture tile'):source.index('sleep 1\ndump_ui diary-picker-confirmed')]
+        self.assertIn('selected="false"', picker_section)
+        self.assertIn('retrying once from the fresh accessibility tree', picker_section)
+        self.assertGreaterEqual(picker_section.count('tap-photo-picker-item'), 2)
+        # The retry is guarded by a fresh provider tree; it must not blindly tap
+        # again after the picker has returned to the app.
+        self.assertIn('dump_ui diary-picker-selection-result', picker_section)
+        self.assertIn('if grep -q \'package="com.google.android.providers.media.module"\'', picker_section)
+
     def test_review_scrolls_until_save_action_is_exposed(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn("for scroll_attempt in $(seq 1 8); do", source)
@@ -120,7 +131,10 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('am start -W -n "$PACKAGE/.eSpeakActivity"', preflight)
         self.assertIn("Missing base resource", preflight)
         self.assertIn("Failed to extract voice data", preflight)
-        self.assertIn("refusing to run tutor UI tests with a broken TTS engine", preflight)
+        self.assertIn('settings put secure tts_default_synth "com.google.android.tts"', preflight)
+        self.assertIn("Selected preinstalled Google TTS fallback", preflight)
+        self.assertIn("Neither eSpeak voice data nor the preinstalled Google TTS service is available", preflight)
+        self.assertIn("The tutor smoke must still prove speech starts", preflight)
 
     def test_workflow_records_outcomes_even_when_a_step_fails(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
@@ -143,6 +157,16 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertNotIn("api-level: [30, 35]", workflow)
         self.assertIn("system-image-api-level: ${{ matrix.api-level }}", workflow)
         self.assertIn("group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.api-level }}", workflow)
+
+
+    def test_diary_acceptance_artifacts_are_preserved_before_smoke_cleanup(self):
+        retry_script = (ROOT / ".github" / "scripts" / "android-ui-smoke-retry.sh").read_text(encoding="utf-8")
+        preserve = retry_script.index('cp -a ui-screenshots/diary-test attempt-artifacts/diary-acceptance/')
+        cleanup = retry_script.index('rm -rf ui-screenshots')
+        self.assertLess(preserve, cleanup)
+        self.assertIn('Preserved diary acceptance evidence under attempt-artifacts/diary-acceptance', retry_script)
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn('attempt-artifacts/', workflow)
 
 
 if __name__ == "__main__":

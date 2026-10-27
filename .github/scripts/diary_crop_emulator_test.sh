@@ -87,6 +87,19 @@ python3 .github/scripts/ui_smoke.py tap-photo-picker-item ui-screenshots/diary-t
 sleep 1
 dump_ui diary-picker-selection-result
 "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png
+# API 35's Photo Picker occasionally leaves the sole tile visibly unselected
+# after the first injected tap (selected=false and provider still owns the UI).
+# Retry only when fresh accessibility state proves the first tap did not return
+# the URI; never send a blind second tap after the app has regained control.
+if grep -q 'package="com.google.android.providers.media.module"' ui-screenshots/diary-test/diary-picker-selection-result.xml \
+   && grep -q 'content-desc="Photo taken on ' ui-screenshots/diary-test/diary-picker-selection-result.xml \
+   && grep -q 'selected="false"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then
+  log "Photo Picker still owns the UI and tile remains unselected; retrying once from the fresh accessibility tree"
+  python3 .github/scripts/ui_smoke.py tap-photo-picker-item ui-screenshots/diary-test/diary-picker-selection-result.xml
+  sleep 1
+  dump_ui diary-picker-selection-result
+  "${ADB[@]}" exec-out screencap -p > ui-screenshots/diary-test/picker-selection-result.png
+fi
 returned=0
 for attempt in $(seq 1 8); do
   if grep -q 'package="com.padippupal.app"' ui-screenshots/diary-test/diary-picker-selection-result.xml; then

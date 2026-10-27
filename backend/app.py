@@ -47,7 +47,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "x-admin-token"],
 )
 _worker: threading.Thread | None = None
@@ -2018,6 +2018,101 @@ def get_chapter_lesson(lesson_id: str) -> dict[str, Any]:
     if not row: raise HTTPException(status_code=404,detail="Chapter lesson not found.")
     item=dict(row); item["lesson"]=json.loads(item.pop("lesson_json")); item["source_refs"]=json.loads(item.pop("source_refs_json"))
     return item
+
+
+class ChapterLessonContentUpdateRequest(BaseModel):
+    lesson: dict[str, Any]
+    feedback: str = Field(default="Content updated; source review required.", max_length=2000)
+
+
+@app.put("/admin/chapter-lessons/{lesson_id}/content", dependencies=[Depends(require_admin)])
+def update_chapter_lesson_content(
+    lesson_id: str, payload: ChapterLessonContentUpdateRequest
+) -> dict[str, Any]:
+    """Safely revise a non-approved lesson while preserving source traceability."""
+    lesson_id = _normalize_detail_id(lesson_id, "lesson_id")
+    now = time.time()
+    with db() as conn:
+        row = conn.execute("SELECT * FROM chapter_lessons WHERE id=?", (lesson_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Chapter lesson not found.")
+        current = dict(row)
+        if str(current["status"]) not in {"draft", "review"}:
+            raise HTTPException(
+                status_code=409,
+                detail="Only draft or review lessons can be edited; approved/rejected lessons are locked.",
+            )
+
+        try:
+            refs = json.loads(current["source_refs_json"] or "[]")
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise HTTPException(status_code=422, detail="Stored source references are invalid.") from exc
+        if not isinstance(refs, list) or not refs:
+            raise HTTPException(status_code=422, detail="Lesson has no verifiable source references.")
+
+        expected_source_by_chunk: dict[str, str] = {}
+        for ref in refs:
+            if not isinstance(ref, dict) or not ref.get("chunk_id") or not ref.get("source_id"):
+                raise HTTPException(status_code=422, detail="Every source reference must contain chunk_id and source_id.")
+            chunk_id, source_id = str(ref["chunk_id"]), str(ref["source_id"])
+            if chunk_id in expected_source_by_chunk:
+                raise HTTPException(status_code=422, detail="Duplicate source chunk references are not allowed.")
+            expected_source_by_chunk[chunk_id] = source_id
+
+        for chunk_id, source_id in expected_source_by_chunk.items():
+            source_row = conn.execute(
+                """SELECT c.id AS chunk_id,c.source_id,s.board,s.class_level,s.subject,s.medium,s.status
+                   FROM chunks c JOIN sources s ON s.id=c.source_id WHERE c.id=?""",
+                (chunk_id,),
+            ).fetchone()
+            if not source_row or str(source_row["source_id"]) != source_id:
+                raise HTTPException(status_code=422, detail=f"Source chunk reference no longer resolves: {chunk_id}.")
+            if str(source_row["status"]) != "ready":
+                raise HTTPException(status_code=422, detail=f"Source for chunk {chunk_id} is not ready.")
+            for field in ("board", "subject", "medium"):
+                if normalize(str(source_row[field])).casefold() != normalize(str(current[field])).casefold():
+                    raise HTTPException(status_code=422, detail=f"Source profile mismatch for chunk {chunk_id}.")
+            if int(source_row["class_level"]) != int(current["class_level"]):
+                raise HTTPException(status_code=422, detail=f"Source class mismatch for chunk {chunk_id}.")
+
+        allowed_chunk_ids = set(expected_source_by_chunk)
+        validation = validate_chapter_lesson_payload(payload.lesson, allowed_chunk_ids)
+        if not validation.get("valid"):
+            raise HTTPException(
+                status_code=422,
+                detail={"message": "Lesson failed content or citation validation.", "errors": validation.get("errors", [])},
+            )
+
+        conn.execute(
+            """UPDATE chapter_lessons
+               SET lesson_json=?,status='draft',review_feedback=?,updated_at=? WHERE id=?""",
+            (json.dumps(payload.lesson, ensure_ascii=False), payload.feedback, now, lesson_id),
+        )
+
+        # Keep synthesis status aligned only when the round's complete evidence set
+        # exactly matches this lesson's source references.
+        source_ids = sorted(set(expected_source_by_chunk.values()))
+        for source_id in source_ids:
+            round_rows = conn.execute(
+                """SELECT id,source_chunk_ids_json FROM syllabus_synthesis_rounds
+                   WHERE source_id=? AND chapter=? ORDER BY updated_at DESC""",
+                (source_id, str(current["chapter"])),
+            ).fetchall()
+            matched = next(
+                (candidate for candidate in round_rows
+                 if set(json.loads(candidate["source_chunk_ids_json"] or "[]")) == allowed_chunk_ids),
+                None,
+            )
+            if matched:
+                conn.execute(
+                    "UPDATE syllabus_synthesis_rounds SET status='draft',updated_at=? WHERE id=?",
+                    (now, matched["id"]),
+                )
+                conn.execute(
+                    "UPDATE syllabus_topic_syntheses SET approval_status='draft',updated_at=? WHERE round_id=?",
+                    (now, matched["id"]),
+                )
+    return {"lesson_id": lesson_id, "status": "draft", "validation": validation, "review_required": True}
 
 
 class ChapterLessonReviewRequest(BaseModel):

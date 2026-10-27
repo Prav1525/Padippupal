@@ -318,3 +318,35 @@ Use this format:
 - **Safety:** Draft-only behavior and strict source-citation validation remain unchanged. No production DB rows changed and no lessons were approved.
 - **Verification status:** Reconciled commit prepared; CI must pass on the updated PR head before merge. Production re-synthesis remains pending deployment and review.
 
+### 2026-10-27 — Add Class 6 lesson content-consistency validation
+- **Branch / PR:** `fix/class6-maths-content-qa`; [PR #40](https://github.com/Prav1525/Padippupal/pull/40).
+- **Observed production evidence:** Class 6 Maths draft audit identified a Fractions history/notation conflation, chikki thirds-versus-sixths mismatch, number-line denominator mismatch, a four-stroke example described as a fifth tally, overgeneralized diagonal-unit wording, and imprecise triangle/rectangle base-height wording. All affected lessons remain drafts.
+- **Change made:** Added targeted content consistency checks to `backend/syllabus_synthesis.py` and seven regression tests in `backend/test_lesson_content_consistency.py`. The checks reject the known patterns during chapter-lesson validation; they do not automatically rewrite existing production lesson rows or approve content.
+- **Test evidence:** Curriculum Engine Tests run [40521410289](https://github.com/Prav1525/Padippupal/actions/runs/40521410289) was still running at ledger update time. Investigation Guidance Gate run [40521410373](https://github.com/Prav1525/Padippupal/actions/runs/40521410373) initially failed because this required append-only ledger entry was missing; this entry addresses that documentation gate.
+- **Root cause confidence:** **CONFIRMED** for the observed lesson/visual contradictions by inspecting the live lesson JSON; **UNVERIFIED** whether the new validator passes all regression tests until CI completes.
+- **What this proves:** The code and regression cases are committed to an isolated PR. It does not prove the tests pass, that the PR is merged/deployed, or that existing production drafts are corrected.
+- **What remains unverified:** Exact-head CI; deployment of the guardrails; authenticated correction of existing drafts; live tutor delivery for approved versus draft lessons.
+- **Next action:** Inspect all required CI results and fix failures. Then use the authenticated admin workflow to correct and revalidate existing drafts. Keep them unapproved until source-based human review is complete.
+
+
+
+### 2026-10-27 — Add authenticated draft-only lesson content editing
+- **Branch / PR:** `fix/class6-maths-content-qa`; [PR #40](https://github.com/Prav1525/Padippupal/pull/40).
+- **Change made:** Added `PUT /admin/chapter-lessons/{lesson_id}/content`. It requires the existing admin-token dependency, permits edits only for `draft` or `review` lessons, verifies every stored source chunk still exists under the expected ready source and curriculum profile, and runs the chapter lesson validator before saving.
+- **Safety:** A successful edit always leaves the lesson in `draft` with review required. Approved/rejected lessons return HTTP 409; failed citation/content validation returns HTTP 422. Matching synthesis round/topic status is returned to draft only when the evidence chunk set matches exactly. No production lesson was edited or approved.
+- **Regression tests added:** `backend/test_chapter_lesson_content_endpoint.py` covers missing admin auth, invalid citation rejection without mutation, valid draft update with draft preservation, and approved lesson lock.
+- **Verification:** Pending CI on the updated PR head. This entry records implementation, not a claim that tests or production behavior have been verified.
+- **Next action:** Inspect the latest exact-head CI results; only after tests pass, use the authenticated endpoint to correct the known Maths draft issues and revalidate them. Keep all lessons unapproved until human source review is complete.
+
+
+### 2026-10-27 — Guarded API-only corrections for known Class 6 Maths drafts
+- **Change made:** Added `backend/scripts/apply_class6_math_qa_corrections.py`. It fetches the three identified lessons through the authenticated admin API, checks each is still a draft, verifies expected old wording before editing, and sends updates only through the new content endpoint. It defaults to dry-run; `--apply` is required to save.
+- **Corrections covered:** Fractions historical wording and two visual/narration mismatches; Data Handling tally marks and warm-up visual; Perimeter and Area diagonal-length scope and triangle-area base/height wording.
+- **Safety:** Requires `PADIPPUPAL_ADMIN_TOKEN` from the caller's secure environment; no token is stored in code. No direct database writes, approval action, or publish action. Every API save must confirm draft status and human review required.
+- **Regression tests added:** `backend/test_class6_math_qa_corrections.py` runs the proposed edits through the same lesson validator; it does not call production.
+- **Verification:** CI pending for this exact commit. The script has not been run against production because no authenticated HTTP execution context is available in this session. No production lesson has been changed by this script.
+
+
+### 2026-10-27 — Correction-script regression finding
+- The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
+- The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.

@@ -101,7 +101,7 @@ def validate_synthesis_payload(
         if not isinstance(raw, Mapping):
             errors.append(f"topics[{index}] must be an object")
             continue
-        title = re.sub(r"\s+", " ", str(raw.get("topic") or "")).strip()
+        title = re.sub(r"\\s+", " ", str(raw.get("topic") or "")).strip()
         if not title:
             errors.append(f"topics[{index}] is missing topic")
             continue
@@ -137,6 +137,68 @@ def validate_synthesis_payload(
         })
 
     return {"valid": not errors, "errors": errors, "topics": normalized}
+
+
+def validate_lesson_content_consistency(payload: Mapping[str, Any]) -> list[str]:
+    """Catch known high-impact lesson/visual contradictions before a draft is saved.
+
+    These are targeted editorial guardrails, not a replacement for human review
+    against the cited textbook pages.
+    """
+    errors: list[str] = []
+    chapter = str(payload.get("chapter_title") or "").casefold()
+    steps = payload.get("teaching_sequence")
+    if not isinstance(steps, list):
+        return errors
+
+    for index, step in enumerate(steps):
+        if not isinstance(step, Mapping):
+            continue
+        title = str(step.get("title") or "").casefold()
+        teacher = str(step.get("teacher_says") or "").casefold()
+        visual = step.get("visual") if isinstance(step.get("visual"), Mapping) else {}
+        visual_text = " ".join(
+            str(value).casefold()
+            for value in (
+                visual.get("narration_sync", []),
+                visual.get("objects", []),
+                visual.get("actions", []),
+                step.get("caption", ""),
+                step.get("example", ""),
+            )
+        )
+        where = f"teaching_sequence[{index}] ({step.get('title') or 'untitled'})"
+
+        if "fractions" in chapter and "parts of a whole" in title:
+            if "6 equal parts" in teacher and "3 equal pieces" in visual_text:
+                errors.append(f"{where}: visual says thirds while narration teaches sixths; align the fraction example.")
+        if "fractions" in chapter and "number line" in title:
+            if "2 equal parts" in teacher and "3 equal parts" in teacher and "5 equal parts" in visual_text:
+                errors.append(f"{where}: number-line visual teaches fifths while narration teaches halves and thirds.")
+        if "fractions" in chapter and "history" in title:
+            if "rig veda" in teacher and (
+                "similar to ours" in teacher or "similar to modern" in teacher
+            ):
+                errors.append(
+                    f"{where}: do not conflate the Rig Veda's tri-pada reference with later fraction notation; "
+                    "separate and independently cite historical claims."
+                )
+        if "data handling" in chapter and "tally" in title:
+            if "every fifth mark" in teacher and "||||" in teacher and not re.search(r"\\\\", teacher):
+                errors.append(
+                    f"{where}: tally example shows only four vertical strokes; explicitly show four strokes crossed by the fifth."
+                )
+        if "perimeter and area" in chapter and "diagonal" in title:
+            if "a diagonal line is longer than a straight grid unit" in teacher:
+                errors.append(
+                    f"{where}: qualify the claim to a diagonal across a unit square (length sqrt(2) units)."
+                )
+        if "perimeter and area" in chapter and "area of triangles" in title:
+            if "any rectangle" in teacher and "half the area" in teacher:
+                errors.append(
+                    f"{where}: state that the rectangle has the same base and corresponding height as the triangle."
+                )
+    return errors
 
 
 def validate_chapter_lesson_payload(
@@ -203,6 +265,7 @@ def validate_chapter_lesson_payload(
         if not isinstance(visual, Mapping) or visual.get("type", "none") not in allowed_visuals:
             errors.append(f"teaching_sequence[{index}] has an unsupported visual recipe")
 
+    errors.extend(validate_lesson_content_consistency(payload))
     missing_citations = allowed_chunk_ids - cited_chunk_ids
     if missing_citations:
         errors.append(
@@ -219,6 +282,7 @@ def validate_chapter_lesson_payload(
             "learning objectives and concept map are non-empty",
             "every concept and teaching step cites supplied source chunks",
             "teaching steps include learner-facing explanation, caption, checkpoint, and supported visual recipe",
+            "known high-impact content/visual contradictions are rejected",
         ] if not errors else [],
         "topic_count": len(steps),
         "source_chunk_count": len(allowed_chunk_ids),

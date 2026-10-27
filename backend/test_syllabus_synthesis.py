@@ -122,5 +122,25 @@ class SyllabusSynthesisTests(unittest.TestCase):
         self.assertTrue(any("concept_map must be a non-empty list" in error for error in invalid_empty["errors"]))
 
 
+    def test_chapter_lesson_validator_rejects_uncited_textbook_chunks(self):
+        lesson = {
+            "chapter_title": "Chapter A",
+            "overview": "A source-grounded overview.",
+            "learning_objectives": ["Explain the central idea."],
+            "concept_map": [{"concept": "Central idea", "source_chunk_ids": ["chunk-a"]}],
+            "teaching_sequence": [{
+                "title": "First step",
+                "teacher_says": "Let us explore the idea.",
+                "caption": "The key point is shown here.",
+                "checkpoint": "What is the key point?",
+                "source_chunk_ids": ["chunk-a"],
+                "visual": {"type": "none"},
+            }],
+        }
+        result = validate_chapter_lesson_payload(lesson, {"chunk-a", "chunk-b"})
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("1 supplied source chunks uncited" in error for error in result["errors"]))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -7,6 +7,7 @@ from syllabus_synthesis import (
     group_chapter_evidence,
     make_run_id,
     validate_synthesis_payload,
+    validate_chapter_lesson_payload,
 )
 
 
@@ -73,3 +74,53 @@ class SyllabusSynthesisTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_chapter_lesson_validator_requires_complete_teaching_contract(self):
+        lesson = {
+            "chapter_title": "Chapter A",
+            "overview": "A source-grounded overview.",
+            "learning_objectives": ["Explain the central idea."],
+            "concept_map": [{"concept": "Central idea", "source_chunk_ids": ["chunk-a"]}],
+            "teaching_sequence": [{
+                "title": "First step",
+                "teacher_says": "Let us explore the idea.",
+                "caption": "The key point is shown here.",
+                "checkpoint": "What is the key point?",
+                "source_chunk_ids": ["chunk-a"],
+                "visual": {"type": "none"},
+            }],
+        }
+        valid = validate_chapter_lesson_payload(lesson, {"chunk-a"})
+        self.assertTrue(valid["valid"], valid["errors"])
+        self.assertEqual(valid["topic_count"], 1)
+
+        incomplete = dict(lesson)
+        incomplete["teaching_sequence"] = [dict(lesson["teaching_sequence"][0])]
+        incomplete["teaching_sequence"][0]["checkpoint"] = ""
+        invalid = validate_chapter_lesson_payload(incomplete, {"chunk-a"})
+        self.assertFalse(invalid["valid"])
+        self.assertTrue(any("checkpoint" in error for error in invalid["errors"]))
+
+    def test_chapter_lesson_validator_rejects_unknown_citations_and_empty_concepts(self):
+        lesson = {
+            "chapter_title": "Chapter A",
+            "overview": "An overview.",
+            "learning_objectives": ["Explain the idea."],
+            "concept_map": [{"concept": "Central idea", "source_chunk_ids": ["outside-chunk"]}],
+            "teaching_sequence": [{
+                "title": "First step",
+                "teacher_says": "Textbook-grounded explanation.",
+                "caption": "Key point.",
+                "checkpoint": "What did you learn?",
+                "source_chunk_ids": ["chunk-a"],
+                "visual": {"type": "none"},
+            }],
+        }
+        invalid = validate_chapter_lesson_payload(lesson, {"chunk-a"})
+        self.assertFalse(invalid["valid"])
+        self.assertTrue(any("unknown source chunk" in error for error in invalid["errors"]))
+        lesson["concept_map"] = []
+        invalid_empty = validate_chapter_lesson_payload(lesson, {"chunk-a"})
+        self.assertFalse(invalid_empty["valid"])
+        self.assertTrue(any("concept_map must be a non-empty list" in error for error in invalid_empty["errors"]))

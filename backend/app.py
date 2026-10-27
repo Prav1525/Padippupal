@@ -1522,6 +1522,102 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         raise HTTPException(status_code=502,detail="Synthesis returned invalid or unverified lesson data; no draft was published.") from exc
 
 
+@app.post("/admin/syllabus-synthesis/batch", dependencies=[Depends(require_admin)])
+def batch_syllabus_synthesis(payload: ChapterSynthesisBatchRequest) -> dict[str, Any]:
+    """Inventory or explicitly synthesize chapters from already-ingested ready books.
+
+    Inventory mode is read-only and the default. Generation is sequential, bounded,
+    source-specific, and reuses the single-chapter validator; every result stays a draft
+    until the existing human review endpoint approves it.
+    """
+    subject_key = payload.subject.strip().lower()
+    if subject_key in {"math", "maths", "mathematics"}:
+        subject_clause = "LOWER(s.subject) IN ('math','maths','mathematics')"
+        source_params: list[Any] = []
+    else:
+        subject_clause = "LOWER(s.subject)=LOWER(?)"
+        source_params = [payload.subject.strip()]
+    source_sql = (
+        "SELECT id,board,class_level,subject,medium,title,academic_year,edition "
+        "FROM sources WHERE status='ready' AND LOWER(board)=LOWER(?) "
+        "AND class_level=? AND LOWER(medium)=LOWER(?) AND " + subject_clause
+    )
+    source_params = [payload.board.strip(), payload.class_level, payload.medium.strip()] + source_params
+    if payload.source_id:
+        source_sql += " AND id=?"
+        source_params.append(payload.source_id)
+    source_sql += " ORDER BY academic_year DESC,title,id"
+
+    jobs: list[dict[str, Any]] = []
+    with db() as conn:
+        source_rows = [dict(row) for row in conn.execute(source_sql, source_params).fetchall()]
+        for source in source_rows:
+            chapter_rows = conn.execute(
+                """SELECT chapter, MIN(chunk_no) AS first_chunk
+                   FROM chunks WHERE source_id=? AND TRIM(COALESCE(chapter,''))<>''
+                   GROUP BY chapter ORDER BY MIN(chunk_no), chapter""",
+                (source["id"],),
+            ).fetchall()
+            for row in chapter_rows:
+                chapter_name = re.sub(r"\s+", " ", str(row["chapter"] or "")).strip()
+                if chapter_name:
+                    jobs.append({
+                        "source_id": str(source["id"]),
+                        "source_title": str(source["title"]),
+                        "board": str(source["board"]),
+                        "class_level": int(source["class_level"]),
+                        "subject": str(source["subject"]),
+                        "medium": str(source["medium"]),
+                        "chapter": chapter_name,
+                    })
+
+    total_available = len(jobs)
+    selected = jobs[:payload.max_chapters]
+    results: list[dict[str, Any]] = []
+    for job in selected:
+        item = {key: job[key] for key in ("source_id", "source_title", "chapter")}
+        if not payload.generate:
+            item["status"] = "inventory_only"
+            results.append(item)
+            continue
+        try:
+            generated = generate_chapter_lesson(ChapterLessonGenerateRequest(
+                board=job["board"],
+                class_level=job["class_level"],
+                subject=job["subject"],
+                medium=job["medium"],
+                chapter=job["chapter"],
+                source_id=job["source_id"],
+            ))
+            item["status"] = str(generated.get("status", "draft"))
+            item["lesson_id"] = generated.get("lesson_id")
+            item["synthesis_round_id"] = generated.get("synthesis_round_id")
+            item["validation"] = generated.get("validation")
+        except HTTPException as exc:
+            item["status"] = "failed"
+            item["http_status"] = exc.status_code
+            item["error"] = str(exc.detail)
+        except Exception as exc:
+            logger.exception("Batch chapter synthesis failed for source=%s chapter=%s",
+                             job["source_id"], job["chapter"])
+            item["status"] = "failed"
+            item["error"] = "Unexpected synthesis error: " + type(exc).__name__
+        results.append(item)
+
+    return {
+        "mode": "generate_drafts" if payload.generate else "inventory_only",
+        "generate_requested": payload.generate,
+        "source_count": len(source_rows),
+        "available_chapter_count": total_available,
+        "selected_chapter_count": len(selected),
+        "truncated": total_available > len(selected),
+        "draft_count": sum(1 for item in results if item.get("status") == "draft"),
+        "failed_count": sum(1 for item in results if item.get("status") == "failed"),
+        "results": results,
+        "note": "Inventory mode is read-only. Generated lessons are drafts and are never auto-approved.",
+    }
+
+
 @app.get("/admin/syllabus-synthesis/coverage", dependencies=[Depends(require_admin)])
 def syllabus_synthesis_coverage(
     board: str | None = Query(default=None, max_length=80),

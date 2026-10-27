@@ -1796,6 +1796,8 @@ def syllabus_synthesis_coverage(
 
                     validation_passed = (
                         stored_validation.get("valid") is True
+                        and stored_validation.get("cited_chunk_count") == len(current_chunk_ids)
+                        and stored_validation.get("uncited_chunk_count") == 0
                         and topic_count > 0
                         and all(str(topic_row.get("validation_status") or "").lower() == "passed"
                                 for topic_row in topic_rows)
@@ -1840,6 +1842,9 @@ def syllabus_synthesis_coverage(
                     "synthesis_status": round_status,
                     "topic_count": topic_count,
                     "approved_topic_count": approved_topic_count,
+                    "source_chunk_count": len(current_chunk_ids),
+                    "cited_chunk_count": int(stored_validation.get("cited_chunk_count") or 0) if latest else 0,
+                    "uncited_chunk_count": int(stored_validation.get("uncited_chunk_count") or 0) if latest else 0,
                     "evidence_current": evidence_current,
                     "validation_passed": validation_passed,
                     "topics_approved": topics_approved,

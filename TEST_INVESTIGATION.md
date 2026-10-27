@@ -261,3 +261,17 @@ Use this format:
 - **Change in this batch:** Port the evidence-matched review-state synchronization into the isolated backend; update the stale diary test assertion to 75; retain this record append-only. This does not change diary runtime behavior.
 - **Verification plan:** Re-run exact-head Curriculum Engine Tests, check Android/workflow gates, inspect failures if any, then run the production-safe draft-only synthesis acceptance process. No production database writes, lesson generation, merge, or deployment has been performed by this investigation entry.
 - **Outcome at edit time:** Fixes committed for CI verification; exact commit/run result to be appended after the next workflow completes.
+
+
+### 2026-10-27 — Retry strict chapter synthesis after validation failure
+- **Branch / commit:** `fix/chapter-lesson-synthesis-validation`; code commit `ec16112b04295744d125c6d75e156c62c53aa938`; ledger follow-up commit pending.
+- **Test command or workflow URL:** [Curriculum Engine Tests](https://github.com/Prav1525/Padippupal/actions/runs/40455163866); [Investigation Guidance Gate](https://github.com/Prav1525/Padippupal/actions/runs/40455163898); [Android UI smoke](https://github.com/Prav1525/Padippupal/actions/runs/40455163729); [APK build](https://github.com/Prav1525/Padippupal/actions/runs/40455163881).
+- **Result:** Curriculum Engine Tests **PASS**; APK build **PASS**; Investigation Guidance Gate **FAIL** because this code PR did not append a dated entry to this ledger; Android UI smoke **IN PROGRESS** at last check.
+- **Exact failure or assertion:** Gate log: `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence links (logs/screenshots/XML/artifacts):** Gate job 122026672939; failing step is `Validate guidance and investigation record`; workflow log shows the exact assertion above.
+- **Change made (files + rationale):** Append this entry to document the chapter-synthesis retry, its test evidence, and remaining production verification; this satisfies the repository's append-only investigation requirement without changing runtime code.
+- **Root cause:** **CONFIRMED** for the gate failure: `backend/app.py` changed but `TEST_INVESTIGATION.md` was not included in the PR diff. This is a documentation-gate failure, not evidence that the Python fix failed.
+- **What this attempt proves:** The curriculum test suite and APK build passed on the code commit; the required investigation ledger was missing from the PR.
+- **What remains unverified:** Android UI smoke completion; retry behavior against the failing production Science chapter; production deployment and saved-draft verification.
+- **Difference from previous attempt:** Adds the missing evidence-ledger record instead of changing application behavior or weakening validation.
+- **Next action and why:** Re-run the gate and wait for Android smoke to complete; only then evaluate all checks. Do not merge or deploy without explicit authorization, and keep source-citation validation strict and lesson status draft-only.

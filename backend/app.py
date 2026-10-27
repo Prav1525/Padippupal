@@ -1446,17 +1446,56 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         "generationConfig":{"responseMimeType":"application/json","temperature":0.15,"maxOutputTokens":10000}}).encode("utf-8")
     req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",
         data=body, headers={"x-goog-api-key":api_key,"Content-Type":"application/json","Accept":"application/json"}, method="POST")
+    def _request_and_validate(request_body: bytes) -> tuple[dict[str, Any] | None, dict[str, Any], str]:
+        request = urllib.request.Request(
+            "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+            data=request_body,
+            headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=90) as response:
+            provider_result = json.loads(response.read().decode("utf-8"))
+        candidate = provider_result["candidates"][0]
+        finish_reason = str(candidate.get("finishReason") or "unknown")
+        raw_text = " ".join(
+            part.get("text", "") for part in candidate["content"]["parts"] if isinstance(part, dict)
+        )
+        try:
+            parsed_lesson = json.loads(raw_text.strip())
+        except json.JSONDecodeError:
+            return None, {"valid": False, "errors": ["model response was not complete valid JSON"]}, finish_reason
+        if not isinstance(parsed_lesson, dict):
+            return None, {"valid": False, "errors": ["lesson response must be a JSON object"]}, finish_reason
+        checked = validate_chapter_lesson_payload(parsed_lesson, allowed)
+        return parsed_lesson, checked, finish_reason
+
     try:
-        with urllib.request.urlopen(req, timeout=90) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        raw = " ".join(part.get("text","") for part in result["candidates"][0]["content"]["parts"] if isinstance(part,dict))
-        lesson = json.loads(raw.strip())
-        if not isinstance(lesson, dict):
-            raise ValueError("lesson response must be a JSON object")
-        validation = validate_chapter_lesson_payload(lesson, allowed)
+        lesson, validation, finish_reason = _request_and_validate(body)
         if not validation["valid"]:
-            # Keep the response out of the database when required teaching content or
-            # source traceability is missing. The caller receives a generic safe error.
+            # Retry once with validator feedback. Preserve strict citation checks and
+            # never persist the first invalid response. This is particularly useful for
+            # chapters with many chunks, where the first answer may omit required fields
+            # or fail to cite every supplied chunk.
+            retry_payload = json.loads(body.decode("utf-8"))
+            retry_payload["systemInstruction"]["parts"][0]["text"] += (
+                " Your previous attempt failed validation. Produce a corrected, compact JSON object. "
+                "Do not remove required fields or invent citations. Cite only exact supplied chunk IDs, "
+                "and ensure every supplied chunk ID appears in at least one concept or teaching step."
+            )
+            retry_payload["contents"][0]["parts"][0]["text"] += (
+                "\n\nVALIDATION ERRORS TO FIX: " + json.dumps(validation.get("errors", []), ensure_ascii=False)
+                + "\nReturn only the corrected JSON object, with concise teaching text to stay within the output limit."
+            )
+            retry_payload["generationConfig"]["maxOutputTokens"] = 16000
+            retry_body = json.dumps(retry_payload, ensure_ascii=False).encode("utf-8")
+            lesson, validation, finish_reason = _request_and_validate(retry_body)
+        if not validation["valid"] or lesson is None:
+            # Log only structural error labels and finish reason, never source text or
+            # provider payloads. Keep the response out of the database on any failure.
+            logger.warning(
+                "Chapter synthesis validation rejected: model=%s finish_reason=%s errors=%s",
+                model, finish_reason, json.dumps(validation.get("errors", []), ensure_ascii=False)[:1600],
+            )
             raise ValueError("lesson failed structural or source-citation validation")
         lesson_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "padippupal:chapter-lesson:" + synthesis_round_id + ":" + payload.topic.strip().casefold()))
         now = time.time()

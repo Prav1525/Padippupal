@@ -23,6 +23,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPExcepti
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
+from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -259,7 +260,31 @@ def init_db() -> None:
             model TEXT NOT NULL DEFAULT '', review_feedback TEXT NOT NULL DEFAULT '',
             created_at REAL NOT NULL, updated_at REAL NOT NULL
         );
-        CREATE INDEX IF NOT EXISTS chapter_lessons_lookup
+            CREATE TABLE IF NOT EXISTS syllabus_synthesis_rounds (
+            id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+            board TEXT NOT NULL, class_level INTEGER NOT NULL, subject TEXT NOT NULL,
+            chapter TEXT NOT NULL, curriculum_version TEXT NOT NULL DEFAULT 'v1',
+            status TEXT NOT NULL DEFAULT 'draft', model TEXT NOT NULL DEFAULT '',
+            prompt_version TEXT NOT NULL DEFAULT 'v1', source_chunk_ids_json TEXT NOT NULL DEFAULT '[]',
+            evidence_fingerprint TEXT NOT NULL, validation_json TEXT NOT NULL DEFAULT '{}',
+            error_message TEXT NOT NULL DEFAULT '', created_at REAL NOT NULL, updated_at REAL NOT NULL,
+            UNIQUE(source_id, chapter, curriculum_version, evidence_fingerprint)
+        );
+        CREATE TABLE IF NOT EXISTS syllabus_topic_syntheses (
+            id TEXT PRIMARY KEY, round_id TEXT NOT NULL REFERENCES syllabus_synthesis_rounds(id) ON DELETE CASCADE,
+            source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+            topic TEXT NOT NULL, page_start INTEGER, page_end INTEGER,
+            learning_objectives_json TEXT NOT NULL DEFAULT '[]', explanation_json TEXT NOT NULL DEFAULT '{}',
+            examples_json TEXT NOT NULL DEFAULT '[]', practice_questions_json TEXT NOT NULL DEFAULT '[]',
+            citation_refs_json TEXT NOT NULL DEFAULT '[]', validation_status TEXT NOT NULL DEFAULT 'pending',
+            validation_notes_json TEXT NOT NULL DEFAULT '[]', approval_status TEXT NOT NULL DEFAULT 'draft',
+            created_at REAL NOT NULL, updated_at REAL NOT NULL, UNIQUE(round_id, topic)
+        );
+        CREATE INDEX IF NOT EXISTS idx_syllabus_rounds_source_chapter
+          ON syllabus_synthesis_rounds(source_id, chapter, created_at);
+        CREATE INDEX IF NOT EXISTS idx_syllabus_topic_syntheses_round
+          ON syllabus_topic_syntheses(round_id, approval_status);
+    CREATE INDEX IF NOT EXISTS chapter_lessons_lookup
           ON chapter_lessons(board, class_level, subject, medium, chapter, status);
         """)
         # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
@@ -1290,24 +1315,42 @@ class ChapterLessonGenerateRequest(BaseModel):
     medium: str = Field(min_length=2, max_length=40)
     chapter: str = Field(min_length=2, max_length=200)
     topic: str = Field(default="", max_length=200)
+    # Optional exact source selector lets batch runs avoid mixing editions/books
+    # that happen to reuse the same chapter title.
+    source_id: str = Field(default="", max_length=100)
+
+
+class ChapterSynthesisBatchRequest(BaseModel):
+    board: str = Field(min_length=2, max_length=80)
+    class_level: int = Field(ge=1, le=12)
+    subject: str = Field(min_length=1, max_length=100)
+    medium: str = Field(min_length=2, max_length=40)
+    source_id: str = Field(default="", max_length=100)
+    source_ids: list[str] = Field(default_factory=list, max_length=40)
+    max_chapters: int = Field(default=12, ge=1, le=40)
+    # Safe by default: inventory first; generation is an explicit admin action.
+    generate: bool = False
 
 
 def _chapter_source_chunks(payload: ChapterLessonGenerateRequest) -> list[dict[str, Any]]:
+    sql = """SELECT c.id AS chunk_id, c.chunk_no, c.chapter AS chunk_chapter,
+                    c.page_start, c.page_end, c.text, s.id AS source_id,
+                    s.title, s.academic_year, s.edition
+             FROM chunks c JOIN sources s ON s.id=c.source_id
+             WHERE s.status='ready' AND LOWER(s.board)=LOWER(?)
+               AND s.class_level=? AND LOWER(s.subject)=LOWER(?)
+               AND LOWER(s.medium)=LOWER(?)"""
+    params: list[Any] = [payload.board, payload.class_level, payload.subject, payload.medium]
+    if payload.source_id:
+        sql += " AND s.id=?"
+        params.append(payload.source_id)
+    sql += " ORDER BY s.academic_year DESC, c.chunk_no"
     with db() as conn:
-        rows = conn.execute(
-            """SELECT c.id AS chunk_id, c.chunk_no, c.chapter AS chunk_chapter,
-                      c.page_start, c.page_end, c.text, s.id AS source_id,
-                      s.title, s.academic_year, s.edition
-               FROM chunks c JOIN sources s ON s.id=c.source_id
-               WHERE s.status='ready' AND LOWER(s.board)=LOWER(?)
-                 AND s.class_level=? AND LOWER(s.subject)=LOWER(?)
-                 AND LOWER(s.medium)=LOWER(?)
-               ORDER BY s.academic_year DESC, c.chunk_no""",
-            (payload.board, payload.class_level, payload.subject, payload.medium)).fetchall()
-    rows = [dict(row) for row in rows if chapter_matches_chunk(payload.chapter, str(row["title"]), row["chunk_chapter"])]
+        rows = [dict(row) for row in conn.execute(sql, params).fetchall()]
+    rows = [row for row in rows if chapter_matches_chunk(payload.chapter, str(row["title"]), row["chunk_chapter"])]
     if not rows:
         return []
-    source_id = str(rows[0]["source_id"])
+    source_id = str(payload.source_id or rows[0]["source_id"])
     return [row for row in rows if str(row["source_id"]) == source_id]
 
 
@@ -1316,10 +1359,73 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
     chunks = _chapter_source_chunks(payload)
     if not chunks:
         raise HTTPException(status_code=404, detail="No exact, ready textbook chapter was found in the selected curriculum profile.")
+    evidence_chunks = [
+        EvidenceChunk(
+            id=str(row["chunk_id"]), source_id=str(row["source_id"]),
+            chapter=payload.chapter, chunk_no=int(row.get("chunk_no") or 0),
+            page_start=int(row["page_start"]) if row.get("page_start") is not None else None,
+            page_end=int(row["page_end"]) if row.get("page_end") is not None else None,
+            text=str(row["text"]),
+        )
+        for row in chunks
+    ]
+    evidence_packet = build_evidence_packet(evidence_chunks)
+    evidence_fingerprint_value = evidence_packet["evidence_fingerprint"]
+    synthesis_round_id = make_run_id(str(evidence_packet["source_id"]), payload.chapter, "v1", evidence_fingerprint_value)
+    # Idempotency: retries for unchanged textbook evidence must reuse the existing
+    # draft/approved lesson rather than duplicate rows or silently reset approvals.
+    with db() as conn:
+        existing_round_row = conn.execute(
+            "SELECT * FROM syllabus_synthesis_rounds WHERE id=?",
+            (synthesis_round_id,),
+        ).fetchone()
+        if existing_round_row and str(existing_round_row["evidence_fingerprint"]) == evidence_fingerprint_value:
+            existing_round = dict(existing_round_row)
+            candidates = conn.execute(
+                """SELECT * FROM chapter_lessons
+                   WHERE LOWER(board)=LOWER(?) AND class_level=?
+                     AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?)
+                     AND LOWER(chapter)=LOWER(?) AND COALESCE(topic,'')=?
+                   ORDER BY updated_at DESC""",
+                (payload.board, payload.class_level, payload.subject, payload.medium,
+                 payload.chapter, payload.topic),
+            ).fetchall()
+            existing_lesson = None
+            for candidate_row in candidates:
+                candidate = dict(candidate_row)
+                try:
+                    candidate_refs = json.loads(candidate.get("source_refs_json") or "[]")
+                except (TypeError, ValueError):
+                    candidate_refs = []
+                if any(
+                    isinstance(ref, dict) and str(ref.get("source_id") or "") == str(evidence_packet["source_id"])
+                    for ref in candidate_refs
+                ):
+                    existing_lesson = candidate
+                    break
+            if existing_lesson:
+                try:
+                    stored_lesson = json.loads(existing_lesson.get("lesson_json") or "{}")
+                    stored_refs = json.loads(existing_lesson.get("source_refs_json") or "[]")
+                    stored_validation = json.loads(existing_round.get("validation_json") or "{}")
+                except (TypeError, ValueError):
+                    stored_lesson, stored_refs, stored_validation = {}, [], {}
+                return {
+                    "lesson_id": existing_lesson["id"],
+                    "synthesis_round_id": synthesis_round_id,
+                    "evidence_fingerprint": evidence_fingerprint_value,
+                    "status": str(existing_lesson.get("status") or existing_round.get("status") or "draft"),
+                    "source_chunk_count": len(evidence_packet["chunk_ids"]),
+                    "source_refs": stored_refs,
+                    "lesson": stored_lesson,
+                    "validation": stored_validation,
+                    "review_required": str(existing_lesson.get("status") or "").lower() != "approved",
+                    "reused_existing": True,
+                }
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Gemini lesson synthesis is not configured on the backend.")
-    if len(chunks) > 80:
+    if len(chunks) > 120:
         raise HTTPException(status_code=413, detail="Chapter is too large for one synthesis pass; split into verified sections first.")
     refs, context = [], []
     for chunk in chunks:
@@ -1334,10 +1440,10 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
         "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, source_chunk_ids, visual). "
         "visual has type (number_pattern, number_line, geometry, compare, process, table, diagram, none), objects, actions, narration_sync. "
-        "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. No code; draft only.")
+        "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. Across the complete concept map and teaching sequence, cite EVERY supplied chunk_id at least once; do not omit a content-bearing chunk. No code; draft only.")
     body = json.dumps({"systemInstruction":{"parts":[{"text":prompt}]},
         "contents":[{"role":"user","parts":[{"text":"Profile: "+payload.board+", class "+str(payload.class_level)+", subject "+payload.subject+", medium "+payload.medium+", chapter "+payload.chapter+", topic "+(payload.topic or "whole chapter")+"\nALL STORED CHAPTER CHUNKS:\n"+"\n\n---\n\n".join(context)}]}],
-        "generationConfig":{"responseMimeType":"application/json","temperature":0.15,"maxOutputTokens":7000}}).encode("utf-8")
+        "generationConfig":{"responseMimeType":"application/json","temperature":0.15,"maxOutputTokens":10000}}).encode("utf-8")
     req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",
         data=body, headers={"x-goog-api-key":api_key,"Content-Type":"application/json","Accept":"application/json"}, method="POST")
     try:
@@ -1345,26 +1451,60 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
             result = json.loads(response.read().decode("utf-8"))
         raw = " ".join(part.get("text","") for part in result["candidates"][0]["content"]["parts"] if isinstance(part,dict))
         lesson = json.loads(raw.strip())
-        if not isinstance(lesson,dict) or not isinstance(lesson.get("teaching_sequence"),list) or not lesson["teaching_sequence"]:
-            raise ValueError("missing teaching sequence")
-        for step in lesson["teaching_sequence"]:
-            ids = {str(x) for x in step.get("source_chunk_ids",[])}
-            if not ids or not ids.issubset(allowed):
-                raise ValueError("unverified step citation")
-            if (step.get("visual") or {}).get("type","none") not in {"number_pattern","number_line","geometry","compare","process","table","diagram","none"}:
-                raise ValueError("invalid visual recipe")
-        for concept in lesson.get("concept_map",[]):
-            ids = {str(x) for x in concept.get("source_chunk_ids",[])}
-            if not ids or not ids.issubset(allowed):
-                raise ValueError("unverified concept citation")
-        lesson_id, now = str(uuid.uuid4()), time.time()
+        if not isinstance(lesson, dict):
+            raise ValueError("lesson response must be a JSON object")
+        validation = validate_chapter_lesson_payload(lesson, allowed)
+        if not validation["valid"]:
+            # Keep the response out of the database when required teaching content or
+            # source traceability is missing. The caller receives a generic safe error.
+            raise ValueError("lesson failed structural or source-citation validation")
+        lesson_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "padippupal:chapter-lesson:" + synthesis_round_id + ":" + payload.topic.strip().casefold()))
+        now = time.time()
         with db() as conn:
             conn.execute("""INSERT INTO chapter_lessons
                 (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,source_refs_json,model,review_feedback,created_at,updated_at)
-                VALUES (?,?,?,?,?,?,?,'draft',?,?,?,'',?,?)""",
+                VALUES (?,?,?,?,?,?,?,'draft',?,?,?,'',?,?)
+                ON CONFLICT(id) DO UPDATE SET lesson_json=excluded.lesson_json,
+                    source_refs_json=excluded.source_refs_json, model=excluded.model,
+                    updated_at=excluded.updated_at""",
                 (lesson_id,payload.board,payload.class_level,payload.subject,payload.medium,payload.chapter,payload.topic,
                  json.dumps(lesson,ensure_ascii=False),json.dumps(refs,ensure_ascii=False),model,now,now))
-        return {"lesson_id":lesson_id,"status":"draft","source_chunk_count":len(chunks),"source_refs":refs,"lesson":lesson,"review_required":True}
+            conn.execute("""INSERT INTO syllabus_synthesis_rounds
+                (id,source_id,board,class_level,subject,chapter,curriculum_version,status,model,prompt_version,
+                 source_chunk_ids_json,evidence_fingerprint,validation_json,error_message,created_at,updated_at)
+                VALUES (?,?,?,?,?,?,?,'draft',?,?,?,?,?,'',?,?)
+                ON CONFLICT(id) DO UPDATE SET status='draft', model=excluded.model,
+                 source_chunk_ids_json=excluded.source_chunk_ids_json,
+                 validation_json=excluded.validation_json, updated_at=excluded.updated_at""",
+                (synthesis_round_id, str(evidence_packet["source_id"]), payload.board, payload.class_level,
+                 payload.subject, payload.chapter, "v1", model, "v1", json.dumps(evidence_packet["chunk_ids"]),
+                 evidence_fingerprint_value, json.dumps(validation), now, now))
+            conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=?", (synthesis_round_id,))
+            for index, step in enumerate(lesson["teaching_sequence"]):
+                topic = normalize(str(step.get("title") or step.get("id") or f"Topic {index + 1}"))
+                topic_id = hashlib.sha256(f"{synthesis_round_id}|{index}|{topic}".encode("utf-8")).hexdigest()
+                citations = [str(x) for x in step.get("source_chunk_ids", [])]
+                conn.execute("""INSERT INTO syllabus_topic_syntheses
+                    (id,round_id,source_id,topic,page_start,page_end,learning_objectives_json,
+                     explanation_json,examples_json,practice_questions_json,citation_refs_json,
+                     validation_status,validation_notes_json,approval_status,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (topic_id, synthesis_round_id, str(evidence_packet["source_id"]), topic,
+                     evidence_packet["page_start"], evidence_packet["page_end"],
+                     json.dumps(lesson.get("learning_objectives", []), ensure_ascii=False),
+                     json.dumps({"teacher_says": step.get("teacher_says", ""),
+                                 "caption": step.get("caption", ""),
+                                 "misconception": step.get("misconception", ""),
+                                 "checkpoint": step.get("checkpoint", "")}, ensure_ascii=False),
+                     json.dumps([step.get("example")] if step.get("example") else [], ensure_ascii=False),
+                     json.dumps([step.get("checkpoint")] if step.get("checkpoint") else [], ensure_ascii=False),
+                     json.dumps(citations, ensure_ascii=False), "passed",
+                     json.dumps(["Citations verified against this chapter's source chunks"], ensure_ascii=False),
+                     "draft", now, now))
+        return {"lesson_id":lesson_id,"synthesis_round_id":synthesis_round_id,
+                "evidence_fingerprint":evidence_fingerprint_value,"status":"draft",
+                "source_chunk_count":len(chunks),"source_refs":refs,"lesson":lesson,
+                "validation":validation,"review_required":True}
     except urllib.error.HTTPError as exc:
         logger.warning("Chapter synthesis rejected: status=%s model=%s",exc.code,model)
         raise HTTPException(status_code=503 if exc.code==429 else 502,detail="Chapter synthesis failed; no draft was published.") from exc
@@ -1373,6 +1513,414 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
     except (KeyError,IndexError,TypeError,ValueError,json.JSONDecodeError) as exc:
         logger.warning("Chapter synthesis validation failed: %s",type(exc).__name__)
         raise HTTPException(status_code=502,detail="Synthesis returned invalid or unverified lesson data; no draft was published.") from exc
+
+
+@app.post("/admin/syllabus-synthesis/batch", dependencies=[Depends(require_admin)])
+def batch_syllabus_synthesis(payload: ChapterSynthesisBatchRequest) -> dict[str, Any]:
+    """Inventory or explicitly synthesize chapters from already-ingested ready books.
+
+    Inventory mode is read-only and the default. Generation is sequential, bounded,
+    source-specific, and reuses the single-chapter validator; every result stays a draft
+    until the existing human review endpoint approves it.
+    """
+    if payload.generate and not payload.source_id and not payload.source_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="For safety, draft generation requires an explicitly selected source_id or source_ids list.",
+        )
+    subject_key = payload.subject.strip().lower()
+    if subject_key in {"math", "maths", "mathematics"}:
+        subject_clause = "LOWER(s.subject) IN ('math','maths','mathematics')"
+        source_params: list[Any] = []
+    else:
+        subject_clause = "LOWER(s.subject)=LOWER(?)"
+        source_params = [payload.subject.strip()]
+    source_sql = (
+        "SELECT id,board,class_level,subject,medium,title,academic_year,edition "
+        "FROM sources s WHERE status='ready' AND LOWER(s.board)=LOWER(?) "
+        "AND class_level=? AND LOWER(medium)=LOWER(?) AND " + subject_clause
+    )
+    source_params = [payload.board.strip(), payload.class_level, payload.medium.strip()] + source_params
+    if payload.source_id:
+        source_sql += " AND id=?"
+        source_params.append(payload.source_id)
+    if payload.source_ids:
+        source_sql += " AND id IN (" + ",".join("?" for _ in payload.source_ids) + ")"
+        source_params.extend(payload.source_ids)
+    source_sql += " ORDER BY academic_year DESC,title,id"
+
+    jobs: list[dict[str, Any]] = []
+    with db() as conn:
+        source_rows = [dict(row) for row in conn.execute(source_sql, source_params).fetchall()]
+        for source in source_rows:
+            chapter_rows = conn.execute(
+                """SELECT chapter, MIN(chunk_no) AS first_chunk
+                   FROM chunks WHERE source_id=? AND TRIM(COALESCE(chapter,''))<>''
+                   GROUP BY chapter ORDER BY MIN(chunk_no), chapter""",
+                (source["id"],),
+            ).fetchall()
+            for row in chapter_rows:
+                chapter_name = re.sub(r"\s+", " ", str(row["chapter"] or "")).strip()
+                if chapter_name:
+                    jobs.append({
+                        "source_id": str(source["id"]),
+                        "source_title": str(source["title"]),
+                        "board": str(source["board"]),
+                        "class_level": int(source["class_level"]),
+                        "subject": str(source["subject"]),
+                        "medium": str(source["medium"]),
+                        "chapter": chapter_name,
+                    })
+
+    total_available = len(jobs)
+    selected = jobs[:payload.max_chapters]
+    results: list[dict[str, Any]] = []
+    for job in selected:
+        item = {key: job[key] for key in ("source_id", "source_title", "chapter")}
+        if not payload.generate:
+            item["status"] = "inventory_only"
+            results.append(item)
+            continue
+        try:
+            generated = generate_chapter_lesson(ChapterLessonGenerateRequest(
+                board=job["board"],
+                class_level=job["class_level"],
+                subject=job["subject"],
+                medium=job["medium"],
+                chapter=job["chapter"],
+                source_id=job["source_id"],
+            ))
+            item["status"] = str(generated.get("status", "draft"))
+            item["lesson_id"] = generated.get("lesson_id")
+            item["synthesis_round_id"] = generated.get("synthesis_round_id")
+            item["validation"] = generated.get("validation")
+        except HTTPException as exc:
+            item["status"] = "failed"
+            item["http_status"] = exc.status_code
+            item["error"] = str(exc.detail)
+        except Exception as exc:
+            logger.exception("Batch chapter synthesis failed for source=%s chapter=%s",
+                             job["source_id"], job["chapter"])
+            item["status"] = "failed"
+            item["error"] = "Unexpected synthesis error: " + type(exc).__name__
+        results.append(item)
+
+    return {
+        "mode": "generate_drafts" if payload.generate else "inventory_only",
+        "generate_requested": payload.generate,
+        "source_count": len(source_rows),
+        "available_chapter_count": total_available,
+        "selected_chapter_count": len(selected),
+        "truncated": total_available > len(selected),
+        "draft_count": sum(1 for item in results if item.get("status") == "draft"),
+        "failed_count": sum(1 for item in results if item.get("status") == "failed"),
+        "results": results,
+        "note": "Inventory mode is read-only. Generated lessons are drafts and are never auto-approved.",
+    }
+
+
+@app.get("/admin/syllabus-synthesis/coverage", dependencies=[Depends(require_admin)])
+def syllabus_synthesis_coverage(
+    board: str | None = Query(default=None, max_length=80),
+    class_level: int | None = Query(default=None, ge=1, le=12),
+    medium: str | None = Query(default=None, max_length=40),
+) -> dict[str, Any]:
+    """Audit stored Science/Mathematics sources against current, approved chapter syntheses.
+
+    This is an evidence-based inventory, not a guessed syllabus checklist: chapter rows
+    come from the ingested textbook chunks, and approval requires current evidence,
+    passing topic validation, topic approval, and an approved tutor lesson.
+    """
+    where = ["LOWER(subject) IN ('science','mathematics','maths','math')"]
+    params: list[Any] = []
+    if board:
+        where.append("LOWER(board)=LOWER(?)")
+        params.append(board.strip())
+    if class_level is not None:
+        where.append("class_level=?")
+        params.append(class_level)
+    if medium:
+        where.append("LOWER(medium)=LOWER(?)")
+        params.append(medium.strip())
+    with db() as conn:
+        sources = [dict(row) for row in conn.execute(
+            "SELECT * FROM sources WHERE " + " AND ".join(where) +
+            " ORDER BY board,class_level,subject,medium,academic_year DESC,title", params
+        ).fetchall()]
+
+        inventory: list[dict[str, Any]] = []
+        for source in sources:
+            source_status = str(source.get("status") or "unknown").lower()
+            chunks = [dict(row) for row in conn.execute(
+                "SELECT id,chunk_no,chapter,page_start,page_end,text FROM chunks WHERE source_id=? ORDER BY chunk_no",
+                (source["id"],),
+            ).fetchall()]
+            # A ready source and stable chunk IDs do not prove that the whole book was
+            # extracted. Compare observed chunk page ranges against the source's declared
+            # page_count; missing pages conservatively block chapter completion.
+            page_count = int(source.get("page_count") or 0)
+            covered_pages: set[int] = set()
+            for chunk in chunks:
+                first = chunk.get("page_start")
+                last = chunk.get("page_end")
+                if first is None or last is None:
+                    continue
+                first_page, last_page = int(first), int(last)
+                if first_page > 0 and last_page >= first_page:
+                    covered_pages.update(range(first_page, min(last_page, page_count or last_page) + 1))
+            missing_page_numbers = (
+                [page for page in range(1, page_count + 1) if page not in covered_pages]
+                if page_count > 0 else []
+            )
+            page_coverage_known = page_count > 0
+            page_coverage_complete = page_coverage_known and not missing_page_numbers
+
+            grouped: dict[str, list[dict[str, Any]]] = {}
+            unclassified_count = 0
+            for chunk in chunks:
+                chapter_name = re.sub(r"\s+", " ", str(chunk.get("chapter") or "")).strip()
+                if not chapter_name:
+                    unclassified_count += 1
+                    continue
+                grouped.setdefault(chapter_name, []).append(chunk)
+
+            chapter_reports: list[dict[str, Any]] = []
+            for chapter_name, chapter_chunks in grouped.items():
+                round_rows = [dict(row) for row in conn.execute(
+                    """SELECT * FROM syllabus_synthesis_rounds
+                       WHERE source_id=? AND LOWER(chapter)=LOWER(?)
+                       ORDER BY updated_at DESC""",
+                    (source["id"], chapter_name),
+                ).fetchall()]
+                latest = round_rows[0] if round_rows else None
+                topic_rows: list[dict[str, Any]] = []
+                current_chunk_ids = {str(chunk["id"]) for chunk in chapter_chunks}
+                evidence_current = False
+                validation_passed = False
+                topics_approved = False
+                lesson_approved = False
+                topic_count = approved_topic_count = 0
+                round_status = "missing"
+                round_id = None
+                if latest:
+                    round_id = str(latest["id"])
+                    round_status = str(latest["status"])
+                    topic_rows = [dict(row) for row in conn.execute(
+                        "SELECT * FROM syllabus_topic_syntheses WHERE round_id=? ORDER BY page_start,topic",
+                        (round_id,),
+                    ).fetchall()]
+                    topic_count = len(topic_rows)
+                    approved_topic_count = sum(1 for topic_row in topic_rows
+                                               if str(topic_row.get("approval_status") or "").lower() == "approved")
+                    try:
+                        stored_ids = {str(value) for value in json.loads(latest.get("source_chunk_ids_json") or "[]")}
+                        stored_validation = json.loads(latest.get("validation_json") or "{}")
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        stored_ids, stored_validation = set(), {}
+                    current_evidence = [
+                        EvidenceChunk(
+                            id=str(chunk["id"]), source_id=str(source["id"]), chapter=str(latest["chapter"]),
+                            chunk_no=int(chunk.get("chunk_no") or 0),
+                            page_start=int(chunk["page_start"]) if chunk.get("page_start") is not None else None,
+                            page_end=int(chunk["page_end"]) if chunk.get("page_end") is not None else None,
+                            text=str(chunk.get("text") or ""),
+                        )
+                        for chunk in chapter_chunks if str(chunk.get("text") or "").strip()
+                    ]
+                    evidence_current = (
+                        stored_ids == current_chunk_ids
+                        and bool(current_evidence)
+                        and evidence_fingerprint(current_evidence) == str(latest.get("evidence_fingerprint") or "")
+                    )
+                    def citations_are_current(topic_row: dict[str, Any]) -> bool:
+                        try:
+                            citations = json.loads(topic_row.get("citation_refs_json") or "[]")
+                        except (TypeError, ValueError, json.JSONDecodeError):
+                            return False
+                        return (
+                            isinstance(citations, list)
+                            and bool(citations)
+                            and {str(value) for value in citations}.issubset(current_chunk_ids)
+                        )
+
+                    validation_passed = (
+                        stored_validation.get("valid") is True
+                        and stored_validation.get("source_chunk_count") == len(current_chunk_ids)
+                        and stored_validation.get("cited_chunk_count") == len(current_chunk_ids)
+                        and stored_validation.get("uncited_chunk_count") == 0
+                        and topic_count > 0
+                        and all(str(topic_row.get("validation_status") or "").lower() == "passed"
+                                for topic_row in topic_rows)
+                        and all(citations_are_current(topic_row) for topic_row in topic_rows)
+                    )
+                    topics_approved = topic_count > 0 and approved_topic_count == topic_count
+                    lesson = conn.execute(
+                        """SELECT status FROM chapter_lessons
+                           WHERE LOWER(board)=LOWER(?) AND class_level=?
+                             AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?)
+                             AND LOWER(chapter)=LOWER(?) AND status='approved'
+                           ORDER BY updated_at DESC LIMIT 1""",
+                        (source["board"], source["class_level"], source["subject"], source["medium"], chapter_name),
+                    ).fetchone()
+                    lesson_approved = lesson is not None
+
+                if source_status != "ready":
+                    coverage_status = "source_not_ready"
+                elif page_coverage_known and not page_coverage_complete:
+                    coverage_status = "source_page_coverage_incomplete"
+                elif not page_coverage_known:
+                    coverage_status = "source_page_coverage_unknown"
+                elif not latest:
+                    coverage_status = "not_synthesized"
+                elif not evidence_current:
+                    coverage_status = "stale_evidence"
+                elif not validation_passed:
+                    coverage_status = "validation_incomplete"
+                elif not topics_approved or not lesson_approved or round_status != "approved":
+                    coverage_status = "awaiting_approval"
+                else:
+                    coverage_status = "complete"
+
+                page_values = [int(value) for chunk in chapter_chunks
+                               for value in (chunk.get("page_start"), chunk.get("page_end")) if value is not None]
+                chapter_reports.append({
+                    "chapter": chapter_name,
+                    "chunk_count": len(chapter_chunks),
+                    "page_start": min(page_values) if page_values else None,
+                    "page_end": max(page_values) if page_values else None,
+                    "synthesis_round_id": round_id,
+                    "synthesis_status": round_status,
+                    "topic_count": topic_count,
+                    "approved_topic_count": approved_topic_count,
+                    "source_chunk_count": len(current_chunk_ids),
+                    "cited_chunk_count": int(stored_validation.get("cited_chunk_count") or 0) if latest else 0,
+                    "uncited_chunk_count": int(stored_validation.get("uncited_chunk_count") or 0) if latest else 0,
+                    "evidence_current": evidence_current,
+                    "validation_passed": validation_passed,
+                    "topics_approved": topics_approved,
+                    "approved_tutor_lesson": lesson_approved,
+                    "coverage_status": coverage_status,
+                })
+
+            if source_status != "ready":
+                inventory_status = "source_not_ready"
+            elif not chunks:
+                inventory_status = "no_extracted_chunks"
+            elif not page_coverage_known:
+                inventory_status = "page_coverage_unknown"
+            elif not page_coverage_complete:
+                inventory_status = "incomplete_page_extraction"
+            elif not grouped:
+                inventory_status = "chapter_headings_missing"
+            else:
+                inventory_status = "indexed"
+            inventory.append({
+                "source_id": str(source["id"]),
+                "title": str(source["title"]),
+                "board": str(source["board"]),
+                "class_level": int(source["class_level"]),
+                "subject": str(source["subject"]),
+                "medium": str(source["medium"]),
+                "academic_year": str(source["academic_year"]),
+                "edition": str(source["edition"]),
+                "source_status": source_status,
+                "inventory_status": inventory_status,
+                "chunk_count": len(chunks),
+                "unclassified_chunk_count": unclassified_count,
+                "declared_page_count": page_count or None,
+                "page_coverage_known": page_coverage_known,
+                "page_coverage_complete": page_coverage_complete,
+                "covered_page_count": len(covered_pages),
+                "missing_page_numbers": missing_page_numbers,
+                "chapter_count": len(chapter_reports),
+                "chapters": chapter_reports,
+            })
+
+    chapter_rows = [chapter for source in inventory for chapter in source["chapters"]]
+    status_counts: dict[str, int] = {}
+    for chapter in chapter_rows:
+        key = str(chapter["coverage_status"])
+        status_counts[key] = status_counts.get(key, 0) + 1
+    subject_counts: dict[str, dict[str, int]] = {}
+    for source in inventory:
+        key = str(source["subject"]).strip().lower()
+        bucket = subject_counts.setdefault(key, {"sources": 0, "chapters": 0, "complete": 0})
+        bucket["sources"] += 1
+        bucket["chapters"] += int(source["chapter_count"])
+        bucket["complete"] += sum(1 for chapter in source["chapters"] if chapter["coverage_status"] == "complete")
+    return {
+        "scope": {"subjects": ["Science", "Mathematics"], "board": board, "class_level": class_level, "medium": medium},
+        "source_count": len(inventory),
+        "chapter_count": len(chapter_rows),
+        "complete_chapter_count": status_counts.get("complete", 0),
+        "coverage_status_counts": status_counts,
+        "subject_summary": subject_counts,
+        "sources": inventory,
+        "note": "A chapter is complete only when the source is ready, declared source page coverage is known and complete, evidence fingerprints and citations are current, topic validation and approvals pass, and an approved tutor lesson exists. Page coverage is conservative: blank or unnumbered PDF pages may need explicit handling rather than being silently assumed complete.",
+    }
+
+
+@app.get("/admin/syllabus-synthesis/rounds", dependencies=[Depends(require_admin)])
+def list_syllabus_synthesis_rounds(
+    board: str | None = None,
+    class_level: int | None = Query(default=None, ge=1, le=12),
+    subject: str | None = None,
+    chapter: str | None = None,
+    status: str = "draft",
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict[str, Any]:
+    if status not in {"draft", "validating", "approved", "rejected", "failed"}:
+        raise HTTPException(status_code=422, detail="Invalid synthesis status.")
+    sql = """SELECT id,source_id,board,class_level,subject,chapter,curriculum_version,status,
+                    model,source_chunk_ids_json,evidence_fingerprint,validation_json,created_at,updated_at
+             FROM syllabus_synthesis_rounds WHERE status=?"""
+    args: list[Any] = [status]
+    for field, value in (("board", board), ("class_level", class_level),
+                         ("subject", subject), ("chapter", chapter)):
+        if value is not None:
+            sql += f" AND LOWER({field})=LOWER(?)" if field != "class_level" else " AND class_level=?"
+            args.append(value)
+    sql += " ORDER BY updated_at DESC LIMIT ?"
+    args.append(limit)
+    with db() as conn:
+        rows = conn.execute(sql, args).fetchall()
+    rounds = []
+    for raw in rows:
+        item = dict(raw)
+        item["source_chunk_ids"] = json.loads(item.pop("source_chunk_ids_json") or "[]")
+        item["validation"] = json.loads(item.pop("validation_json") or "{}")
+        rounds.append(item)
+    return {"count": len(rounds), "rounds": rounds}
+
+
+@app.get("/admin/syllabus-synthesis/rounds/{round_id}", dependencies=[Depends(require_admin)])
+def get_syllabus_synthesis_round(round_id: str) -> dict[str, Any]:
+    with db() as conn:
+        row = conn.execute("SELECT * FROM syllabus_synthesis_rounds WHERE id=?", (round_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Synthesis round not found.")
+        topics = conn.execute(
+            "SELECT * FROM syllabus_topic_syntheses WHERE round_id=? ORDER BY page_start,topic",
+            (round_id,),
+        ).fetchall()
+    item = dict(row)
+    item["source_chunk_ids"] = json.loads(item.pop("source_chunk_ids_json") or "[]")
+    item["validation"] = json.loads(item.pop("validation_json") or "{}")
+    decoded_topics = []
+    for raw in topics:
+        topic = dict(raw)
+        for field, public_field in (
+            ("learning_objectives_json", "learning_objectives"),
+            ("explanation_json", "explanation"),
+            ("examples_json", "examples"),
+            ("practice_questions_json", "practice_questions"),
+            ("citation_refs_json", "citation_refs"),
+            ("validation_notes_json", "validation_notes"),
+        ):
+            topic[public_field] = json.loads(topic.pop(field) or "[]")
+        decoded_topics.append(topic)
+    item["topics"] = decoded_topics
+    return item
 
 
 @app.get("/admin/chapter-lessons", dependencies=[Depends(require_admin)])

@@ -168,12 +168,15 @@ def validate_chapter_lesson_payload(
             errors.append(f"concept_map[{index}] must cite source chunks")
         elif not {str(value) for value in citations}.issubset(allowed_chunk_ids):
             errors.append(f"concept_map[{index}] cites an unknown source chunk")
+        else:
+            cited_chunk_ids.update(str(value) for value in citations)
 
     steps = payload.get("teaching_sequence")
     if not isinstance(steps, list) or not steps:
         errors.append("teaching_sequence must be a non-empty list")
         steps = []
     allowed_visuals = {"number_pattern", "number_line", "geometry", "compare", "process", "table", "diagram", "none"}
+    cited_chunk_ids: set[str] = set()
     for index, step in enumerate(steps):
         if not isinstance(step, Mapping):
             errors.append(f"teaching_sequence[{index}] must be an object")
@@ -186,9 +189,15 @@ def validate_chapter_lesson_payload(
             errors.append(f"teaching_sequence[{index}] must cite source chunks")
         elif not {str(value) for value in citations}.issubset(allowed_chunk_ids):
             errors.append(f"teaching_sequence[{index}] cites an unknown source chunk")
+        else:
+            cited_chunk_ids.update(str(value) for value in citations)
         visual = step.get("visual") or {}
         if not isinstance(visual, Mapping) or visual.get("type", "none") not in allowed_visuals:
             errors.append(f"teaching_sequence[{index}] has an unsupported visual recipe")
+
+    missing_citations = allowed_chunk_ids - cited_chunk_ids
+    if missing_citations:
+        errors.append(f"lesson leaves {len(missing_citations)} supplied source chunks uncited")
 
     return {
         "valid": not errors,

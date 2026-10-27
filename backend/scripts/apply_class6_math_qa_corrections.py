@@ -187,7 +187,7 @@ def main() -> int:
     # Phase 1: preflight ALL three live drafts before making any write. This
     # prevents a changed/missing later lesson from causing a partial correction
     # set after an earlier chapter has already been saved.
-    prepared: list[tuple[str, str, dict[str, Any], list[str]]] = []
+    prepared: list[tuple[str, str, dict[str, Any], list[str], Any]] = []
     for chapter, lesson_id in LESSONS.items():
         detail = api_request(f"/admin/chapter-lessons/{lesson_id}", token)
         if str(detail.get("status", "")).lower() != "draft":
@@ -195,10 +195,13 @@ def main() -> int:
         lesson = detail.get("lesson")
         if not isinstance(lesson, dict):
             raise QAError(f"{chapter}: admin detail response did not include a lesson object")
+        source_refs = detail.get("source_refs")
+        if not isinstance(source_refs, list) or not source_refs:
+            raise QAError(f"{chapter}: source_refs missing or invalid; refusing to edit")
         updated, changes = revise_lesson(chapter, lesson)
-        prepared.append((chapter, lesson_id, updated, changes))
+        prepared.append((chapter, lesson_id, updated, changes, source_refs))
 
-    for chapter, lesson_id, updated, changes in prepared:
+    for chapter, lesson_id, updated, changes, _source_refs in prepared:
         print(f"{chapter} ({lesson_id})")
         for change in changes:
             print(f"  - {change}")
@@ -211,7 +214,7 @@ def main() -> int:
     # Phase 2: apply only after every draft has passed preflight. Writes remain
     # sequential; if an API call fails, stop immediately and report saved items.
     saved: list[str] = []
-    for chapter, lesson_id, updated, _changes in prepared:
+    for chapter, lesson_id, updated, _changes, source_refs in prepared:
         result = api_request(
             f"/admin/chapter-lessons/{lesson_id}/content",
             token,
@@ -226,10 +229,27 @@ def main() -> int:
                 f"{chapter}: API did not confirm draft/review-required status after save. "
                 f"Previously saved drafts: {', '.join(saved) or 'none'}"
             )
+        # Re-read the persisted record rather than trusting only the PUT response.
+        verified = api_request(f"/admin/chapter-lessons/{lesson_id}", token)
+        if str(verified.get("status", "")).lower() != "draft":
+            raise QAError(
+                f"{chapter}: follow-up GET did not confirm draft status. "
+                f"Previously verified saves: {', '.join(saved) or 'none'}"
+            )
+        if verified.get("lesson") != updated:
+            raise QAError(
+                f"{chapter}: follow-up GET content differs from the submitted lesson. "
+                f"Previously verified saves: {', '.join(saved) or 'none'}"
+            )
+        if verified.get("source_refs") != source_refs:
+            raise QAError(
+                f"{chapter}: source_refs changed during update. "
+                f"Previously verified saves: {', '.join(saved) or 'none'}"
+            )
         saved.append(chapter)
-        print("  SAVED as draft; validation:", json.dumps(result.get("validation", {}), ensure_ascii=False))
+        print("  VERIFIED by follow-up GET: draft status, lesson content, and source references preserved.")
 
-    print("\nAll requested corrections saved as drafts. No lesson was approved or published.")
+    print("\nAll requested corrections saved and verified as drafts. No lesson was approved or published.")
     return 0
 
 

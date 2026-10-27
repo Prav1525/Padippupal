@@ -139,9 +139,18 @@ def validate_synthesis_payload(
     return {"valid": not errors, "errors": errors, "topics": normalized}
 
 
+def topic_page_range(citation_ids: Sequence[str], chunk_pages: Mapping[str, tuple[int | None, int | None]]) -> tuple[int | None, int | None]:
+    """Return the narrowest page span supported by a topic's cited chunks."""
+    ranges = [chunk_pages[cid] for cid in citation_ids if cid in chunk_pages]
+    starts = [start for start, _ in ranges if start is not None]
+    ends = [end for _, end in ranges if end is not None]
+    return (min(starts) if starts else None, max(ends) if ends else None)
+
+
 def validate_chapter_lesson_payload(
     payload: Mapping[str, Any],
     allowed_chunk_ids: set[str],
+    chunk_pages: Mapping[str, tuple[int | None, int | None]] | None = None,
 ) -> dict[str, Any]:
     """Validate the complete lesson contract before any draft is persisted."""
     errors: list[str] = []
@@ -181,6 +190,7 @@ def validate_chapter_lesson_payload(
         errors.append("teaching_sequence must be a non-empty list")
         steps = []
     allowed_visuals = {"number_pattern", "number_line", "geometry", "compare", "process", "table", "diagram", "none"}
+    seen_step_objectives: set[str] = set()
     for index, step in enumerate(steps):
         if not isinstance(step, Mapping):
             errors.append(f"teaching_sequence[{index}] must be an object")
@@ -188,6 +198,15 @@ def validate_chapter_lesson_payload(
         for field in ("title", "teacher_says", "caption", "checkpoint"):
             if not isinstance(step.get(field), str) or not step[field].strip():
                 errors.append(f"teaching_sequence[{index}].{field} must be non-empty text")
+        step_objectives = step.get("learning_objectives")
+        if not isinstance(step_objectives, list) or not step_objectives or any(not isinstance(obj, str) or not obj.strip() for obj in step_objectives):
+            errors.append(f"teaching_sequence[{index}].learning_objectives must contain topic-specific non-empty strings")
+        else:
+            for objective in step_objectives:
+                normalized_objective = re.sub(r"\\s+", " ", objective).strip().casefold()
+                if normalized_objective in seen_step_objectives:
+                    errors.append(f"teaching_sequence[{index}] repeats a learning objective used by another topic: {objective}")
+                seen_step_objectives.add(normalized_objective)
         citations = step.get("source_chunk_ids")
         if not isinstance(citations, list) or not citations:
             errors.append(f"teaching_sequence[{index}] must cite source chunks")
@@ -199,6 +218,10 @@ def validate_chapter_lesson_payload(
                     f"teaching_sequence[{index}] cites unknown source chunk IDs: {', '.join(unknown_ids[:20])}"
                 )
             cited_chunk_ids.update(citation_ids & allowed_chunk_ids)
+            if chunk_pages is not None:
+                page_start, page_end = topic_page_range([str(value) for value in citations], chunk_pages)
+                if step.get("page_start") != page_start or step.get("page_end") != page_end:
+                    errors.append(f"teaching_sequence[{index}] page_start/page_end must match cited chunk pages ({page_start}-{page_end})")
         visual = step.get("visual") or {}
         if not isinstance(visual, Mapping) or visual.get("type", "none") not in allowed_visuals:
             errors.append(f"teaching_sequence[{index}] has an unsupported visual recipe")
@@ -218,6 +241,7 @@ def validate_chapter_lesson_payload(
             "chapter title and overview are present",
             "learning objectives and concept map are non-empty",
             "every concept and teaching step cites supplied source chunks",
+            "each teaching step has distinct learning objectives and page bounds matching its cited chunks",
             "teaching steps include learner-facing explanation, caption, checkpoint, and supported visual recipe",
         ] if not errors else [],
         "topic_count": len(steps),

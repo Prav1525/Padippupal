@@ -3,6 +3,13 @@
 set -uo pipefail
 
 mkdir -p attempt-artifacts
+# Preserve the diary acceptance evidence before the tutor smoke helper clears
+# ui-screenshots. The workflow artifact must retain picker/crop/review/planner XML.
+if [ -d ui-screenshots/diary-test ]; then
+  mkdir -p attempt-artifacts/diary-acceptance
+  cp -a ui-screenshots/diary-test attempt-artifacts/diary-acceptance/ || exit 1
+  echo "Preserved diary acceptance evidence under attempt-artifacts/diary-acceptance"
+fi
 result=1
 for attempt in 1 2; do
   echo "===== UI smoke attempt $attempt/2 ====="

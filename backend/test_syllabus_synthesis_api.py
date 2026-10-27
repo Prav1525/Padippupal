@@ -119,6 +119,17 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert detail.status_code == 200
     assert detail.json()["topics"][0]["citation_refs"] == ["chunk-test"]
 
+    # Every generated lesson ID must resolve through the same public admin read path.
+    lesson_id = data["lesson_id"]
+    fetched_lesson = client.get(
+        f"/admin/chapter-lessons/{lesson_id}",
+        headers={"X-Admin-Token": "test-token"},
+    )
+    assert fetched_lesson.status_code == 200, fetched_lesson.text
+    assert fetched_lesson.json()["id"] == lesson_id
+    assert fetched_lesson.json()["status"] == "draft"
+    assert fetched_lesson.json()["chapter"] == "Test chapter"
+
     # The tutor serves approved chapter_lessons; synthesis review state must follow
     # the same explicit human decision instead of remaining misleadingly "draft".
     lesson_id = data["lesson_id"]

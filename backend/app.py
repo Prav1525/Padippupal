@@ -1528,7 +1528,7 @@ def batch_syllabus_synthesis(payload: ChapterSynthesisBatchRequest) -> dict[str,
         source_params = [payload.subject.strip()]
     source_sql = (
         "SELECT id,board,class_level,subject,medium,title,academic_year,edition "
-        "FROM sources WHERE status='ready' AND LOWER(board)=LOWER(?) "
+        "FROM sources s WHERE status='ready' AND LOWER(s.board)=LOWER(?) "
         "AND class_level=? AND LOWER(medium)=LOWER(?) AND " + subject_clause
     )
     source_params = [payload.board.strip(), payload.class_level, payload.medium.strip()] + source_params

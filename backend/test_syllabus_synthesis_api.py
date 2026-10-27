@@ -141,6 +141,27 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert round_row["status"] == "approved"
     assert topic_row["approval_status"] == "approved"
 
+    # Re-running unchanged evidence must reuse the approved lesson and preserve
+    # approval instead of adding duplicate lesson rows or demoting the round.
+    retry = client.post(
+        "/admin/chapter-lessons/generate",
+        headers={"X-Admin-Token": "test-token"},
+        json={"board": "CBSE", "class_level": 6, "subject": "Science",
+              "medium": "English", "chapter": "Test chapter"},
+    )
+    assert retry.status_code == 200, retry.text
+    assert retry.json()["lesson_id"] == lesson_id
+    assert retry.json()["status"] == "approved"
+    assert retry.json()["reused_existing"] is True
+    with curriculum.db() as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM chapter_lessons WHERE board='CBSE' AND chapter='Test chapter'"
+        ).fetchone()[0] == 1
+        assert conn.execute(
+            "SELECT status FROM syllabus_synthesis_rounds WHERE id=?",
+            (data["synthesis_round_id"],),
+        ).fetchone()["status"] == "approved"
+
 
 def test_science_maths_coverage_audit_requires_current_evidence_and_approval():
     curriculum.DB_PATH = Path(tempfile.mkstemp(suffix=".sqlite3")[1])

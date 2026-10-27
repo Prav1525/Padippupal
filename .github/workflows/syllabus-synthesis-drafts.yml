@@ -1,0 +1,224 @@
+name: Generate syllabus synthesis drafts
+
+on:
+  push:
+    branches:
+      - feature/syllabus-synthesis-prototype
+  workflow_dispatch:
+    inputs:
+      confirm_isolated_prototype:
+        description: "Type GENERATE_DRAFTS to confirm this targets the isolated syllabus-synthesis prototype database"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  generate-drafts:
+    if: ${{ (github.event_name == 'push' && github.event.head_commit.message == 'RUN ISOLATED SYLLABUS DRAFTS ONCE') || inputs.confirm_isolated_prototype == 'GENERATE_DRAFTS' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/syllabus-synthesis-prototype
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Require isolated prototype credentials
+        env:
+          DATABASE_URL: ${{ secrets.SYLLABUS_DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL" || { echo "::error::Missing SYLLABUS_DATABASE_URL repository secret"; exit 1; }
+          test -n "$GEMINI_API_KEY" || { echo "::error::Missing GEMINI_API_KEY repository secret"; exit 1; }
+          test -n "$PADIPPUPAL_ADMIN_TOKEN" || { echo "::error::Missing PADIPPUPAL_ADMIN_TOKEN repository secret"; exit 1; }
+          # Do not print or echo credentials.
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Start isolated local API
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.SYLLABUS_DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          uvicorn app:app --host 127.0.0.1 --port 8765 > /tmp/syllabus-api.log 2>&1 &
+          echo $! > /tmp/syllabus-api.pid
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:8765/openapi.json >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/syllabus-api.log
+          echo "::error::Local API did not start"
+          exit 1
+      - name: Verify exact 22-source inventory before generation
+        env:
+          PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          cat > /tmp/inventory.json <<'JSON'
+          {
+            "board": "CBSE",
+            "class_level": 6,
+            "subject": "Mathematics",
+            "medium": "English",
+            "source_ids": [
+              "6cd135e7-63e4-4350-9b7c-02fe1f566ec3",
+              "189326ea-8ba7-4992-8322-96d988039d03",
+              "ed0a6261-c9e2-483b-813a-bec262393ab9",
+              "b1fe815a-ceac-4fde-85dc-fd90eba18450",
+              "c0305350-d5ba-44ed-9a75-b19399423fa7",
+              "a5a51061-ac8b-40d5-b9ea-1424f83613d8",
+              "0d12f9e0-f7c0-4df3-b790-cc4ffb0bcb02",
+              "1476f7b0-39ec-44af-b947-95a8871f7539",
+              "2679d57b-bed5-462e-ba07-1d948f8dc07a",
+              "13641871-39ce-469f-894a-12f56e5b7545"
+            ],
+            "max_chapters": 10,
+            "generate": false
+          }
+          JSON
+          curl --silent --show-error --fail http://127.0.0.1:8765/admin/syllabus-synthesis/batch \
+            -H "Content-Type: application/json" -H "x-admin-token: $PADIPPUPAL_ADMIN_TOKEN" \
+            --data-binary @/tmp/inventory.json > /tmp/math-inventory.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/math-inventory.json'))
+          assert d.get('source_count') == 10, f"Expected 10 Maths sources, got {d.get('source_count')}"
+          assert d.get('selected_chapter_count') == 10, f"Expected 10 Maths chapters, got {d.get('selected_chapter_count')}"
+          assert not d.get('truncated'), "Maths inventory was truncated"
+          assert all(x.get('status') == 'inventory_only' for x in d.get('results', [])), "Inventory must remain read-only"
+          print("Maths inventory verified: 10 source PDFs / 10 chapter jobs")
+          PY
+          python - <<'PY'
+          import json
+          p=json.load(open('/tmp/inventory.json'))
+          p.update(subject="Science",source_ids=[
+            "28077c43-b7fe-4a40-85c8-663b8ac326a2",
+            "a9b2b9e9-2a18-4795-af67-0387ebf9436a",
+            "bfee8bb2-18e4-47dd-97e3-4158246b2546",
+            "f823bf8d-654a-4b7c-8fdd-e8838ea0b47f",
+            "577d4aa1-c76a-4e3e-91c0-cc18b0b39d1e",
+            "c7364059-4a0d-4257-a7d7-472a39f5c8f0",
+            "9e340817-5ddb-4ef0-a529-b7b3354beec1",
+            "ed0b5f40-e9e0-474d-82ac-9681b0f4c1cd",
+            "c77231b4-a609-4e39-b4aa-76cbe8bf72f3",
+            "0409c4be-893b-40af-ae0e-0ff380099363",
+            "0d4e12b6-57ae-4f74-b1b2-be5644fa2483",
+            "86bbabde-ec5d-455a-b4da-a1de78fad0d7"
+          ],max_chapters=12)
+          json.dump(p,open('/tmp/science-inventory.json','w'))
+          PY
+          curl --silent --show-error --fail http://127.0.0.1:8765/admin/syllabus-synthesis/batch \
+            -H "Content-Type: application/json" -H "x-admin-token: $PADIPPUPAL_ADMIN_TOKEN" \
+            --data-binary @/tmp/science-inventory.json > /tmp/science-inventory-result.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/science-inventory-result.json'))
+          assert d.get('source_count') == 12, f"Expected 12 Science sources, got {d.get('source_count')}"
+          assert d.get('selected_chapter_count') == 12, f"Expected 12 Science chapters, got {d.get('selected_chapter_count')}"
+          assert not d.get('truncated'), "Science inventory was truncated"
+          assert all(x.get('status') == 'inventory_only' for x in d.get('results', [])), "Inventory must remain read-only"
+          print("Science inventory verified: 12 source PDFs / 12 chapter jobs")
+          PY
+      - name: Generate Maths and Science drafts
+        env:
+          PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          p=json.load(open('/tmp/inventory.json'))
+          p['generate']=True
+          json.dump(p,open('/tmp/math-generate.json','w'))
+          s=json.load(open('/tmp/science-inventory.json'))
+          s['generate']=True
+          json.dump(s,open('/tmp/science-generate.json','w'))
+          PY
+          curl --silent --show-error --fail http://127.0.0.1:8765/admin/syllabus-synthesis/batch \
+            -H "Content-Type: application/json" -H "x-admin-token: $PADIPPUPAL_ADMIN_TOKEN" \
+            --data-binary @/tmp/math-generate.json > /tmp/math-results.json
+          curl --silent --show-error --fail http://127.0.0.1:8765/admin/syllabus-synthesis/batch \
+            -H "Content-Type: application/json" -H "x-admin-token: $PADIPPUPAL_ADMIN_TOKEN" \
+            --data-binary @/tmp/science-generate.json > /tmp/science-results.json
+          python - <<'PY'
+          import json
+          total=0
+          for subject,path,expected in [('Maths','/tmp/math-results.json',10),('Science','/tmp/science-results.json',12)]:
+              d=json.load(open(path))
+              print(f"{subject}: drafts={d.get('draft_count')} failed={d.get('failed_count')} selected={d.get('selected_chapter_count')}")
+              assert d.get('generate_requested') is True
+              assert d.get('selected_chapter_count') == expected
+              assert d.get('draft_count') == expected, f"{subject} did not produce all drafts"
+              assert d.get('failed_count') == 0, f"{subject} had failed chapters"
+              assert all(x.get('status') == 'draft' for x in d.get('results', [])), f"{subject} produced a non-draft status"
+              total += d['draft_count']
+          print(f"PASS: {total} validated draft lessons generated; none approved")
+          PY
+      - name: Verify persisted drafts and source-citation coverage
+        env:
+          DATABASE_URL: ${{ secrets.SYLLABUS_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          import psycopg
+          expected = {'Mathematics': 10, 'Science': 12}
+          lessons = []
+          for subject, path, count in [
+              ('Mathematics', '/tmp/math-results.json', 10),
+              ('Science', '/tmp/science-results.json', 12),
+          ]:
+              data = json.load(open(path))
+              rows = data.get('results', [])
+              assert len(rows) == count, f"{subject}: expected {count} result rows"
+              for row in rows:
+                  assert row.get('status') == 'draft', f"{subject}/{row.get('chapter')}: not draft"
+                  assert row.get('lesson_id'), f"{subject}/{row.get('chapter')}: missing persisted lesson ID"
+                  assert row.get('synthesis_round_id'), f"{subject}/{row.get('chapter')}: missing synthesis round ID"
+                  validation = row.get('validation') or {}
+                  assert validation.get('valid') is True, f"{subject}/{row.get('chapter')}: validation did not pass"
+                  assert validation.get('uncited_chunk_count') == 0, f"{subject}/{row.get('chapter')}: uncited source chunks"
+                  assert validation.get('source_chunk_count', 0) > 0, f"{subject}/{row.get('chapter')}: no source chunks"
+                  assert validation.get('cited_chunk_count') == validation.get('source_chunk_count'), f"{subject}/{row.get('chapter')}: citation coverage incomplete"
+                  lessons.append((row['lesson_id'], row['synthesis_round_id'], subject, row.get('chapter')))
+          assert len({item[0] for item in lessons}) == 22, "Expected 22 unique lesson IDs"
+          assert len({item[1] for item in lessons}) == 22, "Expected 22 unique synthesis round IDs"
+          lesson_ids = [item[0] for item in lessons]
+          round_ids = [item[1] for item in lessons]
+          with psycopg.connect(os.environ['DATABASE_URL'], connect_timeout=10) as conn:
+              with conn.cursor() as cur:
+                  cur.execute("SELECT id, status FROM chapter_lessons WHERE id = ANY(%s)", (lesson_ids,))
+                  saved_lessons = {str(row[0]): row[1] for row in cur.fetchall()}
+                  assert set(saved_lessons) == set(lesson_ids), f"Only {len(saved_lessons)}/22 lessons persisted"
+                  assert all(status == 'draft' for status in saved_lessons.values()), "A lesson is not draft"
+                  cur.execute("SELECT id, source_id, status, validation_json FROM syllabus_synthesis_rounds WHERE id = ANY(%s)", (round_ids,))
+                  saved_rounds = cur.fetchall()
+                  assert len(saved_rounds) == 22, f"Only {len(saved_rounds)}/22 synthesis rounds persisted"
+                  assert all(row[2] == 'draft' for row in saved_rounds), "A synthesis round is not draft"
+                  for round_id, source_id, status, validation in saved_rounds:
+                      if isinstance(validation, str):
+                          validation = json.loads(validation)
+                      assert validation.get('valid') is True, f"Round {round_id}: persisted validation invalid"
+                      assert validation.get('uncited_chunk_count') == 0, f"Round {round_id}: persisted uncited chunks"
+          print("PASS: all 22 lessons and 22 synthesis rounds are persisted as drafts with complete validated chunk citations.")
+          print("Human source-page review and tutor integration checks are still required before approval.")
+          PY
+      - name: Preserve concise run results
+        if: always()
+        run: |
+          echo "This workflow intentionally creates drafts only. Human review and tutor integration validation remain required before approval or production deployment."
+          for f in /tmp/math-results.json /tmp/science-results.json /tmp/coverage-Mathematics.json /tmp/coverage-Science.json; do
+            if [ -f "$f" ]; then
+              echo "---- $f ----"
+              cat "$f"
+            fi
+          done

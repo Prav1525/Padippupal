@@ -44,6 +44,22 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
         return FakeResponse()
 
     monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(curriculum, "get_approved_chapter_lesson", lambda **kwargs: {
+        "status": "approved",
+        "lesson_id": "approved-lesson-1",
+        "metadata": {"topic": ""},
+        "lesson": {
+            "chapter_title": "Life Processes",
+            "overview": "Approved sequence for the chapter.",
+            "learning_objectives": ["Explain photosynthesis."],
+            "concept_map": [{"concept": "Sunlight", "prerequisite": "", "source_chunk_ids": ["chunk-12"]}],
+            "teaching_sequence": [{
+                "title": "Photosynthesis",
+                "teacher_says": "Plants use sunlight to make food.",
+                "source_chunk_ids": ["chunk-12"],
+            }],
+        },
+    })
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: {
         "matches": [{
             "text": "Plants use sunlight to make food.",
@@ -90,6 +106,9 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     assert "SYLLABUS AND LESSON-PLAN BOUNDARY" in prompt
     assert "Do not silently introduce later-grade material" in prompt
     assert "Never invent NCERT chapter titles" in prompt
+    assert "HUMAN-APPROVED CHAPTER TEACHING PLAN" in prompt
+    assert "Approved sequence for the chapter." in prompt
+    assert "source chunk IDs: chunk-12" in prompt
     assert "Do not answer from general knowledge, web sources, or memory" in prompt
     assert captured["timeout"] == 45
 
@@ -1083,3 +1102,40 @@ def test_tutor_prompt_requires_complete_grade_aware_chat_and_text_only_visuals()
     assert "Adapt vocabulary, sentence length, abstraction, and example complexity to class" in source
     assert "Current product mode: text/chat examples only" in source
     assert "Do not request lesson feedback until the complete explanation" in source
+
+def test_tutor_progress_requires_three_consecutive_correct_checks_for_mastery(tmp_path):
+    import uuid
+
+    curriculum.DB_PATH = tmp_path / "learner-progress.sqlite3"
+    curriculum.init_db()
+    client = TestClient(curriculum.app)
+    learner_id = str(uuid.uuid4())
+
+    def signal(name, event_id=None):
+        return client.post("/tutor/progress", json={
+            "learner_id": learner_id,
+            "event_id": event_id or str(uuid.uuid4()),
+            "board": "CBSE", "class_level": 6, "subject": "Science",
+            "medium": "English", "chapter": "Life Processes",
+            "topic": "Photosynthesis", "signal": name,
+        })
+
+    first = signal("practice_correct")
+    second = signal("practice_correct")
+    assert first.status_code == 200 and first.json()["status"] == "learning"
+    assert second.status_code == 200 and second.json()["status"] == "learning"
+    third_event = str(uuid.uuid4())
+    third = signal("practice_correct", third_event)
+    assert third.status_code == 200 and third.json()["status"] == "mastered"
+    assert third.json()["correct_streak"] == 3
+
+    duplicate = signal("practice_incorrect", third_event)
+    assert duplicate.status_code == 200
+    assert duplicate.json()["duplicate_event"] is True
+    assert duplicate.json()["status"] == "mastered"
+
+    wrong = signal("practice_incorrect")
+    assert wrong.status_code == 200
+    assert wrong.json()["status"] == "needs_help"
+    assert wrong.json()["correct_streak"] == 0
+

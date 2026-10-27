@@ -9,8 +9,39 @@ REPORT=ui-screenshots/diary-test/report.txt
 log(){ printf '%s\n' "$*" | tee -a "$REPORT"; }
 dump_ui(){
   local name="$1"
-  timeout 20s "${ADB[@]}" shell uiautomator dump "/data/local/tmp/${name}.xml" >/dev/null
-  timeout 10s "${ADB[@]}" pull "/data/local/tmp/${name}.xml" "ui-screenshots/diary-test/${name}.xml" >/dev/null
+  local remote="/data/local/tmp/${name}.xml"
+  local local_xml="ui-screenshots/diary-test/${name}.xml"
+  local dump_log="/tmp/padippupal-uiautomator-${name}.log"
+  # The system Photo Picker can hand off its activity between the selection tap
+  # and the next accessibility dump. During that short transition UIAutomator
+  # may report "null root node returned by UiTestAutomationBridge". Retry the
+  # dump/pull/parse sequence instead of treating this transient empty tree as a
+  # test failure. A malformed/empty tree is never accepted as a valid snapshot.
+  for attempt in $(seq 1 8); do
+    # Remove any previous snapshot so a failed dump can never validate stale XML.
+    "${ADB[@]}" shell rm -f "$remote" >/dev/null 2>&1 || true
+    if timeout 20s "${ADB[@]}" shell uiautomator dump "$remote" >"$dump_log" 2>&1 &&
+       timeout 10s "${ADB[@]}" pull "$remote" "$local_xml" >/dev/null 2>&1; then
+      if python3 - "$local_xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+try:
+    root = ET.parse(sys.argv[1]).getroot()
+    valid = root.tag == "hierarchy" and any(True for _ in root.iter("node"))
+except (OSError, ET.ParseError):
+    valid = False
+raise SystemExit(0 if valid else 1)
+PY
+      then
+        return 0
+      fi
+    fi
+    log "UI hierarchy not ready for $name (attempt $attempt/8); retrying after activity transition"
+    sleep 1
+  done
+  cat "$dump_log" >&2 || true
+  log "FAIL: could not capture a non-empty UI hierarchy for $name after 8 attempts"
+  return 1
 }
 tap_label(){
   local xml="$1" label="$2"
@@ -51,11 +82,25 @@ fi
 "${ADB[@]}" shell am force-stop com.padippupal.app
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity >/dev/null
 sleep 6
-# The scan tile is below the first viewport on the compact emulator. Scroll the
-# actual home list so the tile is rendered and exposed to accessibility before tapping.
-"${ADB[@]}" shell input swipe 520 1450 520 650 450
-sleep 1
-dump_ui diary-home
+# Home is a LazyColumn and its content height varies with emulator density,
+# saved profile text, and Compose layout. A single hard-coded swipe can land on
+# the bottom navigation or move too little. Re-dump after bounded scrolls and
+# tap only after the real Scan homework tile is exposed in the accessibility tree.
+scan_tile_visible=0
+for home_scroll_attempt in $(seq 1 8); do
+  dump_ui diary-home
+  if grep -qi "Scan homework" ui-screenshots/diary-test/diary-home.xml; then
+    scan_tile_visible=1
+    break
+  fi
+  log "Scan homework tile not visible on home scroll attempt $home_scroll_attempt; scrolling the content"
+  "${ADB[@]}" shell input swipe 520 1350 520 650 450
+  sleep 1
+done
+if [ "$scan_tile_visible" -ne 1 ]; then
+  log "FAIL: Scan homework tile did not become accessible after 8 bounded home scroll attempts"
+  exit 1
+fi
 python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-home.xml "Scan homework"
 sleep 3
 dump_ui diary-scanner

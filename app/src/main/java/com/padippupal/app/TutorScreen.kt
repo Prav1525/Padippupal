@@ -75,6 +75,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
+import java.util.UUID
 import java.time.LocalDate
 import java.util.concurrent.Executors
 
@@ -932,6 +933,7 @@ internal fun TutorScreen(
     medium: String,
     appLanguage: String,
     studentName: String,
+    learnerId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     setupOnly: Boolean = false,
@@ -993,6 +995,9 @@ internal fun TutorScreen(
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var preparedLessonSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var preparedLessonKey by remember { mutableStateOf("") }
+    var previewAttemptKey by remember { mutableStateOf("") }
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
@@ -1011,14 +1016,54 @@ internal fun TutorScreen(
     var liveVisualTarget by remember { mutableStateOf("") }
     var liveSegmentIndex by remember { mutableIntStateOf(0) }
     var liveLessonActive by remember { mutableStateOf(false) }
+    var hasCompletedLesson by remember { mutableStateOf(false) }
+    var pendingNextCurriculumTopic by remember { mutableStateOf<Pair<String, String>?>(null) }
+    // Carries the completed topic into the next preview so the tutor can make a relevant transition.
+    var previousCompletedTopic by remember { mutableStateOf("") }
     var livePaused by remember { mutableStateOf(false) }
     var awaitingUnderstanding by remember { mutableStateOf(false) }
     var currentCheckpoint by remember { mutableStateOf("") }
     var voiceReady by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf(savedSession.optString("language", appLanguage)) }
+    val selectedLessonKey = listOf(board, grade.toString(), medium, subject, chapter, topic, selectedLanguage).joinToString("|")
     var listening by remember { mutableStateOf(false) }
     val speechRecognizer = remember(context) {
         if (SpeechRecognizer.isRecognitionAvailable(context)) SpeechRecognizer.createSpeechRecognizer(context) else null
+    }
+
+    fun recordProgressSignal(signal: String) {
+        if (learnerId.isBlank() || chapter.isBlank() || topic.isBlank()) return
+        tutorExecutor.execute {
+            runCatching {
+                val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+                require(base.startsWith("https://") || (BuildConfig.DEBUG && base == "http://10.0.2.2:8765"))
+                val body = JSONObject()
+                    .put("learner_id", learnerId)
+                    .put("event_id", UUID.randomUUID().toString())
+                    .put("board", board)
+                    .put("class_level", grade)
+                    .put("subject", subject)
+                    .put("medium", medium)
+                    .put("chapter", chapter)
+                    .put("topic", topic)
+                    .put("signal", signal)
+                    .toString()
+                    .toByteArray(StandardCharsets.UTF_8)
+                val connection = URL("$base/tutor/progress").openConnection() as HttpURLConnection
+                try {
+                    connection.requestMethod = "POST"
+                    connection.connectTimeout = 5000
+                    connection.readTimeout = 5000
+                    connection.setRequestProperty("Accept", "application/json")
+                    connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                    connection.doOutput = true
+                    connection.outputStream.use { it.write(body) }
+                    connection.responseCode
+                } finally {
+                    connection.disconnect()
+                }
+            }
+        }
     }
 
     fun startVoiceInput() {
@@ -1598,6 +1643,43 @@ internal fun TutorScreen(
         }
     }
 
+    fun advanceToNextCurriculumTopic(): Boolean {
+        // Stage the next curriculum item; never change lessons without an explicit learner action.
+        val chapters = chapterOptions
+        if (chapters.isEmpty() || chapter.isBlank() || topic.isBlank()) return false
+        val chapterIndex = chapters.indexOfFirst { it.first.equals(chapter, ignoreCase = true) }
+        if (chapterIndex < 0) return false
+        val currentTopics = chapters[chapterIndex].second
+        val topicIndex = currentTopics.indexOfFirst { it.equals(topic, ignoreCase = true) }
+        val next: Pair<String, String>? = when {
+            topicIndex >= 0 && topicIndex + 1 < currentTopics.size -> chapter to currentTopics[topicIndex + 1]
+            chapterIndex + 1 < chapters.size && chapters[chapterIndex + 1].second.isNotEmpty() ->
+                chapters[chapterIndex + 1].first to chapters[chapterIndex + 1].second.first()
+            else -> null
+        }
+        pendingNextCurriculumTopic = next
+        return next != null
+    }
+
+    fun continueToNextCurriculumTopic(): Boolean {
+        val next = pendingNextCurriculumTopic ?: return false
+        val completedChapter = chapter
+        previousCompletedTopic = topic
+        chapter = next.first
+        topic = next.second
+        pendingNextCurriculumTopic = null
+        preparedLessonSegments = emptyList()
+        preparedLessonKey = ""
+        previewAttemptKey = ""
+        hasCompletedLesson = false
+        status = if (next.first.equals(completedChapter, ignoreCase = true)) {
+            "Great work! Let's connect what you learned to the next topic: ${next.second}."
+        } else {
+            "Great work! You finished the chapter. Next, let's explore ${next.first}: ${next.second}."
+        }
+        return true
+    }
+
     fun playLiveSegment(index: Int) {
         if (!liveLessonActive || livePaused) return
         if (index >= liveSegments.size) {
@@ -1611,7 +1693,12 @@ internal fun TutorScreen(
             livePaused = false
             awaitingUnderstanding = false
             currentCheckpoint = ""
+            // Continue in curriculum order without sending the learner back to Home.
+            // If the outline has no next item, keep the normal completion state.
+            hasCompletedLesson = true
             status = "Live lesson complete."
+            pendingNextCurriculumTopic = null
+            advanceToNextCurriculumTopic()
             return
         }
         val segment = liveSegments[index]
@@ -1656,11 +1743,23 @@ internal fun TutorScreen(
         }
     }
 
-    fun startLiveLesson() {
+    fun startLiveLesson(prepareOnly: Boolean = false) {
         if (loading || liveLessonActive) return
-        if (chapter.isBlank() && topic.isBlank()) { status = "Choose a chapter or concept first."; return }
+        if (chapter.isBlank() || topic.isBlank()) { status = "Choose a chapter and topic first."; return }
+        val lessonKey = selectedLessonKey
+        if (!prepareOnly && preparedLessonKey == lessonKey && preparedLessonSegments.isNotEmpty()) {
+            liveSegments = preparedLessonSegments
+            messages.clear()
+            hasCompletedLesson = false
+            liveLessonActive = true
+            livePaused = false
+            status = "Starting your prepared lesson…"
+            playLiveSegment(0)
+            return
+        }
         loading = true
-        status = "Preparing a textbook-grounded live lesson…"
+        if (prepareOnly) previewAttemptKey = lessonKey
+        status = if (prepareOnly) "Preparing your lesson preview…" else "Preparing a textbook-grounded live lesson…"
         tutorExecutor.execute {
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
@@ -1671,7 +1770,8 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
+                val transitionGuidance = if (previousCompletedTopic.isNotBlank()) " This is a continuation after the learner completed \"" + previousCompletedTopic + "\". Do not repeat the generic greeting or re-teach the previous topic. Open with one short, natural bridge only if it genuinely connects the previous topic to \"" + topic + "\"; otherwise introduce the new topic directly. Build on demonstrated understanding without assuming mastery beyond recorded signals." else " Start warmly but briefly; do not use a long generic welcome."
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Identify chapter " + chapter + " and topic " + topic + " naturally, without repeating a generic opening. Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + transitionGuidance + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
                     .put("message", lessonPrompt).put("max_segments", 6)
@@ -1726,13 +1826,40 @@ internal fun TutorScreen(
             }
             tutorMainHandler.post {
                 loading = false
-                outcome.fold(onSuccess = { segments -> liveSegments = segments; liveLessonActive = true; livePaused = false; playLiveSegment(0) },
-                    onFailure = { error -> status = error.message ?: "Could not prepare the live lesson." })
+                outcome.fold(
+                    onSuccess = { segments ->
+                        preparedLessonSegments = segments
+                        preparedLessonKey = lessonKey
+                        if (prepareOnly) {
+                            status = "Lesson preview ready."
+                        } else {
+                            messages.clear()
+                            hasCompletedLesson = false
+                            liveSegments = segments
+                            liveLessonActive = true
+                            livePaused = false
+                            playLiveSegment(0)
+                        }
+                    },
+                    onFailure = { error ->
+                        status = error.message ?: "Could not prepare the live lesson."
+                        preparedLessonKey = ""
+                    }
+                )
             }
         }
     }
 
+    LaunchedEffect(selectedLessonKey, liveLessonActive, loading, showLessonSettings, setupOnly) {
+        if (loading || liveLessonActive || showLessonSettings || setupOnly || chapter.isBlank() || topic.isBlank()) return@LaunchedEffect
+        if (preparedLessonKey == selectedLessonKey && preparedLessonSegments.isNotEmpty()) return@LaunchedEffect
+        if (previewAttemptKey == selectedLessonKey) return@LaunchedEffect
+        delay(250L)
+        if (!loading && !liveLessonActive) startLiveLesson(prepareOnly = true)
+    }
+
     fun stopLiveLesson() {
+        hasCompletedLesson = false
         liveLessonActive = false; livePaused = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null
@@ -1799,6 +1926,7 @@ internal fun TutorScreen(
                     .put("medium", medium)
                     .put("app_language", selectedLanguage)
                     .put("student_name", studentName)
+                    .put("learner_id", learnerId)
                     .put("message", question)
                     .put("chapter", chapter)
                     .put("topic", topic)
@@ -1868,8 +1996,11 @@ internal fun TutorScreen(
     // character offsets. Some engines emit only one range callback, however, so
     // keep a weighted elapsed-time fallback ready and use it whenever native ranges
     // stop arriving. This prevents a single callback freezing the inline highlight.
-    LaunchedEffect(speechActive, liveCaption, liveLessonActive, livePaused, audioPlayer.value, hostedWordTimings, speechWordIndexOffset) {
-        if (!speechActive || !liveLessonActive || liveCaption.isBlank()) {
+    LaunchedEffect(speechActive, speechPlaybackObserved, liveCaption, liveLessonActive, livePaused, audioPlayer.value, hostedWordTimings, speechWordIndexOffset) {
+        // Do not animate captions while the hosted voice is still being generated.
+        // Otherwise the whole caption can scroll by silently, then jump back to word 1
+        // when audio finally starts.
+        if (!speechActive || !speechPlaybackObserved || !liveLessonActive || liveCaption.isBlank()) {
             if (!speechActive) liveWordIndex = 0
             return@LaunchedEffect
         }
@@ -1960,13 +2091,9 @@ internal fun TutorScreen(
                     Text("Stop", color = Color(0xFFFF9B9B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 }
             } else if (!setupOnly) {
-                Button(
-                    onClick = { startLiveLesson() },
-                    enabled = !loading && (chapter.isNotBlank() || topic.isNotBlank()),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 13.dp, vertical = 9.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TutorGreen, contentColor = TutorNight)
-                ) { Text("▶ Teach", fontWeight = FontWeight.ExtraBold, maxLines = 1) }
+                TextButton(onClick = { hasCompletedLesson = false; showLessonSettings = true }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) {
+                    Text(if (selectedLanguage == "தமிழ்") "மாற்று" else if (selectedLanguage == "Tanglish") "Maathu" else "Change", color = TutorAccentSoft, fontSize = 11.sp)
+                }
             }
         }
 
@@ -1979,7 +2106,7 @@ internal fun TutorScreen(
                     Text("Subject", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("Mathematics", "Science", "English", "Tamil", "Social Science", "Computer Science").forEach { option ->
-                            FilterChip(selected = subject == option, onClick = { subject = option; chapter = ""; topic = "" }, label = { Text(option, maxLines = 1) })
+                            FilterChip(selected = subject == option, onClick = { subject = option; chapter = ""; topic = ""; previousCompletedTopic = "" }, label = { Text(option, maxLines = 1) })
                         }
                     }
                     Text("Chapter", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TutorGrey)
@@ -1989,7 +2116,7 @@ internal fun TutorScreen(
                         }
                         DropdownMenu(expanded = chapterMenuExpanded, onDismissRequest = { chapterMenuExpanded = false }) {
                             chapterOptions.forEachIndexed { index, option ->
-                                DropdownMenuItem(text = { Text("${index + 1}. ${option.first}") }, onClick = { chapter = option.first; topic = option.second.firstOrNull().orEmpty(); chapterMenuExpanded = false })
+                                DropdownMenuItem(text = { Text("${index + 1}. ${option.first}") }, onClick = { chapter = option.first; topic = option.second.firstOrNull().orEmpty(); previousCompletedTopic = ""; chapterMenuExpanded = false })
                             }
                             if (!outlineLoading && chapterOptions.isEmpty()) DropdownMenuItem(text = { Text("No chapter list is available") }, onClick = { chapterMenuExpanded = false }, enabled = false)
                         }
@@ -2002,7 +2129,7 @@ internal fun TutorScreen(
                         DropdownMenu(expanded = topicMenuExpanded, onDismissRequest = { topicMenuExpanded = false }) {
                             val topics = chapterOptions.firstOrNull { it.first == chapter }?.second.orEmpty()
                             topics.forEachIndexed { index, option ->
-                                DropdownMenuItem(text = { Text("${index + 1}. $option") }, onClick = { topic = option; topicMenuExpanded = false })
+                                DropdownMenuItem(text = { Text("${index + 1}. $option") }, onClick = { topic = option; previousCompletedTopic = ""; topicMenuExpanded = false })
                             }
                             if (topics.isEmpty()) DropdownMenuItem(text = { Text("Choose a chapter first") }, onClick = { topicMenuExpanded = false }, enabled = false)
                         }
@@ -2030,8 +2157,8 @@ internal fun TutorScreen(
             }
         }
 
-        if (!liveLessonActive && !showLessonSettings) {
-        // The chat owns the flexible space and scrolls independently of the fixed composer.
+        if (!liveLessonActive && !showLessonSettings && hasCompletedLesson) {
+        // Retained only as source history; the learner flow now uses the focused lesson screen.
         LazyColumn(
             state = chatListState,
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
@@ -2182,6 +2309,90 @@ internal fun TutorScreen(
             }
         }
 
+        if (!liveLessonActive && !showLessonSettings && !hasCompletedLesson) {
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    when (selectedLanguage) {
+                        "Tanglish" -> "Innaikku namma enna kathukka porom?"
+                        "தமிழ்" -> "இன்று நாம் என்ன கற்கப் போகிறோம்?"
+                        else -> "Ready for your lesson?"
+                    },
+                    color = TutorDeep, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold
+                )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFFF8FAFC),
+                    shape = RoundedCornerShape(22.dp),
+                    border = BorderStroke(1.dp, Color(0xFFDCE3ED))
+                ) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(subject.uppercase(Locale.ROOT), color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text(chapter.ifBlank { "Choose a chapter" }, color = TutorDeep, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                        Text(topic.ifBlank { "Choose a topic" }, color = TutorGreen, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Divider(color = Color(0xFFE2E8F0))
+                        if (preparedLessonKey == selectedLessonKey && preparedLessonSegments.isNotEmpty()) {
+                            val previewText = preparedLessonSegments
+                                .joinToString(" ") { it.optString("spoken_text").trim() }
+                                .replace(Regex("\\s+"), " ")
+                                .trim()
+                            Text(
+                                if (selectedLanguage == "தமிழ்") "இந்தப் பாடத்தின் முன்னோட்டம்"
+                                else if (selectedLanguage == "Tanglish") "Lesson preview"
+                                else "Lesson preview",
+                                color = TutorGrey, fontSize = 11.sp, fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                previewText,
+                                color = TutorDeep, fontSize = 14.sp, lineHeight = 21.sp,
+                                maxLines = 5,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Text(
+                                when (selectedLanguage) {
+                                    "தமிழ்" -> "எளிய விளக்கம் · எடுத்துக்காட்டு · முக்கிய கருத்து · சுருக்கம்"
+                                    "Tanglish" -> "Simple explanation · example · key idea · recap"
+                                    else -> "Simple explanation · worked example · key idea · recap"
+                                },
+                                color = TutorGreen, fontSize = 11.sp, lineHeight = 16.sp
+                            )
+                        } else {
+                            Text(
+                                when (selectedLanguage) {
+                                    "Tanglish" -> if (loading) "Lesson content ready aagudhu… konjam wait pannunga." else "Lesson-la simple explanation, oru worked example, mukkiyamaana rule, common mistake, kadaisila short recap irukkum. Full lesson Tanglish-la irukkum."
+                                    "தமிழ்" -> if (loading) "பாட உள்ளடக்கம் தயாராகிறது… சிறிது காத்திருக்கவும்." else "இந்தப் பாடத்தில் எளிய விளக்கம், ஒரு எடுத்துக்காட்டு, முக்கிய விதி, பொதுவான தவறு, இறுதியில் சுருக்கம் இருக்கும். முழுப் பாடமும் தமிழில் இருக்கும்."
+                                    else -> if (loading) "Preparing your textbook-based lesson…" else "Your lesson will include a simple explanation, a worked example, the key rule, a common mistake, and a short recap."
+                                },
+                                color = TutorDeep, fontSize = 14.sp, lineHeight = 23.sp
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(color = TutorAccentSoft, shape = RoundedCornerShape(50)) {
+                                Text(selectedLanguage, modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp), color = TutorGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                            Text("Class $grade · $medium medium", color = TutorGrey, fontSize = 11.sp)
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { hasCompletedLesson = false; showLessonSettings = true },
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) { Text(if (selectedLanguage == "தமிழ்") "பாடத்தை மாற்று" else if (selectedLanguage == "Tanglish") "Topic maathu" else "Change lesson") }
+                    Button(
+                        onClick = { startLiveLesson() },
+                        modifier = Modifier.weight(1.2f).heightIn(min = 48.dp),
+                        enabled = !loading && chapter.isNotBlank() && topic.isNotBlank(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)
+                    ) { Text(if (selectedLanguage == "தமிழ்") "கற்கத் தொடங்கு" else if (selectedLanguage == "Tanglish") "Kathukka start pannalaam" else "Start teaching", maxLines = 2) }
+                }
+            }
+        }
+
         // Inline learner checkpoint: part of the teaching flow, not a floating card.
         if (awaitingUnderstanding && liveLessonActive) {
             Column(
@@ -2191,6 +2402,7 @@ internal fun TutorScreen(
                 Text(normalizedCheckpoint(currentCheckpoint), color = TutorDeep, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
+                        recordProgressSignal("understood")
                         val nextIndex = liveSegmentIndex + 1
                         awaitingUnderstanding = false
                         currentCheckpoint = ""
@@ -2199,6 +2411,7 @@ internal fun TutorScreen(
                         tutorMainHandler.post { if (liveLessonActive) playLiveSegment(nextIndex) }
                     }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = TutorGreen)) { Text("I understand", maxLines = 1) }
                     OutlinedButton(onClick = {
+                        recordProgressSignal("needs_help")
                         awaitingUnderstanding = false
                         val segment = liveSegments.getOrNull(liveSegmentIndex)
                         if (segment != null) {
@@ -2227,6 +2440,30 @@ internal fun TutorScreen(
             }
         }
 
+        if (!liveLessonActive && !showLessonSettings && hasCompletedLesson) {
+            val nextItem = pendingNextCurriculumTopic
+            if (nextItem != null) {
+                Button(
+                    onClick = { continueToNextCurriculumTopic() },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(
+                        if (nextItem.first.equals(chapter, ignoreCase = true)) "Continue to next topic: ${nextItem.second}"
+                        else "Continue to next chapter: ${nextItem.first}",
+                        maxLines = 2
+                    )
+                }
+            } else {
+                Text(
+                    "You have reached the end of the available curriculum.",
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    color = TutorGrey,
+                    fontSize = 13.sp
+                )
+            }
+        }
+
         if (!liveLessonActive && status.isNotBlank()) {
             Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)
         }
@@ -2235,8 +2472,8 @@ internal fun TutorScreen(
         }
 
         // Keep setup focused; show the question composer only after selection.
-        if (!showLessonSettings && !liveLessonActive) {
-        // Keep the question composer for regular tutor chat, not setup or full-screen teaching.
+        if (!showLessonSettings && !liveLessonActive && hasCompletedLesson) {
+        // The legacy chat composer is intentionally not part of the focused lesson flow.
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,

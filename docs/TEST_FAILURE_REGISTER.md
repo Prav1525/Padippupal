@@ -226,3 +226,46 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Regression prevention:** Commit `4f41137eda6fba6dfa57ff012448ae8af5b530a9` adds static regression coverage requiring the voice-data initialization steps and explicit failure checks. The next API 35 run must show the preflight passes and the tutor's speech starts; if not, the preflight should fail immediately with TTS diagnostics instead of burning 150 seconds.
 - **Diary picker status:** In the same run, Photo Picker → crop → rescan → review → save → today's planner passed, and both expected task titles were present after scrolling. The picker flow remains unchanged by this tutor/TTS fix. The diary parse API is deterministic in this test; this does not validate real OCR accuracy.
 - **Validation:** The TTS fix is committed but awaits a fresh API 35 emulator run. Keep PR #24 open and unmerged until the new preflight, tutor smoke, and all other required checks pass.
+
+
+## Incident: tutor preview regression checks blocked Android emulator validation
+
+- **Symptom:** Android UI smoke run 40334233073 passed JVM tests and built the debug APK, but failed in smoke-script validation before emulator allocation (one error, one failure).
+- **Root cause:** Two stale static-test assumptions: the tutor source path omitted the `app/` package directory, and the lesson-start assertion still expected the removed `▶ Teach` action instead of the new single `Start teaching` action after the preview is ready.
+- **Fix:** Updated `.github/scripts/test_ui_smoke_helpers.py` to point at the actual `app/src/main/java/com/padippupal/app/TutorScreen.kt` file and assert the current preview-first flow and label.
+- **Regression prevention:** Keep the source path consistent with the other tutor tests and assert the preview wait plus exact current action. Require a fresh API 35 emulator run to exercise preview loading, lesson playback/highlighting, completion, follow-up Q&A, and return-to-Home.
+- **Validation:** Fix committed; fresh CI pending. This incident is not closed until the emulator run completes successfully.
+
+
+## Incident: Android emulator workflow truncated the diary artifact-preservation shell block
+
+- **Symptom:** API 35 run [40337366144](https://github.com/Prav1525/Padippupal/actions/runs/40337366144) built the APK, passed JVM tests and script validation, and completed the diary picker → crop → rescan → review → planner-save flow. The workflow then failed before tutor smoke with `/usr/bin/sh: 1: Syntax error: end of file unexpected (expecting "fi")`.
+- **Root cause:** The artifact-copy/exit-code shell logic was embedded inline in the `reactivecircus/android-emulator-runner` script. The executed command arrived with an unterminated `if` block, despite the workflow file currently showing a closing `fi`. Keeping this multi-line conditional nested in the action's script field made the failure hard to isolate and lacked a focused behavioral regression test.
+- **Fix:** Extracted the logic to `.github/scripts/preserve_diary_artifacts.sh`; the workflow now invokes that script with the diary test's exit status. The script preserves diagnostics before propagating failures and rejects malformed status arguments.
+- **Regression prevention:** Added `.github/scripts/test_preserve_diary_artifacts.py`, covering successful artifact copy, failure-status preservation/propagation, and invalid input. Workflow script validation now runs `bash -n` and this test before allocating the emulator.
+- **Validation:** Source changes committed on `feature/syllabus-synthesis-prototype`. A fresh CI run is required to verify script validation and API 35 end-to-end behavior. This incident remains open until that run passes; PR #31 stays unmerged.
+## Incident: API 35 Photo Picker handoff produced a transient empty UIAutomator root
+
+- **Symptom:** Android UI smoke run [40338890956](https://github.com/Prav1525/Padippupal/actions/runs/40338890956) reached the API 35 Photo Picker, identified the sole clickable image tile, and tapped it. The following `uiautomator dump` failed with a null root from `UiTestAutomationBridge`; the selection-result XML was never created, so crop/rescan assertions did not run.
+- **Evidence/root cause:** The preserved `diary-picker.xml` shows one enabled, clickable image tile at bounds `[0,1217][354,1571]`, and `photo-picker.png` confirms the tile is visible. The test failed at the immediate post-selection accessibility dump, during the system-picker-to-app activity transition. This is evidence of a transient UI hierarchy capture race, not evidence that the fixture was absent.
+- **Fix:** Commit `1823627d3f00c4445e5cef9b20650d9d96680044` updates `.github/scripts/diary_crop_emulator_test.sh` to retry dump/pull/parse up to eight times and reject empty or malformed hierarchy snapshots. Commit `11a3b7c75148715f35484754e14da08664283f4b` adds regression coverage for retry bounds, hierarchy validation, and the explicit failure diagnostic.
+- **Regression prevention:** Script validation checks the retry/validation contract. The next API 35 run must prove the selection callback returns to PadippuPal and continue through crop, deterministic rescan, review, and planner save. This is a targeted fix, not yet an end-to-end pass.
+- **Validation:** Pending fresh CI. Keep PR #31 open and unmerged until the full emulator acceptance flow passes.
+
+
+## Incident: diary acceptance used a stale one-swipe home navigation assumption
+
+- **Symptom:** Android emulator run [40350921936](https://github.com/Prav1525/Padippupal/actions/runs/40350921936) passed JVM tests, APK build, and smoke-script validation, then failed before opening the diary scanner: `Could not find target text 'Scan homework'`. The captured accessibility tree contained the current home hero and first set of tiles, but not the diary tile.
+- **Root cause:** The home screen is a Compose `LazyColumn` with a bottom navigation bar and content height that varies with emulator layout. The test performed one fixed swipe from `(520,1450)`, then assumed the diary tile would be visible. The gesture did not expose the tile, so the test stopped before exercising the picker or diary feature. This is a test navigation failure, not evidence of an ADB or photo-picker defect.
+- **Fix:** The diary emulator script now re-dumps the live accessibility hierarchy and performs up to eight bounded content scrolls, tapping `Scan homework` only after the label is actually present. It fails with an explicit diagnostic if the tile never becomes accessible.
+- **Regression prevention:** Added a static regression assertion that the bounded scroll/dump loop exists and that the obsolete single-swipe coordinate is not used.
+- **Validation:** Awaiting the new CI run on the fix commit. Do not close this incident until the emulator passes the full scan, picker, crop, rescan, review, and planner-save flow.
+
+
+## Incident: curriculum transition regression test overfit to Kotlin formatting
+
+- **Symptom:** Android UI smoke workflow [40359855867](https://github.com/Prav1525/Padippupal/actions/runs/40359855867) passed JVM tests and APK build but failed during smoke-script validation, before allocating the emulator. The failing assertion was `test_end_of_curriculum_has_no_fake_next_destination`.
+- **Root cause:** The new test required the end-of-curriculum message to appear in a specific inline `else "message"` expression, while the actual UI correctly renders the same message inside an `else { Text(...) }` block. The test was too coupled to source formatting and did not indicate an app behavior defect.
+- **Fix:** The regression assertion now checks for the exact user-facing end-of-curriculum message independently of Kotlin expression layout.
+- **Regression prevention:** Keep assertions focused on observable UI strings and progression behavior, not incidental formatting. Re-run script validation and the Android API 35 end-to-end smoke test on the corrected commit.
+- **Validation:** JVM curriculum tests and APK build passed on the failed run; smoke-script validation failed and the emulator stage was skipped. Fresh CI is required before treating this as verified.

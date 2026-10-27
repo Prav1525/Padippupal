@@ -244,3 +244,34 @@ def test_patterns_in_mathematics_covers_shape_and_sequence_topics():
         assert all(ref["source_id"] == "6cd135e7-63e4-4350-9b7c-02fe1f566ec3" for ref in refs)
         assert all(ref["page_start"] <= ref["page_end"] for ref in refs)
 
+
+
+def test_tutor_speech_rejects_internal_voice_instructions_and_strips_say_tags():
+    assert curriculum._contains_tutor_meta_instructions(
+        "VOICE DIRECTION: do not say these directions aloud."
+    )
+    assert curriculum._contains_tutor_meta_instructions(
+        "Speak ONLY the exact words between the SAY tags below."
+    )
+    assert not curriculum._contains_tutor_meta_instructions(
+        "Let us learn how plants make their food."
+    )
+    assert curriculum._clean_tutor_speech_text("<SAY>Let us learn plants.</SAY>") == "Let us learn plants."
+    try:
+        curriculum._clean_tutor_speech_text("Voice direction: speak gently.")
+    except Exception as exc:
+        assert getattr(exc, "status_code", None) == 422
+    else:
+        raise AssertionError("internal voice directions must not reach speech playback")
+
+
+def test_pcm_tail_fade_reduces_final_samples_without_changing_audio_length():
+    sample_rate = 1000
+    raw = b"".join((12000).to_bytes(2, "little", signed=True) for _ in range(100))
+    faded = curriculum._fade_pcm_tail(raw, sample_rate, fade_ms=80)
+    assert len(faded) == len(raw)
+    original_samples = [int.from_bytes(raw[i:i + 2], "little", signed=True) for i in range(0, len(raw), 2)]
+    faded_samples = [int.from_bytes(faded[i:i + 2], "little", signed=True) for i in range(0, len(faded), 2)]
+    assert faded_samples[0] == original_samples[0]
+    assert abs(faded_samples[-1]) <= 1
+    assert abs(faded_samples[-2]) < abs(original_samples[-2])

@@ -2,7 +2,7 @@ name: Android UI smoke test
 
 on:
   push:
-    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan", "fix/diary-image-picker-reliability"]
+    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan", "fix/diary-image-picker-reliability", "feature/syllabus-synthesis-prototype"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
   emulator-smoke:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.api-level }}
-      cancel-in-progress: true
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
@@ -54,7 +54,9 @@ jobs:
           bash -n .github/scripts/android-ui-smoke.sh
           bash -n .github/scripts/android-tts-preflight.sh
           bash -n .github/scripts/diary_crop_emulator_test.sh
-          python3 -m py_compile .github/scripts/write_test_failure_report.py .github/scripts/test_diary_emulator_script.py .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py .github/scripts/test_diary_crop_contract.py .github/scripts/create_diary_test_fixture.py
+          bash -n .github/scripts/preserve_diary_artifacts.sh
+          python3 -m py_compile .github/scripts/write_test_failure_report.py .github/scripts/test_diary_emulator_script.py .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py .github/scripts/test_diary_crop_contract.py .github/scripts/create_diary_test_fixture.py .github/scripts/test_preserve_diary_artifacts.py
+          python3 .github/scripts/test_preserve_diary_artifacts.py
           python3 .github/scripts/test_diary_crop_contract.py
           python3 .github/scripts/test_diary_emulator_script.py
           python3 .github/scripts/test_ui_smoke_helpers.py
@@ -112,7 +114,9 @@ jobs:
             # ships with no TTS service and does not depend on Play Store sign-in.
             bash .github/scripts/android-tts-preflight.sh
             # Run diary picker acceptance first so unrelated tutor failures cannot mask it.
-            bash .github/scripts/diary_crop_emulator_test.sh
+            # Preserve its screenshots/UI trees outside ui-screenshots: the tutor retry
+            # script intentionally clears that directory before each tutor attempt.
+            set +e; bash .github/scripts/diary_crop_emulator_test.sh; diary_test_status=$?; set -e; bash .github/scripts/preserve_diary_artifacts.sh "$diary_test_status"
             bash .github/scripts/android-ui-smoke-retry.sh
 
       - name: Record test outcomes and failure diagnostics
@@ -131,6 +135,7 @@ jobs:
           name: padippupal-emulator-ui
           path: |
             ui-screenshots/
+            diary-artifacts/
             attempt-artifacts/
             test-failure-report.md
             home.xml

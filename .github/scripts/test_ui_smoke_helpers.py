@@ -69,7 +69,8 @@ class ExactSelectorTests(unittest.TestCase):
                      "java" / "com" / "padippupal" / "app" / "AllOnesTopicValidator.kt").read_text()
         self.assertIn("no All 1s explanation or approved short transition", validator)
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
+        self.assertIn('tap-exact ready-to-teach.xml "Start teaching"', smoke)
+        self.assertIn("Waiting for the selected textbook lesson preview and Start teaching action to become accessible", smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
@@ -260,13 +261,29 @@ class CompleteLessonRegressionTests(unittest.TestCase):
 
 
 class PreviousScreenSelectionTests(unittest.TestCase):
-    def test_tutor_ready_screen_does_not_duplicate_selection_controls(self):
+    def test_focused_tutor_has_change_action_and_preloaded_lesson_preview(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        self.assertIn('if "change" in labels:', smoke)
-        self.assertNotIn('if "change" not in labels:', smoke)
+        self.assertIn('if "set up your lesson" in joined.lower():', smoke)
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertNotIn("TextButton(onClick = { showLessonSettings = true }", tutor)
-        self.assertIn("onClick = { startLiveLesson() }", tutor)
+        self.assertIn("TextButton(onClick = { hasCompletedLesson = false; showLessonSettings = true }", tutor)
+        self.assertIn("startLiveLesson(prepareOnly = true)", tutor)
+        self.assertIn('joinToString(" ") { it.optString("spoken_text").trim() }', tutor)
+        self.assertIn("if (!liveLessonActive && !showLessonSettings && !hasCompletedLesson)", tutor)
+        self.assertNotIn('Text("▶ Teach"', tutor)
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        self.assertIn('tap-exact ready-to-teach.xml "Start teaching"', script)
+        self.assertIn("Waiting for the selected textbook lesson preview and Start teaching action to become accessible", script)
+        self.assertIn("Lesson preview ready", script)
+        self.assertLess(
+            script.index('if [ "$preview_ready" -ne 1 ]; then'),
+            script.index('python3 .github/scripts/ui_smoke.py assert-tutor ready-to-teach.xml'),
+        )
+        self.assertLess(
+            script.index('python3 .github/scripts/ui_smoke.py assert-tutor ready-to-teach.xml'),
+            script.index('python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "Start teaching"'),
+        )
+        self.assertIn("maxLines = 5", tutor)
+        self.assertIn('"Lesson preview"', tutor)
 
     def test_lesson_selection_precedes_tutor_in_app_and_smoke_flow(self):
         root = Path(__file__).resolve().parents[2]
@@ -278,6 +295,29 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         self.assertIn("assert-settings settings.xml", script)
         self.assertIn("assert-tutor ready-to-teach.xml", script)
         self.assertNotIn('tap tutor.xml "Change"', script)
+
+
+class CurriculumTransitionRegressionTests(unittest.TestCase):
+    def test_completion_stages_next_item_and_requires_explicit_continue(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        advance_start = tutor.index("fun advanceToNextCurriculumTopic(): Boolean")
+        continue_start = tutor.index("fun continueToNextCurriculumTopic(): Boolean", advance_start)
+        advance_body = tutor[advance_start:continue_start]
+        continue_end = tutor.index("\n    fun playLiveSegment", continue_start)
+        continue_body = tutor[continue_start:continue_end]
+        self.assertIn("pendingNextCurriculumTopic = next", advance_body)
+        self.assertNotIn("chapter = next.first", advance_body)
+        self.assertNotIn("topic = next.second", advance_body)
+        self.assertIn("chapter = next.first", continue_body)
+        self.assertIn("topic = next.second", continue_body)
+        self.assertIn('onClick = { continueToNextCurriculumTopic() }', tutor)
+        self.assertIn('"Continue to next topic:', tutor)
+        self.assertIn('"Continue to next chapter:', tutor)
+
+    def test_end_of_curriculum_has_no_fake_next_destination(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn('"You have reached the end of the available curriculum."', tutor)
+        self.assertIn("pendingNextCurriculumTopic = null", tutor)
 
 
 if __name__ == "__main__":

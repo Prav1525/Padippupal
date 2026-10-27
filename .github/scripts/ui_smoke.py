@@ -36,10 +36,10 @@ def assert_tutor(path):
     if not any(term in joined.lower() for term in expected_any):
         raise SystemExit("Tutor screen has no recognizable tutor/lesson/chapter labels")
     labels = {text.strip().lower() for text in texts}
-    if "change" in labels:
-        raise SystemExit("Tutor ready screen must not duplicate chapter/topic selection; use the previous screen")
-    if not any(label.strip().lstrip("▶").strip().lower() == "teach" for label in labels):
-        raise SystemExit("Tutor ready screen is missing the Teach action")
+    if "set up your lesson" in joined.lower():
+        raise SystemExit("Lesson setup must stay hidden until the learner taps Change")
+    if not any(label.strip().lower() in ("start teaching", "கற்கத் தொடங்கு", "kathukka start pannalaam") for label in labels):
+        raise SystemExit("Tutor ready screen is missing the single Start teaching action")
     if any("set up your lesson" in text.lower() for text in texts):
         raise SystemExit("Lesson setup must open only after the learner chooses Change")
     source_path = Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt"
@@ -48,6 +48,14 @@ def assert_tutor(path):
         raise SystemExit("Concept lab still uses the detached pale-green panel styling")
     print("PASS: concept lab does not use the detached pale-green panel styling")
     print("PASS: tutor ready screen exposes Teach without duplicating chapter/topic selection or showing setup")
+    if "fun advanceToNextCurriculumTopic()" not in source:
+        raise SystemExit("Tutor does not implement curriculum-ordered next-topic navigation")
+    if "previousCompletedTopic" not in source or "Do not repeat the generic greeting" not in source:
+        raise SystemExit("Tutor continuation prompt does not prevent repeated generic lesson openings")
+    if "preparedLessonKey = \"\"" not in source or "previewAttemptKey = \"\"" not in source:
+        raise SystemExit("Next-topic transition does not invalidate the prior lesson preview cache")
+    print("PASS: completion advances through the curriculum outline and invalidates the old preview")
+    print("PASS: continuation prompt connects to the previous topic without repeating a generic welcome")
 
 def assert_checkpoint(path, screenshot_path=None):
     _, texts = load(path)

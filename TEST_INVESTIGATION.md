@@ -250,3 +250,76 @@ Use this format:
 - **Change made:** Add explicit `adb install -r app/build/outputs/apk/debug/app-debug.apk`, verify package path with `pm path`, and verify launcher resolution for `com.padippupal.app/.MainActivity` before running TTS setup and the diary acceptance script. No app source, picker interaction, API level, or lesson-preparation code changed.
 - **Verification plan:** Let exact-head CI run static tests, JVM tests, APK build, then the API-35 emulator test. Confirm installation/launcher checks pass; inspect whether the test reaches the Photo Picker and captures the selection-result screenshot/XML; only then assess picker URI return and crop/rescan/review/save.
 - **Result at edit time:** Workflow change proposed and committed below; emulator acceptance is still unverified. No PR merge performed.
+
+
+### 2026-10-26 — Integrate syllabus synthesis persistence and review APIs
+- **Branch / commit:** `feature/syllabus-synthesis-prototype`; implementation under test `e50f3db4a881520b2c3df3a8b352ad383c53ed71`, follow-up fixes committed after CI findings.
+- **Test command or workflow URL:** [Curriculum Engine Tests run 40321859628](https://github.com/Prav1525/Padippupal/actions/runs/40321859628); [Investigation Guidance Gate run 40321859723](https://github.com/Prav1525/Padippupal/actions/runs/40321859723).
+- **Result:** **FAIL** on the first integrated test attempt; test corrections committed and awaiting a fresh run.
+- **Exact failure or assertion:** The new mocked Gemini response returned the response class rather than an instance, causing a `TypeError` and HTTP 502 in the integration test. An existing diary scan test expected timeout 35 while the implementation passes timeout 75. The guidance gate also required this ledger to be updated for code changes.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Curriculum test logs](https://github.com/Prav1525/Padippupal/actions/runs/40321859628); [guidance gate logs](https://github.com/Prav1525/Padippupal/actions/runs/40321859723).
+- **Change made (files + rationale):** Wired the existing chapter-generation endpoint to stable source evidence fingerprints and persistent synthesis-round/topic tables; added admin list/detail endpoints; added a mocked end-to-end persistence test. Corrected the mock response to instantiate its context manager and aligned the diary timeout assertion with the current implementation.
+- **Root cause:** **CONFIRMED** for the new integration test failure (the fake response was not an instance/context manager) and for the guidance gate failure (ledger was not updated). The timeout mismatch is confirmed by CI assertion output; the code currently uses 75 seconds.
+- **What this attempt proves:** CI executed the curriculum suite and reported 63 passed, 2 failed. One failure is the new integration test's mock setup; the other is the stale timeout expectation. The new test corrections have been committed but not yet verified.
+- **What remains unverified:** Fresh curriculum suite, synthesis database persistence on the mocked endpoint, review endpoints, and Android build/UI checks on the latest head.
+- **Difference from previous attempt:** Moves beyond isolated synthesis helpers to the existing generation endpoint and persistence/review APIs, while adding a real mocked integration test.
+- **Next action and why:** Re-run CI on the corrected head. Fix any remaining synthesis integration or SQL errors based on the exact new traceback; do not merge until the curriculum suite and required regression checks pass.
+
+### 2026-10-26 — Synchronize tutor lesson approval with synthesis records
+- **Branch / commit:** `feature/syllabus-synthesis-prototype`; latest implementation commit `c306a42a326da95cd535556873078d398d521e5a`.
+- **Area:** Tutor lesson approval and syllabus synthesis review state.
+- **Change made:** When an administrator approves, rejects, or requests changes to a chapter lesson, synchronize the matching synthesis round and topic approval states. Match the round by source ID, chapter, and the exact set of source chunk IDs cited by the reviewed lesson so an older or different source revision is not accidentally approved.
+- **Regression test:** Extended `backend/test_syllabus_synthesis_api.py` to approve the generated test lesson and assert that its exact synthesis round and topic move to approved.
+- **Why:** The tutor lesson-plan endpoint already serves reviewed `chapter_lessons`; keeping synthesis status aligned makes review state truthful and traceable without allowing drafts into the tutor path.
+- **Verification status:** Test and regression workflows for the latest commit have not yet returned results. Earlier commit `8cc788620855f01c7c98446535667f480022c2b6` had passing Curriculum Engine Tests and Investigation Guidance Gate; Android APK passed, while Android UI smoke was still running at the last check. Do not treat those as verification of this latest change.
+- **What remains unverified:** Exact-head CI, real Gemini generation from an official source chapter, end-to-end tutor playback using an approved synthesized chapter, and full Science/Mathematics chapter coverage.
+- **Next action:** Confirm latest-head curriculum and Android checks; fix any test failures from their logs before advancing to batch chapter coverage or merging.
+
+### 2026-10-26 — Connect approved chapter plans to tutor runtime
+- **Branch / implementation commits:** `feature/syllabus-synthesis-prototype`; tutor integration `410726e5107fb89ac0ba2817963637ad1a516c3d`; regression test `cc2393aab70bd74bc4f59defc1450f4e76c2ab4d`.
+- **Change made:** `/tutor/chat` now loads only a human-approved chapter lesson for the exact board, class, subject, medium and chapter. A topic-specific plan is used only when its topic exactly matches the selected topic; chapter-wide plans remain eligible. Its overview, objectives, concept order, teaching sequence and cited chunk IDs are added as a teaching-plan context. Draft/rejected lessons are not used, and retrieved textbook passages remain the factual evidence.
+- **Regression test:** Extended `backend/test_tutor.py` to assert that the approved plan and its source chunk IDs are present in Gemini's system instruction.
+- **Verification status:** Source and test changes are present on the PR branch. Exact-head CI has not yet been confirmed. This is not evidence of a live deployment or of a real approved chapter being served in production.
+- **Remaining risks / follow-up:** Existing tutor grounding still depends on successful passage retrieval. Next, test the full flow with a real reviewed chapter and verify the plan's chunk citations resolve to the same textbook edition; then implement learner progress only with a stable, privacy-safe learner/session identifier and explicit mastery transitions.
+- **Merge policy:** Keep PR #31 unmerged until curriculum tests and required Android regressions pass.
+
+### 2026-10-26 — Add learner topic progress and adaptive tutor signals
+- **Branch / implementation commits:** `feature/syllabus-synthesis-prototype`; backend `0c1a980eef2329b99369e6d66c2f7dc58a13e339`; regression test `4d1f740cd6054e337a50970a8cb3d492e673adf0`.
+- **Change made:** Added `learner_topic_progress` and idempotent `learner_topic_events` tables. Added `POST /tutor/progress` signals for `needs_help`, `understood`, `practice_correct`, and `practice_incorrect`. Three consecutive correct practice checks create a provisional `mastered` state; an incorrect check resets the streak and returns the topic to `needs_help`. Duplicate event IDs do not increment counters.
+- **Tutor integration:** `TutorChatRequest.learner_id` is optional and intended for a client-generated opaque UUID, not a child's name. When supplied, the tutor receives the exact learner/topic progress and is instructed to reteach the same topic gently after difficulty. Existing clients that omit this field continue to work; Android persistence/identifier wiring is still required to activate continuity across sessions.
+- **Privacy / correctness boundary:** Self-reported understanding does not mark mastery. Progress is keyed by learner UUID plus curriculum profile/chapter/topic. This is prototype support, not a validated educational mastery model.
+- **Regression test:** Added tests for the three-correct-check transition, duplicate-event idempotency, and reset on an incorrect check.
+- **Verification status:** Latest-head CI is pending. Do not claim the new schema/API or tests pass until exact-head curriculum checks complete.
+- **Next action:** Review latest CI and fix any failures. Then wire a persistent random learner UUID into Android tutor requests and record only actual practice outcomes; keep PR #31 unmerged until required regressions pass.
+
+### 2026-10-26 — Wire learner identity and checkpoint signals from Android
+- **Branch / implementation commit:** `feature/syllabus-synthesis-prototype`; Android changes `8de421c41881137ef01eed26f5dce964e3a0fc5a`, `7e13e5a7a72d114bd7184d64a4ac8dc36fe5fe65`, `192afbc923ceba965fe6ec7ad53c417fb165ae1f`.
+- **Change made:** Reuse the already-persisted random `profile_id` from Android app preferences as the opaque tutor `learner_id`; include it on `/tutor/chat` requests. At the inline lesson checkpoint, “I understand” records an `understood` signal and “Explain again” records `needs_help` through `POST /tutor/progress`. Signals are sent asynchronously and do not block playback.
+- **Safety boundary:** These are self-report signals only. The Android UI does not send `practice_correct` or claim mastery; the backend's three-consecutive-correct rule remains unused until real scored practice checks exist. The identifier is a random UUID and does not use the student's name.
+- **Verification status:** Android source changes are committed; exact-head Android APK/UI workflows have not yet completed. The prior backend curriculum suite and guidance gate passed on commit `4d1f740cd6054e337a50970a8cb3d492e673adf0`, before these Android edits.
+- **Next action:** Check latest-head curriculum, APK, and API-35 emulator runs. Fix compile or runtime issues from logs before calling the learner-progress flow complete.
+
+
+### 2026-10-26 — Prevent API-35 emulator acceptance run from being cancelled by overlapping runs
+- **Branch / commit:** `feature/syllabus-synthesis-prototype`; latest inspected head before this change: `992e698e1989ff42cb8d632eb7b2c712633834d6`.
+- **Test command or workflow URL:** [Cancelled API-35 UI smoke run #1148](https://github.com/Prav1525/Padippupal/actions/runs/40324509807), job `121577630937`.
+- **Result:** **CANCELLED**; this is not a passing test and did not verify the picker.
+- **Exact failure or assertion:** The only emulator job ended with conclusion `cancelled`; no step-level test result was reported for that attempt.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Workflow run #1148](https://github.com/Prav1525/Padippupal/actions/runs/40324509807).
+- **Change made (files + rationale):** Change `.github/workflows/android-ui-smoke.yml` concurrency from `cancel-in-progress: true` to `false`, so an overlapping run on the same workflow/ref/API level queues instead of automatically cancelling the in-flight acceptance run.
+- **Root cause:** **CONFIRMED for cancellation risk, not the picker bug** — the workflow explicitly enabled cancellation of an in-progress run in its concurrency group. The exact actor/event that cancelled run #1148 is not exposed in the job summary.
+- **What this attempt proves:** The CI configuration allowed in-flight UI acceptance runs to be cancelled; the cancellation itself provides no evidence that the app picker passes or fails.
+- **What remains unverified:** A full API-35 emulator run, DocumentsUI URI return, crop/rescan/save flow, and whether any runtime picker defect remains.
+- **Difference from previous attempt:** Addresses CI run cancellation policy rather than changing picker taps or app code.
+- **Next action and why:** Commit the non-cancelling concurrency policy and rerun API-35 UI acceptance; inspect the new job result and its artifacts before claiming a fix.
+
+
+### 2026-10-26 — Preserve diary-picker acceptance artifacts across tutor smoke retries
+- **Branch / commit:** `feature/syllabus-synthesis-prototype`; workflow fix `20fa4f198984370b1a2d6fea350e8fb594cbcb00`.
+- **Prior run:** [API-35 UI smoke run #1152](https://github.com/Prav1525/Padippupal/actions/runs/40326522442), commit `48e03cb9e0a24ccf9b223ffeee18dd8bac8a78b9`.
+- **Prior result:** Overall emulator job **PASS**, but the uploaded artifact contained only tutor-flow screenshots/XML and no `ui-screenshots/diary-test/` directory. The report itself explicitly warned that the diary assertions needed to be confirmed in the emulator log.
+- **Confirmed test-harness gap:** The workflow runs `.github/scripts/diary_crop_emulator_test.sh`, then `.github/scripts/android-ui-smoke-retry.sh`; the latter starts each tutor attempt with `rm -rf ui-screenshots`. Thus successful diary evidence was deleted before upload. The successful overall shell step implies the diary script exited zero, but the detailed picker/crop/review/save evidence was not retained for direct audit.
+- **Change made:** After the diary script returns, capture its exit code, copy `ui-screenshots/diary-test/` to a separate `diary-artifacts/` directory before tutor testing, preserve the diary exit code, and upload `diary-artifacts/` independently. On diary failure, the workflow still fails but the evidence is retained by the always-running upload step.
+- **What this change proves:** It fixes the evidence-retention gap in the workflow definition; it does not by itself prove the picker is fixed.
+- **Verification plan:** Let the exact-head API-35 workflow rerun. Inspect the preserved diary report, picker selection-result XML/screenshot, crop selection, review, and saved planner assertions. Also confirm the artifact includes `diary-artifacts/exit-code.txt` and the tutor smoke remains green.
+- **Tutor experience review:** The existing automated tutor acceptance checks chapter/topic selection, lesson readiness, playback, pause/resume, moving word highlight, completion, follow-up question visibility, and back navigation. Known coverage/product gaps to assess next include the missing scored practice loop (so the backend's mastery transitions are not exercised by learners), the lack of a verified real approved-synthesis chapter in end-to-end playback, and the need to test low-confidence answers, misunderstood concepts, language/voice fallback, interrupted playback, and accessibility on small screens. No production changes or PR merge.

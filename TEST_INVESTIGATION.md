@@ -328,3 +328,12 @@ Use this format:
 - **What remains unverified:** Exact-head CI; deployment of the guardrails; authenticated correction of existing drafts; live tutor delivery for approved versus draft lessons.
 - **Next action:** Inspect all required CI results and fix failures. Then use the authenticated admin workflow to correct and revalidate existing drafts. Keep them unapproved until source-based human review is complete.
 
+
+
+### 2026-10-27 — Add authenticated draft-only lesson content editing
+- **Branch / PR:** `fix/class6-maths-content-qa`; [PR #40](https://github.com/Prav1525/Padippupal/pull/40).
+- **Change made:** Added `PUT /admin/chapter-lessons/{lesson_id}/content`. It requires the existing admin-token dependency, permits edits only for `draft` or `review` lessons, verifies every stored source chunk still exists under the expected ready source and curriculum profile, and runs the chapter lesson validator before saving.
+- **Safety:** A successful edit always leaves the lesson in `draft` with review required. Approved/rejected lessons return HTTP 409; failed citation/content validation returns HTTP 422. Matching synthesis round/topic status is returned to draft only when the evidence chunk set matches exactly. No production lesson was edited or approved.
+- **Regression tests added:** `backend/test_chapter_lesson_content_endpoint.py` covers missing admin auth, invalid citation rejection without mutation, valid draft update with draft preservation, and approved lesson lock.
+- **Verification:** Pending CI on the updated PR head. This entry records implementation, not a claim that tests or production behavior have been verified.
+- **Next action:** Inspect the latest exact-head CI results; only after tests pass, use the authenticated endpoint to correct the known Maths draft issues and revalidate them. Keep all lessons unapproved until human source review is complete.

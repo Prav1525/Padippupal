@@ -77,7 +77,7 @@ if printf '%s\\n' "$tts_diagnostics" | grep -Eqi "Missing base resource|Failed t
     exit 1
   fi
   adb -s emulator-5554 shell settings put secure tts_default_synth "com.google.android.tts"
-  selected="$(adb -s emulator-5554 shell settings get secure tts_default_synth | tr -d '\\r')"
+  selected="$(adb -s emulator-5554 shell settings get secure tts_default_synth | tr -d '\r')"
   if [ "$selected" != "com.google.android.tts" ]; then
     echo "::error::Could not select the preinstalled Google TTS fallback (selected=$selected)."
     exit 1
@@ -88,4 +88,3 @@ else
   adb -s emulator-5554 shell am force-stop "$PACKAGE"
   echo "Offline TTS engine and bundled voice data ready: $selected"
 fi
-echo "Offline TTS engine and bundled voice data ready: $selected"

@@ -155,6 +155,7 @@ def validate_chapter_lesson_payload(
     ):
         errors.append("learning_objectives must contain non-empty strings")
 
+    cited_chunk_ids: set[str] = set()
     concepts = payload.get("concept_map")
     if not isinstance(concepts, list) or not concepts:
         errors.append("concept_map must be a non-empty list")
@@ -176,7 +177,6 @@ def validate_chapter_lesson_payload(
         errors.append("teaching_sequence must be a non-empty list")
         steps = []
     allowed_visuals = {"number_pattern", "number_line", "geometry", "compare", "process", "table", "diagram", "none"}
-    cited_chunk_ids: set[str] = set()
     for index, step in enumerate(steps):
         if not isinstance(step, Mapping):
             errors.append(f"teaching_sequence[{index}] must be an object")

@@ -105,6 +105,11 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert topics[0]["validation_status"] == "passed"
     assert topics[0]["approval_status"] == "draft"
     assert json.loads(topics[0]["citation_refs_json"]) == ["chunk-test"]
+    assert topics[0]["page_start"] == 1
+    assert topics[0]["page_end"] == 1
+    # Do not copy chapter-wide objectives into every topic when the model omitted step-level objectives.
+    assert json.loads(topics[0]["learning_objectives_json"]) == []
+    assert "left empty rather than copying chapter-wide objectives" in json.loads(topics[0]["validation_notes_json"])[1]
 
     listed = client.get(
         "/admin/syllabus-synthesis/rounds",

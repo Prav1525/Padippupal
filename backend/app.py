@@ -1438,7 +1438,7 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
     model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
     prompt = ("You are PadippuPal's curriculum synthesizer. Use ONLY the supplied textbook chunks; never fill gaps with general knowledge. "
         "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
-        "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, source_chunk_ids, visual). "
+        "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, learning_objectives (a short list specific to THIS step), source_chunk_ids, visual). "
         "visual has type (number_pattern, number_line, geometry, compare, process, table, diagram, none), objects, actions, narration_sync. "
         "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. Across the complete concept map and teaching sequence, cite EVERY supplied chunk_id at least once; do not omit a content-bearing chunk. No code; draft only.")
     body = json.dumps({"systemInstruction":{"parts":[{"text":prompt}]},
@@ -1519,18 +1519,34 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                  payload.subject, payload.chapter, "v1", model, "v1", json.dumps(evidence_packet["chunk_ids"]),
                  evidence_fingerprint_value, json.dumps(validation), now, now))
             conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=?", (synthesis_round_id,))
+            page_by_chunk = {
+                str(item["chunk_id"]): (item.get("page_start"), item.get("page_end"))
+                for item in evidence_packet["evidence"]
+            }
             for index, step in enumerate(lesson["teaching_sequence"]):
                 topic = normalize(str(step.get("title") or step.get("id") or f"Topic {index + 1}"))
                 topic_id = hashlib.sha256(f"{synthesis_round_id}|{index}|{topic}".encode("utf-8")).hexdigest()
                 citations = [str(x) for x in step.get("source_chunk_ids", [])]
+                cited_pages = [page_by_chunk[cid] for cid in citations if cid in page_by_chunk]
+                page_starts = [pair[0] for pair in cited_pages if pair[0] is not None]
+                page_ends = [pair[1] for pair in cited_pages if pair[1] is not None]
+                topic_page_start = min(page_starts) if page_starts else None
+                topic_page_end = max(page_ends) if page_ends else None
+                topic_objectives = step.get("learning_objectives", [])
+                if not isinstance(topic_objectives, list):
+                    topic_objectives = []
+                topic_objectives = [
+                    str(item).strip() for item in topic_objectives
+                    if isinstance(item, str) and item.strip()
+                ]
                 conn.execute("""INSERT INTO syllabus_topic_syntheses
                     (id,round_id,source_id,topic,page_start,page_end,learning_objectives_json,
                      explanation_json,examples_json,practice_questions_json,citation_refs_json,
                      validation_status,validation_notes_json,approval_status,created_at,updated_at)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (topic_id, synthesis_round_id, str(evidence_packet["source_id"]), topic,
-                     evidence_packet["page_start"], evidence_packet["page_end"],
-                     json.dumps(lesson.get("learning_objectives", []), ensure_ascii=False),
+                     topic_page_start, topic_page_end,
+                     json.dumps(topic_objectives, ensure_ascii=False),
                      json.dumps({"teacher_says": step.get("teacher_says", ""),
                                  "caption": step.get("caption", ""),
                                  "misconception": step.get("misconception", ""),
@@ -1538,7 +1554,10 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                      json.dumps([step.get("example")] if step.get("example") else [], ensure_ascii=False),
                      json.dumps([step.get("checkpoint")] if step.get("checkpoint") else [], ensure_ascii=False),
                      json.dumps(citations, ensure_ascii=False), "passed",
-                     json.dumps(["Citations verified against this chapter's source chunks"], ensure_ascii=False),
+                     json.dumps(
+                          ["Citations verified against this chapter's source chunks"]
+                          + ([] if topic_objectives else ["No step-specific learning objectives returned; left empty rather than copying chapter-wide objectives"]),
+                          ensure_ascii=False),
                      "draft", now, now))
         return {"lesson_id":lesson_id,"synthesis_round_id":synthesis_round_id,
                 "evidence_fingerprint":evidence_fingerprint_value,"status":"draft",

@@ -209,6 +209,9 @@ def validate_chapter_lesson_payload(
             "teaching steps include learner-facing explanation, caption, checkpoint, and supported visual recipe",
         ] if not errors else [],
         "topic_count": len(steps),
+        "source_chunk_count": len(allowed_chunk_ids),
+        "cited_chunk_count": len(cited_chunk_ids),
+        "uncited_chunk_count": len(missing_citations),
     }
 
 

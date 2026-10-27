@@ -243,3 +243,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** `.github/scripts/android-ui-smoke-retry.sh` starts by deleting `ui-screenshots/` to isolate the tutor smoke run. The diary test ran immediately before it, so its evidence was removed before the artifact-upload step. The test result was valid in the job log, but post-run diagnosis and independent artifact review were unnecessarily weakened.
 - **Fix:** Commit `498f0c902ac51d1d8bb74636dbc930522f790245` copies diary acceptance evidence into `attempt-artifacts/diary-acceptance/` before cleanup. Commit `5efed0e0d7c5e53185d03b88bfcf56bd66861cc4` adds a regression test asserting preservation occurs before `rm -rf ui-screenshots` and that the workflow uploads `attempt-artifacts/`.
 - **Validation:** Pending CI on the updated PR head. The prior run's job log records a successful full diary flow; this fix preserves the supporting XML/screenshots in future artifacts. Keep PR #40 draft and unmerged until all checks pass.
+
+
+## Incident: API 35 eSpeak voice-data initializer does not populate app-private data
+
+- **Symptom:** Run [40543109715](https://github.com/Prav1525/Padippupal/actions/runs/40543109715) passed JVM tests, APK build, script validation, and emulator setup, but the TTS preflight failed because eSpeak logged `Missing base resource: .../app_voices/espeak-ng-data/version` even after opening its DownloadVoiceData and status activities.
+- **Root cause:** The preflight assumed launching the APK's voice-data activity would extract its data into the app-private `app_voices` directory. The observed logs disprove that assumption on this API 35 emulator image; merely reopening the activity does not guarantee the required files exist.
+- **Fix:** Commit `e50f358ffa26ce8df6af7c970de4c23b386eeefb` falls back to the emulator's already-installed Google TTS service when eSpeak voice data is missing, verifies that the service is registered, selects it as the default, and confirms the selected engine. It still fails closed if neither engine is available.
+- **Regression prevention:** Commit `8486068efd25f4322ed1629b91438f490d594b5f` updates static regression checks for the fallback and failure conditions. The full smoke test must still demonstrate that the tutor actually starts speaking (the live-lesson UI transitions to Pause); selecting a registered engine alone is not sufficient.
+- **Validation:** Awaiting fresh CI on the updated PR head. Do not merge until the full emulator smoke test passes.

@@ -160,32 +160,54 @@ jobs:
               total += d['draft_count']
           print(f"PASS: {total} validated draft lessons generated; none approved")
           PY
-      - name: Audit saved lesson coverage
+      - name: Verify persisted drafts and source-citation coverage
         env:
-          PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+          DATABASE_URL: ${{ secrets.SYLLABUS_DATABASE_URL }}
         run: |
           set -euo pipefail
-          for subject in Mathematics Science; do
-            curl --silent --show-error --fail --get http://127.0.0.1:8765/admin/syllabus-synthesis/coverage \
-              -H "x-admin-token: $PADIPPUPAL_ADMIN_TOKEN" \
-              --data-urlencode "board=CBSE" --data-urlencode "class_level=6" \
-              --data-urlencode "subject=$subject" --data-urlencode "medium=English" \
-              > "/tmp/coverage-$subject.json"
-          done
           python - <<'PY'
-          import json
-          for subject in ('Mathematics','Science'):
-              d=json.load(open(f'/tmp/coverage-{subject}.json'))
-              print(subject, json.dumps(d, sort_keys=True))
-              # Fail closed if the coverage audit reports any missing/stale/invalid evidence.
-              serialized=json.dumps(d).lower()
-              for key in ('missing_sources','missing_lessons','stale_evidence','uncited_chunks','validation_failures','page_gaps'):
-                  value=d.get(key)
-                  if isinstance(value,(int,float)):
-                      assert value == 0, f"{subject}: {key}={value}"
-                  elif isinstance(value,list):
-                      assert not value, f"{subject}: {key} is non-empty"
-              assert 'failed' not in str(d.get('status','')).lower(), f"{subject} coverage status failed"
+          import json, os
+          import psycopg
+          expected = {'Mathematics': 10, 'Science': 12}
+          lessons = []
+          for subject, path, count in [
+              ('Mathematics', '/tmp/math-results.json', 10),
+              ('Science', '/tmp/science-results.json', 12),
+          ]:
+              data = json.load(open(path))
+              rows = data.get('results', [])
+              assert len(rows) == count, f"{subject}: expected {count} result rows"
+              for row in rows:
+                  assert row.get('status') == 'draft', f"{subject}/{row.get('chapter')}: not draft"
+                  assert row.get('lesson_id'), f"{subject}/{row.get('chapter')}: missing persisted lesson ID"
+                  assert row.get('synthesis_round_id'), f"{subject}/{row.get('chapter')}: missing synthesis round ID"
+                  validation = row.get('validation') or {}
+                  assert validation.get('valid') is True, f"{subject}/{row.get('chapter')}: validation did not pass"
+                  assert validation.get('uncited_chunk_count') == 0, f"{subject}/{row.get('chapter')}: uncited source chunks"
+                  assert validation.get('source_chunk_count', 0) > 0, f"{subject}/{row.get('chapter')}: no source chunks"
+                  assert validation.get('cited_chunk_count') == validation.get('source_chunk_count'), f"{subject}/{row.get('chapter')}: citation coverage incomplete"
+                  lessons.append((row['lesson_id'], row['synthesis_round_id'], subject, row.get('chapter')))
+          assert len({item[0] for item in lessons}) == 22, "Expected 22 unique lesson IDs"
+          assert len({item[1] for item in lessons}) == 22, "Expected 22 unique synthesis round IDs"
+          lesson_ids = [item[0] for item in lessons]
+          round_ids = [item[1] for item in lessons]
+          with psycopg.connect(os.environ['DATABASE_URL'], connect_timeout=10) as conn:
+              with conn.cursor() as cur:
+                  cur.execute("SELECT id, status FROM chapter_lessons WHERE id = ANY(%s)", (lesson_ids,))
+                  saved_lessons = {str(row[0]): row[1] for row in cur.fetchall()}
+                  assert set(saved_lessons) == set(lesson_ids), f"Only {len(saved_lessons)}/22 lessons persisted"
+                  assert all(status == 'draft' for status in saved_lessons.values()), "A lesson is not draft"
+                  cur.execute("SELECT id, source_id, status, validation_json FROM syllabus_synthesis_rounds WHERE id = ANY(%s)", (round_ids,))
+                  saved_rounds = cur.fetchall()
+                  assert len(saved_rounds) == 22, f"Only {len(saved_rounds)}/22 synthesis rounds persisted"
+                  assert all(row[2] == 'draft' for row in saved_rounds), "A synthesis round is not draft"
+                  for round_id, source_id, status, validation in saved_rounds:
+                      if isinstance(validation, str):
+                          validation = json.loads(validation)
+                      assert validation.get('valid') is True, f"Round {round_id}: persisted validation invalid"
+                      assert validation.get('uncited_chunk_count') == 0, f"Round {round_id}: persisted uncited chunks"
+          print("PASS: all 22 lessons and 22 synthesis rounds are persisted as drafts with complete validated chunk citations.")
+          print("Human source-page review and tutor integration checks are still required before approval.")
           PY
       - name: Preserve concise run results
         if: always()

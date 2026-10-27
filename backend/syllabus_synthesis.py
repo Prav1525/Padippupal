@@ -139,6 +139,70 @@ def validate_synthesis_payload(
     return {"valid": not errors, "errors": errors, "topics": normalized}
 
 
+def validate_chapter_lesson_payload(
+    payload: Mapping[str, Any],
+    allowed_chunk_ids: set[str],
+) -> dict[str, Any]:
+    """Validate the complete lesson contract before any draft is persisted."""
+    errors: list[str] = []
+    for field in ("chapter_title", "overview"):
+        if not isinstance(payload.get(field), str) or not payload[field].strip():
+            errors.append(f"{field} must be non-empty text")
+
+    objectives = payload.get("learning_objectives")
+    if not isinstance(objectives, list) or not objectives or any(
+        not isinstance(item, str) or not item.strip() for item in objectives
+    ):
+        errors.append("learning_objectives must contain non-empty strings")
+
+    concepts = payload.get("concept_map")
+    if not isinstance(concepts, list) or not concepts:
+        errors.append("concept_map must be a non-empty list")
+        concepts = []
+    for index, concept in enumerate(concepts):
+        if not isinstance(concept, Mapping) or not str(concept.get("concept") or "").strip():
+            errors.append(f"concept_map[{index}] must include a concept")
+            continue
+        citations = concept.get("source_chunk_ids")
+        if not isinstance(citations, list) or not citations:
+            errors.append(f"concept_map[{index}] must cite source chunks")
+        elif not {str(value) for value in citations}.issubset(allowed_chunk_ids):
+            errors.append(f"concept_map[{index}] cites an unknown source chunk")
+
+    steps = payload.get("teaching_sequence")
+    if not isinstance(steps, list) or not steps:
+        errors.append("teaching_sequence must be a non-empty list")
+        steps = []
+    allowed_visuals = {"number_pattern", "number_line", "geometry", "compare", "process", "table", "diagram", "none"}
+    for index, step in enumerate(steps):
+        if not isinstance(step, Mapping):
+            errors.append(f"teaching_sequence[{index}] must be an object")
+            continue
+        for field in ("title", "teacher_says", "caption", "checkpoint"):
+            if not isinstance(step.get(field), str) or not step[field].strip():
+                errors.append(f"teaching_sequence[{index}].{field} must be non-empty text")
+        citations = step.get("source_chunk_ids")
+        if not isinstance(citations, list) or not citations:
+            errors.append(f"teaching_sequence[{index}] must cite source chunks")
+        elif not {str(value) for value in citations}.issubset(allowed_chunk_ids):
+            errors.append(f"teaching_sequence[{index}] cites an unknown source chunk")
+        visual = step.get("visual") or {}
+        if not isinstance(visual, Mapping) or visual.get("type", "none") not in allowed_visuals:
+            errors.append(f"teaching_sequence[{index}] has an unsupported visual recipe")
+
+    return {
+        "valid": not errors,
+        "errors": errors,
+        "checks": [
+            "chapter title and overview are present",
+            "learning objectives and concept map are non-empty",
+            "every concept and teaching step cites supplied source chunks",
+            "teaching steps include learner-facing explanation, caption, checkpoint, and supported visual recipe",
+        ] if not errors else [],
+        "topic_count": len(steps),
+    }
+
+
 def make_run_id(source_id: str, chapter: str, curriculum_version: str, fingerprint: str) -> str:
     """Deterministic ID supports safe retries without duplicate chapter runs."""
     raw = "|".join((source_id, chapter.strip(), curriculum_version, fingerprint))

@@ -2,6 +2,7 @@ import json
 import tempfile
 import time
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi.testclient import TestClient
 
@@ -119,9 +120,26 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert detail.status_code == 200
     assert detail.json()["topics"][0]["citation_refs"] == ["chunk-test"]
 
+    # Regression: a legacy admin client incorrectly serialized the ID object
+    # into the URL path instead of sending the scalar identifier.
+    malformed_round_path = quote(json.dumps({"round_id": data["synthesis_round_id"]}))
+    legacy_round_detail = client.get(
+        f"/admin/syllabus-synthesis/rounds/{malformed_round_path}",
+        headers={"X-Admin-Token": "test-token"},
+    )
+    assert legacy_round_detail.status_code == 200, legacy_round_detail.text
+
+    lesson_id = data["lesson_id"]
+    malformed_lesson_path = quote(json.dumps({"lesson_id": lesson_id}))
+    legacy_lesson_detail = client.get(
+        f"/admin/chapter-lessons/{malformed_lesson_path}",
+        headers={"X-Admin-Token": "test-token"},
+    )
+    assert legacy_lesson_detail.status_code == 200, legacy_lesson_detail.text
+    assert legacy_lesson_detail.json()["id"] == lesson_id
+
     # The tutor serves approved chapter_lessons; synthesis review state must follow
     # the same explicit human decision instead of remaining misleadingly "draft".
-    lesson_id = data["lesson_id"]
     reviewed = client.post(
         f"/admin/chapter-lessons/{lesson_id}/review",
         headers={"X-Admin-Token": "test-token"},

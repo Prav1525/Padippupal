@@ -156,5 +156,15 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.api-level }}", workflow)
 
 
+    def test_diary_acceptance_artifacts_are_preserved_before_smoke_cleanup(self):
+        retry_script = (ROOT / ".github" / "scripts" / "android-ui-smoke-retry.sh").read_text(encoding="utf-8")
+        preserve = retry_script.index('cp -a ui-screenshots/diary-test attempt-artifacts/diary-acceptance/')
+        cleanup = retry_script.index('rm -rf ui-screenshots')
+        self.assertLess(preserve, cleanup)
+        self.assertIn('Preserved diary acceptance evidence under attempt-artifacts/diary-acceptance', retry_script)
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn('attempt-artifacts/', workflow)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

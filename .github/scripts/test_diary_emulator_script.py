@@ -131,7 +131,10 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn('am start -W -n "$PACKAGE/.eSpeakActivity"', preflight)
         self.assertIn("Missing base resource", preflight)
         self.assertIn("Failed to extract voice data", preflight)
-        self.assertIn("refusing to run tutor UI tests with a broken TTS engine", preflight)
+        self.assertIn('settings put secure tts_default_synth "com.google.android.tts"', preflight)
+        self.assertIn("Selected preinstalled Google TTS fallback", preflight)
+        self.assertIn("Neither eSpeak voice data nor the preinstalled Google TTS service is available", preflight)
+        self.assertIn("The tutor smoke must still prove speech starts", preflight)
 
     def test_workflow_records_outcomes_even_when_a_step_fails(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")

@@ -318,3 +318,13 @@ Use this format:
 - **Safety:** Draft-only behavior and strict source-citation validation remain unchanged. No production DB rows changed and no lessons were approved.
 - **Verification status:** Reconciled commit prepared; CI must pass on the updated PR head before merge. Production re-synthesis remains pending deployment and review.
 
+### 2026-10-27 — Add Class 6 lesson content-consistency validation
+- **Branch / PR:** `fix/class6-maths-content-qa`; [PR #40](https://github.com/Prav1525/Padippupal/pull/40).
+- **Observed production evidence:** Class 6 Maths draft audit identified a Fractions history/notation conflation, chikki thirds-versus-sixths mismatch, number-line denominator mismatch, a four-stroke example described as a fifth tally, overgeneralized diagonal-unit wording, and imprecise triangle/rectangle base-height wording. All affected lessons remain drafts.
+- **Change made:** Added targeted content consistency checks to `backend/syllabus_synthesis.py` and seven regression tests in `backend/test_lesson_content_consistency.py`. The checks reject the known patterns during chapter-lesson validation; they do not automatically rewrite existing production lesson rows or approve content.
+- **Test evidence:** Curriculum Engine Tests run [40521410289](https://github.com/Prav1525/Padippupal/actions/runs/40521410289) was still running at ledger update time. Investigation Guidance Gate run [40521410373](https://github.com/Prav1525/Padippupal/actions/runs/40521410373) initially failed because this required append-only ledger entry was missing; this entry addresses that documentation gate.
+- **Root cause confidence:** **CONFIRMED** for the observed lesson/visual contradictions by inspecting the live lesson JSON; **UNVERIFIED** whether the new validator passes all regression tests until CI completes.
+- **What this proves:** The code and regression cases are committed to an isolated PR. It does not prove the tests pass, that the PR is merged/deployed, or that existing production drafts are corrected.
+- **What remains unverified:** Exact-head CI; deployment of the guardrails; authenticated correction of existing drafts; live tutor delivery for approved versus draft lessons.
+- **Next action:** Inspect all required CI results and fix failures. Then use the authenticated admin workflow to correct and revalidate existing drafts. Keep them unapproved until source-based human review is complete.
+

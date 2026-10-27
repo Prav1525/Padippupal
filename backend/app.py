@@ -1377,6 +1377,7 @@ class ChapterSynthesisBatchRequest(BaseModel):
     subject: str = Field(min_length=1, max_length=100)
     medium: str = Field(min_length=2, max_length=40)
     source_id: str = Field(default="", max_length=100)
+    source_ids: list[str] = Field(default_factory=list, max_length=40)
     max_chapters: int = Field(default=12, ge=1, le=40)
     # Safe by default: inventory first; generation is an explicit admin action.
     generate: bool = False
@@ -1573,6 +1574,11 @@ def batch_syllabus_synthesis(payload: ChapterSynthesisBatchRequest) -> dict[str,
     source-specific, and reuses the single-chapter validator; every result stays a draft
     until the existing human review endpoint approves it.
     """
+    if payload.generate and not payload.source_id and not payload.source_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="For safety, draft generation requires an explicitly selected source_id or source_ids list.",
+        )
     subject_key = payload.subject.strip().lower()
     if subject_key in {"math", "maths", "mathematics"}:
         subject_clause = "LOWER(s.subject) IN ('math','maths','mathematics')"
@@ -1589,6 +1595,9 @@ def batch_syllabus_synthesis(payload: ChapterSynthesisBatchRequest) -> dict[str,
     if payload.source_id:
         source_sql += " AND id=?"
         source_params.append(payload.source_id)
+    if payload.source_ids:
+        source_sql += " AND id IN (" + ",".join("?" for _ in payload.source_ids) + ")"
+        source_params.extend(payload.source_ids)
     source_sql += " ORDER BY academic_year DESC,title,id"
 
     jobs: list[dict[str, Any]] = []

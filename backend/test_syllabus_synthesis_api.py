@@ -326,6 +326,13 @@ def test_batch_synthesis_inventory_is_read_only_bounded_and_source_specific(monk
     with curriculum.db() as conn:
         assert conn.execute("SELECT COUNT(*) FROM syllabus_synthesis_rounds").fetchone()[0] == 0
 
+    unsafe_generate = client.post("/admin/syllabus-synthesis/batch", headers=headers, json={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+        "max_chapters": 10, "generate": True,
+    })
+    assert unsafe_generate.status_code == 400
+    assert "explicitly selected source_id" in unsafe_generate.json()["detail"]
+
     captured = []
     def fake_generate(request):
         captured.append(request)

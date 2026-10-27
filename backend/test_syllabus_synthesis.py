@@ -142,7 +142,7 @@ class SyllabusSynthesisTests(unittest.TestCase):
         }
         result = validate_chapter_lesson_payload(lesson, {"chunk-a", "chunk-b"})
         self.assertFalse(result["valid"])
-        self.assertTrue(any("1 supplied source chunks uncited" in error for error in result["errors"]))
+        self.assertTrue(any("chunk-b" in error and "uncited" in error for error in result["errors"]))
         self.assertEqual(result["source_chunk_count"], 2)
         self.assertEqual(result["cited_chunk_count"], 1)
         self.assertEqual(result["uncited_chunk_count"], 1)

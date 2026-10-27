@@ -296,3 +296,17 @@ Use this format:
 - **Change in this batch:** Report the exact unknown citation IDs and exact missing supplied chunk IDs in validator errors. Update the regression test to assert the missing chunk ID is exposed. Citation validation remains strict; draft approval/persistence behavior is unchanged.
 - **Verification:** Curriculum Engine Tests run [40461379063](https://github.com/Prav1525/Padippupal/actions/runs/40461379063) passed. Investigation Guidance Gate run [40461379160](https://github.com/Prav1525/Padippupal/actions/runs/40461379160) failed because this PR did not append this required ledger entry; this is a documentation-gate failure, not a test assertion failure. Android APK run [40461379084](https://github.com/Prav1525/Padippupal/actions/runs/40461379084) and Android UI smoke run [40461379077](https://github.com/Prav1525/Padippupal/actions/runs/40461379077) were still in progress at time of entry.
 - **Next action:** Include this append-only entry, rerun required checks, and inspect any remaining failures. Do not merge/deploy or regenerate the failing production chapters until the required checks and draft-only regression verification are complete.
+
+
+### 2026-10-27 — Derive topic pages and objectives from topic evidence
+- **Branch / commit:** `fix/topic-evidence-quality-validation`; change in `backend/app.py`.
+- **Test command or workflow URL:** Pending pull-request CI.
+- **Result:** **UNVERIFIED** pending CI.
+- **Exact failure or assertion:** Existing topic rows inherited the full chapter page range and repeated chapter-wide learning objectives, regardless of the citations attached to each topic.
+- **Evidence links:** [Synthesis persistence code](https://github.com/Prav1525/Padippupal/blob/main/backend/app.py).
+- **Change made (files + rationale):** Derive each topic page range from cited evidence chunks; store objectives scoped to the teaching-step title and checkpoint instead of repeating chapter-wide objectives.
+- **Root cause:** **CONFIRMED** in persistence code: chapter-wide page_start/page_end and lesson.learning_objectives were passed to every topic row.
+- **What this attempt proves:** The implementation now derives topic page spans from citations and objectives from the individual teaching step.
+- **What remains unverified:** CI, quality of generated titles/checkpoints, and regeneration of existing draft data. Production rows are unchanged by this code-only patch.
+- **Difference from previous attempt:** Fixes persistence behavior rather than only adding structural citation checks.
+- **Next action and why:** Run the synthesis suite and review generated topic outputs before merge/deploy.

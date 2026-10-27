@@ -1438,9 +1438,9 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
     model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
     prompt = ("You are PadippuPal's curriculum synthesizer. Use ONLY the supplied textbook chunks; never fill gaps with general knowledge. "
         "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
-        "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, source_chunk_ids, visual). "
+        "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, learning_objectives, page_start, page_end, source_chunk_ids, visual). "
         "visual has type (number_pattern, number_line, geometry, compare, process, table, diagram, none), objects, actions, narration_sync. "
-        "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. Across the complete concept map and teaching sequence, cite EVERY supplied chunk_id at least once; do not omit a content-bearing chunk. No code; draft only.")
+        "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each teaching step is a distinct teachable topic: give it 1-3 concise learning_objectives specific to that step, not copied chapter-wide objectives. Objectives must be distinct across steps. Set page_start/page_end to the minimum/maximum non-null pages among that step’s cited chunks only; never use the full chapter range unless its citations actually span the full chapter. Each concept and step must cite exact supplied chunk_id values. Across the complete concept map and teaching sequence, cite EVERY supplied chunk_id at least once; do not omit a content-bearing chunk. No code; draft only.")
     body = json.dumps({"systemInstruction":{"parts":[{"text":prompt}]},
         "contents":[{"role":"user","parts":[{"text":"Profile: "+payload.board+", class "+str(payload.class_level)+", subject "+payload.subject+", medium "+payload.medium+", chapter "+payload.chapter+", topic "+(payload.topic or "whole chapter")+"\nALL STORED CHAPTER CHUNKS:\n"+"\n\n---\n\n".join(context)}]}],
         "generationConfig":{"responseMimeType":"application/json","temperature":0.15,"maxOutputTokens":10000}}).encode("utf-8")
@@ -1466,7 +1466,8 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
             return None, {"valid": False, "errors": ["model response was not complete valid JSON"]}, finish_reason
         if not isinstance(parsed_lesson, dict):
             return None, {"valid": False, "errors": ["lesson response must be a JSON object"]}, finish_reason
-        checked = validate_chapter_lesson_payload(parsed_lesson, allowed)
+        chunk_pages = {str(ref["chunk_id"]): (ref.get("page_start"), ref.get("page_end")) for ref in refs}
+        checked = validate_chapter_lesson_payload(parsed_lesson, allowed, chunk_pages)
         return parsed_lesson, checked, finish_reason
 
     try:
@@ -1529,8 +1530,8 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                      validation_status,validation_notes_json,approval_status,created_at,updated_at)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (topic_id, synthesis_round_id, str(evidence_packet["source_id"]), topic,
-                     evidence_packet["page_start"], evidence_packet["page_end"],
-                     json.dumps(lesson.get("learning_objectives", []), ensure_ascii=False),
+                     step.get("page_start"), step.get("page_end"),
+                     json.dumps(step.get("learning_objectives", []), ensure_ascii=False),
                      json.dumps({"teacher_says": step.get("teacher_says", ""),
                                  "caption": step.get("caption", ""),
                                  "misconception": step.get("misconception", ""),

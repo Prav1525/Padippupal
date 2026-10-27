@@ -1422,6 +1422,56 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
     evidence_packet = build_evidence_packet(evidence_chunks)
     evidence_fingerprint_value = evidence_packet["evidence_fingerprint"]
     synthesis_round_id = make_run_id(str(evidence_packet["source_id"]), payload.chapter, "v1", evidence_fingerprint_value)
+    # Idempotency: retries for unchanged textbook evidence must reuse the existing
+    # draft/approved lesson rather than duplicate rows or silently reset approvals.
+    with db() as conn:
+        existing_round_row = conn.execute(
+            "SELECT * FROM syllabus_synthesis_rounds WHERE id=?",
+            (synthesis_round_id,),
+        ).fetchone()
+        if existing_round_row and str(existing_round_row["evidence_fingerprint"]) == evidence_fingerprint_value:
+            existing_round = dict(existing_round_row)
+            candidates = conn.execute(
+                """SELECT * FROM chapter_lessons
+                   WHERE LOWER(board)=LOWER(?) AND class_level=?
+                     AND LOWER(subject)=LOWER(?) AND LOWER(medium)=LOWER(?)
+                     AND LOWER(chapter)=LOWER(?) AND COALESCE(topic,'')=?
+                   ORDER BY updated_at DESC""",
+                (payload.board, payload.class_level, payload.subject, payload.medium,
+                 payload.chapter, payload.topic),
+            ).fetchall()
+            existing_lesson = None
+            for candidate_row in candidates:
+                candidate = dict(candidate_row)
+                try:
+                    candidate_refs = json.loads(candidate.get("source_refs_json") or "[]")
+                except (TypeError, ValueError):
+                    candidate_refs = []
+                if any(
+                    isinstance(ref, dict) and str(ref.get("source_id") or "") == str(evidence_packet["source_id"])
+                    for ref in candidate_refs
+                ):
+                    existing_lesson = candidate
+                    break
+            if existing_lesson:
+                try:
+                    stored_lesson = json.loads(existing_lesson.get("lesson_json") or "{}")
+                    stored_refs = json.loads(existing_lesson.get("source_refs_json") or "[]")
+                    stored_validation = json.loads(existing_round.get("validation_json") or "{}")
+                except (TypeError, ValueError):
+                    stored_lesson, stored_refs, stored_validation = {}, [], {}
+                return {
+                    "lesson_id": existing_lesson["id"],
+                    "synthesis_round_id": synthesis_round_id,
+                    "evidence_fingerprint": evidence_fingerprint_value,
+                    "status": str(existing_lesson.get("status") or existing_round.get("status") or "draft"),
+                    "source_chunk_count": len(evidence_packet["chunk_ids"]),
+                    "source_refs": stored_refs,
+                    "lesson": stored_lesson,
+                    "validation": stored_validation,
+                    "review_required": str(existing_lesson.get("status") or "").lower() != "approved",
+                    "reused_existing": True,
+                }
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise HTTPException(status_code=503, detail="Gemini lesson synthesis is not configured on the backend.")
@@ -1458,11 +1508,15 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
             # Keep the response out of the database when required teaching content or
             # source traceability is missing. The caller receives a generic safe error.
             raise ValueError("lesson failed structural or source-citation validation")
-        lesson_id, now = str(uuid.uuid4()), time.time()
+        lesson_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "padippupal:chapter-lesson:" + synthesis_round_id + ":" + payload.topic.strip().casefold()))
+        now = time.time()
         with db() as conn:
             conn.execute("""INSERT INTO chapter_lessons
                 (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,source_refs_json,model,review_feedback,created_at,updated_at)
-                VALUES (?,?,?,?,?,?,?,'draft',?,?,?,'',?,?)""",
+                VALUES (?,?,?,?,?,?,?,'draft',?,?,?,'',?,?)
+                ON CONFLICT(id) DO UPDATE SET lesson_json=excluded.lesson_json,
+                    source_refs_json=excluded.source_refs_json, model=excluded.model,
+                    updated_at=excluded.updated_at""",
                 (lesson_id,payload.board,payload.class_level,payload.subject,payload.medium,payload.chapter,payload.topic,
                  json.dumps(lesson,ensure_ascii=False),json.dumps(refs,ensure_ascii=False),model,now,now))
             conn.execute("""INSERT INTO syllabus_synthesis_rounds

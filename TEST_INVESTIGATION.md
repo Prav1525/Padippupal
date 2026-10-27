@@ -345,3 +345,8 @@ Use this format:
 - **Safety:** Requires `PADIPPUPAL_ADMIN_TOKEN` from the caller's secure environment; no token is stored in code. No direct database writes, approval action, or publish action. Every API save must confirm draft status and human review required.
 - **Regression tests added:** `backend/test_class6_math_qa_corrections.py` runs the proposed edits through the same lesson validator; it does not call production.
 - **Verification:** CI pending for this exact commit. The script has not been run against production because no authenticated HTTP execution context is available in this session. No production lesson has been changed by this script.
+
+
+### 2026-10-27 — Correction-script regression finding
+- The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
+- The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.

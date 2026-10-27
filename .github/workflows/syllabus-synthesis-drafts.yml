@@ -1,6 +1,9 @@
 name: Generate syllabus synthesis drafts
 
 on:
+  push:
+    branches:
+      - feature/syllabus-synthesis-prototype
   workflow_dispatch:
     inputs:
       confirm_isolated_prototype:
@@ -13,7 +16,7 @@ permissions:
 
 jobs:
   generate-drafts:
-    if: ${{ inputs.confirm_isolated_prototype == 'GENERATE_DRAFTS' }}
+    if: ${{ (github.event_name == 'push' && github.event.head_commit.message == 'RUN ISOLATED SYLLABUS DRAFTS ONCE') || inputs.confirm_isolated_prototype == 'GENERATE_DRAFTS' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

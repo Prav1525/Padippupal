@@ -145,7 +145,7 @@ def revise_lesson(chapter: str, lesson: dict[str, Any]) -> tuple[dict[str, Any],
         step = step_by_title(updated, "Tracks, Estimations, and Straight vs. Diagonal Units")
         old = str(step.get("teacher_says", ""))
         expected = "a diagonal line is longer than a straight grid unit!"
-        if expected not in old:
+        if expected.casefold() not in old.casefold():
             raise QAError("Diagonal-unit narration no longer matches the expected draft")
         step["teacher_says"] = old.replace(
             expected,

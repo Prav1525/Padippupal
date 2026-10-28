@@ -430,3 +430,12 @@ Use this format:
 - **Fix:** Updated both assertions in `backend/test_tutor.py` to require the inline visual policy and current chat-first mode wording. No production behavior changed in this correction.
 - **Validation:** New-head CI is pending. APK run for prior head passed; UI smoke run for prior head was cancelled by a newer push and must be checked on the latest head.
 - **Next:** Inspect fresh curriculum test, APK build, and emulator smoke on commit `7210cd2a3cf3ec5003a931675a6696a06eb09973`. No merge or deployment performed.
+
+
+### 2026-10-28 — Smoke helper retained a pre-refactor completed-lesson assertion
+- **Branch:** `ui/modern-learner-layout`; failed head `036cc7058d58bf891895db99b818b0bfaaca899b`; correction `2da08c4acac3ebf1ced859dec16568129f707838`.
+- **Workflow:** [Android UI smoke run 40718715394](https://github.com/Prav1525/Padippupal/actions/runs/40718715394).
+- **Result:** Smoke-script validation failed in `test_completed_lesson_is_kept_for_follow_up_chat`; home-label assertions passed and emulator interaction had not started.
+- **Root cause:** **CONFIRMED** test expected the old two-argument `TutorMessage` constructor. Current source correctly retains `liveInteractiveLesson` when saving the completed lesson so follow-up chat can keep the inline lesson visual.
+- **Fix:** Updated the helper assertion to require the current constructor call including `interactiveLesson = liveInteractiveLesson`. No production code changed.
+- **Validation:** Corrected prompt assertions and this helper assertion are queued for latest-head CI. No merge or deployment performed.

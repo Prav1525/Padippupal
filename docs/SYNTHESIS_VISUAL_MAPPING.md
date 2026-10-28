@@ -33,6 +33,8 @@ PadippuPal's `chapter_lessons` records are the source of truth. Visuals must be 
 
 Vision analysis is optional and requires `GEMINI_API_KEY` at ingestion time. If the key is absent or figure analysis fails, the source remains ingestible but the response reports zero analyzed visual-reference pages; synthesis can only make a simple original concept diagram from the available text. This fallback must not be described as a verified match to the textbook figure.
 
+Existing source records retain extracted text and chunk/page metadata, not the original PDF bytes. Therefore, sources ingested before figure analysis was enabled cannot be truthfully backfilled with textbook-figure comparisons from the database alone. Re-upload the approved source PDF through the admin ingestion flow to analyze its figure pages; keep the resulting visual references tied to the exact source and page. Until that happens, visuals inferred from old synthesis captions are text-grounded teaching diagrams, not verified recreations of a specific textbook figure.
+
 ## Verification still required
 
 Run backend tests and Android JVM/APK/emulator checks against the exact head. In particular, confirm the API's `synthesized_visuals` and `interactive_lesson` payload is rendered inside the live tutor screen and that its layout remains compact at phone width. This feature is not considered learner-ready until those checks pass.

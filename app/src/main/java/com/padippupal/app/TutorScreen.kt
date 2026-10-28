@@ -466,6 +466,35 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                         drawLine(Color(0xFF7CA9E8), p3, p1, stroke * 1.5f)
                     }
                 }
+                "geometry" -> {
+                    val left = size.width * 0.22f
+                    val right = size.width * 0.78f
+                    val top = size.height * 0.18f
+                    val bottom = size.height * 0.82f
+                    when {
+                        activeSubtype.contains("rectangle") -> {
+                            drawRoundRect(Color(0xFFDCEFEB), Offset(left, top), androidx.compose.ui.geometry.Size(right - left, bottom - top), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))
+                            drawRoundRect(Color(0xFF287F79), Offset(left, top), androidx.compose.ui.geometry.Size(right - left, bottom - top), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                        activeSubtype.contains("circle") -> {
+                            drawCircle(Color(0xFFDCEFEB), size.minDimension * 0.30f, Offset(size.width / 2f, centerY))
+                            drawCircle(Color(0xFF287F79), size.minDimension * 0.30f, Offset(size.width / 2f, centerY), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                        activeSubtype.contains("angle") -> {
+                            val origin = Offset(left, bottom)
+                            drawLine(Color(0xFF287F79), origin, Offset(right, bottom), stroke * 1.5f)
+                            if (revealCount >= 2) drawLine(Color(0xFF287F79), origin, Offset(size.width * 0.60f, top), stroke * 1.5f)
+                        }
+                        else -> {
+                            val p1 = Offset(left, bottom)
+                            val p2 = Offset(size.width * 0.50f, top)
+                            val p3 = Offset(right, bottom)
+                            drawLine(Color(0xFF7CA9E8), p1, p2, stroke * 1.5f)
+                            if (revealCount >= 2) drawLine(Color(0xFF7CA9E8), p2, p3, stroke * 1.5f)
+                            if (revealCount >= 3) drawLine(Color(0xFF7CA9E8), p3, p1, stroke * 1.5f)
+                        }
+                    }
+                }
                 "table" -> {
                     val count = activeLabels.size.coerceIn(1, 3)
                     val colWidth = size.width * 0.78f / count

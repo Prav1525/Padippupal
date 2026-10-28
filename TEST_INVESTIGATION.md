@@ -411,3 +411,12 @@ Use this format:
 - **Root cause:** **CONFIRMED** new test attempted to find a literal escaped-newline boundary before `find_interactive_lesson`; the source did not contain that exact string.
 - **Correction:** Use the stable function declaration substring `def find_interactive_lesson(` as the boundary. Failure is documented in `docs/TEST_FAILURE_REGISTER.md`.
 - **Remaining verification:** Re-run helper tests and API-35 emulator flow on the corrected head. No merge or deployment performed.
+
+
+### 2026-10-28 — Wire exact-match concept visuals into live teaching
+- **Branch:** `ui/modern-learner-layout`; implementation is being committed after source review.
+- **Finding:** The live `/tutor/lesson-plan` path returned speech segments but did not return the exact-matched `interactive_lesson` blueprint; Android then showed the special Patterns animation only. The chat path already returned matched blueprints. The live planner and chat prompts also contained a conflicting text-only instruction.
+- **Change made:** Attach the exact chapter/topic-matched blueprint to successful live lesson responses; keep the lesson successful if optional visual lookup fails. Carry the blueprint into the single continuous spoken lesson and render a compact inline visual in the live tutor column. Drive the active blueprint step from the spoken caption's current word progress, preserve the existing Patterns animation as fallback, and retain the visual with the completed lesson in chat. Align backend prompts with optional, matched, inline visuals and prohibit invented textbook image assets.
+- **Rights and source scope:** Only original app-rendered diagrams and existing source page references are used; no NCERT images are copied into the software. Actual NCERT image reuse remains subject to the relevant permission/license.
+- **Regression coverage:** Add a backend assertion that an exact matched blueprint is attached to an approved live lesson and source-contract assertions for inline visual rendering and word-progress synchronization.
+- **Verification status:** **PENDING** exact-head JVM tests, APK build, guidance gate, and API-35 emulator flow. No merge or deployment performed.

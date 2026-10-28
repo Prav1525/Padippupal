@@ -316,7 +316,7 @@ private fun ChapterOneMathAnimation(
 }
 
 @Composable
-private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String) {
+private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
@@ -329,7 +329,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             scene == "pattern_builder" || topicKey.contains("shape") -> "shape_pattern"
             else -> scene
         }
-        ChapterOneMathAnimation(mappedScene, title, lesson.optString("topic"), caption)
+        ChapterOneMathAnimation(mappedScene, title, lesson.optString("topic"), caption, compact = compact)
         return
     }
     val items = remember(key) {
@@ -387,6 +387,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val stepDateKey = "${stepPreferenceKey}_date"
     val savedStep = if (sessionPrefs.getString(stepDateKey, "") == todayKey) sessionPrefs.getInt(stepPreferenceKey, 0) else 0
     var activeStep by remember(key) { mutableIntStateOf(savedStep.coerceIn(0, stepCount - 1)) }
+    val displayStep = activeStepOverride?.coerceIn(0, stepCount - 1) ?: activeStep
     val setActiveStep: (Int) -> Unit = { nextStep ->
         activeStep = nextStep.coerceIn(0, stepCount - 1)
         sessionPrefs.edit().putInt(stepPreferenceKey, activeStep).putString(stepDateKey, todayKey).apply()
@@ -413,12 +414,12 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
         Column(Modifier.padding(12.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("DATABASE INTERACTIVE LESSON", color=TutorGreen, fontSize=10.sp, fontWeight=FontWeight.Bold)
+                    Text(if (compact) "CONCEPT VISUAL" else "DATABASE INTERACTIVE LESSON", color=TutorGreen, fontSize=10.sp, fontWeight=FontWeight.Bold)
                     Text(title, color=TutorDeep, fontSize=14.sp, fontWeight=FontWeight.SemiBold)
                 }
-                TextButton(onClick={ positions=items.map { Offset(it.x,it.y) }; feedback="Reset. Try another arrangement."; setActiveStep(0) }) { Text("Reset", color=TutorGreen) }
+                if (!compact) TextButton(onClick={ positions=items.map { Offset(it.x,it.y) }; feedback="Reset. Try another arrangement."; setActiveStep(0) }) { Text("Reset", color=TutorGreen) }
             }
-            BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White, RoundedCornerShape(14.dp))) {
+            BoxWithConstraints(Modifier.fillMaxWidth().height(if (compact) 104.dp else 190.dp).background(Color.White, RoundedCornerShape(14.dp))) {
                 val w=maxWidth; val h=maxHeight
                 Canvas(Modifier.fillMaxSize()) {
                     when (scene) {
@@ -583,7 +584,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         }
                     }
                 }
-                items.forEachIndexed { index, item ->
+                if (!compact) items.forEachIndexed { index, item ->
                     val p=positions[index]
                     Column(
                         Modifier.offset { IntOffset((p.x*(w-68.dp).toPx()).roundToInt(),(p.y*(h-62.dp).toPx()).roundToInt()) }
@@ -622,6 +623,23 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                     }
                 }
             }
+            if (compact) {
+                val currentStep = steps?.optJSONObject(displayStep)
+                Text(
+                    currentStep?.optString("text").orEmpty().ifBlank { caption },
+                    color = TutorDeep,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp,
+                    maxLines = 2
+                )
+                val sourceRef = lesson.optJSONArray("source_refs")?.optJSONObject(0)
+                if (sourceRef != null) {
+                    val pageStart = sourceRef.optInt("page_start", 0)
+                    val pageEnd = sourceRef.optInt("page_end", pageStart)
+                    val pageLabel = if (pageStart > 0 && pageEnd > pageStart) "Textbook pp. $pageStart–$pageEnd" else if (pageStart > 0) "Textbook p. $pageStart" else "Textbook reference"
+                    Text(pageLabel, color = TutorGreen, fontSize = 9.sp, maxLines = 1)
+                }
+            } else {
             if (scene in listOf("angle_builder", "angle_classifier")) Text("Current angle: $angle°", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
             if (scene=="measure_length" && positions.size>=2) Text("Measured length: ${(kotlin.math.abs(positions[1].x-positions[0].x)*100).toInt()} model units", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
             if (scene=="motion_track") Text("Watch the toy move along the measured track. Drag the toy to compare positions.", color=TutorGreen, fontSize=11.sp)
@@ -683,6 +701,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             }
             val challenge=lesson.optJSONObject("challenge")
             if(challenge!=null && challenge.optString("question").isNotBlank()) Text("Try this: ${challenge.optString("question")}", color=TutorDeep, fontSize=12.sp, fontWeight=FontWeight.SemiBold)
+            }
         }
     }
 }
@@ -923,6 +942,7 @@ internal fun TutorScreen(
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var liveInteractiveLesson by remember { mutableStateOf<JSONObject?>(null) }
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
@@ -1535,16 +1555,18 @@ internal fun TutorScreen(
             // and follow up after playback; otherwise it vanishes when the full-screen player closes.
             val completedLesson = liveCaption.trim()
             if (completedLesson.isNotBlank() && messages.none { it.role == "assistant" && it.content == completedLesson }) {
-                messages.add(TutorMessage("assistant", completedLesson))
+                messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))
             }
             liveLessonActive = false
             livePaused = false
             awaitingUnderstanding = false
             currentCheckpoint = ""
             status = "Live lesson complete."
+            liveInteractiveLesson = null
             return
         }
         val segment = liveSegments[index]
+        liveInteractiveLesson = segment.optJSONObject("interactive_lesson")
         awaitingUnderstanding = false
         // Normalize nullable API data before it enters UI state; optString may yield literal "null".
         // Complete-lesson mode never interrupts playback with per-segment feedback.
@@ -1601,7 +1623,7 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Use an inline concept visual only when the selected chapter and topic have an exact matching blueprint; do not invent images or switch topics. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
                     .put("message", lessonPrompt).put("max_segments", 6)
@@ -1650,6 +1672,7 @@ internal fun TutorScreen(
                         .put("spoken_text", completeText)
                         .put("caption_text", completeText)
                         .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+                        .put("interactive_lesson", response.optJSONObject("interactive_lesson") ?: JSONObject.NULL)
                         .put("checkpoint", JSONObject.NULL)
                     listOf(completeLesson)
                 } finally { connection.disconnect() }
@@ -1663,7 +1686,7 @@ internal fun TutorScreen(
     }
 
     fun stopLiveLesson() {
-        liveLessonActive = false; livePaused = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
+        liveLessonActive = false; livePaused = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveInteractiveLesson = null; liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
@@ -2060,20 +2083,36 @@ internal fun TutorScreen(
                         }
                         // Keep the concept animation mounted during the checkpoint; compact it so
                         // the student can see both the pattern and the response choices together.
-                        if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
-                            val topicKey = topic.lowercase(Locale.ROOT)
-                            val scene = when {
-                                topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
-                                topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
-                                else -> "number_pattern"
-                            }
-                            ChapterOneMathAnimation(
-                                scene = scene,
-                                title = topic.ifBlank { "Patterns in Mathematics" },
-                                topic = topic,
-                                caption = "Watch the pattern change automatically as your teacher explains.",
-                                compact = awaitingUnderstanding
+                        val liveVisualSteps = liveInteractiveLesson?.optJSONArray("steps")
+                        val totalLiveWords = liveCaption.trim().split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
+                        val liveVisualStep = if (liveVisualSteps != null && liveVisualSteps.length() > 0) {
+                            ((liveWordIndex.toFloat() / totalLiveWords.toFloat()) * liveVisualSteps.length())
+                                .toInt().coerceIn(0, liveVisualSteps.length() - 1)
+                        } else 0
+                        when {
+                            liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(
+                                lesson = liveInteractiveLesson!!,
+                                sessionPrefs = sessionPrefs,
+                                sessionKey = sessionKey,
+                                todayKey = todayKey,
+                                compact = true,
+                                activeStepOverride = liveVisualStep
                             )
+                            liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
+                                val topicKey = topic.lowercase(Locale.ROOT)
+                                val scene = when {
+                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                                    else -> "number_pattern"
+                                }
+                                ChapterOneMathAnimation(
+                                    scene = scene,
+                                    title = topic.ifBlank { "Patterns in Mathematics" },
+                                    topic = topic,
+                                    caption = "Watch the pattern change automatically as your teacher explains.",
+                                    compact = awaitingUnderstanding
+                                )
+                            }
                         }
                     }
             }

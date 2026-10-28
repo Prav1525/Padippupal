@@ -118,6 +118,17 @@ class TutorInlineVisualContractTests(unittest.TestCase):
         row_start = backend.index("def _interactive_lesson_row(")
         row_end = backend.index("def find_interactive_lesson(", row_start)
         self.assertIn('"source_refs": payload.get("source_refs", [])', backend[row_start:row_end])
+        lesson_plan = backend[backend.index('def tutor_lesson_plan('):backend.index('@app.post("/tutor/chat")')]
+        self.assertIn('"interactive_lesson": matched_visual', lesson_plan)
+        self.assertNotIn("This product mode is text-only", lesson_plan)
+        self.assertIn("optional inline concept visuals", backend)
+        self.assertIn('response.optJSONObject("interactive_lesson")', tutor)
+        live_start = tutor.index('if (liveLessonActive) {')
+        live_end = tutor.index('Inline learner checkpoint', live_start)
+        live = tutor[live_start:live_end]
+        self.assertIn("liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(", live)
+        self.assertIn("compact = true", live)
+        self.assertIn("liveWordIndex", live)
 
 
 class TutorPromptContractTests(unittest.TestCase):

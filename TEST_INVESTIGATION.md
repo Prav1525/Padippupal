@@ -471,3 +471,10 @@ Use this format:
 - **Requirement clarification:** The user's intended workflow is generate/store visuals from already-synthesized content, then retrieve those stored visuals like lesson/topic data.
 - **Change:** Approval now generates and persists the per-step visual records immediately and returns `visual_count`; the retrieval path still backfills existing approved lessons that predate this feature. Empty teaching sequences deactivate old visual rows.
 - **Verification:** Exact-head backend tests, Android build, and emulator smoke must rerun after this change. No merge or deployment performed.
+
+
+### 2026-10-28 — Add a real SQLite persistence regression test
+- **Branch / PR:** `feat/synthesis-linked-2d-visuals`, draft PR #49; test commit `d436d4e2791ccdd0aeddbdf7d8d91083cda036f2`.
+- **Purpose:** The earlier visual-builder tests checked mapping in memory but did not prove database persistence or updates after a synthesis caption changes.
+- **Change:** Added a temporary-SQLite test that inserts an approved synthesized lesson, verifies the generated visual is stored with its source chunk IDs, then updates the synthesis caption and verifies the stored visual fingerprint and summary update.
+- **Verification:** Exact-head backend test run pending. No merge or deployment performed.

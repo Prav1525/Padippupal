@@ -28,6 +28,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.alpha
@@ -344,6 +345,19 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
         }
         if (isEmpty()) addAll(labels)
     }.take(6)
+    // Restart a short, one-shot reveal whenever speech progress moves to a new synthesis step.
+    var revealStarted by remember(active) { mutableStateOf(false) }
+    LaunchedEffect(active) {
+        delay(40)
+        revealStarted = true
+    }
+    val revealProgress by animateFloatAsState(
+        targetValue = if (revealStarted) 1f else 0f,
+        animationSpec = tween(durationMillis = 850),
+        label = "synthesizedVisualReveal"
+    )
+    val revealCount = if (activeLabels.isEmpty()) 0 else
+        (activeLabels.size * revealProgress).toInt().coerceAtLeast(1).coerceAtMost(activeLabels.size)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -372,7 +386,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                     val height = size.height * 0.56f
                     repeat(count) { index ->
                         drawRoundRect(
-                            color = if (index == 0) Color(0xFF5BB7A5) else Color(0xFFF3F8FA),
+                            color = if (index == 0 && revealCount > 0) Color(0xFF5BB7A5) else Color(0xFFF3F8FA),
                             topLeft = Offset(left + index * (cellWidth + gap), top),
                             size = androidx.compose.ui.geometry.Size(cellWidth, height),
                             cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()),
@@ -394,10 +408,12 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                     val left = size.width * 0.07f
                     val top = size.height * 0.28f
                     activeLabels.take(count).forEachIndexed { index, _ ->
-                        val x = left + index * (boxWidth + gap)
-                        if (index > 0) drawLine(Color(0xFF7C91A0), Offset(x - gap, centerY), Offset(x - 2.dp.toPx(), centerY), stroke)
-                        drawRoundRect(Color(0xFFDCEFEB), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()))
-                        drawRoundRect(Color(0xFF287F79), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        if (index < revealCount) {
+                            val x = left + index * (boxWidth + gap)
+                            if (index > 0) drawLine(Color(0xFF7C91A0), Offset(x - gap, centerY), Offset(x - 2.dp.toPx(), centerY), stroke)
+                            drawRoundRect(Color(0xFFDCEFEB), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()))
+                            drawRoundRect(Color(0xFF287F79), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
                     }
                 }
                 "compare" -> {
@@ -407,7 +423,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                     val start = (size.width - (barWidth * 3 + gap * 2)) / 2f
                     val colors = listOf(Color(0xFF5BB7A5), Color(0xFF7CA9E8), Color(0xFFF1C46A))
                     heights.forEachIndexed { index, fraction ->
-                        drawRoundRect(colors[index], Offset(start + index * (barWidth + gap), size.height * (0.82f - fraction)), androidx.compose.ui.geometry.Size(barWidth, size.height * fraction), androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()))
+                        if (index < revealCount) drawRoundRect(colors[index], Offset(start + index * (barWidth + gap), size.height * (0.82f - fraction)), androidx.compose.ui.geometry.Size(barWidth, size.height * fraction), androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()))
                     }
                 }
                 "geometry", "number_line" -> {
@@ -417,9 +433,9 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                     val count = activeLabels.size.coerceIn(2, 5)
                     repeat(count) { index ->
                         val x = left + (right - left) * index / (count - 1)
-                        drawCircle(Color(0xFF5BB7A5), 5.dp.toPx(), Offset(x, centerY))
+                        if (index < revealCount) drawCircle(Color(0xFF5BB7A5), 5.dp.toPx(), Offset(x, centerY))
                     }
-                    if (activeKind == "geometry") {
+                    if (activeKind == "geometry" && revealCount >= 3) {
                         val p1 = Offset(size.width * 0.32f, size.height * 0.82f)
                         val p2 = Offset(size.width * 0.50f, size.height * 0.18f)
                         val p3 = Offset(size.width * 0.68f, size.height * 0.82f)
@@ -434,8 +450,10 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                     val left = size.width * 0.11f
                     val top = size.height * 0.20f
                     repeat(count) { index ->
-                        drawRect(Color(0xFFDCEFEB), Offset(left + index * colWidth, top), androidx.compose.ui.geometry.Size(colWidth - 2.dp.toPx(), size.height * 0.58f))
-                        drawRect(Color(0xFF7C91A0), Offset(left + index * colWidth, top), androidx.compose.ui.geometry.Size(colWidth - 2.dp.toPx(), size.height * 0.58f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        if (index < revealCount) {
+                            drawRect(Color(0xFFDCEFEB), Offset(left + index * colWidth, top), androidx.compose.ui.geometry.Size(colWidth - 2.dp.toPx(), size.height * 0.58f))
+                            drawRect(Color(0xFF7C91A0), Offset(left + index * colWidth, top), androidx.compose.ui.geometry.Size(colWidth - 2.dp.toPx(), size.height * 0.58f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
                     }
                 }
                 else -> {
@@ -445,7 +463,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 }
             }
         }
-        activeLabels.chunked(3).forEach { group ->
+        activeLabels.take(revealCount).chunked(3).forEach { group ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.forEach { label ->
                     Surface(

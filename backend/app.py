@@ -304,6 +304,28 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS lesson_visual_assets_lookup
           ON lesson_visual_assets(lesson_id, active);
+        CREATE TABLE IF NOT EXISTS tutor_topic_visual_assets (
+            id TEXT PRIMARY KEY,
+            profile_key TEXT NOT NULL,
+            board TEXT NOT NULL,
+            class_level INTEGER NOT NULL,
+            subject TEXT NOT NULL,
+            medium TEXT NOT NULL,
+            chapter TEXT NOT NULL,
+            topic TEXT NOT NULL,
+            step_id TEXT NOT NULL,
+            summary_text TEXT NOT NULL,
+            visual_kind TEXT NOT NULL,
+            blueprint_json TEXT NOT NULL,
+            source_chunk_ids_json TEXT NOT NULL DEFAULT '[]',
+            content_fingerprint TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL,
+            UNIQUE(profile_key, step_id)
+        );
+        CREATE INDEX IF NOT EXISTS tutor_topic_visual_assets_lookup
+          ON tutor_topic_visual_assets(profile_key, active);
         """)
         # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
         # by an administrator after the first deployment.

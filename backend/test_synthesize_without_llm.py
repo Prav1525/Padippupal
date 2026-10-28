@@ -69,7 +69,19 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
             for cid in step["source_chunk_ids"]
         }
         self.assertEqual(cited, {chunk["id"] for chunk in chunks})
-        self.assertTrue(all(step["tanglish"]["teacher_says"].startswith("Namma") for step in lesson["teaching_sequence"]))
+        openings = (
+            "Seri, idha easy-aa paapom.",
+            "Okay, indha part-a serndhu purinjukalaam.",
+            "Nalla gavaninga, inga oru mukkiyamaana idea irukku.",
+            "Ippo indha concept-a simple-aa break panni paapom.",
+            "Sari, indha example enna solludhu-nu paapom.",
+            "Konjam yosichu paarunga; idhu namma daily life-layum varalaam.",
+            "Super, ippo next idea-ku polaam.",
+            "Oru chinna recap pannitu idha paapom.",
+        )
+        self.assertTrue(all(any(step["tanglish"]["teacher_says"].startswith(opening) for opening in openings) for step in lesson["teaching_sequence"]))
+        self.assertTrue(all("Idha un words-la explain pannu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"]))
+        self.assertTrue(all("confusing-aa irundhaalum parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["tanglish"]["checkpoint"]) >= 35 for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["caption"]) <= 500 for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["caption"]) <= 600 for step in lesson["teaching_sequence"]))

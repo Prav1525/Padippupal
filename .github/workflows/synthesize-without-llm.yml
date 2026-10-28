@@ -1,0 +1,83 @@
+name: Synthesize syllabus drafts without external LLM
+
+on:
+  push:
+    branches:
+      - feature/syllabus-synthesis-prototype
+    paths:
+      - backend/scripts/synthesize_without_llm.py
+      - .github/workflows/synthesize-without-llm.yml
+  workflow_dispatch:
+    inputs:
+      confirm_isolated_prototype:
+        description: "Type GENERATE_DRAFTS to write draft lessons to the isolated prototype database"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-synthesis:
+    if: ${{ github.event_name == 'push' || inputs.confirm_isolated_prototype == 'GENERATE_DRAFTS' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/syllabus-synthesis-prototype
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Build and validate source-grounded drafts without Gemini
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.SYLLABUS_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$DATABASE_URL" || { echo "::error::Missing isolated SYLLABUS_DATABASE_URL secret"; exit 1; }
+          python scripts/synthesize_without_llm.py
+      - name: Verify persisted draft and citation coverage
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.SYLLABUS_DATABASE_URL }}
+        run: |
+          python - <<'PY'
+          import json, os
+          import psycopg
+          from psycopg.rows import dict_row
+          with psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=10, row_factory=dict_row) as conn:
+              lessons = conn.execute("""
+                SELECT subject, status, model, lesson_json, source_refs_json
+                FROM chapter_lessons
+                WHERE board='CBSE' AND class_level=6 AND medium='English'
+                  AND subject IN ('Mathematics','Science')
+                  AND model='deterministic-extractive-v1'
+              """).fetchall()
+              assert len(lessons) == 22, f"Expected 22 deterministic drafts, found {len(lessons)}"
+              assert all(r["status"] == "draft" for r in lessons), "Found a non-draft lesson"
+              counts = {s: sum(1 for r in lessons if r["subject"] == s) for s in ("Mathematics","Science")}
+              assert counts == {"Mathematics": 10, "Science": 12}, counts
+              for row in lessons:
+                  lesson = row["lesson_json"] if isinstance(row["lesson_json"], dict) else json.loads(row["lesson_json"])
+                  refs = row["source_refs_json"] if isinstance(row["source_refs_json"], list) else json.loads(row["source_refs_json"])
+                  allowed = {str(r["chunk_id"]) for r in refs}
+                  validation_ids = set()
+                  for c in lesson["concept_map"]:
+                      validation_ids.update(c["source_chunk_ids"])
+                  for step in lesson["teaching_sequence"]:
+                      validation_ids.update(step["source_chunk_ids"])
+                  assert allowed == validation_ids, f"Citation mismatch in {lesson['chapter_title']}"
+                  assert lesson.get("human_review_required") is True
+              rounds = conn.execute("""
+                SELECT count(*) AS n FROM syllabus_synthesis_rounds
+                WHERE board='CBSE' AND class_level=6 AND subject IN ('Mathematics','Science')
+                  AND curriculum_version='extractive-v1' AND status='draft'
+              """).fetchone()["n"]
+              assert rounds == 22, f"Expected 22 persisted synthesis rounds, found {rounds}"
+              print("PASS: 10 Maths + 12 Science drafts persisted; all remain draft; source-chunk citation sets verified.")
+              print("NOTE: extractive summaries require teacher review; nothing was approved or deployed.")
+          PY

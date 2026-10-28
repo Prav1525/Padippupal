@@ -134,54 +134,82 @@ def specific_objective(summary: str, chapter: str) -> str:
     return f"Explain the textbook idea or situation: {sentence}"
 
 def tanglish_explanation(summary: str, chapter: str, stage: int) -> str:
-    """Write a warm, spoken Tanglish bridge around the source excerpt, not formal translation."""
+    """Friendly spoken Tanglish for a Class 6 learner, with consistent informal address."""
     openings = [
-        "Seri, idha easy-aa paapom.",
-        "Okay, indha part-a serndhu purinjukalaam.",
-        "Nalla gavaninga, inga oru mukkiyamaana idea irukku.",
+        "Seri, idha easy-aa purinjukkalaam.",
+        "Okay, indha part-a serndhu paapom.",
+        "Nalla, inga oru mukkiyamaana idea irukku.",
         "Ippo indha concept-a simple-aa break panni paapom.",
-        "Sari, indha example enna solludhu-nu paapom.",
-        "Konjam yosichu paarunga; idhu namma daily life-layum varalaam.",
-        "Super, ippo next idea-ku polaam.",
-        "Oru chinna recap pannitu idha paapom.",
+        "Sari, indha example enna solludhu-nu yosippom.",
+        "Konjam slow-aa paapom; avasaram illa.",
+        "Super, indha idea purinja next part easy-aa irukkum.",
+        "Oru chinna recap pannittu continue pannalaam.",
     ]
     opener = openings[(stage - 1) % len(openings)]
     excerpt = summary.strip().rstrip()
     return (
-        f"{opener} Textbook-la ippadi sollirukkaanga: “{excerpt}” "
-        "Idha padichuttu, ungalukku enna purinjadhu-nu unga style-la sollunga. "
-        "English term konjam pudhusa irundhaalum parava illa; adha namma context-oda purinjukalaam."
+        f"{opener} Textbook-la indha point sollirukkaanga: “{excerpt}” "
+        "Idha padichuttu unakku enna purinjuchu-nu sollu. "
+        "Answer perfect-aa irukkanum-nu avasiyam illa; namma serndhu clear pannikkalaam."
     )
 
 
 def tanglish_checkpoint(summary: str, page: int | None, chapter: str, stage: int) -> str:
-    """Ask a conversational check-for-understanding question grounded in the excerpt."""
+    """Ask a warm, specific question instead of a stiff generic comprehension prompt."""
     text = summary.casefold()
-    page_hint = f" Textbook page {page}-la indha part irukku." if page is not None else ""
+    page_hint = f" Textbook page {page}-layum paaru." if page is not None else ""
     if any(term in text for term in ("fraction", "roti", "equal share", "numerator", "denominator")):
-        question = "Idha equal-aa share panninaa ovvorutharukku evlo kidaikkum? Eppadi decide panneenga?"
+        question = "Idha equal-aa share panninaa ovvorutharukku evlo kidaikkum? Eppadi kandupidippa?"
     elif any(term in text for term in ("ice", "water vapour", "evaporat", "condens", "melt", "boil", "solid", "liquid", "gas")):
-        question = "Indha change-la enna nadakkudhu? Start-la enna irundhuchu, apram enna aachu?"
+        question = "Indha change-la enna nadakkudhu? Munnadi enna irundhuchu, apram enna aachu?"
     elif any(term in text for term in ("magnet", "attract", "iron", "metal")):
-        question = "Indha example-la edhu attract aagudhu? Textbook example-la irundhu sollunga."
+        question = "Indha example-la edhu attract aagudhu? Textbook-la irundhu clue sollu."
     elif any(term in text for term in ("plant", "root", "leaf", "seed", "flower")):
-        question = "Indha plant part enna velai seyyudhu? Passage-la irukkura example vechu sollunga."
+        question = "Indha plant part enna velai seyyudhu? Passage-la irukkura clue vechu sollu."
     elif any(term in text for term in ("number", "digit", "place value", "pattern", "multiple")):
-        question = "Indha number/pattern-la enna rule theriyudhu? Oru example vechu explain pannunga."
+        question = "Indha number illa pattern-la enna rule theriyudhu? Oru example-oda sollu."
     else:
-        question = "Indha part-la main idea enna? Unga vaarthaigal-la oru chinna explanation sollunga."
+        question = "Indha part-la main idea enna? Un words-la chinna explanation sollip paaru."
     return (
-        f"Seri, oru quick check. {question}{page_hint} "
-        "Answer theriyalana parava illa—passage-a innoru thadava paarthu try pannalaam."
+        f"Seri, oru quick check: {question}{page_hint} "
+        "Udane answer varalana parava illa; passage-a thirumba paarthu try pannalaam."
     )
 
 
 def tanglish_objective(summary: str, chapter: str) -> str:
-    """Keep objectives learner-friendly and spoken, avoiding word-for-word English translation."""
+    """State a learner-friendly goal in conversational Tanglish."""
     return (
-        "Indha part padichadhukku apram, main idea enna-nu unga vaarthaigal-la simple-aa solla mudiyanum. "
-        "Adha oru example-oda connect panna mudinja, concept innum clear aagum."
+        "Indha part mudikkumbodhu, main idea enna-nu un words-la solla mudiyanum. "
+        "Mudinja, adha oru simple example-oda connect panni paaru."
     )
+
+
+def tanglish_example(summary: str, subject: str, stage: int) -> str:
+    """A conversational task that invites reasoning without fabricating a worked answer."""
+    starters = [
+        "Oru chinna try pannalama?",
+        "Ippo un turn; nee try panni paaru.",
+        "Seri, idha nee eppadi explain pannuva?",
+        "Parava illa, clue vechu yosichu paapom.",
+        "Idha daily life-oda connect panna mudiyudha-nu paaru.",
+        "Nalla, ippo nee sollip paaru.",
+        "Konjam yosichuttu answer sollu; avasaram illa.",
+        "Okay, indha idea-va un friend-kku eppadi solluva?",
+    ]
+    subject_hint = (
+        "Indha Maths idea-ku oru chinna example try pannalaam."
+        if subject.lower() in {"mathematics", "maths", "math"}
+        else "Indha Science idea namma daily life-la enga varudhu-nu yosippom."
+    )
+    excerpt = summary.strip().rstrip(".!?")
+    if len(excerpt) > 160:
+        excerpt = excerpt[:157].rsplit(" ", 1)[0] + "..."
+    return (
+        f"{starters[(stage - 1) % len(starters)]} {subject_hint} "
+        f"Textbook clue: “{excerpt}”. Idhula irundhu enna puriyudhu-nu un words-la sollu. "
+        "Theriyalana clue-va thirumba paathu serndhu figure out pannalaam."
+    )
+
 
 def source_based_example(summary: str) -> str:
     """Turn actual cited text into a learner task without inventing facts."""
@@ -296,15 +324,11 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
             "source_chunk_ids": chunk_ids,
             "tanglish": {
                 "teacher_says": tanglish_explanation(summary, chapter, i),
-                "caption": f"Indha part-oda main point: {summary[:320]}",
-                "example": (
-                    f"{'Seri, indha Maths idea-va oru chinna example-la try panni paakalam.' if subject.lower() in {'mathematics', 'maths', 'math'} else 'Seri, indha Science idea-va namma daily life-oda connect panni paakalam.'} "
-                    f"Textbook-la irukkura point: {summary[:180]} "
-                    "Idha un words-la explain pannu; example yosikkumbodhu textbook-la illaadha facts-ai guess panna vendaam."
-                ),
+                "caption": f"Indha part-oda main point: {summary[:260]}",
+                "example": tanglish_example(summary, subject, i),
                 "checkpoint": tanglish_checkpoint(summary, min(pages) if pages else None, chapter, i),
                 "misconception": (
-                    "Idhu konjam confusing-aa irundhaalum parava illa. Textbook clue-oda thirumba paakalam; "
+                    "Indha bit confusing-aa irundhaa parava illa. Textbook clue-va thirumba paapom; "
                     "term puriyalana adha first clear pannittu continue pannalaam."
                 ),
             },

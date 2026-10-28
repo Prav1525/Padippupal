@@ -403,3 +403,11 @@ Use this format:
 - **Root cause:** **CONFIRMED** stale selector in `.github/scripts/android-ui-smoke.sh` after the home redesign.
 - **Correction:** Changed the tap target to `Start learning` and added a regression assertion that the current target is present and the removed target is absent. Added incident details to `docs/TEST_FAILURE_REGISTER.md`.
 - **What remains unverified:** Fresh API-35 emulator run after this fix, including lesson selection and tutor visual flow. No merge or deployment performed.
+
+
+### 2026-10-28 — Inline visual test boundary typo
+- **Failed workflow:** [Android UI smoke run 40716183030](https://github.com/Prav1525/Padippupal/actions/runs/40716183030); source commit `264f8286da099e5eccb7cb35d13e1a24d9b638e6`; correction `43dd69b52760cb020e3c6545720bdcf875c84c51`.
+- **Result:** JVM tests and APK build passed; smoke-script validation failed before emulator execution.
+- **Root cause:** **CONFIRMED** new test attempted to find a literal escaped-newline boundary before `find_interactive_lesson`; the source did not contain that exact string.
+- **Correction:** Use the stable function declaration substring `def find_interactive_lesson(` as the boundary. Failure is documented in `docs/TEST_FAILURE_REGISTER.md`.
+- **Remaining verification:** Re-run helper tests and API-35 emulator flow on the corrected head. No merge or deployment performed.

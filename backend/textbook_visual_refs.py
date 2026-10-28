@@ -96,7 +96,8 @@ def describe_pdf_visual_references(pdf_bytes: bytes) -> dict[int, str]:
                 }
                 if safe["concept"] or safe["objects"] or safe["spatial_relationships"]:
                     descriptions[page_no] = json.dumps(safe, ensure_ascii=False, separators=(",", ":"))[:MAX_DESCRIPTION_CHARS]
-            except (KeyError, IndexError, TypeError, ValueError, urllib.error.URLError, TimeoutError):
+            except Exception:
+                # Optional vision analysis must never block textbook text ingestion.
                 continue
     finally:
         document.close()

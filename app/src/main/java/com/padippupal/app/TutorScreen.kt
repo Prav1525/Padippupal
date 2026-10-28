@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import kotlinx.coroutines.delay
 import androidx.compose.ui.text.input.ImeAction
@@ -188,7 +189,9 @@ private fun WordByWordCaption(
                 color = TutorDeep,
                 fontSize = 16.sp,
                 lineHeight = 25.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Start,
+                letterSpacing = 0.1.sp
             ),
             onTextLayout = { layoutResult = it }
         )
@@ -1680,7 +1683,10 @@ internal fun TutorScreen(
                         val code = approvedConnection.responseCode
                         if (code !in 200..299) throw IllegalStateException("Approved lesson lookup returned HTTP $code.")
                         val response = JSONObject(approvedConnection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() })
-                        if (response.optString("status") != "approved") null else {
+                        // Tanglish is a spoken teaching style, not a display toggle. Route it
+                        // through the language-aware grounded tutor instead of reading the
+                        // stored English synthesis verbatim.
+                        if (response.optString("status") != "approved" || selectedLanguage == "Tanglish") null else {
                             val parts = mutableListOf<String>()
                             val explanation = response.opt("explanation")
                             when (explanation) {
@@ -1717,7 +1723,12 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
+                val languageStyle = when (selectedLanguage) {
+                    "Tanglish" -> " LANGUAGE REQUIREMENT: Teach in natural spoken Tanglish for a Tamil-speaking child: conversational Tamil grammar and phrasing written in Tamil-English transliteration, with familiar English subject terms where children normally use them. Do not answer in English paragraphs and do not merely append Tamil words to English sentences. Keep sentences short, warm, and teacher-like. Preserve textbook facts, names, formulas, numbers, and examples exactly; do not invent facts. Use the same Tanglish style for spoken_text and caption_text."
+                    "தமிழ்" -> " LANGUAGE REQUIREMENT: Teach in clear, child-friendly spoken Tamil. Keep necessary textbook terms, names, formulas, and numbers accurate. Use the same language for spoken_text and caption_text."
+                    else -> " LANGUAGE REQUIREMENT: Teach in clear, child-friendly English."
+                }
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + languageStyle + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
                     .put("message", lessonPrompt).put("max_segments", 6)

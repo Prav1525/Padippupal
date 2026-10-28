@@ -65,7 +65,7 @@ jobs:
                 FROM chapter_lessons
                 WHERE board='CBSE' AND class_level=6 AND medium='English'
                   AND subject IN ('Mathematics','Science')
-                  AND model='deterministic-extractive-v6-natural-tanglish'
+                  AND model='deterministic-extractive-v7-natural-tanglish'
               """).fetchall()
               assert len(lessons) == 22, f"Expected 22 deterministic drafts, found {len(lessons)}"
               assert all(r["status"] == "draft" for r in lessons), "Found a non-draft lesson"
@@ -82,7 +82,7 @@ jobs:
                       validation_ids.update(step["source_chunk_ids"])
                   assert allowed == validation_ids, f"Citation mismatch in {lesson['chapter_title']}"
                   assert lesson.get("human_review_required") is True
-                  assert lesson.get("draft_method") == "deterministic-extractive-v6-natural-tanglish"
+                  assert lesson.get("draft_method") == "deterministic-extractive-v7-natural-tanglish"
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("available") is True
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("human_review_required") is True
                   natural_openers = ("Seri, idha easy-aa purinjukkalaam.", "Okay, indha part-a serndhu paapom.", "Nalla, inga oru mukkiyamaana idea irukku.", "Ippo indha concept-a simple-aa break panni paapom.", "Sari, indha example enna solludhu-nu yosippom.", "Konjam slow-aa paapom; avasaram illa.", "Super, indha idea purinja next part easy-aa irukkum.", "Oru chinna recap pannittu continue pannalaam.")
@@ -111,9 +111,9 @@ jobs:
               rounds = conn.execute("""
                 SELECT count(*) AS n FROM syllabus_synthesis_rounds
                 WHERE board='CBSE' AND class_level=6 AND subject IN ('Mathematics','Science')
-                  AND curriculum_version='extractive-v6-natural-tanglish' AND status='draft'
+                  AND curriculum_version='extractive-v7-natural-tanglish' AND status='draft'
               """).fetchone()["n"]
               assert rounds == 22, f"Expected 22 persisted synthesis rounds, found {rounds}"
-              print("PASS: 10 Maths + 12 Science v6 conversational Tanglish drafts persisted; all remain draft; citations, pacing, and natural-voice quality gates verified.")
+              print("PASS: 10 Maths + 12 Science v7 natural conversational Tanglish drafts persisted; all remain draft; citations, pacing, and natural-voice quality gates verified.")
               print("NOTE: extractive summaries require teacher review; nothing was approved or deployed.")
           PY

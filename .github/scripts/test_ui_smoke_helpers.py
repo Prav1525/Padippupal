@@ -73,6 +73,26 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
+class SynthesisInlineVisualContractTests(unittest.TestCase):
+    def test_smoke_api_supplies_a_source_mapped_original_2d_visual(self):
+        fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
+        self.assertIn('"scene_type": "synthesis_static"', fixture)
+        self.assertIn('"title": "All 1s pattern visual"', fixture)
+        self.assertIn('"nodes": ["1", "1", "1", "1", "1"]', fixture)
+        self.assertIn('"source_chunk_ids": ["smoke-source"]', fixture)
+        self.assertIn('"animation": "narration_synced_2d"', fixture)
+
+    def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        start = smoke.index("def assert_live(path):")
+        end = smoke.index("\ndef exact_color_mask", start)
+        live = smoke[start:end]
+        self.assertIn('"all 1s pattern visual" not in joined', live)
+        self.assertIn('"each term stays 1" not in joined', live)
+        self.assertNotIn('"watch the pattern"', live)
+        self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
+
+
 class HomeLayoutContractTests(unittest.TestCase):
     def test_home_smoke_contract_matches_refreshed_primary_action(self):
         root = ET.fromstring("""<hierarchy>

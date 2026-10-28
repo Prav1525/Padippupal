@@ -339,6 +339,16 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertNotIn("explicit understanding checkpoint", script)
 
 
+    def test_synthesized_visuals_follow_exact_spoken_segment_boundaries(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn('inlineVisual?.optString("scene_type") == "synthesis_static"', tutor)
+        self.assertIn('inlineVisual.put("step_word_boundaries", wordBoundaries)', tutor)
+        self.assertIn('val stepWordBoundaries = liveInteractiveLesson?.optJSONArray("step_word_boundaries")', tutor)
+        self.assertIn('spokenWordPosition <= stepWordBoundaries.optInt(it, Int.MAX_VALUE)', tutor)
+        self.assertIn('visualSteps.length() == lessonSegments.size', tutor)
+
+
 class PreviousScreenSelectionTests(unittest.TestCase):
     def test_tutor_ready_screen_does_not_duplicate_selection_controls(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()

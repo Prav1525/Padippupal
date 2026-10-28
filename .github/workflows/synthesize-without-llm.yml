@@ -87,12 +87,15 @@ jobs:
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("human_review_required") is True
                   assert all(len(step["tanglish"]["teacher_says"].strip()) >= 100 for step in lesson["teaching_sequence"])
                   assert all("unakku enna purinjuchu" in step["tanglish"]["teacher_says"].lower() for step in lesson["teaching_sequence"])
+                  assert all("textbook-la indha point:" not in step["tanglish"]["teacher_says"].lower() for step in lesson["teaching_sequence"]), f"English excerpt read aloud in {lesson['chapter_title']}"
+                  if lesson["chapter_title"] == "Symmetry":
+                      assert all("plant-la ovvoru part" not in step["tanglish"]["teacher_says"].lower() for step in lesson["teaching_sequence"]), "Symmetry received an unrelated plant explanation"
                   assert all("un words-la sollu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"])
                   assert all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"].lower() for step in lesson["teaching_sequence"])
                   assert 3 <= len(lesson.get("teaching_sequence", [])) <= 10
                   assert len(lesson.get("learning_objectives_tanglish", [])) == len(lesson.get("learning_objectives", []))
-                  assert "natural conversational Tanglish" in lesson.get("language_variants", {}).get("Tanglish", {}).get("method", "")
-                  assert "natural conversational Tanglish" in lesson.get("language_variants", {}).get("Tanglish", {}).get("method", "")
+                  assert "chapter-aware conversational Tanglish" in lesson.get("language_variants", {}).get("Tanglish", {}).get("method", "")
+                  assert "chapter-aware conversational Tanglish" in lesson.get("language_variants", {}).get("Tanglish", {}).get("method", "")
                   for step in lesson["teaching_sequence"]:
                       assert len(step.get("source_chunk_ids", [])) > 0
                       for field in ("teacher_says", "caption", "example", "checkpoint"):
@@ -110,6 +113,6 @@ jobs:
                   AND curriculum_version='extractive-v9-topic-accurate-tanglish' AND status='draft'
               """).fetchone()["n"]
               assert rounds == 22, f"Expected 22 persisted synthesis rounds, found {rounds}"
-              print("PASS: 10 Maths + 12 Science v9 chapter-aware conversational Tanglish drafts persisted; all remain draft; citations, pacing, and natural-voice quality gates verified.")
+              print("PASS: 10 Maths + 12 Science v9 chapter-aware conversational Tanglish drafts persisted; all remain draft; citations, pacing, topic accuracy, and conversational Tanglish gates verified.")
               print("NOTE: extractive summaries require teacher review; nothing was approved or deployed.")
           PY

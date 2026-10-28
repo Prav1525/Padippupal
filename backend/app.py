@@ -423,9 +423,13 @@ def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list
         rows = conn.execute(
             """SELECT step_id, summary_text, visual_kind, blueprint_json,
                       source_chunk_ids_json, content_fingerprint
-               FROM lesson_visual_assets WHERE lesson_id=? AND active=1 ORDER BY created_at, step_id""",
+               FROM lesson_visual_assets WHERE lesson_id=? AND active=1""",
             (lesson_id,),
         ).fetchall()
+    # SQL row order is not the synthesis teaching order (and lexicographic IDs
+    # would put step-10 before step-2). Rebuild the response in current synthesis order.
+    rows_by_step = {str(row["step_id"]): row for row in rows}
+    ordered_rows = [rows_by_step[record["step_id"]] for record in records if record["step_id"] in rows_by_step]
     return [{
         "step_id": row["step_id"], "summary_text": row["summary_text"],
         "visual_kind": row["visual_kind"], "blueprint": json.loads(row["blueprint_json"]),
@@ -433,7 +437,7 @@ def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list
         "source_chunk_ids": json.loads(row["source_chunk_ids_json"]),
         "content_fingerprint": row["content_fingerprint"],
         "layout": "compact_2d", "animation": "narration_synced_2d",
-    } for row in rows]
+    } for row in ordered_rows]
 
 
 def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],

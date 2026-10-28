@@ -1899,12 +1899,29 @@ internal fun TutorScreen(
                     if (completeText.length < 220) {
                         throw IllegalStateException("The lesson was too short to explain the selected topic completely. Please try again.")
                     }
+                    // Preserve exact synthesis-step timing for inline visuals. For approved
+                    // synthesized lessons, the backend visual steps mirror the ordered speech
+                    // segments, so each visual changes when its own spoken segment begins.
+                    val inlineVisual = response.optJSONObject("interactive_lesson")
+                    if (inlineVisual?.optString("scene_type") == "synthesis_static") {
+                        val visualSteps = inlineVisual.optJSONArray("steps")
+                        if (visualSteps != null && visualSteps.length() == lessonSegments.size) {
+                            val wordBoundaries = JSONArray()
+                            var cumulativeWords = 0
+                            lessonSegments.forEach { segment ->
+                                cumulativeWords += segment.optString("spoken_text").trim()
+                                    .split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
+                                wordBoundaries.put(cumulativeWords)
+                            }
+                            inlineVisual.put("step_word_boundaries", wordBoundaries)
+                        }
+                    }
                     val completeLesson = JSONObject()
                         .put("id", "complete-lesson")
                         .put("spoken_text", completeText)
                         .put("caption_text", completeText)
                         .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-                        .put("interactive_lesson", response.optJSONObject("interactive_lesson") ?: JSONObject.NULL)
+                        .put("interactive_lesson", inlineVisual ?: JSONObject.NULL)
                         .put("checkpoint", JSONObject.NULL)
                     listOf(completeLesson)
                 } finally { connection.disconnect() }
@@ -2316,9 +2333,16 @@ internal fun TutorScreen(
                         // the student can see both the pattern and the response choices together.
                         val liveVisualSteps = liveInteractiveLesson?.optJSONArray("steps")
                         val totalLiveWords = liveCaption.trim().split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
+                        val stepWordBoundaries = liveInteractiveLesson?.optJSONArray("step_word_boundaries")
                         val liveVisualStep = if (liveVisualSteps != null && liveVisualSteps.length() > 0) {
-                            ((liveWordIndex.toFloat() / totalLiveWords.toFloat()) * liveVisualSteps.length())
-                                .toInt().coerceIn(0, liveVisualSteps.length() - 1)
+                            if (stepWordBoundaries != null && stepWordBoundaries.length() == liveVisualSteps.length()) {
+                                val spokenWordPosition = liveWordIndex + 1
+                                (0 until stepWordBoundaries.length()).firstOrNull { spokenWordPosition <= stepWordBoundaries.optInt(it, Int.MAX_VALUE) }
+                                    ?: (liveVisualSteps.length() - 1)
+                            } else {
+                                ((liveWordIndex.toFloat() / totalLiveWords.toFloat()) * liveVisualSteps.length())
+                                    .toInt().coerceIn(0, liveVisualSteps.length() - 1)
+                            }
                         } else 0
                         when {
                             liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(

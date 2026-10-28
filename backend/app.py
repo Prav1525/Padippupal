@@ -2174,6 +2174,59 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
     return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback}
 
 
+@app.get("/curriculum/synthesized-lessons")
+def get_approved_synthesized_lessons(
+    board: str,
+    class_level: int,
+    subject: str,
+    medium: str,
+    chapter: str = "",
+    topic: str = "",
+) -> dict[str, Any]:
+    """Return only validated, approved synthesized topics matching the learner profile."""
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT t.id,t.topic,t.page_start,t.page_end,t.learning_objectives_json,
+                      t.explanation_json,t.examples_json,t.practice_questions_json,
+                      t.citation_refs_json,t.validation_notes_json,
+                      r.board,r.class_level,r.subject,r.chapter,r.curriculum_version,
+                      s.medium,s.title AS source_title,s.source_url
+               FROM syllabus_topic_syntheses t
+               JOIN syllabus_synthesis_rounds r ON r.id=t.round_id
+               JOIN sources s ON s.id=t.source_id
+               WHERE t.approval_status='approved'
+                 AND t.validation_status='passed'
+                 AND r.status='approved'
+                 AND s.status='ready'
+                 AND LOWER(r.board)=LOWER(?)
+                 AND r.class_level=?
+                 AND LOWER(r.subject)=LOWER(?)
+                 AND LOWER(s.medium)=LOWER(?)
+               ORDER BY r.chapter,t.topic""",
+            (board, class_level, subject, medium),
+        ).fetchall()
+    wanted_chapter = normalize(chapter).casefold()
+    wanted_topic = normalize(topic).casefold()
+    lessons = []
+    for row in rows:
+        item = dict(row)
+        if wanted_chapter and normalize(str(item["chapter"])).casefold() != wanted_chapter:
+            continue
+        if wanted_topic and normalize(str(item["topic"])).casefold() != wanted_topic:
+            continue
+        for field in (
+            "learning_objectives_json", "explanation_json", "examples_json",
+            "practice_questions_json", "citation_refs_json", "validation_notes_json",
+        ):
+            raw = item.pop(field)
+            try:
+                item[field.removesuffix("_json")] = json.loads(raw or ("{}" if field == "explanation_json" else "[]"))
+            except (json.JSONDecodeError, TypeError):
+                raise HTTPException(status_code=500, detail="Stored approved lesson content is malformed.")
+        lessons.append(item)
+    return {"status": "ok", "count": len(lessons), "lessons": lessons}
+
+
 @app.get("/chapter-lessons/approved")
 def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medium: str, chapter: str) -> dict[str, Any]:
     with db() as conn:

@@ -86,6 +86,7 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
         self.assertTrue(all(len(step["caption"]) <= 500 for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["caption"]) <= 600 for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["tanglish"]["teacher_says"]) < 1000 for step in lesson["teaching_sequence"]))
+        self.assertTrue(all("unga vaarthaigal-la" not in step["tanglish"]["teacher_says"].lower() for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["title"]) < 100 for step in lesson["teaching_sequence"]))
 
     def test_quality_gate_rejects_generic_placeholders(self):

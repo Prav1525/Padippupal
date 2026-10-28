@@ -2484,8 +2484,18 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         if approved:
             lesson = json.loads(approved["lesson_json"])
             refs = json.loads(approved["source_refs_json"])
-            synthesized_visuals = get_or_create_lesson_visuals(str(approved["id"]), lesson)
             allowed_ids = {str(ref.get("chunk_id", "")) for ref in refs if ref.get("chunk_id")}
+            # Persist only visuals whose exact synthesis step cites approved source chunks.
+            # This prevents a structurally plausible but ungrounded visual from attaching to a lesson.
+            visual_lesson = dict(lesson)
+            visual_lesson["teaching_sequence"] = [
+                step for step in lesson.get("teaching_sequence", [])
+                if isinstance(step, dict)
+                and isinstance(step.get("source_chunk_ids"), list)
+                and step.get("source_chunk_ids")
+                and {str(chunk_id) for chunk_id in step["source_chunk_ids"]}.issubset(allowed_ids)
+            ]
+            synthesized_visuals = get_or_create_lesson_visuals(str(approved["id"]), visual_lesson)
             visual_map = {"number_pattern": "highlight", "number_line": "move",
                           "geometry": "draw-line", "compare": "compare", "process": "reveal",
                           "table": "label", "diagram": "label", "none": "none"}

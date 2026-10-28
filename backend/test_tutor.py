@@ -900,7 +900,7 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     client = TestClient(curriculum.app)
     response = client.post("/tutor/lesson-plan", json={
         "board": "CBSE", "class_level": 6, "subject": "Science",
-        "medium": "English", "app_language": "Tanglish",
+        "medium": "English", "app_language": "English",
         "chapter": "Life Processes", "message": "Continue the lesson",
         "max_segments": 5,
     })

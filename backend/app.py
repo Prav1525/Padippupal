@@ -286,6 +286,15 @@ def init_db() -> None:
           ON syllabus_topic_syntheses(round_id, approval_status);
     CREATE INDEX IF NOT EXISTS chapter_lessons_lookup
           ON chapter_lessons(board, class_level, subject, medium, chapter, status);
+        CREATE TABLE IF NOT EXISTS chapter_lesson_language_variants (
+            lesson_id TEXT NOT NULL REFERENCES chapter_lessons(id) ON DELETE CASCADE,
+            language TEXT NOT NULL,
+            lesson_json TEXT NOT NULL,
+            source_refs_json TEXT NOT NULL,
+            model TEXT NOT NULL DEFAULT '',
+            updated_at REAL NOT NULL,
+            PRIMARY KEY (lesson_id, language)
+        );
         """)
         # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
         # by an administrator after the first deployment.
@@ -2273,6 +2282,124 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
     return has_relevant_speech
 
 
+def _lesson_language_variant(lesson_id: str, lesson: dict[str, Any], refs: list[dict[str, Any]], language: str, topic: str) -> dict[str, Any]:
+    """Return a cached, language-matched version of an approved lesson, creating it once if needed."""
+    requested = language.strip()
+    if requested.casefold() in {"english", "en"}:
+        return lesson
+    with db() as conn:
+        cached = conn.execute(
+            "SELECT lesson_json FROM chapter_lesson_language_variants WHERE lesson_id=? AND LOWER(language)=LOWER(?)",
+            (lesson_id, requested),
+        ).fetchone()
+    if cached:
+        return json.loads(cached["lesson_json"])
+
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail=f"A saved {requested} lesson is not available and lesson translation is not configured.")
+    sequence = lesson.get("teaching_sequence")
+    if not isinstance(sequence, list) or not sequence:
+        raise HTTPException(status_code=502, detail="The approved lesson has no teaching sequence to translate.")
+    source_steps = []
+    for index, step in enumerate(sequence):
+        if not isinstance(step, dict):
+            raise HTTPException(status_code=502, detail="The approved lesson contains an invalid teaching step.")
+        source_steps.append({
+            "id": str(step.get("id") or ("step-" + str(index + 1))),
+            "teacher_says": str(step.get("teacher_says") or step.get("caption") or "").strip(),
+            "caption": str(step.get("caption") or step.get("teacher_says") or "").strip(),
+        })
+    if any(not step["teacher_says"] or not step["caption"] for step in source_steps):
+        raise HTTPException(status_code=502, detail="The approved lesson has an empty narration field; refusing unsafe translation.")
+
+    if requested.casefold() == "tanglish":
+        language_rules = (
+            "Write natural spoken Tanglish for a Tamil-speaking school child. Use everyday Tamil sentence structure and Tamil connecting words written ONLY in Latin letters; "
+            "keep essential science/math textbook terms in English. Do not write mostly-English paragraphs with a few Tamil words. "
+            "Example style: 'Namma photosynthesis-a simple-a paakalam. Oru plant sunlight-a use panni thanoda food-a prepare pannum.' "
+            "Never use Tamil script in Tanglish output."
+        )
+    else:
+        language_rules = (
+            "Write natural, child-friendly Tamil using Tamil script. Keep essential school subject terms in English only when that is clearer, and explain them naturally in Tamil."
+        )
+    prompt = (
+        "Translate only the narration and captions of this already-approved textbook lesson into " + requested + ". "
+        + language_rules + " Preserve every fact, example, order, and meaning exactly. Do not add or remove teaching steps. "
+        + "Return JSON only in this shape: {\"teaching_sequence\":[{\"id\":\"same id\",\"teacher_says\":\"translated narration\",\"caption\":\"translated caption\"}]}. "
+        + "Return exactly one entry per input step, in the same order, with each id unchanged. Do not return any other keys or prose. "
+        + "Selected topic: " + topic + ". Source lesson text: " + json.dumps({"teaching_sequence": source_steps}, ensure_ascii=False)
+    )
+    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+    body = json.dumps({
+        "systemInstruction": {"parts": [{"text": "You are a careful curriculum translator. Never alter facts or lesson scope. Follow the requested language strictly."}]},
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.1, "maxOutputTokens": 2200},
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+        data=body,
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=45) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
+        translated = json.loads(raw)
+        translated_steps = translated.get("teaching_sequence")
+        if not isinstance(translated_steps, list) or len(translated_steps) != len(sequence):
+            raise ValueError("translated step count mismatch")
+        expected_ids = [str(step.get("id") or ("step-" + str(index + 1))) for index, step in enumerate(sequence)]
+        if [str(step.get("id", "")) for step in translated_steps if isinstance(step, dict)] != expected_ids:
+            raise ValueError("translated step IDs/order mismatch")
+        variant = json.loads(json.dumps(lesson, ensure_ascii=False))
+        variant_steps = variant["teaching_sequence"]
+        playable = []
+        for index, translated_step in enumerate(translated_steps):
+            teacher_says = str(translated_step.get("teacher_says", "")).strip()
+            caption = str(translated_step.get("caption", "")).strip()
+            if not teacher_says or not caption or len(teacher_says) > 500 or len(caption) > 500:
+                raise ValueError("translated narration/caption is empty or too long")
+            if requested.casefold() == "tanglish" and re.search(r"[\u0B80-\u0BFF]", teacher_says + caption):
+                raise ValueError("Tanglish output contains Tamil script")
+            if requested.casefold() == "tanglish" and not re.search(r"\b(?:namma|idhu|ithu|oru|ippo|ippa|panni|pannum|panrom|aagum|irukku|illa|illai|paakalam|paaru|than|enna|adhunaala|appo|inga|anga|solrom|mudiyum)\b", teacher_says + " " + caption, re.IGNORECASE):
+                raise ValueError("Tanglish output lacks conversational Tamil markers")
+            if requested.casefold() in {"தமிழ்", "tamil"} and not re.search(r"[\u0B80-\u0BFF]", teacher_says + caption):
+                raise ValueError("Tamil output is not in Tamil script")
+            variant_steps[index]["teacher_says"] = teacher_says
+            variant_steps[index]["caption"] = caption
+            playable.append({
+                "spoken_text": teacher_says, "caption_text": caption,
+                "source_chunk_ids": [str(x) for x in sequence[index].get("source_chunk_ids", [])],
+                "visual_action": {"type": "none", "target": "", "value": ""},
+            })
+        if not _lesson_segments_match_topic(topic, playable):
+            raise ValueError("translated narration failed selected-topic validation")
+    except urllib.error.HTTPError as exc:
+        logger.warning("Lesson language translation rejected: status=%s model=%s", exc.code, model)
+        raise HTTPException(status_code=502, detail="Could not prepare the selected-language lesson. Please retry.") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise HTTPException(status_code=502, detail="The selected-language lesson connection failed.") from exc
+    except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        logger.warning("Lesson language translation validation failed: %s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="The translated lesson failed validation; no lesson was started.") from exc
+
+    with db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lesson_language_variants
+               (lesson_id,language,lesson_json,source_refs_json,model,updated_at)
+               VALUES (?,?,?,?,?,?)
+               ON CONFLICT(lesson_id,language) DO UPDATE SET
+                 lesson_json=excluded.lesson_json, source_refs_json=excluded.source_refs_json,
+                 model=excluded.model, updated_at=excluded.updated_at""",
+            (lesson_id, requested, json.dumps(variant, ensure_ascii=False),
+             json.dumps(refs, ensure_ascii=False), model, time.time()),
+        )
+    return variant
+
+
 @app.post("/tutor/lesson-plan")
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     """Create short source-grounded lesson segments for synchronized playback."""
@@ -2309,6 +2436,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         if approved:
             lesson = json.loads(approved["lesson_json"])
             refs = json.loads(approved["source_refs_json"])
+            if payload.app_language.strip().casefold() not in {"english", "en"}:
+                lesson = _lesson_language_variant(str(approved["id"]), lesson, refs, payload.app_language, payload.topic or approved["topic"] or approved["chapter"])
             allowed_ids = {str(ref.get("chunk_id", "")) for ref in refs if ref.get("chunk_id")}
             visual_map = {"number_pattern": "highlight", "number_line": "move",
                           "geometry": "draw-line", "compare": "compare", "process": "reveal",
@@ -2391,6 +2520,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     system_prompt = ("You are PadippuPal lesson planner for class " + str(payload.class_level) + ", subject " + subject + ", chapter " + (payload.chapter or "not selected") + ", topic " + (payload.topic or payload.message) + ", language " + payload.app_language + ".\n"
         + "Use ONLY retrieved PadippuPal database passages for factual claims. Return JSON only: {segments:[{id,spoken_text,caption_text,source_chunk_ids,visual_action:{type,target,value},checkpoint}]}. "
         + "Teach like a patient, kind primary-school teacher sitting beside one child. Use very simple everyday words, one idea at a time, and explain any new term before using it. "
+        + ("For Tanglish, use natural Tamil sentence structure in Latin script, Tamil connecting words, and English mainly for essential school terms; never switch into full English sentences. " if payload.app_language.strip().casefold() == "tanglish" else "For Tamil, use natural Tamil in Tamil script. " if payload.app_language.strip().casefold() in {"தமிழ்", "tamil"} else "For English, use simple natural spoken English. ")
         + "Create 4 to " + str(payload.max_segments) + " ordered speech segments as transport chunks. Each may contain 2-4 complete spoken sentences and must remain within the schema character limit. Together they must teach the full topic, not just its first idea: definition, why/how, worked example, important rule, common mistake when relevant, and recap. Aim for about 180-260 words, adapted to the learner's class. "
         + "Use natural spoken punctuation: short sentences, commas for gentle breaths, and occasional ellipses only where a real pause helps. Avoid robotic lists, rushed phrasing, repeated filler, and exaggerated baby talk. "
         + "Do not interrupt the lesson with questions, feedback requests, or checkpoints. Set checkpoint to null for every segment; the app joins all spoken segments into one uninterrupted explanation. If a practice question is useful, include at most one at the very end after the recap inside the final spoken_text. "

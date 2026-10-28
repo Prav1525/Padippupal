@@ -350,3 +350,24 @@ Use this format:
 ### 2026-10-27 — Correction-script regression finding
 - The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
 - The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.
+
+
+### 2026-10-28 — Match synthesized lesson to selected explanation language
+
+- **Branch:** \`fix/language-specific-synthesized-lessons\`; backend implementation commit \`9a22bfde0e1fcd630149cece59cf554a06cd24c4\`; regression-test commit \`4995fc92b5d1b7554f1743e3416e806aa90fec79\`.
+- **Guidance applied:** Re-read \`AGENTS.md\`, the full \`TESTING_GUIDANCE.md\`, README build instructions, current tutor endpoint, schema, Android lesson request, and existing backend tests before editing. No merge or deployment is authorized.
+- **Observed evidence:** \`POST /tutor/lesson-plan\` selected approved \`chapter_lessons\` rows by board/class/subject/textbook medium/chapter/topic, but not by \`app_language\`. It returned the saved \`teacher_says\` and \`caption\` unchanged while echoing the requested language in response metadata. Android sends \`selectedLanguage\` and plays the returned \`spoken_text\`, so metadata did not ensure language-matched narration.
+- **Root cause:** **CONFIRMED** in source for approved synthesized lessons: language was not part of saved-lesson selection and the returned text was not transformed or matched to a language-specific version. Production database contents and live learner behavior remain **UNVERIFIED**.
+- **Change made:** Added a language-variant cache keyed by approved lesson ID and selected language. For non-English selection, the endpoint reuses the cached variant or asks Gemini to translate only narration/caption fields while preserving step IDs, order, examples, visual metadata, and source chunk IDs. It validates step count/order, empty/oversized text, Tanglish-vs-Tamil script, and selected-topic relevance before saving. Translation failure returns an error instead of silently playing the original-language lesson. The fallback lesson-generation prompt now states explicit Tanglish/Tamil language rules.
+- **Regression coverage added:** \`backend/test_lesson_language_variants.py\` checks that Tanglish is generated from an approved lesson, persisted with the same source IDs, reused without a second translation call, and rejected rather than replaced with English when the generated translation fails language validation.
+- **Verification status:** **UNVERIFIED** at commit time; tests and CI have not yet been run on this branch. These tests do not prove naturalness of live Gemini output, production deployment, or device audio quality.
+- **Next action:** Run the exact-head Curriculum Engine backend suite, investigation-guidance gate, Android debug build, and relevant UI/speech acceptance checks. Review failures and verify the deployed database migration/cache path before claiming learner availability. Do not merge or deploy without explicit permission.
+
+
+### 2026-10-28 — Language-variant first CI regression and correction
+
+- **Branch:** \`fix/language-specific-synthesized-lessons\`; failing exact-head run [Curriculum Engine Tests](https://github.com/Prav1525/Padippupal/actions/runs/40702209997), job [122864721518](https://github.com/Prav1525/Padippupal/actions/runs/40702209997/job/122864721518).
+- **Observed result:** Initial exact-head suite reported 83 passed, 2 failed. One legacy fake DB asserted every query must contain \`status='approved'\`, so it rejected the new variant-cache lookup. The new invalid-translation test also exposed that the initial language guard rejected Tamil-script output but did not reject an English-only sentence.
+- **Root cause:** **CONFIRMED** for both failures from the traceback and test response: the legacy test fixture was still requesting Tanglish despite testing only approved-row selection, and the language validator needed a positive Tanglish-marker requirement.
+- **Correction made:** The legacy approved-row selection test now requests English, leaving Tanglish behavior to the dedicated variant tests. Tanglish variants must now include at least one common romanized Tamil conversational marker in addition to rejecting Tamil script; English-only output is rejected and is not cached.
+- **Verification status:** Corrective commit(s) are on this branch; rerun the exact-head backend suite and check all remaining workflow gates before judging the correction. Android build and emulator smoke were still in progress at the last status check. No merge or deployment performed.

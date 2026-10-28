@@ -403,7 +403,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                         )
                     }
                 }
-                "sequence", "process", "cycle" -> {
+                "sequence", "process" -> {
                     val count = activeLabels.size.coerceIn(1, 4)
                     val gap = 7.dp.toPx()
                     val boxWidth = (size.width * 0.86f - gap * (count - 1)) / count
@@ -415,6 +415,22 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                             if (index > 0) drawLine(Color(0xFF7C91A0), Offset(x - gap, centerY), Offset(x - 2.dp.toPx(), centerY), stroke)
                             drawRoundRect(Color(0xFFDCEFEB), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()))
                             drawRoundRect(Color(0xFF287F79), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                    }
+                }
+                "cycle" -> {
+                    val points = listOf(
+                        Offset(size.width * 0.50f, size.height * 0.18f),
+                        Offset(size.width * 0.78f, size.height * 0.52f),
+                        Offset(size.width * 0.50f, size.height * 0.84f),
+                        Offset(size.width * 0.22f, size.height * 0.52f)
+                    )
+                    val count = activeLabels.size.coerceIn(2, 4)
+                    repeat(count) { index ->
+                        if (index < revealCount) {
+                            drawLine(Color(0xFF7C91A0), points[index], points[(index + 1) % count], stroke)
+                            drawCircle(Color(0xFFDCEFEB), 8.dp.toPx(), points[index])
+                            drawCircle(Color(0xFF287F79), 8.dp.toPx(), points[index], style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
                         }
                     }
                 }

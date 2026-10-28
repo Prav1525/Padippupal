@@ -382,7 +382,9 @@ class CompleteLessonRegressionTests(unittest.TestCase):
 
     def test_smoke_waits_for_full_caption_and_rejects_checkpoint_ui(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        self.assertIn("assert-live live-lesson.xml >/dev/null 2>&1", script)
+        self.assertIn("assert-live live-lesson.xml > live-assertion.log 2>&1", script)
+        self.assertIn("cp live-assertion.log live-assertion-last.log", script)
+        self.assertIn("Last active-lesson assertion:", script)
         self.assertIn("live-complete.xml", script)
         self.assertNotIn("explicit understanding checkpoint", script)
 

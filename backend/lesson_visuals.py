@@ -122,7 +122,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
     lowered = text.casefold()
 
     # This textbook sequence is a stable, explicit concept: each term remains 1.
-    if re.search(r"all\\s+1s?|all\\s+ones?", lowered):
+    if re.search(r"all\s+1s?|all\s+ones?", lowered):
         return "sequence", ["1", "1", "1", "1", "1"]
 
     # Extract clear rows from OCR tables only when the values are unambiguous.
@@ -131,7 +131,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
             ("Squares", r"squares"),
             ("Triangular numbers", r"triangular numbers"),
             ("Cubes", r"cubes"),
-            ("All 1s", r"all\\s+1s?|all\\s+ones?"),
+            ("All 1s", r"all\s+1s?|all\s+ones?"),
             ("Counting numbers", r"counting numbers"),
             ("Odd numbers", r"odd numbers"),
             ("Even numbers", r"even numbers"),
@@ -139,14 +139,14 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
         found = []
         matches = []
         for label, pattern in row_labels:
-            match = re.search(r"(?i)\\b" + pattern + r"\\b", text)
+            match = re.search(r"(?i)\b" + pattern + r"\b", text)
             if match:
                 matches.append((match.start(), match.end(), label))
         matches.sort()
         for index, (start, end, label) in enumerate(matches):
             next_start = matches[index + 1][0] if index + 1 < len(matches) else min(len(text), end + 80)
             segment = text[end:next_start]
-            values = re.findall(r"(?<![A-Za-z])\\d{1,3}(?![A-Za-z])", segment)
+            values = re.findall(r"(?<![A-Za-z])\d{1,3}(?![A-Za-z])", segment)
             # Reject OCR-merged values and page-number-like outliers instead of guessing.
             if len(values) >= 3 and all(len(value) <= 2 or value in {"100", "125"} for value in values[:5]):
                 values = values[:5]
@@ -166,12 +166,12 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
                 found.sort(key=lambda row: 0 if row.startswith("All 1s|") else 1)
             return "table", found[:3]
 
-    if re.search(r"\\b(fraction|fractions|half|halves|quarter|quarters|\\d+\\s*/\\s*\\d+)\\b", lowered):
+    if re.search(r"\b(fraction|fractions|half|halves|quarter|quarters|\d+\s*/\s*\d+)\b", lowered):
         labels = []
         for word in ("whole", "half", "quarter", "third", "equal parts", "numerator", "denominator"):
-            if re.search(r"\\b" + word + r"\\b", lowered):
+            if re.search(r"\b" + word + r"\b", lowered):
                 labels.append(word.title())
-        fraction = re.search(r"\\b\\d+\\s*/\\s*\\d+\\b", text)
+        fraction = re.search(r"\b\d+\s*/\s*\d+\b", text)
         if fraction:
             labels.insert(0, fraction.group(0).replace(" ", ""))
         return "fraction", labels[:6] or ["Whole", "Equal parts"]
@@ -181,11 +181,11 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
         return "cycle", labels[:4] or ["Water", "Change", "Water"]
 
     if any(term in lowered for term in ("angle", "triangle", "parallel", "perpendicular", "point", "line segment")):
-        labels = [term.title() for term in ("point", "line", "line segment", "angle", "triangle", "parallel", "perpendicular") if re.search(r"\\b" + re.escape(term) + r"\\b", lowered)]
+        labels = [term.title() for term in ("point", "line", "line segment", "angle", "triangle", "parallel", "perpendicular") if re.search(r"\b" + re.escape(term) + r"\b", lowered)]
         return "geometry", labels[:5] or ["Point", "Line", "Angle"]
 
     if "number line" in lowered:
-        numbers = re.findall(r"(?<![A-Za-z])[-+]?\\d{1,2}(?![A-Za-z])", text)
+        numbers = re.findall(r"(?<![A-Za-z])[-+]?\d{1,2}(?![A-Za-z])", text)
         unique = list(dict.fromkeys(numbers))
         if len(unique) >= 2:
             return "number_line", unique[:5]

@@ -2174,6 +2174,62 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
     return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback}
 
 
+
+@app.get("/syllabus-synthesis/approved-topic")
+def get_approved_syllabus_topic(
+    board: str, class_level: int, subject: str, medium: str, chapter: str, topic: str
+) -> dict[str, Any]:
+    """Serve only human-approved, validated topic syntheses to learner clients."""
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT sts.*, rounds.chapter, rounds.board, rounds.class_level,
+                      rounds.subject, sources.medium, sources.title AS source_title,
+                      sources.academic_year, sources.edition, sources.source_url
+               FROM syllabus_topic_syntheses AS sts
+               JOIN syllabus_synthesis_rounds AS rounds ON rounds.id=sts.round_id
+               JOIN sources ON sources.id=sts.source_id
+               WHERE sts.approval_status='approved'
+                 AND sts.validation_status='passed'
+                 AND rounds.status='approved'
+                 AND LOWER(rounds.board)=LOWER(?)
+                 AND rounds.class_level=?
+                 AND LOWER(rounds.subject)=LOWER(?)
+                 AND LOWER(sources.medium)=LOWER(?)
+               ORDER BY sts.updated_at DESC""",
+            (board, class_level, subject, medium),
+        ).fetchall()
+    wanted_chapter = normalize(chapter).casefold()
+    wanted_topic = normalize(topic).casefold()
+    for row in rows:
+        if normalize(str(row["chapter"])).casefold() != wanted_chapter:
+            continue
+        if normalize(str(row["topic"])).casefold() != wanted_topic:
+            continue
+        return {
+            "status": "approved",
+            "topic": row["topic"],
+            "chapter": row["chapter"],
+            "board": row["board"],
+            "class_level": row["class_level"],
+            "subject": row["subject"],
+            "medium": row["medium"],
+            "explanation": json.loads(row["explanation_json"]),
+            "learning_objectives": json.loads(row["learning_objectives_json"]),
+            "examples": json.loads(row["examples_json"]),
+            "practice_questions": json.loads(row["practice_questions_json"]),
+            "citation_refs": json.loads(row["citation_refs_json"]),
+            "page_start": row["page_start"],
+            "page_end": row["page_end"],
+            "source": {
+                "title": row["source_title"],
+                "academic_year": row["academic_year"],
+                "edition": row["edition"],
+                "url": row["source_url"],
+            },
+        }
+    return {"status": "not_found", "topic": topic, "lesson": None}
+
+
 @app.get("/chapter-lessons/approved")
 def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medium: str, chapter: str) -> dict[str, Any]:
     with db() as conn:

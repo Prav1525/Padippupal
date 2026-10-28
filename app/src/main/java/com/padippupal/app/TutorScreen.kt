@@ -316,12 +316,82 @@ private fun ChapterOneMathAnimation(
 }
 
 @Composable
+private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?) {
+    val title = lesson.optString("title", "Lesson visual")
+    val caption = lesson.optString("caption", "")
+    val objects = lesson.optJSONArray("objects")
+    val labels = buildList {
+        if (objects != null) for (index in 0 until objects.length()) {
+            val item = objects.optJSONObject(index) ?: continue
+            val label = item.optString("label").trim()
+            if (label.isNotBlank()) add(label.take(72))
+        }
+    }.take(6)
+    val steps = lesson.optJSONArray("steps")
+    val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
+    val active = (activeStepOverride ?: 0).coerceIn(0, stepCount - 1)
+    val activeStep = steps?.optJSONObject(active)
+    val activeCaption = activeStep?.optString("caption").orEmpty().ifBlank { caption }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF3F8FA), RoundedCornerShape(14.dp))
+            .padding(if (compact) 10.dp else 14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(title, color = Color(0xFF17324D), fontSize = if (compact) 13.sp else 15.sp, fontWeight = FontWeight.Bold)
+        if (activeCaption.isNotBlank()) {
+            Text(activeCaption, color = Color(0xFF526477), fontSize = if (compact) 11.sp else 12.sp, lineHeight = if (compact) 15.sp else 17.sp)
+        }
+        labels.chunked(3).forEach { group ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                group.forEach { label ->
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        color = Color.White,
+                        shape = RoundedCornerShape(9.dp),
+                        border = BorderStroke(1.dp, Color(0xFFD9E5EC))
+                    ) {
+                        Text(
+                            label,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = if (compact) 7.dp else 9.dp),
+                            color = Color(0xFF17324D),
+                            fontSize = if (compact) 10.sp else 12.sp,
+                            lineHeight = if (compact) 13.sp else 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                repeat((3 - group.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+        if (stepCount > 1) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                repeat(stepCount.coerceAtMost(8)) { index ->
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(3.dp)
+                            .background(if (index == active) Color(0xFF0F766E) else Color(0xFFD5E1E8), RoundedCornerShape(3.dp))
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
+    if (scene == "synthesis_static") {
+        SynthesizedVisualCard(lesson, compact, activeStepOverride)
+        return
+    }
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {
         val topicKey = lesson.optString("topic").lowercase()
         val mappedScene = when {

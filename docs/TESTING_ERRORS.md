@@ -371,3 +371,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Tests assert a single tap, thumbnail fallback for non-clickable filename/row, and no tap when the target filename is absent. The full emulator flow must verify picker return, crop, rescan, selected-date review, and planner save.
 - **Evidence:** Failing run [40184576935](https://github.com/Prav1525/Padippupal/actions/runs/40184576935); fix commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa`; current CI run [40189078614](https://github.com/Prav1525/Padippupal/actions/runs/40189078614).
 - **Status:** Fix committed; exact-head verification pending. Do not merge until all required checks pass.
+
+### TE-040 — Approved synthesized topics were not connected to the learner tutor
+- **Date discovered:** 2026-10-28
+- **Area:** Approved synthesis API -> Android live lesson.
+- **Symptom:** Approved synthesized lesson rows existed in production data, but the learner tutor did not request them; the separate curriculum connection screen only searched source passages.
+- **Root cause:** **CONFIRMED in repository code**: `TutorScreen.kt` called `/tutor/lesson-plan` and never queried `syllabus_topic_syntheses`; there was no public exact-topic read endpoint for those records. Production runtime impact remains to be verified against the deployed service and learner device.
+- **Why it escaped:** Database approval/validation audits verified stored content, not the full learner request path from selected topic to API response to spoken lesson.
+- **Corrective action:** PR #42 adds a read-only exact-profile/topic endpoint restricted to approved rounds, approved topics, passed validation, and ready sources; adds backend endpoint tests; and makes the Android English live tutor prefer an approved synthesized match with fallback to the existing tutor API.
+- **Regression protection:** Require the endpoint test to prove profile/topic isolation and hide drafts; require backend tests, Android JVM tests, APK build, deployed API contract check, and emulator lesson playback/screenshot review on the same PR head.
+- **Evidence:** [PR #42](https://github.com/Prav1525/Padippupal/pull/42); initial CI head `4bbc2c94cf7b7cf3e47fa4fab9d8e4eb11e8dc88`. The Investigation Guidance Gate initially failed because `TEST_INVESTIGATION.md` had not been updated; the ledger entry is now added on the PR branch.
+- **Status:** **Implemented in PR; verification pending.** Not merged or deployed. Do not call learner availability fixed until exact-head checks and live learner verification pass.
+

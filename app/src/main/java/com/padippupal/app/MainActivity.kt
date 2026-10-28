@@ -25,6 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import java.util.UUID
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val Green=Color(0xFF0F766E)
 private val Deep=Color(0xFF0F2742)
@@ -62,6 +66,26 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,LESSON_SETUP,TU
  LaunchedEffect(name, grade, board, medium, language) {
    prefs.edit().putString("student_name", name).putString("grade", grade)
      .putString("board", board).putString("medium", medium).putString("language", language).apply()
+ }
+ // Wake the curriculum API while the learner is choosing what to study. Render's
+ // current Free web service can spin down after idle; this tiny health request runs
+ // off the UI thread and carries no learner data, so the first Teach tap is less likely
+ // to pay the full cold-start delay.
+ LaunchedEffect(Unit) {
+   withContext(Dispatchers.IO) {
+     val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+     if (base.startsWith("https://")) {
+       runCatching {
+         val connection = (URL("$base/health").openConnection() as HttpURLConnection).apply {
+           requestMethod = "GET"
+           connectTimeout = 3_000
+           readTimeout = 65_000
+           useCaches = false
+         }
+         try { connection.responseCode } finally { connection.disconnect() }
+       }
+     }
+   }
  }
  var lesson by remember{mutableStateOf("Crop Production and Management")}
  var done by remember{mutableStateOf(setOf<String>())}

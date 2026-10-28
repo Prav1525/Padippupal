@@ -350,3 +350,15 @@ Use this format:
 ### 2026-10-27 — Correction-script regression finding
 - The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
 - The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.
+### 2026-10-28 — Make deployed API smoke test reproducible
+- **Branch / commit:** `fix/reproducible-deployed-api-smoke`; tested head `88b8ad0aba0d397be852ea03cef86b0a94bce2a9`.
+- **Test command or workflow URL:** [PR #41](https://github.com/Prav1525/Padippupal/pull/41); [Investigation Guidance Gate run](https://github.com/Prav1525/Padippupal/actions/runs/40612946105); [Android emulator smoke run](https://github.com/Prav1525/Padippupal/actions/runs/40612946160); [APK build run](https://github.com/Prav1525/Padippupal/actions/runs/40612946329).
+- **Result:** APK build **PASS**; Android emulator smoke **PASS**; Investigation Guidance Gate **FAIL** pending this required ledger entry.
+- **Exact failure or assertion:** `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence links:** Gate job log reports one workflow file changed and no ledger update; Android build and emulator jobs completed successfully on the same PR head.
+- **Change made (files + rationale):** The workflow replaces a dependency on a manually seeded Class 7 Science test source with a Class 6 Mathematics `/retrieve` request. It checks for a `matches` array and rejects returned source metadata outside CBSE / Class 6 / Mathematics / English. Empty results are allowed because approved indexed sources may not be available.
+- **Root cause:** **CONFIRMED** for the gate failure: the workflow-only PR omitted the append-only ledger update. The retrieval change has not been shown to fail.
+- **What this attempt proves:** APK build and emulator smoke passed; the guidance gate enforces a ledger update for workflow/config changes.
+- **What remains unverified:** Gate rerun after this entry; non-empty indexed retrieval coverage and retrieval relevance are not asserted by this smoke test.
+- **Difference from previous attempt:** Removes a brittle production fixture dependency and validates response shape/profile isolation instead.
+- **Next action and why:** Re-run exact-head CI and inspect all checks. Keep PR #41 unmerged until checks are green and the repository owner explicitly authorizes merge; this PR does not deploy or modify production data.

@@ -5,7 +5,7 @@ PadippuPal's `chapter_lessons` records are the source of truth. Visuals must be 
 ## Mapping
 
 1. Load the exact approved lesson using board, class, subject, medium, chapter, and topic filters already used by `/tutor/lesson-plan`.
-2. For every saved teaching step, derive one compact visual blueprint from that step's `title`, `caption`, `visual` fields, and `source_chunk_ids`.
+2. For every saved teaching step, generate a compact, static SVG illustration from that step's `title`, `caption`, `visual` fields, and `source_chunk_ids`. The SVG and its structured drawing recipe are stored together in `blueprint_json`.
 3. Store it in `lesson_visual_assets` with a stable lesson/step key, the summary/caption it illustrates, source chunk IDs, and a content fingerprint.
 4. Return the stored visual alongside the same approved lesson response. The existing tutor renderer receives an inline `interactive_lesson` object and draws it in the tutor flow.
 5. When a lesson synthesis changes, the fingerprint changes and the corresponding step record is updated. Removed steps are marked inactive so stale visual cards do not linger.
@@ -15,7 +15,7 @@ PadippuPal's `chapter_lessons` records are the source of truth. Visuals must be 
 - `lesson_id + step_id`: stable mapping from one synthesis step to its visual.
 - `summary_text`: the exact lesson caption/summary that the visual accompanies.
 - `source_chunk_ids_json`: the source chunks cited by that step; no unrelated topic-only visual is attached.
-- `blueprint_json`: a small, renderer-friendly 2D scene recipe (kind, labels, actions, narration sync).
+- `blueprint_json`: a small, renderer-friendly 2D scene recipe plus generated SVG markup (kind, labels, actions, narration sync).
 - `content_fingerprint`: stable hash for detecting visual-content changes.
 
 ## Visual limits

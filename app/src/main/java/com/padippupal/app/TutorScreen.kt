@@ -363,8 +363,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF3F8FA), RoundedCornerShape(14.dp))
-            .padding(if (compact) 10.dp else 14.dp),
+            .padding(vertical = if (compact) 2.dp else 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(title, color = Color(0xFF17324D), fontSize = if (compact) 13.sp else 15.sp, fontWeight = FontWeight.Bold)
@@ -373,7 +372,6 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
         }
         Canvas(
             Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)
-                .background(Color.White, RoundedCornerShape(10.dp))
         ) {
             val stroke = 1.6.dp.toPx()
             val centerY = size.height * 0.52f
@@ -517,21 +515,14 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
         activeLabels.take(revealCount).chunked(3).forEach { group ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.forEach { label ->
-                    Surface(
-                        modifier = Modifier.weight(1f),
-                        color = Color.White,
-                        shape = RoundedCornerShape(9.dp),
-                        border = BorderStroke(1.dp, Color(0xFFD9E5EC))
-                    ) {
-                        Text(
-                            label,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = if (compact) 7.dp else 9.dp),
-                            color = Color(0xFF17324D),
-                            fontSize = if (compact) 10.sp else 12.sp,
-                            lineHeight = if (compact) 13.sp else 16.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                    Text(
+                        label,
+                        modifier = Modifier.weight(1f).padding(vertical = if (compact) 3.dp else 5.dp),
+                        color = Color(0xFF17324D),
+                        fontSize = if (compact) 10.sp else 12.sp,
+                        lineHeight = if (compact) 13.sp else 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
                 repeat((3 - group.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
             }

@@ -1498,8 +1498,27 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
     req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",
         data=body, headers={"x-goog-api-key":api_key,"Content-Type":"application/json","Accept":"application/json"}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=90) as response:
-            result = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(req, timeout=90) as response:
+                result = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as first_exc:
+            # A stale environment override may name a retired Gemini model.
+            # Retry only model-not-found errors with the current supported default.
+            if first_exc.code != 404 or model == "gemini-3.8-flash":
+                raise
+            first_body = first_exc.read().decode("utf-8", errors="replace")
+            if "NOT_FOUND" not in first_body and "not available" not in first_body.lower():
+                raise
+            model = "gemini-3.8-flash"
+            logger.warning("Configured Gemini model unavailable; retrying synthesis with %s", model)
+            req = urllib.request.Request(
+                "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+                data=body,
+                headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=90) as response:
+                result = json.loads(response.read().decode("utf-8"))
         raw = " ".join(part.get("text","") for part in result["candidates"][0]["content"]["parts"] if isinstance(part,dict))
         lesson = json.loads(raw.strip())
         if not isinstance(lesson, dict):

@@ -84,6 +84,30 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertEqual(build_visual_records("lesson-2", {}), [])
         self.assertEqual(build_visual_records("lesson-2", {"teaching_sequence": []}), [])
 
+    def test_sparse_textbook_table_infers_the_explicit_all_ones_sequence(self):
+        lesson = {"teaching_sequence": [{
+            "id": "all-ones-table-row",
+            "title": "Patterns in Mathematics — Part 1",
+            "caption": "Table of number sequences: Squares 1 4 9 16 25. All 1’s 1 1 1 1 1. Counting numbers 1 2 3 4 5.",
+            "source_chunk_ids": ["chunk-patterns-page-1"],
+            "visual": {"type": "table", "objects": []},
+        }]}
+        record = build_visual_records("lesson-patterns", lesson)[0]
+        self.assertEqual(record["visual_kind"], "sequence")
+        self.assertEqual(record["blueprint"]["nodes"], ["1", "1", "1", "1", "1"])
+        self.assertIn("All 1", record["summary_text"])
+        self.assertIn("narration_synced_staggered_reveal", record["blueprint"]["motion"])
+
+    def test_sparse_table_without_grounded_visual_evidence_is_skipped(self):
+        lesson = {"teaching_sequence": [{
+            "id": "generic",
+            "title": "A chapter introduction",
+            "caption": "Let us read this introduction carefully and discuss what it says.",
+            "source_chunk_ids": ["chunk-generic"],
+            "visual": {"type": "table", "objects": []},
+        }]}
+        self.assertEqual(build_visual_records("lesson-generic", lesson), [])
+
     def test_svg_is_stored_with_blueprint_and_escapes_lesson_labels(self):
         lesson = {"teaching_sequence": [{
             "id": "safe-label",

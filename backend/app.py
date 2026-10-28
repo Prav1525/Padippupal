@@ -432,7 +432,7 @@ def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list
         "svg_markup": json.loads(row["blueprint_json"]).get("svg_markup", ""),
         "source_chunk_ids": json.loads(row["source_chunk_ids_json"]),
         "content_fingerprint": row["content_fingerprint"],
-        "layout": "compact_2d", "animation": "none",
+        "layout": "compact_2d", "animation": "narration_synced_2d",
     } for row in rows]
 
 
@@ -2343,7 +2343,7 @@ def get_chapter_lesson_visuals(lesson_id: str) -> dict[str, Any]:
     lesson = json.loads(lesson_row["lesson_json"])
     visuals = get_or_create_lesson_visuals(lesson_id, lesson)
     return {"lesson_id": lesson_id, "visuals": visuals, "count": len(visuals),
-            "render_policy": {"layout": "compact_2d", "animation": "none", "overlay": False}}
+            "render_policy": {"layout": "compact_2d", "animation": "narration_synced_2d", "overlay": False}}
 
 
 

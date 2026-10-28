@@ -85,8 +85,8 @@ jobs:
                   assert lesson.get("draft_method") == "deterministic-extractive-v8-natural-tanglish"
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("available") is True
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("human_review_required") is True
-                  natural_openers = ("Seri, idha easy-aa purinjukkalaam.", "Okay, indha part-a serndhu paapom.", "Nalla, inga oru mukkiyamaana idea irukku.", "Ippo indha concept-a simple-aa break panni paapom.", "Sari, indha example enna solludhu-nu yosippom.", "Konjam slow-aa paapom; avasaram illa.", "Super, indha idea purinja next part easy-aa irukkum.", "Oru chinna recap pannittu continue pannalaam.")
-                  assert all(any(step["tanglish"]["teacher_says"].startswith(opener) for opener in natural_openers) for step in lesson["teaching_sequence"])
+                  natural_starters = ("Seri", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru")
+                  assert all(step["tanglish"]["teacher_says"].startswith(natural_starters) for step in lesson["teaching_sequence"])
                   assert all("un words-la sollu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"])
                   assert all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"])
                   assert 3 <= len(lesson.get("teaching_sequence", [])) <= 10

@@ -102,7 +102,7 @@ class HomeLayoutContractTests(unittest.TestCase):
     def test_caption_keeps_original_whitespace_and_paragraph_boundaries(self):
         source = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
                   "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
-        caption = source[source.index("private fun WordByWordCaption("):source.index("@Composable\\nprivate fun InteractiveLessonLab(")]
+        caption = source[source.index("private fun WordByWordCaption("):source.index("@Composable\\nprivate fun ChapterOneMathAnimation(")]
         self.assertIn("text.substring(cursor, matchStart)", caption)
         self.assertNotIn("sentencesInParagraph", caption)
         self.assertIn("lineHeight = 26.sp", caption)

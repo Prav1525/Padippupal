@@ -91,12 +91,17 @@ jobs:
                   assert all("confusing-aa irundhaalum parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"])
                   assert 3 <= len(lesson.get("teaching_sequence", [])) <= 10
                   assert len(lesson.get("learning_objectives_tanglish", [])) == len(lesson.get("learning_objectives", []))
+                  assert "natural conversational Tanglish" in lesson.get("language_variants", {}).get("Tanglish", {}).get("method", "")
                   for step in lesson["teaching_sequence"]:
                       assert len(step.get("source_chunk_ids", [])) > 0
                       for field in ("teacher_says", "caption", "example", "checkpoint"):
                           assert len(step.get("tanglish", {}).get(field, "")) >= 35
                       assert len(step.get("caption", "")) <= 500
                       assert len(step.get("example", "")) <= 900
+                      tanglish = step.get("tanglish", {})
+                      assert tanglish.get("teacher_says", "").startswith(("Seri", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru"))
+                      assert "unakku enna purinjuchu" in tanglish.get("teacher_says", "").lower()
+                      assert "un words-la" in tanglish.get("example", "").lower()
               rounds = conn.execute("""
                 SELECT count(*) AS n FROM syllabus_synthesis_rounds
                 WHERE board='CBSE' AND class_level=6 AND subject IN ('Mathematics','Science')

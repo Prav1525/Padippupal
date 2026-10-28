@@ -491,11 +491,11 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
         if not normalized_ids or not set(normalized_ids).issubset(allowed_ids):
             continue
         action = segment.get("visual_action") if isinstance(segment.get("visual_action"), dict) else {}
-        action_type = _clean(action.get("type") or "none", 32).lower()
+        action_type = normalize(str(action.get("type") or "none"))[:32].lower()
         objects = []
         if action_type != "none":
             for key in ("target", "value"):
-                label = _clean(action.get(key), 72)
+                label = normalize(str(action.get(key) or ""))[:72]
                 if label and label not in objects:
                     objects.append(label)
         page_numbers = []

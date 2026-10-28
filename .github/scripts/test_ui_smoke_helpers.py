@@ -303,7 +303,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
     def test_completed_lesson_is_kept_for_follow_up_chat(self):
         root = Path(__file__).resolve().parents[2]
         tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertIn('messages.add(TutorMessage("assistant", completedLesson))', tutor)
+        self.assertIn('messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))', tutor)
         self.assertIn('status = "Live lesson complete."', tutor)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
         self.assertIn("def assert_completed_lesson(path):", smoke)

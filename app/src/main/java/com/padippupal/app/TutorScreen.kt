@@ -461,6 +461,27 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                             val root=positions[0]
                             positions.drop(1).forEach { p -> drawLine(Color(0xFF24734B),Offset(root.x*size.width,root.y*size.height),Offset(p.x*size.width,p.y*size.height),2.dp.toPx()) }
                         }
+                        "fraction_builder" -> {
+                            // A simple, original four-part fraction diagram; this is not a copied textbook image.
+                            val left = size.width * .12f
+                            val top = size.height * .58f
+                            val cellWidth = size.width * .19f
+                            val cellHeight = size.height * .22f
+                            repeat(4) { index ->
+                                val cell = Offset(left + index * cellWidth, top)
+                                drawRect(
+                                    color = if (index < 3) Color(0xFFB9E3C7) else Color(0xFFF8FAFC),
+                                    topLeft = cell,
+                                    size = androidx.compose.ui.geometry.Size(cellWidth - 3.dp.toPx(), cellHeight)
+                                )
+                                drawRect(
+                                    color = Color(0xFF24734B),
+                                    topLeft = cell,
+                                    size = androidx.compose.ui.geometry.Size(cellWidth - 3.dp.toPx(), cellHeight),
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx())
+                                )
+                            }
+                        }
                         "pattern_builder", "number_pattern" -> if (positions.size >= 2) {
                             positions.zipWithNext().forEach { (a,b) -> drawLine(Color(0xFF83B695),Offset(a.x*size.width,a.y*size.height),Offset(b.x*size.width,b.y*size.height),2.dp.toPx()) }
                         }
@@ -527,7 +548,28 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         }
                         "angle_builder", "angle_classifier" -> if (positions.size >= 3) {
                             val v=positions[0]
+                            val a=positions[1]
+                            val b=positions[2]
                             positions.drop(1).take(2).forEach { p -> drawLine(Color(0xFF24734B), Offset(v.x*size.width,v.y*size.height), Offset(p.x*size.width,p.y*size.height), 3.dp.toPx()) }
+                            val dxA = a.x - v.x
+                            val dyA = a.y - v.y
+                            val dxB = b.x - v.x
+                            val dyB = b.y - v.y
+                            val angleA = Math.toDegrees(kotlin.math.atan2(dyA.toDouble(), dxA.toDouble())).toFloat()
+                            val angleB = Math.toDegrees(kotlin.math.atan2(dyB.toDouble(), dxB.toDouble())).toFloat()
+                            var sweep = angleB - angleA
+                            if (sweep > 180f) sweep -= 360f
+                            if (sweep < -180f) sweep += 360f
+                            val arcRadius = 24.dp.toPx()
+                            drawArc(
+                                color = Color(0xFF6B8DE3),
+                                startAngle = angleA,
+                                sweepAngle = sweep,
+                                useCenter = false,
+                                topLeft = Offset(v.x*size.width - arcRadius, v.y*size.height - arcRadius),
+                                size = androidx.compose.ui.geometry.Size(arcRadius*2, arcRadius*2),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx())
+                            )
                             drawCircle(Color(0xFF24734B), 5.dp.toPx(), Offset(v.x*size.width,v.y*size.height))
                         }
                         "symmetry_mirror" -> drawLine(Color(0xFF7F9BFF), Offset(size.width*.5f,0f), Offset(size.width*.5f,size.height), 2.dp.toPx())
@@ -600,6 +642,37 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             }
             Text(feedback, color=TutorDeep, fontSize=12.sp, lineHeight=16.sp)
             Text(caption, color=TutorGrey, fontSize=11.sp, lineHeight=15.sp)
+            val sourceRefs = lesson.optJSONArray("source_refs")
+            val sourceRef = sourceRefs?.optJSONObject(0)
+            if (sourceRef != null) {
+                val pageStart = sourceRef.optInt("page_start", 0)
+                val pageEnd = sourceRef.optInt("page_end", pageStart)
+                val edition = sourceRef.optString("edition", "")
+                val bookTitle = when (lesson.optString("subject")) {
+                    "Mathematics" -> "NCERT Ganita Prakash"
+                    "Science" -> "NCERT Curiosity"
+                    else -> "NCERT textbook"
+                }
+                Text(
+                    "$bookTitle · textbook reference",
+                    color = TutorGreen,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                val pageLabel = if (pageStart > 0 && pageEnd > 0 && pageEnd != pageStart) {
+                    "Pages $pageStart–$pageEnd"
+                } else if (pageStart > 0) {
+                    "Page $pageStart"
+                } else {
+                    "Chapter reference"
+                }
+                Text(
+                    listOf(pageLabel, edition).filter { it.isNotBlank() }.joinToString(" · "),
+                    color = TutorGrey,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
             if (steps != null && steps.length()>0) {
                 val current=steps.optJSONObject(activeStep.coerceIn(0,steps.length()-1))
                 Text("Step ${activeStep+1}/$stepCount · ${current?.optString("title","Try")}: ${current?.optString("text","Explore the objects.")}", color=TutorGreen, fontSize=11.sp)

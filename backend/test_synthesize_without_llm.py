@@ -33,7 +33,8 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
 
     def test_example_uses_actual_source_passage_not_placeholder(self):
         example = source_based_example("A magnet attracts objects made of iron.")
-        self.assertIn("A magnet attracts objects made of iron.", example)
+        self.assertIn("cited textbook passage", example)
+        self.assertIn("detail in the passage", example)
         self.assertNotIn("Use an example or diagram", example)
 
     def test_lesson_builds_specific_objectives_and_passage_based_steps(self):

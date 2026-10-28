@@ -1,2 +1,2 @@
 Temporary marker to trigger the explicitly requested isolated syllabus draft generation workflow. Remove after the workflow run is verified.
-Retry after switching the default to Gemini 3.8 Flash.
+Generation attempt: 2026-10-28.

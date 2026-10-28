@@ -88,7 +88,9 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         lesson = {"teaching_sequence": [{
             "id": "all-ones-table-row",
             "title": "Patterns in Mathematics — Part 1",
-            "caption": "Table of number sequences: Squares 1 4 9 16 25. All 1’s 1 1 1 1 1. Counting numbers 1 2 3 4 5.",
+            "caption": ("Mathematics is, in large part, the search for patterns and explanations. "
+                        + ("Introductory textbook passage. " * 12)
+                        + "Table of number sequences: Squares 1 4 9 16 25. All 1’s 1 1 1 1 1. Counting numbers 1 2 3 4 5."),
             "source_chunk_ids": ["chunk-patterns-page-1"],
             "visual": {"type": "table", "objects": []},
         }]}

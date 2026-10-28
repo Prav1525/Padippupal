@@ -453,7 +453,7 @@ def test_lesson_plan_returns_source_grounded_segments_with_complete_lesson_contr
         prompt = body["systemInstruction"]["parts"][0]["text"]
         assert "teach the full topic, not just its first idea" in prompt
         assert "Set checkpoint to null for every segment" in prompt
-        assert "This product mode is text-only" in prompt
+        assert "Visual policy: the app may attach an exact chapter/topic-matched lesson blueprint for inline rendering beside the live caption." in prompt
         assert "no more than 18 spoken words each" not in prompt
         assert "Set checkpoint on at least every second segment" not in prompt
         return FakeResponse()
@@ -894,6 +894,13 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     def fake_db():
         yield FakeConnection()
 
+    matched_blueprint = {
+        "id": "science-life-processes-photosynthesis",
+        "scene_type": "plant_sorter",
+        "steps": [{"title": "Notice", "text": "Plants use light."}],
+        "source_refs": [{"page_start": 12, "page_end": 13}],
+    }
+    monkeypatch.setattr(curriculum, "find_interactive_lesson", lambda *args: matched_blueprint)
     monkeypatch.setattr(curriculum, "db", fake_db)
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
         AssertionError("approved lesson should bypass fresh retrieval")))
@@ -912,6 +919,7 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "reveal"
     assert body["segments"][0]["checkpoint"] == "What does the plant need?"
+    assert body["interactive_lesson"] == matched_blueprint
 
 
 def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):
@@ -1081,5 +1089,5 @@ def test_tutor_prompt_requires_complete_grade_aware_chat_and_text_only_visuals()
     assert "PADIPPUPAL CHAT-FIRST TEACHING CONTRACT" in source
     assert "Teach the complete selected topic in one coherent lesson response" in source
     assert "Adapt vocabulary, sentence length, abstraction, and example complexity to class" in source
-    assert "Current product mode: text/chat examples only" in source
+    assert "Current product mode: chat-first with optional inline concept visuals" in source
     assert "Do not request lesson feedback until the complete explanation" in source

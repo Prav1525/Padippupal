@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import (assert_composer_question, concept_candidates, exact_color_mask,
+from ui_smoke import (assert_composer_question, assert_home, concept_candidates, exact_color_mask,
                        exact_text_candidates, tap, tap_input)
 
 
@@ -71,6 +71,64 @@ class ExactSelectorTests(unittest.TestCase):
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
+
+
+class HomeLayoutContractTests(unittest.TestCase):
+    def test_home_smoke_contract_matches_refreshed_primary_action(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="YOUR LEARNING SPACE" bounds="[0,0][300,50]"/>
+          <node text="YOUR PERSONAL TUTOR" bounds="[0,50][300,100]"/>
+          <node text="Start learning" bounds="[0,100][300,150]"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-home-layout-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_home(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_home_has_one_primary_tutor_action_and_compact_secondary_actions(self):
+        source = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                  "java" / "com" / "padippupal" / "app" / "MainActivity.kt").read_text()
+        home = source[source.index("private fun Home("):source.index("@Composable private fun Stat(")]
+        self.assertIn('Text(if (tamil) "பாடத்தைத் தொடங்கு" else "Start learning"', home)
+        self.assertIn('else "Scan homework"', home)
+        self.assertIn('else "Exam practice"', home)
+        self.assertIn('else "Connect your syllabus"', home)
+        self.assertNotIn('Tile("My subjects"', home)
+        self.assertNotIn('Tile("Study planner"', home)
+        self.assertNotIn('"01 / 04"', home)
+        smoke = (Path(__file__).resolve().parents[2] / ".github" / "scripts" / "android-ui-smoke.sh").read_text()
+        self.assertIn('tap home.xml "Start learning"', smoke)
+        self.assertNotIn('tap home.xml "Begin lesson"', smoke)
+
+
+class TutorInlineVisualContractTests(unittest.TestCase):
+    def test_curriculum_diagrams_and_source_page_references_render_inline(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        start = tutor.index("private fun DatabaseInteractiveLessonLab(")
+        end = tutor.index("private enum class LessonVisualKind", start)
+        lab = tutor[start:end]
+        self.assertIn('"fraction_builder" -> {', lab)
+        self.assertIn("drawArc(", lab)
+        self.assertIn('lesson.optJSONArray("source_refs")', lab)
+        self.assertIn('sourceRef.optInt("page_start", 0)', lab)
+        self.assertIn('sourceRef.optInt("page_end", pageStart)', lab)
+        backend = (Path(__file__).resolve().parents[2] / "backend/app.py").read_text()
+        row_start = backend.index("def _interactive_lesson_row(")
+        row_end = backend.index("def find_interactive_lesson(", row_start)
+        self.assertIn('"source_refs": payload.get("source_refs", [])', backend[row_start:row_end])
+        lesson_plan = backend[backend.index('def tutor_lesson_plan('):backend.index('@app.post("/tutor/chat")')]
+        self.assertIn('"interactive_lesson": matched_visual', lesson_plan)
+        self.assertNotIn("This product mode is text-only", lesson_plan)
+        self.assertIn("optional inline concept visuals", backend)
+        self.assertIn('response.optJSONObject("interactive_lesson")', tutor)
+        live_start = tutor.index('if (liveLessonActive) {')
+        live_end = tutor.index('Inline learner checkpoint', live_start)
+        live = tutor[live_start:live_end]
+        self.assertIn("liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(", live)
+        self.assertIn("compact = true", live)
+        self.assertIn("liveWordIndex", live)
 
 
 class TutorPromptContractTests(unittest.TestCase):
@@ -234,16 +292,18 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn("Per-segment checkpoint or animation UI reappeared", smoke)
         self.assertNotIn("missing its passive auto-playing concept animation", smoke)
 
-    def test_spoken_caption_groups_sentences_into_natural_paragraphs(self):
+    def test_spoken_caption_preserves_source_paragraphs(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertIn("separate paragraphs only after every third sentence", tutor)
-        self.assertIn(r'append(if (endsSentence && sentencesInParagraph % 3 == 0) "\n\n" else " ")', tutor)
-        self.assertIn("offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1", tutor)
+        caption = tutor[tutor.index("private fun WordByWordCaption("):tutor.index("private fun ChapterOneMathAnimation(")]
+        self.assertIn("text.substring(cursor, matchStart)", caption)
+        self.assertIn("if (cursor < text.length) append(text.substring(cursor))", caption)
+        self.assertNotIn("sentencesInParagraph", caption)
+        self.assertNotIn("separate paragraphs only after every third sentence", caption)
 
     def test_completed_lesson_is_kept_for_follow_up_chat(self):
         root = Path(__file__).resolve().parents[2]
         tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertIn('messages.add(TutorMessage("assistant", completedLesson))', tutor)
+        self.assertIn('messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))', tutor)
         self.assertIn('status = "Live lesson complete."', tutor)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
         self.assertIn("def assert_completed_lesson(path):", smoke)

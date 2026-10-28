@@ -252,3 +252,33 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `e50f358ffa26ce8df6af7c970de4c23b386eeefb` falls back to the emulator's already-installed Google TTS service when eSpeak voice data is missing, verifies that the service is registered, selects it as the default, and confirms the selected engine. It still fails closed if neither engine is available.
 - **Regression prevention:** Commit `8486068efd25f4322ed1629b91438f490d594b5f` updates static regression checks for the fallback and failure conditions. The full smoke test must still demonstrate that the tutor actually starts speaking (the live-lesson UI transitions to Pause); selecting a registered engine alone is not sufficient.
 - **Validation:** Awaiting fresh CI on the updated PR head. Do not merge until the full emulator smoke test passes.
+
+
+## Incident: UI redesign conflicts with obsolete paragraph-format regression
+- **Date:** 2026-10-28
+- **Affected PR:** [#48](https://github.com/Prav1525/Padippupal/pull/48), UI redesign branch `ui/modern-learner-layout`.
+- **Evidence:** [Android UI smoke run 40713993637](https://github.com/Prav1525/Padippupal/actions/runs/40713993637), smoke-script validation, commit under test `3db30454bd496ed4ac786afb1027d8166d79262d`.
+- **Observed failure:** `test_spoken_caption_groups_sentences_into_natural_paragraphs` expected the old implementation string `separate paragraphs only after every third sentence` and the forced-break offset logic. The new caption intentionally preserves the source text's whitespace and paragraph boundaries. JVM tests and APK build passed; emulator execution was skipped after script validation failed.
+- **Root cause:** **CONFIRMED** stale regression assertions encoded the superseded behavior, rather than the new requirement.
+- **Fix:** Commit `3dec9a073ba5622ad1853972aaf3a3468e6c6543` replaces that assertion with checks that the caption appends original source gaps and trailing text, and does not use the forced every-third-sentence rule. The duplicate paragraph-preservation test was removed to avoid redundant coverage.
+- **Validation:** Corrected test and full UI smoke workflow are **UNVERIFIED** pending CI on the updated head. Do not mark the UI verified or merge until script validation and API-35 emulator flow pass.
+
+
+## Incident: UI smoke still tapped the removed home CTA
+- **Date:** 2026-10-28
+- **Affected PR:** [#48](https://github.com/Prav1525/Padippupal/pull/48), branch `ui/modern-learner-layout`.
+- **Evidence:** [Android UI smoke run 40714616741](https://github.com/Prav1525/Padippupal/actions/runs/40714616741), failed emulator step log at the lesson-selection transition.
+- **Observed failure:** JVM tests, APK build, and smoke-script validation passed. Emulator confirmed the refreshed home labels, then failed because `.github/scripts/android-ui-smoke.sh` still tried to tap `Begin lesson`, which is no longer on the screen; the current primary CTA is `Start learning`.
+- **Root cause:** **CONFIRMED** stale UI automation selector after home redesign, not an app launch/build failure.
+- **Fix:** Commit `2e21c2fa49838825d13a6ba88c551c906d7e9db0` updates the smoke tap target to `Start learning`; commit `d2ada5de0225b18a0d998b98717bfb44b9ea648f` adds a regression test requiring the new selector and forbidding the removed label.
+- **Validation:** Latest-head UI smoke, JVM tests, APK build and guidance gate are **PENDING**. Do not merge until the emulator flow passes and its artifact is reviewed.
+
+
+## Incident: inline-visual regression test used an invalid source boundary
+- **Date:** 2026-10-28
+- **Affected PR:** [#48](https://github.com/Prav1525/Padippupal/pull/48), branch `ui/modern-learner-layout`.
+- **Evidence:** [Android UI smoke run 40716183030](https://github.com/Prav1525/Padippupal/actions/runs/40716183030), helper-test output in the smoke-script validation step.
+- **Observed failure:** JVM tests and APK build passed, but smoke-script validation failed in `test_curriculum_diagrams_and_source_page_references_render_inline` with `ValueError: substring not found` while locating the end of `_interactive_lesson_row`.
+- **Root cause:** **CONFIRMED** the test searched for a newline-escaped function boundary that did not match the source file's literal text. The application source was not the failing component.
+- **Fix:** Commit `43dd69b52760cb020e3c6545720bdcf875c84c51` changes the test to search directly for `def find_interactive_lesson(`.
+- **Validation:** Latest-head helper tests and API-35 emulator flow are **PENDING**. No merge or deployment performed.

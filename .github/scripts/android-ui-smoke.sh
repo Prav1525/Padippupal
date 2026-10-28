@@ -115,7 +115,7 @@ python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 FAILURE_CLASS="APP_FAILURE"
 
 log "Opening lesson selection before entering the tutor"
-python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
+python3 .github/scripts/ui_smoke.py tap home.xml "Start learning"
 sleep 8
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml

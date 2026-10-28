@@ -350,3 +350,92 @@ Use this format:
 ### 2026-10-27 — Correction-script regression finding
 - The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
 - The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.
+
+
+### 2026-10-28 — Reduce home-screen clutter and restore inline tutor visuals
+- **Branch / pre-ledger commit:** `ui/modern-learner-layout`; latest code commit before this log entry `7b82081b4b7a1c80499a86c1b864249453bb0a20`.
+- **Requirement / evidence:** User reports the app still does not feel polished and asks to identify redundancy, apply modern Android UI practices, and keep visuals inside the tutor screen. Source inspection confirmed the home screen had multiple competing card groups plus a repeated planner entry also present in bottom navigation. The tutor's `ChapterOneMathAnimation` and `DatabaseLessonVisual` composables returned before rendering; `DatabaseInteractiveLessonLab` also returned immediately and had no call site. `WordByWordCaption` rebuilt text and inserted paragraph breaks every third sentence instead of preserving source whitespace.
+- **Guidance applied:** Re-read `AGENTS.md`, full `TESTING_GUIDANCE.md`, README build instructions, Gradle app configuration, Android APK workflow, Android UI smoke workflow, smoke helper and regression test code before changes. Google Android guidance consulted: adaptive layout and content ([Android Developers](https://developer.android.com/design/ui/mobile/guides/layout-and-content/adapt-layout)), layout/navigation patterns ([Android Developers](https://developer.android.com/design/ui/mobile/guides/layout-and-content/layout-and-nav-patterns)), and Material 3 in Compose ([Android Developers](https://developer.android.com/develop/ui/compose/designsystems/material3)).
+- **Change made:** Reworked the home dashboard around one primary `Start learning` action, a compact two-row action list for homework scan and exam practice, and one syllabus connection row. Removed the duplicate subject/planner tiles because those destinations already have bottom-navigation entries. Restored the inline pattern animation and textbook lesson visual rendering; wired database-provided interactive lessons into the latest assistant message as inline content, falling back to the static lesson visual when no interactive lesson is provided. Removed the unused duplicate local interactive-lab composable. Reworked word highlighting to preserve the original text whitespace/paragraph boundaries, with consistent 16sp text and 26sp line height. Updated home smoke expectations and added source-contract regression tests for the new home and caption layout.
+- **Root cause:** **CONFIRMED** for the invisible visual components and forced paragraph breaks by early returns and the caption construction code. **CONFIRMED** for redundant home entry points by source: Subjects and Planner were present in bottom navigation and duplicated as home tiles. This does not establish whether every backend response supplies an interactive lesson or textbook image.
+- **Verification status:** **UNVERIFIED** pending exact-head CI. No APK build, emulator screenshot review, live text/audio check, or learner deployment has been performed for this branch yet.
+- **What this proves / does not prove:** Source now contains the intended inline rendering path and a simpler home layout. It does not prove that the live backend returns usable interactive visual metadata, that textbook image assets are present, or that the new layout renders correctly on-device.
+- **Next action:** Run the smoke-helper regression tests, Android JVM tests, debug APK build, and API-35 emulator flow. Inspect screenshots/accessibility output for the new home labels, inline visual rendering, caption alignment, and overlapping content; fix any real failures before declaring the UI verified. Do not merge or deploy without explicit permission.
+
+
+### 2026-10-28 — UI redesign first CI compile failure and correction
+- **Branch / commits:** `ui/modern-learner-layout`; first PR head `5a2db6f93b1c617b334129d224fe221bab7ab284`; compile correction `0744d5b27562f6fadc3e50b62aac74554771888c`; caption-test boundary correction `8310f8971b6b0ed38d99afbf6446923c7a5ba514`.
+- **Test / evidence:** [Android APK run 40713741627](https://github.com/Prav1525/Padippupal/actions/runs/40713741627), job 122905656986, compiled the PR merge ref with Gradle 8.9 and JDK 17.
+- **Result:** **FAIL** on the initial head at `:app:compileDebugKotlin`; exact error: `MainActivity.kt:259:26 Unresolved reference 'BorderStroke'`. The new home card used `BorderStroke` without importing it. The smoke run for that superseded head was cancelled after a newer commit was pushed.
+- **Correction:** Added `androidx.compose.foundation.BorderStroke` import. Also corrected a new source-contract test to find the now-active `ChapterOneMathAnimation` function directly after removing the unused `InteractiveLessonLab` composable.
+- **Root cause:** **CONFIRMED** for the compile error by the Kotlin compiler diagnostic. The correction is committed, but its build/test status is **UNVERIFIED** until CI on the corrected head completes.
+- **What remains:** Latest-head debug APK build, UI smoke helper tests, JVM tests, and API-35 emulator screenshots/flow must pass. Do not mark the redesign verified based on the import fix alone.
+- **Next action:** Inspect CI on the corrected head; if a new failure appears, use its first meaningful error and screenshot/log evidence rather than repeating an unchanged build. No merge or deployment performed.
+
+
+### 2026-10-28 — UI smoke helper validation found stale paragraph assertion
+- **Branch / commit under test:** `ui/modern-learner-layout`; PR head at failed run `3db30454bd496ed4ac786afb1027d8166d79262d`; test correction `3dec9a073ba5622ad1853972aaf3a3468e6c6543`.
+- **Workflow:** [Android UI smoke run 40713993637](https://github.com/Prav1525/Padippupal/actions/runs/40713993637), API 35, JDK 17, Gradle 8.9.
+- **Result:** **FAIL** at smoke-script validation. Kotlin/JVM tests **PASS** and debug APK build **PASS**. Emulator flow was **SKIPPED** because validation failed first.
+- **Exact failure:** `test_spoken_caption_groups_sentences_into_natural_paragraphs` required the old string `separate paragraphs only after every third sentence`; the code now intentionally preserves source whitespace and paragraph breaks.
+- **Root cause:** **CONFIRMED** stale test expectations contradicted the new UI requirement. This was not a Kotlin compilation or APK packaging failure.
+- **Correction:** Replaced the stale test with assertions that the caption retains original whitespace, trailing text, and paragraph boundaries, and no longer injects a break after every third sentence. Removed duplicate coverage for the same contract. Added incident details to `docs/TEST_FAILURE_REGISTER.md`.
+- **What remains unverified:** Corrected script validation, API-35 emulator navigation/screenshots, and inline visual rendering are pending a fresh CI run on the updated head. No merge/deployment performed.
+- **Next action:** Check the latest PR run. If script validation passes, inspect the emulator artifact and verify the home labels, lesson visual, paragraph layout, and absence of overlap.
+
+
+### 2026-10-28 — Inline lesson visuals: source provenance and original diagrams
+- **Branch:** `ui/modern-learner-layout`; UI enhancement commit `f9e7efa76eeca60e510b5d4a9935c8e2354fd493`; source/visual regression commit `eb1aac6090238fee496ce655ecf879f6ea9198b3`.
+- **User requirement:** Use teaching visuals in the same tutor screen, synchronized to the concept being taught; avoid overlays or separate visual windows.
+- **Research reviewed:** Android guidance on [Compose performance best practices](https://developer.android.com/develop/ui/compose/performance/bestpractices) and [mobile layout/navigation patterns](https://developer.android.com/design/ui/mobile/guides/layout-and-content/layout-and-nav-patterns). The lesson dataset records NCERT content as `restricted_do_not_ingest_or_redistribute_full_text_without_permission`; the official [NCERT/ePathshala textbook terms](https://epathshala.nic.in/wp-content/doc/book/gtextbook/textbook.htm) restrict reuse/redistribution of NCERT E-content and explicitly address software use.
+- **Change made:** Added an original four-part fraction diagram and an angle arc to the existing in-line Compose Canvas visual. Added textbook source labels/page ranges from each lesson's existing `source_refs` metadata, so page attribution is shown with the teaching visual rather than guessed or hardcoded.
+- **Rights decision:** Did **not** copy or bundle NCERT textbook page images. The app can show original concept illustrations alongside verified textbook page references; adding actual NCERT images to app software needs the appropriate written permission/license first. Source metadata currently covers the Grade 6 Mathematics chapter “Patterns in Mathematics” (36 lesson references, pages 1–17); most other lesson topics do not yet have verified page references.
+- **Regression coverage:** Added source-contract tests for the fraction diagram, angle arc, and source-reference rendering. Exact-head CI remains the authority for build/test status.
+- **What remains unverified:** Visual balance on-device, actual source page labels in a live API response, and natural narration/highlight synchronization. No merge or deployment performed.
+- **Next action:** Let latest-head CI finish; inspect emulator screenshot/artifact for home layout, inline diagram size/overlap, source label readability, and lesson navigation before adding more scene-specific diagrams.
+
+
+### 2026-10-28 — Emulator failure after home redesign: stale CTA selector
+- **Branch:** `ui/modern-learner-layout`; failed head `901a0888c8285e383bb0d76f821a1b714eab2067`; fix commits `2e21c2fa49838825d13a6ba88c551c906d7e9db0` and `d2ada5de0225b18a0d998b98717bfb44b9ea648f`.
+- **Workflow:** [Android UI smoke run 40714616741](https://github.com/Prav1525/Padippupal/actions/runs/40714616741).
+- **Result:** JVM tests, APK build, and smoke-script validation **PASS**; emulator end-to-end **FAIL**. The home screen loaded and all new expected labels were accessible.
+- **Exact failure:** Automation tried to tap `Begin lesson`; current home UI exposes `Start learning`.
+- **Root cause:** **CONFIRMED** stale selector in `.github/scripts/android-ui-smoke.sh` after the home redesign.
+- **Correction:** Changed the tap target to `Start learning` and added a regression assertion that the current target is present and the removed target is absent. Added incident details to `docs/TEST_FAILURE_REGISTER.md`.
+- **What remains unverified:** Fresh API-35 emulator run after this fix, including lesson selection and tutor visual flow. No merge or deployment performed.
+
+
+### 2026-10-28 — Inline visual test boundary typo
+- **Failed workflow:** [Android UI smoke run 40716183030](https://github.com/Prav1525/Padippupal/actions/runs/40716183030); source commit `264f8286da099e5eccb7cb35d13e1a24d9b638e6`; correction `43dd69b52760cb020e3c6545720bdcf875c84c51`.
+- **Result:** JVM tests and APK build passed; smoke-script validation failed before emulator execution.
+- **Root cause:** **CONFIRMED** new test attempted to find a literal escaped-newline boundary before `find_interactive_lesson`; the source did not contain that exact string.
+- **Correction:** Use the stable function declaration substring `def find_interactive_lesson(` as the boundary. Failure is documented in `docs/TEST_FAILURE_REGISTER.md`.
+- **Remaining verification:** Re-run helper tests and API-35 emulator flow on the corrected head. No merge or deployment performed.
+
+
+### 2026-10-28 — Wire exact-match concept visuals into live teaching
+- **Branch:** `ui/modern-learner-layout`; implementation is being committed after source review.
+- **Finding:** The live `/tutor/lesson-plan` path returned speech segments but did not return the exact-matched `interactive_lesson` blueprint; Android then showed the special Patterns animation only. The chat path already returned matched blueprints. The live planner and chat prompts also contained a conflicting text-only instruction.
+- **Change made:** Attach the exact chapter/topic-matched blueprint to successful live lesson responses; keep the lesson successful if optional visual lookup fails. Carry the blueprint into the single continuous spoken lesson and render a compact inline visual in the live tutor column. Drive the active blueprint step from the spoken caption's current word progress, preserve the existing Patterns animation as fallback, and retain the visual with the completed lesson in chat. Align backend prompts with optional, matched, inline visuals and prohibit invented textbook image assets.
+- **Rights and source scope:** Only original app-rendered diagrams and existing source page references are used; no NCERT images are copied into the software. Actual NCERT image reuse remains subject to the relevant permission/license.
+- **Regression coverage:** Add a backend assertion that an exact matched blueprint is attached to an approved live lesson and source-contract assertions for inline visual rendering and word-progress synchronization.
+- **Verification status:** **PENDING** exact-head JVM tests, APK build, guidance gate, and API-35 emulator flow. No merge or deployment performed.
+
+
+### 2026-10-28 — UI branch CI exposed stale text-only prompt assertions
+- **Branch:** `ui/modern-learner-layout`; failing head `036cc7058d58bf891895db99b818b0bfaaca899b`; test correction `7210cd2a3cf3ec5003a931675a6696a06eb09973`.
+- **Workflow:** [Curriculum Engine Tests run 40718714772](https://github.com/Prav1525/Padippupal/actions/runs/40718714772).
+- **Result:** 81 passed, 2 failed. Both failures were assertions that the lesson-plan prompt must be text-only. The current intended product contract is chat-first with optional inline concept visuals, with exact chapter/topic-matched blueprints rendered in the same tutor screen.
+- **Root cause:** **CONFIRMED** stale tests contradicted the current source contract; they were not runtime app failures.
+- **Fix:** Updated both assertions in `backend/test_tutor.py` to require the inline visual policy and current chat-first mode wording. No production behavior changed in this correction.
+- **Validation:** New-head CI is pending. APK run for prior head passed; UI smoke run for prior head was cancelled by a newer push and must be checked on the latest head.
+- **Next:** Inspect fresh curriculum test, APK build, and emulator smoke on commit `7210cd2a3cf3ec5003a931675a6696a06eb09973`. No merge or deployment performed.
+
+
+### 2026-10-28 — Smoke helper retained a pre-refactor completed-lesson assertion
+- **Branch:** `ui/modern-learner-layout`; failed head `036cc7058d58bf891895db99b818b0bfaaca899b`; correction `2da08c4acac3ebf1ced859dec16568129f707838`.
+- **Workflow:** [Android UI smoke run 40718715394](https://github.com/Prav1525/Padippupal/actions/runs/40718715394).
+- **Result:** Smoke-script validation failed in `test_completed_lesson_is_kept_for_follow_up_chat`; home-label assertions passed and emulator interaction had not started.
+- **Root cause:** **CONFIRMED** test expected the old two-argument `TutorMessage` constructor. Current source correctly retains `liveInteractiveLesson` when saving the completed lesson so follow-up chat can keep the inline lesson visual.
+- **Fix:** Updated the helper assertion to require the current constructor call including `interactiveLesson = liveInteractiveLesson`. No production code changed.
+- **Validation:** Corrected prompt assertions and this helper assertion are queued for latest-head CI. No merge or deployment performed.

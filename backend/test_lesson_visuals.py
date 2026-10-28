@@ -126,7 +126,7 @@ def test_visual_blueprints_are_persisted_and_updated_with_the_synthesis(tmp_path
     assert first[0]["step_id"] == "fraction-step-1"
     assert first[0]["source_chunk_ids"] == ["chunk-fraction-1"]
     assert first[0]["layout"] == "compact_2d"
-    assert first[0]["animation"] == "none"
+    assert first[0]["animation"] == "narration_synced_2d"
 
     revised = json.loads(json.dumps(lesson))
     revised["teaching_sequence"][0]["caption"] = "One whole can be split into equal parts."
@@ -137,7 +137,7 @@ def test_visual_blueprints_are_persisted_and_updated_with_the_synthesis(tmp_path
     assert inline["topic"] == "Equal parts"
     assert inline["title"] == "Equal parts"
     assert inline["scene_type"] == "synthesis_static"
-    assert inline["animation"] == "none"
+    assert inline["animation"] == "narration_synced_2d"
 
     with curriculum.db() as conn:
         rows = conn.execute(

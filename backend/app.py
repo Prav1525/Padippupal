@@ -2518,8 +2518,22 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                     continue
                 visual = step.get("visual") if isinstance(step.get("visual"), dict) else {}
                 objects = visual.get("objects", [])
+                step_id = str(step.get("id") or ("approved-" + str(index + 1)))[:40]
+                # The live player reads visuals from each segment, not just the response
+                # envelope. Attach only the asset built from this exact synthesis step so
+                # the diagram changes in sync with its narration and never shows a neighbour.
+                visual_record = next(
+                    (item for item in synthesized_visuals if str(item.get("step_id")) == step_id),
+                    None,
+                )
+                inline_visual = (
+                    build_inline_synthesized_visual(
+                        str(approved["id"]), lesson, [visual_record], str(approved.get("topic") or "")
+                    )
+                    if visual_record else None
+                )
                 segments.append({
-                    "id": str(step.get("id") or ("approved-" + str(index + 1)))[:40],
+                    "id": step_id,
                     "spoken_text": spoken[:500], "caption_text": caption[:500],
                     "source_chunk_ids": source_ids[:5],
                     "visual_action": {
@@ -2527,6 +2541,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "target": str(objects[0])[:100] if isinstance(objects, list) and objects else "",
                         "value": str(visual.get("actions") or visual.get("narration_sync") or "")[:160],
                     },
+                    "interactive_lesson": inline_visual,
                     "checkpoint": str(step.get("checkpoint"))[:240] if step.get("checkpoint") else None,
                 })
             # Approval verifies source provenance, not that every step still matches

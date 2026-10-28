@@ -86,6 +86,10 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
         self.assertTrue(all(len(step["caption"]) <= 500 for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["caption"]) <= 600 for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["tanglish"]["teacher_says"]) < 1000 for step in lesson["teaching_sequence"]))
+        self.assertTrue(all("Textbook clue:" not in step["tanglish"]["example"] for step in lesson["teaching_sequence"]))
+        self.assertTrue(all("Textbook-based application: read this passage" not in step["example"] for step in lesson["teaching_sequence"]))
+        self.assertTrue(all("Read the cited textbook passages and notice the main idea:" not in step["teacher_says"] for step in lesson["teaching_sequence"]))
+        self.assertTrue(all("Which detail in the cited passage supports your answer?" in step["checkpoint"] for step in lesson["teaching_sequence"]))
         self.assertTrue(all("unga vaarthaigal-la" not in step["tanglish"]["teacher_says"].lower() for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["title"]) < 100 for step in lesson["teaching_sequence"]))
 

@@ -302,3 +302,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Correction:** Commit `2bb869b6687370ba2bed7937f1b5b28e42909b52` reduces the live capture window to 12 frames and 12 seconds, preserving enough frames to verify word-highlight movement while checking the active lesson before playback finishes. Follow-up commit `78d1be12184fdb2f048f13b3356e7af0dc4920d3` also starts a background `/health` request when the app opens, so the Render API can wake while the learner chooses a lesson; this is a perceived-latency mitigation, not a substitute for keeping production compute always on.
 - **Verification:** Kotlin/JVM tests, debug APK build, script validation and curriculum tests passed on the previous head. The corrected emulator flow is **PENDING**; do not merge until a fresh exact-head run passes.
 - **Next action:** Confirm the latest Android UI smoke workflow runs on the corrected head. If it still fails, use the new active-screen XML and image evidence to distinguish a true rendering defect from a timing race. No merge or deployment performed.
+
+
+## Incident: Android live-tutor smoke capture outlasted fast emulator speech
+
+- **Symptom:** UI smoke run `40722951883` passed JVM tests, APK build, smoke-script validation, and deterministic tutor API setup, but the final live-screen assertion failed.
+- **Evidence / root cause:** The saved hierarchy at the failed assertion contained `Live lesson complete.` and the post-lesson `Ask your teacher…` composer, rather than the dedicated live-teaching controls. The smoke script then spent 25 seconds capturing 12 frames before taking the live-screen hierarchy; on the emulator's faster speech timing, playback could finish during that capture window. This is a test-timing failure, not evidence that the app crashed.
+- **Fix:** Commit `bab28a9060ae8e86db31b18141739df877d30377` shortens the capture window to 12 frames at 0.5-second intervals (about six seconds) so the highlight scan samples the active lesson sooner.
+- **Regression check:** Re-run `android-ui-smoke.sh`; it must capture the active tutor screen, find the inline visual, and detect a moving spoken-word highlight across at least two positions.
+- **Validation:** Pending fresh Android emulator run. Do not close this incident or merge until the emulator flow passes.

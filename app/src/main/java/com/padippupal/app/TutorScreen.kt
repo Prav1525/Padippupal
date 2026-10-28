@@ -190,134 +190,6 @@ private fun WordByWordCaption(
 }
 
 @Composable
-private fun InteractiveLessonLab(
-    chapter: String,
-    topic: String,
-    explanation: String,
-    visualActionType: String = "none",
-    visualTarget: String = "",
-    segmentIndex: Int = 0
-) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
-    val key = "$chapter $topic $explanation".lowercase()
-    val title: String
-    val hint: String
-    val items: List<MoveItem>
-    when {
-        listOf("fraction", "numerator", "denominator", "half", "quarter").any { it in key } -> {
-            title = "Build a fraction"; hint = "Drag equal pieces together to make one whole."
-            items = listOf(MoveItem("🟩","1/4",.08f,.25f),MoveItem("🟩","1/4",.30f,.25f),MoveItem("🟩","1/4",.52f,.25f),MoveItem("⬜","1/4",.74f,.25f))
-        }
-        listOf("magnet","magnetic","attract","repel").any { it in key } -> {
-            title = "Explore magnets"; hint = "Move the magnet near the metal objects and compare."
-            items = listOf(MoveItem("🧲","Magnet",.08f,.28f),MoveItem("📎","Metal",.70f,.18f),MoveItem("📎","Metal",.70f,.56f),MoveItem("🪵","Wood",.38f,.58f))
-        }
-        listOf("water cycle","evaporation","condensation","precipitation","states of water").any { it in key } -> {
-            title = "Move water through the cycle"; hint = "Drag water, vapour, clouds and rain through the stages."
-            items = listOf(MoveItem("🌊","Water",.04f,.56f),MoveItem("💧","Vapour",.28f,.18f),MoveItem("☁️","Cloud",.52f,.18f),MoveItem("🌧️","Rain",.76f,.56f))
-        }
-        listOf("number line","negative","integer","zero","other side of zero").any { it in key } -> {
-            title = "Explore the number line"; hint = "Drag the point left or right of zero."
-            items = listOf(MoveItem("🔵","−3",.08f,.32f),MoveItem("🟢","0",.44f,.32f),MoveItem("🟠","+3",.76f,.32f))
-        }
-        listOf("solar system","planet","orbit","beyond earth").any { it in key } -> {
-            title = "Explore planetary motion"; hint = "Drag a planet around the Sun to explore its position."
-            items = listOf(MoveItem("☀️","Sun",.40f,.30f),MoveItem("🌍","Earth",.70f,.12f),MoveItem("🪐","Planet",.12f,.56f))
-        }
-        listOf("photosynthesis","plant","living creature","diversity in the living").any { it in key } -> {
-            title = "Explore a plant"; hint = "Move sunlight, water and the leaf to explore the process."
-            items = listOf(MoveItem("☀️","Sunlight",.06f,.12f),MoveItem("💧","Water",.30f,.55f),MoveItem("🌱","Plant",.50f,.30f),MoveItem("🍃","Leaf",.76f,.12f))
-        }
-        listOf("angle","lines and angles","ray").any { it in key } -> {
-            title = "Explore angles"; hint = "Drag the ray markers to change their positions."
-            items = listOf(MoveItem("📍","Vertex",.42f,.42f),MoveItem("➡️","Ray 1",.72f,.42f),MoveItem("↗️","Ray 2",.60f,.10f))
-        }
-        listOf("perimeter","area","symmetry","shape","square","rectangle").any { it in key } -> {
-            title = "Explore shapes"; hint = "Drag the corners and compare the shape you make."
-            items = listOf(MoveItem("🔹","Corner",.12f,.16f),MoveItem("🔹","Corner",.72f,.16f),MoveItem("🔹","Corner",.72f,.56f),MoveItem("🔹","Corner",.12f,.56f))
-        }
-        else -> {
-            title = "Interactive concept lab"; hint = "Drag the objects around while the tutor explains this idea."
-            items = listOf(MoveItem("🔵","Explore",.10f,.20f),MoveItem("🟢","Observe",.40f,.46f),MoveItem("🟠","Try it",.72f,.18f))
-        }
-    }
-    val actionType = visualActionType.lowercase()
-    val targetKey = visualTarget.lowercase().replace("_", " ").replace("-", " ").trim()
-    val matchedTarget = items.indexOfFirst { item ->
-        val itemKey = item.name.lowercase()
-        targetKey.isNotBlank() && (targetKey == itemKey || targetKey.contains(itemKey) || itemKey.contains(targetKey))
-    }
-    val captionTarget = items.indexOfFirst { item ->
-        val itemKey = item.name.lowercase()
-        itemKey.length > 1 && explanation.lowercase().contains(itemKey)
-    }
-    val activeVisualIndexes = when {
-        actionType == "none" || actionType.isBlank() -> emptySet()
-        actionType == "compare" || actionType == "draw-line" -> items.indices.toList().takeLast(2).toSet()
-        actionType == "show-result" -> setOf(items.lastIndex)
-        matchedTarget >= 0 -> setOf(matchedTarget)
-        captionTarget >= 0 -> setOf(captionTarget)
-        actionType in setOf("highlight", "reveal", "move", "label") -> setOf(Math.floorMod(segmentIndex, items.size))
-        else -> emptySet()
-    }
-    var positions by remember(key) { mutableStateOf(items.map { Offset(it.x,it.y) }) }
-    val motion = rememberInfiniteTransition(label = "lab-motion")
-    val moving by motion.animateFloat(0f,1f,infiniteRepeatable(tween(2200),RepeatMode.Reverse),label="moving-particle")
-    Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("TOUCH & EXPLORE",color=TutorGreen,fontSize=10.sp,fontWeight=FontWeight.Bold)
-                    Text(title,color=TutorDeep,fontSize=14.sp,fontWeight=FontWeight.SemiBold)
-                }
-                TextButton(onClick={positions=items.map{Offset(it.x,it.y)}}){Text("Reset",color=TutorGreen)}
-            }
-            BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White,RoundedCornerShape(14.dp))) {
-                val w=maxWidth; val h=maxHeight
-                Canvas(Modifier.fillMaxSize()) {
-                    drawLine(Color(0xFFCBD5E1),Offset(size.width*.05f,size.height*.84f),Offset(size.width*.95f,size.height*.84f),2.dp.toPx())
-                    drawCircle(Color(0xFF4169E1),7.dp.toPx(),Offset(size.width*(.10f+.78f*moving),size.height*.84f))
-                }
-                items.forEachIndexed { index, item ->
-                    val p=positions[index]
-                    Column(
-                        Modifier.offset { IntOffset((p.x*(w-68.dp).toPx()).roundToInt(),(p.y*(h-64.dp).toPx()).roundToInt()) }
-                            .width(68.dp)
-                            .pointerInput(key,index,w,h) {
-                                detectDragGestures { change, drag ->
-                                    change.consume()
-                                    val maxX=(w-68.dp).toPx().coerceAtLeast(1f)
-                                    val maxY=(h-64.dp).toPx().coerceAtLeast(1f)
-                                    positions=positions.toMutableList().also { list ->
-                                        val old=list[index]
-                                        list[index]=Offset((old.x+drag.x/maxX).coerceIn(0f,1f),(old.y+drag.y/maxY).coerceIn(0f,1f))
-                                    }
-                                }
-                            },
-                        horizontalAlignment=Alignment.CenterHorizontally
-                    ) {
-                        Surface(
-                            color = if (index in activeVisualIndexes) Color(0xFFDCE7FF) else Color(0xFFF8FAFC),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(
-                                if (index in activeVisualIndexes) 2.dp else 1.dp,
-                                if (index in activeVisualIndexes) TutorGreen else Color(0xFFDCE3ED)
-                            )
-                        ) {
-                            Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=25.sp)
-                        }
-                        Text(item.name,color=TutorDeep,fontSize=10.sp,maxLines=1)
-                    }
-                }
-            }
-            Text(hint,color=TutorGrey,fontSize=12.sp,lineHeight=16.sp)
-            Text("Touch and hold an object, then drag it. Use Reset to start again.",color=TutorGreen,fontSize=10.sp)
-        }
-}
-
-
-@Composable
 private fun ChapterOneMathAnimation(
     scene: String,
     title: String,
@@ -445,9 +317,6 @@ private fun ChapterOneMathAnimation(
 
 @Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
@@ -2047,8 +1916,16 @@ internal fun TutorScreen(
                             }
                             if (message.role == "assistant") {
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
-                                if (message.content == latestAssistant?.content && message.visualLesson != null) {
-                                    DatabaseLessonVisual(message.visualLesson)
+                                if (message.content == latestAssistant?.content) {
+                                    when {
+                                        message.interactiveLesson != null -> DatabaseInteractiveLessonLab(
+                                            lesson = message.interactiveLesson,
+                                            sessionPrefs = sessionPrefs,
+                                            sessionKey = sessionKey,
+                                            todayKey = todayKey
+                                        )
+                                        message.visualLesson != null -> DatabaseLessonVisual(message.visualLesson)
+                                    }
                                 }
                                 // Feedback is intentionally deferred until the complete lesson flow is implemented.
 

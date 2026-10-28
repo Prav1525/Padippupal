@@ -64,3 +64,53 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_visual_blueprints_are_persisted_and_updated_with_the_synthesis(tmp_path, monkeypatch):
+    import app as curriculum
+
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "visual-assets.sqlite3")
+    curriculum.init_db()
+    lesson_id = "visual-persistence-test"
+    lesson = {
+        "chapter_title": "Fractions",
+        "overview": "A fraction names equal parts of a whole.",
+        "teaching_sequence": [{
+            "id": "fraction-step-1",
+            "title": "Equal parts",
+            "caption": "A fraction names equal parts of one whole.",
+            "source_chunk_ids": ["chunk-fraction-1"],
+            "visual": {"type": "fraction", "objects": ["whole", "four equal parts"]},
+        }],
+    }
+    now = 1.0
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id, board, class_level, subject, medium, chapter, topic, status,
+                lesson_json, source_refs_json, model, review_feedback, created_at, updated_at)
+               VALUES (?, 'CBSE', 5, 'Mathematics', 'English', 'Fractions', 'Equal parts',
+                       'approved', ?, '[]', '', '', ?, ?)""",
+            (lesson_id, json.dumps(lesson), now, now),
+        )
+
+    first = curriculum.get_or_create_lesson_visuals(lesson_id, lesson)
+    assert len(first) == 1
+    assert first[0]["step_id"] == "fraction-step-1"
+    assert first[0]["source_chunk_ids"] == ["chunk-fraction-1"]
+    assert first[0]["layout"] == "compact_2d"
+    assert first[0]["animation"] == "none"
+
+    revised = json.loads(json.dumps(lesson))
+    revised["teaching_sequence"][0]["caption"] = "One whole can be split into equal parts."
+    second = curriculum.get_or_create_lesson_visuals(lesson_id, revised)
+    assert second[0]["summary_text"] == "One whole can be split into equal parts."
+    assert second[0]["content_fingerprint"] != first[0]["content_fingerprint"]
+
+    with curriculum.db() as conn:
+        rows = conn.execute(
+            "SELECT COUNT(*) AS count FROM lesson_visual_assets WHERE lesson_id=? AND active=1",
+            (lesson_id,),
+        ).fetchone()
+    assert rows["count"] == 1

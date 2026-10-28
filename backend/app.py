@@ -239,22 +239,6 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS interactive_lessons_profile
           ON interactive_lessons(board, class_level, subject, chapter, active);
-        CREATE TABLE IF NOT EXISTS lesson_visual_assets (
-            id TEXT PRIMARY KEY,
-            lesson_id TEXT NOT NULL REFERENCES chapter_lessons(id) ON DELETE CASCADE,
-            step_id TEXT NOT NULL,
-            summary_text TEXT NOT NULL,
-            visual_kind TEXT NOT NULL,
-            blueprint_json TEXT NOT NULL,
-            source_chunk_ids_json TEXT NOT NULL DEFAULT '[]',
-            content_fingerprint TEXT NOT NULL,
-            active INTEGER NOT NULL DEFAULT 1,
-            created_at REAL NOT NULL,
-            updated_at REAL NOT NULL,
-            UNIQUE(lesson_id, step_id)
-        );
-        CREATE INDEX IF NOT EXISTS lesson_visual_assets_lookup
-          ON lesson_visual_assets(lesson_id, active);
         CREATE TABLE IF NOT EXISTS planner_tasks (
             id TEXT PRIMARY KEY,
             profile_id TEXT NOT NULL,
@@ -303,6 +287,22 @@ def init_db() -> None:
           ON syllabus_topic_syntheses(round_id, approval_status);
     CREATE INDEX IF NOT EXISTS chapter_lessons_lookup
           ON chapter_lessons(board, class_level, subject, medium, chapter, status);
+        CREATE TABLE IF NOT EXISTS lesson_visual_assets (
+            id TEXT PRIMARY KEY,
+            lesson_id TEXT NOT NULL REFERENCES chapter_lessons(id) ON DELETE CASCADE,
+            step_id TEXT NOT NULL,
+            summary_text TEXT NOT NULL,
+            visual_kind TEXT NOT NULL,
+            blueprint_json TEXT NOT NULL,
+            source_chunk_ids_json TEXT NOT NULL DEFAULT '[]',
+            content_fingerprint TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL,
+            UNIQUE(lesson_id, step_id)
+        );
+        CREATE INDEX IF NOT EXISTS lesson_visual_assets_lookup
+          ON lesson_visual_assets(lesson_id, active);
         """)
         # Seed a small reusable starter library. ON CONFLICT preserves lessons curated
         # by an administrator after the first deployment.
@@ -418,7 +418,7 @@ def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list
         rows = conn.execute(
             """SELECT step_id, summary_text, visual_kind, blueprint_json,
                       source_chunk_ids_json, content_fingerprint
-               FROM lesson_visual_assets WHERE lesson_id=? AND active=1 ORDER BY rowid""",
+               FROM lesson_visual_assets WHERE lesson_id=? AND active=1 ORDER BY created_at, step_id""",
             (lesson_id,),
         ).fetchall()
     return [{

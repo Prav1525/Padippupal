@@ -25,7 +25,7 @@ MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
     "c0305350-d5ba-44ed-9a75-b19399423fa7", "a5a51061-ac8b-40d5-b9ea-1424f83613d8",
-    "0d12f9e0-f7c0-4df3-b790-cc4ffb0bcb02", "1476f7b0-39ec-44ec-44ec-9b7f1f7539",
+    "0d12f9e0-f7c0-4df3-b790-cc4ffb0bcb02", "1476f7b0-39ec-44af-b947-95a8871f7539",
     "2679d57b-bed5-462e-ba07-1d948f8dc07a", "13641871-39ce-469f-894a-12f56e5b7545",
 ]
 SCIENCE_IDS = [

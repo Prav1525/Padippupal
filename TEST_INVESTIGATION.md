@@ -362,3 +362,12 @@ Use this format:
 - **Regression coverage added:** \`backend/test_lesson_language_variants.py\` checks that Tanglish is generated from an approved lesson, persisted with the same source IDs, reused without a second translation call, and rejected rather than replaced with English when the generated translation fails language validation.
 - **Verification status:** **UNVERIFIED** at commit time; tests and CI have not yet been run on this branch. These tests do not prove naturalness of live Gemini output, production deployment, or device audio quality.
 - **Next action:** Run the exact-head Curriculum Engine backend suite, investigation-guidance gate, Android debug build, and relevant UI/speech acceptance checks. Review failures and verify the deployed database migration/cache path before claiming learner availability. Do not merge or deploy without explicit permission.
+
+
+### 2026-10-28 — Language-variant first CI regression and correction
+
+- **Branch:** \`fix/language-specific-synthesized-lessons\`; failing exact-head run [Curriculum Engine Tests](https://github.com/Prav1525/Padippupal/actions/runs/40702209997), job [122864721518](https://github.com/Prav1525/Padippupal/actions/runs/40702209997/job/122864721518).
+- **Observed result:** Initial exact-head suite reported 83 passed, 2 failed. One legacy fake DB asserted every query must contain \`status='approved'\`, so it rejected the new variant-cache lookup. The new invalid-translation test also exposed that the initial language guard rejected Tamil-script output but did not reject an English-only sentence.
+- **Root cause:** **CONFIRMED** for both failures from the traceback and test response: the legacy test fixture was still requesting Tanglish despite testing only approved-row selection, and the language validator needed a positive Tanglish-marker requirement.
+- **Correction made:** The legacy approved-row selection test now requests English, leaving Tanglish behavior to the dedicated variant tests. Tanglish variants must now include at least one common romanized Tamil conversational marker in addition to rejecting Tamil script; English-only output is rejected and is not cached.
+- **Verification status:** Corrective commit(s) are on this branch; rerun the exact-head backend suite and check all remaining workflow gates before judging the correction. Android build and emulator smoke were still in progress at the last status check. No merge or deployment performed.

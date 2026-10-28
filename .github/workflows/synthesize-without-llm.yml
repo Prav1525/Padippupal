@@ -85,10 +85,10 @@ jobs:
                   assert lesson.get("draft_method") == "deterministic-extractive-v6-natural-tanglish"
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("available") is True
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("human_review_required") is True
-                  natural_openers = ("Seri, idha easy-aa paapom.", "Okay, indha part-a serndhu purinjukalaam.", "Nalla gavaninga, inga oru mukkiyamaana idea irukku.", "Ippo indha concept-a simple-aa break panni paapom.", "Sari, indha example enna solludhu-nu paapom.", "Konjam yosichu paarunga; idhu namma daily life-layum varalaam.", "Super, ippo next idea-ku polaam.", "Oru chinna recap pannitu idha paapom.")
+                  natural_openers = ("Seri, idha easy-aa purinjukkalaam.", "Okay, indha part-a serndhu paapom.", "Nalla, inga oru mukkiyamaana idea irukku.", "Ippo indha concept-a simple-aa break panni paapom.", "Sari, indha example enna solludhu-nu yosippom.", "Konjam slow-aa paapom; avasaram illa.", "Super, indha idea purinja next part easy-aa irukkum.", "Oru chinna recap pannittu continue pannalaam.")
                   assert all(any(step["tanglish"]["teacher_says"].startswith(opener) for opener in natural_openers) for step in lesson["teaching_sequence"])
-                  assert all("Idha un words-la explain pannu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"])
-                  assert all("confusing-aa irundhaalum parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"])
+                  assert all("un words-la sollu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"])
+                  assert all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"])
                   assert 3 <= len(lesson.get("teaching_sequence", [])) <= 10
                   assert len(lesson.get("learning_objectives_tanglish", [])) == len(lesson.get("learning_objectives", []))
                   assert "natural conversational Tanglish" in lesson.get("language_variants", {}).get("Tanglish", {}).get("method", "")

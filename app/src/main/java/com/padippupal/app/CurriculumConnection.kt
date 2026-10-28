@@ -57,6 +57,9 @@ internal fun CurriculumConnectionScreen(
     var loading by remember { mutableStateOf(false) }
     var matches by remember { mutableStateOf<List<CurriculumMatch>>(emptyList()) }
     var searched by remember { mutableStateOf(false) }
+    var chapter by remember { mutableStateOf("") }
+    var approvedLessons by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var lessonsSearched by remember { mutableStateOf(false) }
 
     fun requestHealth() {
         val cleanBase = baseUrl.trim().trimEnd('/')
@@ -124,6 +127,62 @@ internal fun CurriculumConnectionScreen(
                         status = if (found.isEmpty()) "Connected, but no matching approved passages are indexed yet." else "Found ${found.size} matching passage(s)."
                     },
                     onFailure = { status = "Search failed: ${it.message ?: "network error"}" }
+                )
+            }
+        }
+    }
+
+
+    fun fetchApprovedLessons() {
+        val cleanBase = baseUrl.trim().trimEnd('/')
+        if (!cleanBase.startsWith("https://")) {
+            status = "Enter a valid deployed HTTPS API address before loading lessons."
+            return
+        }
+        if (chapter.trim().length < 2) {
+            status = "Enter a chapter name to find its approved lesson."
+            return
+        }
+        loading = true
+        lessonsSearched = true
+        approvedLessons = emptyList()
+        status = "Loading approved synthesized lessons…"
+        apiExecutor.execute {
+            val result = runCatching {
+                val params = listOf(
+                    "board" to board,
+                    "class_level" to grade.toString(),
+                    "subject" to subject,
+                    "medium" to medium,
+                    "chapter" to chapter.trim()
+                ).joinToString("&") { (key, value) ->
+                    "$key=" + URLEncoder.encode(value, "UTF-8")
+                }
+                apiGet("$cleanBase/chapter-lessons/approved?$params")
+            }
+            apiMainHandler.post {
+                loading = false
+                result.fold(
+                    onSuccess = { response ->
+                        val rows = response.optJSONArray("lessons")
+                            ?: response.optJSONArray("items")
+                            ?: response.optJSONArray("results")
+                        val found = mutableListOf<JSONObject>()
+                        if (rows != null) {
+                            for (i in 0 until rows.length()) {
+                                rows.optJSONObject(i)?.let { found.add(it) }
+                            }
+                        } else if (response.has("lesson")) {
+                            found.add(response)
+                        }
+                        approvedLessons = found
+                        status = if (found.isEmpty()) {
+                            "Connected, but no approved synthesized lesson matches this chapter and student profile."
+                        } else {
+                            "Loaded ${found.size} approved lesson(s) for this chapter."
+                        }
+                    },
+                    onFailure = { status = "Lesson loading failed: ${it.message ?: "network error"}" }
                 )
             }
         }
@@ -218,7 +277,65 @@ internal fun CurriculumConnectionScreen(
                 }
             }
         }
-        item { Text("This screen retrieves source passages only. It does not yet generate an AI lesson or verify the official status of a document.", color = ApiGrey, fontSize = 11.sp) }
+
+        item { Divider() }
+        item {
+            Text("Approved synthesized lessons", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ApiInk)
+            Text("Loads reviewed lessons from the production curriculum API. Only approved lessons matching this learner profile are returned.", color = ApiGrey, fontSize = 12.sp)
+        }
+        item {
+            OutlinedTextField(
+                value = chapter,
+                onValueChange = { chapter = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Chapter name") },
+                placeholder = { Text("e.g. Patterns in Mathematics") },
+                singleLine = true
+            )
+        }
+        item {
+            Button(onClick = { fetchApprovedLessons() }, enabled = !loading && chapter.trim().length >= 2, modifier = Modifier.fillMaxWidth()) {
+                Text(if (loading) "Loading approved lessons…" else "Load approved lesson")
+            }
+        }
+        if (lessonsSearched && approvedLessons.isEmpty() && !loading) {
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF4D8)), shape = RoundedCornerShape(16.dp)) {
+                    Text("No approved lesson was returned for this chapter, class, board, subject and medium. This does not publish or approve draft lessons.", Modifier.padding(14.dp), color = ApiInk, fontSize = 13.sp)
+                }
+            }
+        }
+        items(approvedLessons) { row ->
+            val lesson = row.optJSONObject("lesson") ?: row
+            val sequence = lesson.optJSONArray("teaching_sequence")
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
+                Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        row.optString("topic").ifBlank { lesson.optString("chapter_title").ifBlank { row.optString("chapter", chapter) } },
+                        fontWeight = FontWeight.Bold, color = ApiInk, fontSize = 17.sp
+                    )
+                    Text("Approved · Class $grade · $board · $subject · $medium", color = ApiGreen, fontSize = 11.sp)
+                    if (sequence != null) {
+                        for (i in 0 until sequence.length()) {
+                            val step = sequence.optJSONObject(i) ?: continue
+                            val heading = step.optString("title").ifBlank { "Step ${i + 1}" }
+                            Text(heading, fontWeight = FontWeight.SemiBold, color = ApiInk)
+                            val explanation = step.optString("teacher_says")
+                                .ifBlank { step.optString("explanation") }
+                                .ifBlank { step.optString("caption") }
+                            if (explanation.isNotBlank()) Text(explanation, fontSize = 14.sp, lineHeight = 20.sp)
+                            val example = step.optString("example")
+                            if (example.isNotBlank()) Text("Example: $example", fontSize = 13.sp, color = ApiGrey)
+                        }
+                    } else {
+                        Text(lesson.toString(2), fontSize = 12.sp, lineHeight = 17.sp)
+                    }
+                    val refs = row.optJSONArray("source_refs")
+                    if (refs != null && refs.length() > 0) Text("Source references: ${refs.length()}", color = ApiGrey, fontSize = 11.sp)
+                }
+            }
+        }
+
     }
 }
 

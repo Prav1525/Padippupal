@@ -371,3 +371,14 @@ Use this format:
 - **Root cause:** **CONFIRMED** for the compile error by the Kotlin compiler diagnostic. The correction is committed, but its build/test status is **UNVERIFIED** until CI on the corrected head completes.
 - **What remains:** Latest-head debug APK build, UI smoke helper tests, JVM tests, and API-35 emulator screenshots/flow must pass. Do not mark the redesign verified based on the import fix alone.
 - **Next action:** Inspect CI on the corrected head; if a new failure appears, use its first meaningful error and screenshot/log evidence rather than repeating an unchanged build. No merge or deployment performed.
+
+
+### 2026-10-28 — UI smoke helper validation found stale paragraph assertion
+- **Branch / commit under test:** `ui/modern-learner-layout`; PR head at failed run `3db30454bd496ed4ac786afb1027d8166d79262d`; test correction `3dec9a073ba5622ad1853972aaf3a3468e6c6543`.
+- **Workflow:** [Android UI smoke run 40713993637](https://github.com/Prav1525/Padippupal/actions/runs/40713993637), API 35, JDK 17, Gradle 8.9.
+- **Result:** **FAIL** at smoke-script validation. Kotlin/JVM tests **PASS** and debug APK build **PASS**. Emulator flow was **SKIPPED** because validation failed first.
+- **Exact failure:** `test_spoken_caption_groups_sentences_into_natural_paragraphs` required the old string `separate paragraphs only after every third sentence`; the code now intentionally preserves source whitespace and paragraph breaks.
+- **Root cause:** **CONFIRMED** stale test expectations contradicted the new UI requirement. This was not a Kotlin compilation or APK packaging failure.
+- **Correction:** Replaced the stale test with assertions that the caption retains original whitespace, trailing text, and paragraph boundaries, and no longer injects a break after every third sentence. Removed duplicate coverage for the same contract. Added incident details to `docs/TEST_FAILURE_REGISTER.md`.
+- **What remains unverified:** Corrected script validation, API-35 emulator navigation/screenshots, and inline visual rendering are pending a fresh CI run on the updated head. No merge/deployment performed.
+- **Next action:** Check the latest PR run. If script validation passes, inspect the emulator artifact and verify the home labels, lesson visual, paragraph layout, and absence of overlap.

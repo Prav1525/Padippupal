@@ -24,7 +24,7 @@ from syllabus_synthesis import EvidenceChunk, evidence_fingerprint, make_run_id,
 BOARD = "CBSE"
 CLASS_LEVEL = 6
 MEDIUM = "English"
-CURRICULUM_VERSION = "extractive-v8-natural-tanglish"
+CURRICULUM_VERSION = "extractive-v9-topic-accurate-tanglish"
 MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
@@ -134,60 +134,145 @@ def specific_objective(summary: str, chapter: str) -> str:
     return f"Explain the textbook idea or situation: {sentence}"
 
 def tanglish_explanation(summary: str, chapter: str, stage: int) -> str:
-    """Use natural topic-aware Tanglish where safe; keep source evidence separately in the caption."""
+    """Create a conversational, chapter-aware Tanglish scaffold without reading English excerpts aloud."""
     text = summary.casefold()
-    if any(term in text for term in ("fraction", "roti", "equal share", "numerator", "denominator")):
-        core = (
-            "Seri, oru roti-a rendu per equal-aa share panreenga-nu nenachukko. "
-            "Ovvorutharukkum kidaikkura share-ai fraction-la kaattalaam. "
-            "Ippo textbook example-la idhu eppadi irukku-nu paapom."
-        )
-    elif any(term in text for term in ("ice cube", "ice melts", "melts into water", "melt", "solid", "liquid")):
-        core = (
-            "Seri, ice-ku room temperature-la heat kidaikkumbodhu melt aagi water-a maarum. "
-            "Idhu state change. Textbook example-la change enga nadakkudhu-nu serndhu paapom."
-        )
-    elif any(term in text for term in ("water vapour", "evaporat", "dries up", "evaporation")):
-        core = (
-            "Paathiya, surface-la irundha water konjam konjama dry aagudhu. "
-            "Water vapour-a maari air-kku pogaradhu evaporation. Textbook clue vechu idha connect pannalaam."
-        )
-    elif any(term in text for term in ("condens", "condensation")):
-        core = (
-            "Air-la irukkura water vapour cool aana, adhu tiny water droplets-a maaralaam. "
-            "Indha process-ku condensation-nu peru. Example-la indha change enga theriyudhu-nu paapom."
-        )
-    elif "magnet" in text and any(term in text for term in ("iron", "attract", "metal")):
-        core = (
-            "Ella object-um magnet-kitta attract aagathu. Textbook example-la endha object attract aagudhu-nu "
-            "paathu, adhu enna kaattudhu-nu serndhu yosippom."
-        )
-    elif any(term in text for term in ("root", "leaf", "leaves", "stem", "flower", "plant")):
-        core = (
-            "Plant-la ovvoru part-kum oru velai irukku. Indha passage-la endha part pathi pesuraanga-nu paapom; "
-            "adha adhu seyyura velai-oda connect pannalaam."
-        )
-    elif any(term in text for term in ("place value", "digit", "number pattern", "multiple", "number line")):
-        core = (
-            "Seri, numbers-a just paathu mudikka vendaam; pattern illa place value enna solludhu-nu gavanippom. "
-            "Oru example vechu rule-a kandupidichu paapom."
-        )
-    else:
-        openings = [
-            "Seri, indha idea-va easy-aa purinjukkalaam.",
-            "Okay, indha part-a serndhu paapom.",
-            "Nalla, inga oru mukkiyamaana point irukku.",
-            "Ippo idha simple-aa break panni paapom.",
-            "Sari, indha example enna solludhu-nu yosippom.",
-            "Konjam slow-aa paapom; avasaram illa.",
-            "Super, indha idea purinja next part easy-aa irukkum.",
-            "Oru chinna recap pannittu continue pannalaam.",
+    topic = chapter.casefold()
+
+    # Prefer the actual chapter identity over incidental words in a chunk. This prevents
+    # a flower in a geometry example from turning Symmetry into a plant-biology lesson.
+    if "fraction" in topic:
+        variants = [
+            "Seri, oru roti-a rendu per equal-aa share panninaa, ovvorutharukkum kidaikkura part-ai fraction-la kaattalaam.",
+            "Fraction-la mela irukkura numerator ethana parts edukkrom-nu sollum; keezha irukkura denominator motham ethana equal parts-nu sollum.",
+            "Equal parts mukkiyam: pieces size same-aa illa-na fraction share-a sariyaa represent panna mudiyadhu.",
         ]
-        opener = openings[(stage - 1) % len(openings)]
-        excerpt = summary.strip().rstrip()
-        if len(excerpt) > 125:
-            excerpt = excerpt[:122].rsplit(" ", 1)[0] + "..."
-        core = f"{opener} Textbook-la indha point: “{excerpt}”"
+    elif "data handling" in topic:
+        variants = [
+            "Seri, data-na namma collect panna details. Adha table illa tally marks-la arrange panninaa compare panna easy-aagum.",
+            "Bar graph illa pictograph paakkumbodhu, labels-um scale-um first gavanippom; appuram values compare pannalaam.",
+            "Indha data-la highest, lowest, total enna-nu kandupidikka, graph-la irukkura evidence-a use pannalaam.",
+        ]
+    elif "lines and angles" in topic:
+        variants = [
+            "Oru angle rendu rays oru common point-la meet aagumbodhu form aagum. Andha common point dhaan vertex.",
+            "Angle size-a estimate pannittu, thevai-na protractor use panni degrees-la measure pannalaam.",
+            "Diagram-la lines, rays, vertex enga irukku-nu identify panninaa angle-a purinjukka easy-aagum.",
+        ]
+    elif "number play" in topic or "patterns in mathematics" in topic:
+        variants = [
+            "Numbers-la oru pattern irundhaa, ovvoru step-la enna change aagudhu-nu gavanippom.",
+            "Next number guess panna mattum podhaadhu; pattern-ku support-aana rule-a example vechu explain pannalaam.",
+            "Oru sequence-la values eppadi varudhu-nu compare panninaa, repeat aagura rule theriyalaam.",
+        ]
+    elif "perimeter and area" in topic:
+        variants = [
+            "Perimeter-na shape-oda veli boundary length; area-na shape-kulla irukkura surface evlo space occupy pannudhu.",
+            "Perimeter calculate panna boundary sides-ai add pannuvom. Area-ku figure-oda inside space-ai paakkanum.",
+            "Same perimeter irundhaalum shapes-oda area same-aa irukkanum-nu illa; diagram-la compare panni paarpom.",
+        ]
+    elif "playing with constructions" in topic:
+        variants = [
+            "Geometric construction-la measurement mukkiyam. Ruler, compass illa protractor use pannumbodhu markings-ai careful-aa follow pannuvom.",
+            "Construction mudinja udane shape correct-nu assume panna vendaam; lengths-um angles-um check pannalaam.",
+            "Oru diagram-a steps-aa construct panninaa, ovvoru line-um point-um enna purpose-nu puriyum.",
+        ]
+    elif "prime time" in topic:
+        variants = [
+            "Oru number-oda factors-na adha remainder illaama divide pannura numbers. Examples vechu factors list pannalaam.",
+            "Prime number-ku exactly rendu positive factors dhaan: 1-um andha number-um. Example check panni paarpom.",
+            "Prime factorisation-na number-a prime factors-oda product-aa ezhudhuradhu; ovvoru step-um verify pannalaam.",
+        ]
+    elif "symmetry" in topic:
+        variants = [
+            "Symmetry irundhaa, oru line-la fold pannumbodhu rendu pakkamum match aagum. Andha line-ai symmetry line-nu solvom.",
+            "Indha shape-ai mirror maadhiri rendu pakkamaa compare pannalaam; parts match aagudha-nu diagram-la check pannuvom.",
+            "Ella shape-kum same number of symmetry lines irukkaadhu. Shape-a fold pannura idea vechu kandupidikkalaam.",
+        ]
+    elif "other side of zero" in topic:
+        variants = [
+            "Number line-la zero reference point. Zero-vukku right side positive numbers; left side negative numbers.",
+            "Negative number-na zero-vukku left side-la irukkum. Number line-la rendu values compare panni edhu greater-nu paapom.",
+            "Zero-lendhu distance-um direction-um gavanichaa positive, negative values-a purinjukka easy-aagum.",
+        ]
+    elif "states of water" in topic:
+        if any(term in text for term in ("condens", "water vapour cool")):
+            core = "Air-la irukkura water vapour cool aana tiny water droplets-a maaralaam; indha process-ku condensation-nu peru."
+        elif any(term in text for term in ("evaporat", "dries up", "water vapour")):
+            core = "Liquid water heat kidaikkumbodhu water vapour-a maaralaam; idhai evaporation-nu solvom."
+        elif any(term in text for term in ("ice", "melt", "solid", "liquid")):
+            core = "Seri, ice-ku heat kidaikkumbodhu melt aagi liquid water-a maarum. Idhu state change."
+        else:
+            core = "Water solid, liquid, gas-nu different states-la irukkalaam; heating-um cooling-um state change-ku reason-aagalam."
+        variants = [core, "Indha water change-la starting state enna, ending state enna-nu source example vechu identify pannalaam. " + core]
+    elif "exploring magnets" in topic:
+        variants = [
+            "Ella object-um magnet-kitta attract aagathu. Textbook-la test panna object-um result-um compare pannuvom.",
+            "Magnet attract pannina object enna material-la irukku-nu passage clue vechu yosippom; guess mattum panna vendaam.",
+            "Test result-a record panninaa endha objects attract aagudhu-nu pattern theriyum.",
+        ]
+    elif "beyond earth" in topic:
+        variants = [
+            "Earth-ku veliya irukkura objects pathi padikkumbodhu, textbook-la name, feature, diagram labels-a gavanippom.",
+            "Space-related idea-va purinjukka, indha passage-la sollirukkura object-um adhan feature-um connect pannalaam.",
+            "Diagram-la irukkura labels-a source text-oda compare panni, enna evidence irukku-nu sollalaam.",
+        ]
+    elif "diversity in the living world" in topic or "living creatures" in topic:
+        variants = [
+            "Living things-ai compare pannumbodhu, avanga shared features-um differences-um observe pannalaam.",
+            "Oru living thing-ai identify panna, appearance mattum illa; passage-la irukkura characteristics-aiyum gavanippom.",
+            "Different living things different places-la vaazhalaam; source-la kudutha features vechu compare pannalaam.",
+        ]
+    elif "materials around us" in topic:
+        variants = [
+            "Different materials-oda properties different-aa irukkalaam. Passage-la mention pannura property-ai identify pannuvom.",
+            "Oru material-ku enna use suitable-nu decide panna, adhan property-ku evidence irukkanum.",
+            "Objects-ai material/property base panni group panninaa similarities-um differences-um theriyum.",
+        ]
+    elif "measurement of length and motion" in topic:
+        variants = [
+            "Length measure pannumbodhu correct unit-um measuring tool-um choose pannanum; start point zero-la irukka-nu check pannuvom.",
+            "Motion-na position time-oda change aaguradhu. Example-la object move aagudha, eppadi theriyudhu-nu paapom.",
+            "Measurement-la unit, scale reading, starting point ellam accurate result-ku mukkiyam.",
+        ]
+    elif "methods of separation" in topic:
+        variants = [
+            "Mixture-la irukkura materials-ai separate panna, avanga properties-ku suitable-aana method choose pannuvom.",
+            "Handpicking, sieving illa filtering maadhiri methods eppo use aagum-nu source examples-oda compare pannalaam.",
+            "Separation method select panna, mixture-la irukkura materials size illa property enna-nu gavanikkanum.",
+        ]
+    elif "mindful eating" in topic:
+        variants = [
+            "Food namakku energy-um body function-ku thevaiyaana nutrients-um kudukkum; chapter-la irukkura food examples-ai compare pannuvom.",
+            "Balanced eating pathi yosikkumbodhu, oru food mattum podhuma-nu illa; different food groups enna contribute pannudhu-nu paapom.",
+            "Food choice pathi explain pannumbodhu, textbook-la irukkura nutrient clues-ai use pannalaam.",
+        ]
+    elif "nature's treasures" in topic:
+        variants = [
+            "Nature-la irundhu kidaikkura resource pathi padikkumbodhu, adhu enna use-ku varudhu-nu source-la irundhu identify pannuvom.",
+            "Natural resources-ai use pannumbodhu, namakku enna benefit, enna care thevai-nu passage evidence-oda yosippom.",
+            "Indha chapter-la mention pannura natural item-um adhan role-um connect pannalaam.",
+        ]
+    elif "temperature and its measurement" in topic:
+        variants = [
+            "Temperature-na evlo hot illa cold-nu measure pannura quantity. Touch mattum vechu accurate-aa decide panna mudiyadhu.",
+            "Temperature measure panna thermometer use pannuvom; reading edukkumbodhu scale-um unit-um gavanikkanum.",
+            "Rendu objects compare pannumbodhu, thermometer reading evidence-a use panninaa guess panna thevai illa.",
+        ]
+    elif "wonderful world of science" in topic:
+        variants = [
+            "Science-la namma observe pannuvom, question kekkavum, evidence collect pannavum, appuram explanation test pannuvom.",
+            "Oru idea correct-aa-nu decide panna observation-um evidence-um thevai; guess mattum podhaadhu.",
+            "Indha example-la enna observe pannirukkaanga, enna question kekkalaam-nu serndhu yosippom.",
+        ]
+    else:
+        # Keep the chapter relevant without pretending to translate a source excerpt.
+        variants = [
+            f"Seri, {chapter} chapter-la indha passage enna main idea solludhu-nu serndhu paapom.",
+            f"Indha {chapter} example-la evidence enna-nu gavanichu, adhu idea-va eppadi support pannudhu-nu yosippom.",
+            f"Konjam slow-aa paapom; {chapter} chapter-oda key point-ai source clue-oda connect pannalaam.",
+        ]
+
+    core = variants[(stage - 1) % len(variants)]
     return (
         f"{core} Unakku enna purinjuchu-nu sollu. "
         "Answer perfect-aa irukkanum-nu avasiyam illa; namma serndhu clear pannikkalaam."
@@ -195,21 +280,52 @@ def tanglish_explanation(summary: str, chapter: str, stage: int) -> str:
 
 
 def tanglish_checkpoint(summary: str, page: int | None, chapter: str, stage: int) -> str:
-    """Ask a warm, specific question instead of a stiff generic comprehension prompt."""
+    """Ask a warm checkpoint based on chapter, not incidental words in extracted PDF text."""
     text = summary.casefold()
+    topic = chapter.casefold()
     page_hint = f" Textbook page {page}-layum paaru." if page is not None else ""
-    if any(term in text for term in ("fraction", "roti", "equal share", "numerator", "denominator")):
-        question = "Idha equal-aa share panninaa ovvorutharukku evlo kidaikkum? Eppadi kandupidippa?"
-    elif any(term in text for term in ("ice", "water vapour", "evaporat", "condens", "melt", "boil", "solid", "liquid", "gas")):
-        question = "Indha change-la enna nadakkudhu? Munnadi enna irundhuchu, apram enna aachu?"
-    elif any(term in text for term in ("magnet", "attract", "iron", "metal")):
-        question = "Indha example-la edhu attract aagudhu? Textbook-la irundhu clue sollu."
-    elif any(term in text for term in ("plant", "root", "leaf", "seed", "flower")):
-        question = "Indha plant part enna velai seyyudhu? Passage-la irukkura clue vechu sollu."
-    elif any(term in text for term in ("number", "digit", "place value", "pattern", "multiple")):
-        question = "Indha number illa pattern-la enna rule theriyudhu? Oru example-oda sollu."
+    if "fraction" in topic:
+        question = "Idha equal-aa share panninaa ovvorutharukku evlo kidaikkum? Numerator-um denominator-um enna solludhu?"
+    elif "data handling" in topic:
+        question = "Indha data-la highest illa lowest value edhu? Graph-oda label/scale vechu eppadi therinjadhu?"
+    elif "lines and angles" in topic:
+        question = "Angle-oda vertex enga irukku? Adha measure panna endha tool use pannalaam?"
+    elif "number play" in topic or "patterns in mathematics" in topic:
+        question = "Indha sequence-la enna pattern theriyudhu? Next step-ku rule enna-nu explain pannuva?"
+    elif "perimeter and area" in topic:
+        question = "Perimeter-um area-vum enna vithyasam? Indha figure-la edhai measure panrom?"
+    elif "playing with constructions" in topic:
+        question = "Indha construction-la endha tool use pannirukkaanga? Length illa angle correct-aa irukka eppadi check pannuva?"
+    elif "prime time" in topic:
+        question = "Indha number-oda factors enna? Adhu prime-aa irukka-nu eppadi verify pannuva?"
+    elif "symmetry" in topic:
+        question = "Indha shape-ai fold panninaa rendu pakkamum match aaguma? Symmetry line enga irukkum?"
+    elif "other side of zero" in topic:
+        question = "Number line-la indha value zero-vukku endha side-la irukku? Positive-aa negative-aa?"
+    elif "states of water" in topic:
+        question = "Water-oda starting state enna, ending state enna? Indha change-ku enna condition help pannudhu?"
+    elif "exploring magnets" in topic:
+        question = "Endha object magnet-kitta attract aachu? Source-la irukkura result enna clue kudukkudhu?"
+    elif "beyond earth" in topic:
+        question = "Indha passage-la describe pannura space object edhu? Adhoda endha feature source-la mention pannirukku?"
+    elif "diversity in the living world" in topic or "living creatures" in topic:
+        question = "Indha living things-la enna similarity illa difference observe panna mudiyudhu?"
+    elif "materials around us" in topic:
+        question = "Indha material-oda endha property mention pannirukku? Adhu enna use-ku helpful?"
+    elif "measurement of length and motion" in topic:
+        question = "Length measure panna endha unit/tool use pannuva? Reading accurate-aa irukka enna check pannanum?"
+    elif "methods of separation" in topic:
+        question = "Indha mixture-ku endha separation method suitable? Materials-oda endha property help pannudhu?"
+    elif "mindful eating" in topic:
+        question = "Indha food example enna nutrient illa role pathi solludhu? Passage-la enna clue irukku?"
+    elif "nature's treasures" in topic:
+        question = "Indha natural resource enna use-ku varudhu? Adha pathi passage-la enna evidence irukku?"
+    elif "temperature and its measurement" in topic:
+        question = "Temperature reading edukkumbodhu endha tool-um unit-um gavanikkanum?"
+    elif "wonderful world of science" in topic:
+        question = "Indha example-la enna observe pannirukkaanga? Adhai test panna enna question kekkalaam?"
     else:
-        question = "Indha part-la main idea enna? Un words-la chinna explanation sollip paaru."
+        question = f"{chapter} passage-oda main idea enna? Source-la irukkura oru clue-oda un words-la sollu."
     return (
         f"Seri, oru quick check: {question}{page_hint} "
         "Udane answer varalana parava illa; passage-a thirumba paarthu try pannalaam."
@@ -387,7 +503,7 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
         "learning_objectives_tanglish": objectives_tanglish,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
-        "draft_method": "deterministic-extractive-v8-natural-tanglish",
+        "draft_method": "deterministic-extractive-v9-topic-accurate-tanglish",
         "language_variants": {
             "English": {"language": "English", "available": True},
             "Tanglish": {
@@ -462,7 +578,7 @@ def main() -> None:
                         WHERE chapter_lessons.status='draft'""",
                         (lesson_id, BOARD, CLASS_LEVEL, subject, MEDIUM, chapter,
                          json.dumps(lesson, ensure_ascii=False), json.dumps(refs, ensure_ascii=False),
-                         "deterministic-extractive-v8-natural-tanglish", now, now),
+                         "deterministic-extractive-v9-topic-accurate-tanglish", now, now),
                     )
                     conn.execute(
                         """INSERT INTO syllabus_synthesis_rounds
@@ -472,7 +588,7 @@ def main() -> None:
                         ON CONFLICT(id) DO UPDATE SET status='draft',model=excluded.model,
                           source_chunk_ids_json=excluded.source_chunk_ids_json,validation_json=excluded.validation_json,updated_at=excluded.updated_at""",
                         (round_id, str(source["id"]), BOARD, CLASS_LEVEL, subject, chapter, CURRICULUM_VERSION,
-                         "deterministic-extractive-v8-natural-tanglish", CURRICULUM_VERSION,
+                         "deterministic-extractive-v9-topic-accurate-tanglish", CURRICULUM_VERSION,
                          json.dumps([c.id for c in evidence]), fingerprint, json.dumps(validation), now, now),
                     )
                     conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=%s", (round_id,))

@@ -6,6 +6,8 @@ on:
       - feature/syllabus-synthesis-prototype
     paths:
       - backend/scripts/synthesize_without_llm.py
+      - backend/test_synthesize_without_llm.py
+      - backend/test_syllabus_synthesis.py
       - .github/workflows/synthesize-without-llm.yml
   workflow_dispatch:
     inputs:

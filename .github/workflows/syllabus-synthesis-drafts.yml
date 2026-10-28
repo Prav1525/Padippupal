@@ -212,6 +212,7 @@ jobs:
           print("PASS: all 22 lessons and 22 synthesis rounds are persisted as drafts with complete validated chunk citations.")
           print("Human source-page review and tutor integration checks are still required before approval.")
           PY
+      # Keep provider response diagnostics in the run log while never printing secrets.
       - name: Preserve concise run results
         if: always()
         run: |

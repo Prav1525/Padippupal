@@ -65,7 +65,7 @@ jobs:
                 FROM chapter_lessons
                 WHERE board='CBSE' AND class_level=6 AND medium='English'
                   AND subject IN ('Mathematics','Science')
-                  AND model='deterministic-extractive-v3'
+                  AND model='deterministic-extractive-v4-tanglish'
               """).fetchall()
               assert len(lessons) == 22, f"Expected 22 deterministic drafts, found {len(lessons)}"
               assert all(r["status"] == "draft" for r in lessons), "Found a non-draft lesson"
@@ -82,7 +82,17 @@ jobs:
                       validation_ids.update(step["source_chunk_ids"])
                   assert allowed == validation_ids, f"Citation mismatch in {lesson['chapter_title']}"
                   assert lesson.get("human_review_required") is True
-                  assert lesson.get("draft_method") == "deterministic-extractive-v3"
+                  assert lesson.get("draft_method") == "deterministic-extractive-v4-tanglish"
+                  assert lesson.get("language_variants", {}).get("Tanglish", {}).get("available") is True
+                  assert lesson.get("language_variants", {}).get("Tanglish", {}).get("human_review_required") is True
+                  assert 3 <= len(lesson.get("teaching_sequence", [])) <= 10
+                  assert len(lesson.get("learning_objectives_tanglish", [])) == len(lesson.get("learning_objectives", []))
+                  for step in lesson["teaching_sequence"]:
+                      assert len(step.get("source_chunk_ids", [])) > 0
+                      for field in ("teacher_says", "caption", "example", "checkpoint"):
+                          assert len(step.get("tanglish", {}).get(field, "")) >= 35
+
+                  assert lesson.get("draft_method") == "deterministic-extractive-v4-tanglish"
                   assert len(lesson.get("learning_objectives", [])) >= 3
                   assert all("identify and explain the main idea in source section" not in obj.lower() for obj in lesson["learning_objectives"])
                   for step in lesson["teaching_sequence"]:
@@ -93,7 +103,7 @@ jobs:
               rounds = conn.execute("""
                 SELECT count(*) AS n FROM syllabus_synthesis_rounds
                 WHERE board='CBSE' AND class_level=6 AND subject IN ('Mathematics','Science')
-                  AND curriculum_version='extractive-v3' AND status='draft'
+                  AND curriculum_version='extractive-v4-tanglish' AND status='draft'
               """).fetchone()["n"]
               assert rounds == 22, f"Expected 22 persisted synthesis rounds, found {rounds}"
               print("PASS: 10 Maths + 12 Science v2 drafts persisted; all remain draft; citations and content quality gates verified.")

@@ -334,9 +334,8 @@ private fun ChapterOneMathAnimation(
     caption: String,
     compact: Boolean = false
 ) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
+    // This animation is rendered inside the live teaching column, below the synchronized caption.
+    // It is intentionally not a dialog, overlay, or separate screen.
     var stage by remember(scene, title) { mutableIntStateOf(0) }
     LaunchedEffect(scene, title) {
         stage = 0

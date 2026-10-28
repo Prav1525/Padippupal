@@ -902,6 +902,8 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     }
     monkeypatch.setattr(curriculum, "find_interactive_lesson", lambda *args: matched_blueprint)
     monkeypatch.setattr(curriculum, "db", fake_db)
+    # This test isolates approved lesson selection; visual persistence has its own tests.
+    monkeypatch.setattr(curriculum, "get_or_create_lesson_visuals", lambda lesson_id, lesson: [])
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
         AssertionError("approved lesson should bypass fresh retrieval")))
     client = TestClient(curriculum.app)
@@ -1029,6 +1031,7 @@ def test_approved_topic_lesson_rejects_off_topic_steps_before_returning(monkeypa
         yield FakeConnection()
 
     monkeypatch.setattr(curriculum, "db", fake_db)
+    monkeypatch.setattr(curriculum, "get_or_create_lesson_visuals", lambda lesson_id, lesson: [])
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: {"matches": [], "warning": None})
     response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
         "board": "CBSE", "class_level": 6, "subject": "Mathematics",

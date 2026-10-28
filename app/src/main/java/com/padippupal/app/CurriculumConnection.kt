@@ -243,7 +243,13 @@ internal fun CurriculumConnectionScreen(
             val objectives = lesson.optJSONArray("learning_objectives")
             val objectivesText = if (objectives == null) "" else
                 (0 until objectives.length()).mapNotNull { objectives.optString(it).takeIf(String::isNotBlank) }.joinToString(" · ")
-            val explanation = lesson.optJSONObject("explanation")?.toString().orEmpty()
+            val explanationObject = lesson.optJSONObject("explanation")
+            val explanation = explanationObject?.let { obj ->
+                listOf("teacher_says", "explanation", "summary", "text", "overview")
+                    .map { obj.optString(it).trim() }
+                    .firstOrNull { it.isNotBlank() }
+                    .orEmpty()
+            }.orEmpty()
             val examples = lesson.optJSONArray("examples")?.toString().orEmpty()
             Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
                 Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {

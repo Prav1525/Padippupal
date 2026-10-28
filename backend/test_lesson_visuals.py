@@ -77,7 +77,7 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         record = build_visual_records("lesson-pattern", lesson)[0]
         self.assertEqual(record["visual_kind"], "sequence")
         self.assertEqual(record["blueprint"]["kind"], "sequence")
-        self.assertIn("sequence", record["blueprint"]["svg_markup"])
+        self.assertIn('<rect x="', record["blueprint"]["svg_markup"])
         self.assertEqual(record["source_chunk_ids_json"], '["chunk-pattern-1"]')
 
     def test_empty_or_missing_sequence_produces_no_unrelated_visual(self):

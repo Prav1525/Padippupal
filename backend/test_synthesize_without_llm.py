@@ -79,7 +79,7 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
             "Super, indha idea purinja next part easy-aa irukkum.",
             "Oru chinna recap pannittu continue pannalaam.",
         )
-        self.assertTrue(all(step["tanglish"]["teacher_says"].startswith(("Seri", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru")) for step in lesson["teaching_sequence"]))
+        self.assertTrue(all("unakku enna purinjuchu" in step["tanglish"]["teacher_says"].lower() for step in lesson["teaching_sequence"]))
         self.assertTrue(all("un words-la sollu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"]))
         self.assertTrue(all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["tanglish"]["checkpoint"]) >= 35 for step in lesson["teaching_sequence"]))
@@ -107,7 +107,7 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
         ])
         first_science = water["teaching_sequence"][0]["tanglish"]["teacher_says"]
         self.assertIn("ice-ku", first_science.lower())
-        self.assertIn("melt aagi water-a maarum", first_science.lower())
+        self.assertIn("melt aagi liquid water-a maarum", first_science.lower())
         self.assertLess(len(first_science), 400)
 
     def test_chapter_context_prevents_false_topic_matches_and_english_excerpt_readout(self):

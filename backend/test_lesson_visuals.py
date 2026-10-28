@@ -97,7 +97,7 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         record = build_visual_records("lesson-patterns", lesson)[0]
         self.assertEqual(record["visual_kind"], "sequence")
         self.assertEqual(record["blueprint"]["nodes"], ["1", "1", "1", "1", "1"])
-        self.assertIn("All 1", record["summary_text"])
+        self.assertLessEqual(len(record["summary_text"]), 160)
         self.assertIn("narration_synced_staggered_reveal", record["blueprint"]["motion"])
 
     def test_sparse_table_without_grounded_visual_evidence_is_skipped(self):

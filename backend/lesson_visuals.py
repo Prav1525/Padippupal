@@ -14,15 +14,21 @@ from typing import Any, Mapping
 
 _VISUAL_KIND_MAP = {
     "number_pattern": "sequence",
+    "sequence": "sequence",
+    "repeating_pattern": "sequence",
+    "shape_pattern": "sequence",
     "number_line": "number_line",
+    "integer_line": "number_line",
     "geometry": "geometry",
+    "angle": "geometry",
     "compare": "compare",
+    "comparison": "compare",
     "process": "process",
+    "chain": "process",
     "table": "table",
     "diagram": "diagram",
     "fraction": "fraction",
     "parts": "fraction",
-    "fraction": "fraction",
     "cycle": "cycle",
     "none": "concept_card",
 }

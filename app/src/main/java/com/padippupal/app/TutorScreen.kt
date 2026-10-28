@@ -448,7 +448,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                         }
                     }
                 }
-                "geometry", "number_line" -> {
+                "number_line" -> {
                     val left = size.width * 0.12f
                     val right = size.width * 0.88f
                     drawLine(Color(0xFF287F79), Offset(left, centerY), Offset(right, centerY), stroke)

@@ -2310,9 +2310,6 @@ internal fun TutorScreen(
                                 CircularProgressIndicator(color = TutorGreen)
                             }
                         }
-                        if (liveVisualAction.isNotBlank()) {
-                            Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                        }
                         // Keep the concept animation mounted during the checkpoint; compact it so
                         // the student can see both the pattern and the response choices together.
                         val liveVisualSteps = liveInteractiveLesson?.optJSONArray("steps")

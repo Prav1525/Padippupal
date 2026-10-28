@@ -28,3 +28,5 @@ PadippuPal's `chapter_lessons` records are the source of truth. Visuals must be 
 ## Verification still required
 
 Run backend tests and Android JVM/APK/emulator checks against the exact head. In particular, confirm the API's `synthesized_visuals` and `interactive_lesson` payload is rendered inside the live tutor screen and that its layout remains compact at phone width. This feature is not considered learner-ready until those checks pass.
+
+Validation note: CI must be run against the full head while this branch is temporarily targeted at `main`; after validation, the draft PR will return to its intended stacked base (`ui/modern-learner-layout`).

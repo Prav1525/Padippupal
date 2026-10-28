@@ -41,69 +41,161 @@ SCIENCE_IDS = [
     "0d4e12b6-57ae-4f74-b1b2-be5644fa2483", "86bbabde-ec5d-455a-b4da-a1de78fad0d7",
 ]
 
-def clean_sentences(text: str) -> list[str]:
-    text = re.sub(r"Chapter\s+\d+[^\n]{0,80}(?:indd|pdf)[^\n]*", " ", text, flags=re.I)
-    text = re.sub(r"\s+", " ", text).strip()
-    # Avoid copying exercise answer keys as the main teaching explanation.
+HEADER_PATTERNS = [
+    re.compile(r"\b(?:Ganita\s+Prakash|Curiosity)\s*\|\s*(?:Textbook of Science\s*\|\s*)?Grade\s*6\s*\d{1,4}\b", re.I),
+    re.compile(r"\bChapter\s+\d{1,2}\s+(?=(?:On a bright|Activity|Let us|In this|We can|Aavi|Thirav)\b)", re.I),
+    re.compile(r"\b(?:Grade|Class)\s*6\s*\|\s*(?:Textbook of Science\s*\|\s*)?\d{1,4}\b", re.I),
+    re.compile(r"[\uFFFD\u0080-\u009F]"),
+]
+PLACEHOLDER_PATTERNS = [
+    re.compile(r"identify and explain the main idea in source section", re.I),
+    re.compile(r"use an example or diagram from the cited textbook passage", re.I),
+    re.compile(r"explain the main idea from page .* and point to the evidence", re.I),
+    re.compile(r"read the cited source passage carefully and identify its main idea", re.I),
+]
+
+def clean_source_text(text: str) -> str:
+    """Remove known PDF running headers, control/OCR noise, and duplicate whitespace."""
+    text = text.replace("\uFFFD", " ").replace("\u008B", " ").replace("\x8b", " ")
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", " ", text)
+    # Known running headers are embedded in some chunk text, so clean inline as well as at line starts.
+    text = re.sub(r"(?:Ganita\s+Prakash|Curiosity)\s*\|\s*(?:Textbook of Science\s*\|\s*)?Grade\s*6\s*\d{1,4}", " ", text, flags=re.I)
     text = re.sub(r"\b(?:Figure it Out|Math Talk|Try This)\b", "Practice prompt", text, flags=re.I)
-    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", text)
-    return [p.strip(" -|") for p in parts if len(p.strip()) >= 35]
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" \t\n-|")
+    return text
+
+def clean_sentences(text: str) -> list[str]:
+    text = clean_source_text(text)
+    # Split around sentence boundaries, retaining short but meaningful textbook questions.
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9“‘])", text)
+    cleaned = []
+    seen = set()
+    for part in parts:
+        sentence = part.strip(" -|")
+        if len(sentence) < 28:
+            continue
+        if re.fullmatch(r"(?:chapter\s*)?\d{1,4}", sentence, re.I):
+            continue
+        key = re.sub(r"\W+", " ", sentence).casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(sentence)
+    return cleaned
 
 def short_summary(text: str) -> str:
     sentences = clean_sentences(text)
     if not sentences:
-        return "Read the cited source passage carefully and identify its main idea."
-    # A short extractive synopsis keeps the wording anchored in the supplied text.
-    selected = sentences[:2]
-    return " ".join(s[:450] for s in selected)[:850]
+        return ""
+    # Keep the first two readable, source-grounded sentences; avoid unbounded page dumps.
+    return " ".join(s[:420] for s in sentences[:2])[:700].strip()
+
+def specific_objective(summary: str, chapter: str) -> str:
+    """Create a source-specific objective rather than a generic section placeholder."""
+    sentence = summary.strip().rstrip(".!?")
+    if len(sentence) > 150:
+        sentence = sentence[:147].rsplit(" ", 1)[0] + "..."
+    if not sentence:
+        raise ValueError(f"{chapter}: no readable source text for learning objective")
+    return f"Explain the textbook idea or situation: {sentence}"
+
+def source_based_example(summary: str) -> str:
+    """Turn actual cited text into a learner task without inventing facts."""
+    sentence = summary.strip()
+    if len(sentence) > 240:
+        sentence = sentence[:237].rsplit(" ", 1)[0] + "..."
+    if not sentence:
+        raise ValueError("Cannot build an example from empty source text")
+    return (
+        f"Textbook-based application: read this passage — “{sentence}” "
+        "— then identify the key idea and explain it using evidence from the passage."
+    )
+
+def quality_gate(lesson: dict, chunks: list[dict]) -> list[str]:
+    """Reject structural drafts with generic placeholders or obvious extraction noise."""
+    errors: list[str] = []
+    allowed = {str(c["id"]) for c in chunks}
+    objectives = lesson.get("learning_objectives", [])
+    if len(objectives) < 3:
+        errors.append("need at least three chapter-specific learning objectives")
+    for objective in objectives:
+        if any(pattern.search(objective) for pattern in PLACEHOLDER_PATTERNS):
+            errors.append("generic/placeholder learning objective detected")
+            break
+    steps = lesson.get("teaching_sequence", [])
+    if len(steps) != len(chunks):
+        errors.append("every source chunk must map to one cited teaching step")
+    for i, step in enumerate(steps):
+        for field in ("teacher_says", "caption", "example", "checkpoint"):
+            value = str(step.get(field) or "").strip()
+            if len(value) < 35:
+                errors.append(f"step {i + 1}: {field} is too short")
+            if any(pattern.search(value) for pattern in PLACEHOLDER_PATTERNS):
+                errors.append(f"step {i + 1}: placeholder {field} detected")
+        if re.search(r"[\uFFFD\u0080-\u009F]", " ".join(str(step.get(k, "")) for k in ("teacher_says", "caption", "example", "checkpoint"))):
+            errors.append(f"step {i + 1}: control/OCR replacement character remains")
+        cited = {str(cid) for cid in step.get("source_chunk_ids", [])}
+        if not cited or not cited.issubset(allowed):
+            errors.append(f"step {i + 1}: invalid or missing source citation")
+    return errors
 
 def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, dict]:
     allowed = {str(c["id"]) for c in chunks}
     if not allowed:
         raise ValueError(f"No source chunks for {chapter}")
-    # One teachable step per chunk ensures no supplied chunk disappears from citations.
-    objectives = []
+    objectives: list[str] = []
     concept_map = []
     sequence = []
     for i, c in enumerate(chunks, 1):
         cid = str(c["id"])
         summary = short_summary(str(c["text"]))
-        heading = chapter if i == 1 else f"{chapter}: source section {i}"
-        objective = f"Identify and explain the main idea in source section {i} of {chapter}."
-        objectives.append(objective)
+        if not summary:
+            raise ValueError(f"{chapter}: source chunk {cid} has no readable text after cleanup")
+        objective = specific_objective(summary, chapter)
+        if objective not in objectives and len(objectives) < 6:
+            objectives.append(objective)
+        heading = chapter if i == 1 else f"{chapter}: section {i}"
         concept_map.append({
-            "concept": heading,
-            "prerequisite": "Connect the idea to what the learner already knows, then read the cited passage.",
+            "concept": f"{heading} — {summary[:100]}",
+            "prerequisite": "Connect the cited passage to the chapter's central question, using only the source evidence.",
             "source_chunk_ids": [cid],
         })
+        page = c.get("page_start")
+        page_text = f" (textbook page {page})" if page is not None else ""
+        checkpoint_text = summary[:220].rstrip(" .!?")
         sequence.append({
             "id": f"step_{i}",
             "title": heading,
-            "teacher_says": f"Let's study this part of {chapter}. The source says: {summary}",
+            "teacher_says": f"Let's examine this part of {chapter}. The textbook passage says: {summary}",
             "caption": summary[:500],
-            "example": "Use an example or diagram from the cited textbook passage and explain why it fits.",
-            "misconception": "Do not guess beyond the cited passage; check the source wording and worked examples.",
-            "checkpoint": f"In your own words, explain the main idea from page {c.get('page_start') or 'shown'} and point to the evidence.",
+            "example": source_based_example(summary),
+            "misconception": "Check the explanation against the cited passage and its worked example before teaching; do not infer details absent from the source.",
+            "checkpoint": f"Explain this passage in your own words{page_text}: “{checkpoint_text}”. Which idea does it communicate?",
             "source_chunk_ids": [cid],
             "visual": {"type": "table", "objects": [], "actions": [], "narration_sync": True},
         })
     lesson = {
         "chapter_title": chapter,
         "overview": (
-            f"This is an automatically assembled, source-grounded study draft for Class 6 {subject}. "
-            "It organizes the recorded textbook chunks into a sequence and preserves chunk-level citations. "
-            "Explanations are extractive summaries, so a teacher must review clarity, correctness, examples, "
-            "and age appropriateness before approval."
+            f"Class 6 {subject}: {chapter}. This is an automatically assembled, source-grounded study draft. "
+            "Text has been cleaned for common running headers and control characters; teaching prompts are built "
+            "from cited textbook passages. This deterministic process does not independently establish factual "
+            "correctness or pedagogical quality."
         ),
         "learning_objectives": objectives,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
-        "draft_method": "deterministic-extractive-v1",
+        "draft_method": "deterministic-extractive-v2",
         "human_review_required": True,
     }
     validation = validate_chapter_lesson_payload(lesson, allowed)
     if not validation["valid"]:
         raise ValueError(f"{chapter}: " + "; ".join(validation["errors"][:5]))
+    quality_errors = quality_gate(lesson, chunks)
+    if quality_errors:
+        raise ValueError(f"{chapter}: quality gate failed: " + "; ".join(quality_errors[:8]))
+    validation["quality_gate"] = {"passed": True, "errors": []}
     return lesson, validation
 
 def main() -> None:

@@ -132,6 +132,44 @@ if __name__ == "__main__":
     unittest.main()
 
 
+def test_dynamic_tutor_visuals_are_saved_under_the_exact_selected_topic(tmp_path, monkeypatch):
+    import app as curriculum
+
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "topic-visual-assets.sqlite3")
+    curriculum.init_db()
+    payload = curriculum.LessonPlanRequest(
+        board="CBSE", class_level=6, subject="Mathematics", medium="English",
+        message="Explain the All 1s pattern", chapter="Patterns in Mathematics",
+        topic="All 1s",
+    )
+    segments = [{
+        "id": "segment-1",
+        "spoken_text": "In the All 1s pattern, every term stays 1.",
+        "caption_text": "In the All 1s pattern, every term stays 1.",
+        "source_chunk_ids": ["chunk-pattern-page-1"],
+        "visual_action": {"type": "none", "target": "", "value": ""},
+    }]
+    sources = [{"chunk_id": "chunk-pattern-page-1", "page_start": 1, "page_end": 1}]
+    result = curriculum.attach_topic_visuals(payload, segments, sources)
+    inline = result[0]["interactive_lesson"]
+    assert inline["topic"] == "All 1s"
+    assert inline["visual_kind"] == "sequence"
+    assert inline["steps"][0]["nodes"] == ["1", "1", "1", "1", "1"]
+    assert inline["reference_page_numbers"] == [1]
+
+    with curriculum.db() as conn:
+        rows = conn.execute(
+            "SELECT board, class_level, subject, chapter, topic, source_chunk_ids_json, active "
+            "FROM tutor_topic_visual_assets"
+        ).fetchall()
+    assert len(rows) == 1
+    assert rows[0]["topic"] == "All 1s"
+    assert rows[0]["chapter"] == "Patterns in Mathematics"
+    assert rows[0]["source_chunk_ids_json"] == '["chunk-pattern-page-1"]'
+    assert rows[0]["active"] == 1
+
+
 def test_visual_blueprints_are_persisted_and_updated_with_the_synthesis(tmp_path, monkeypatch):
     import app as curriculum
 

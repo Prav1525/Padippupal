@@ -122,7 +122,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
     lowered = text.casefold()
 
     # This textbook sequence is a stable, explicit concept: each term remains 1.
-    if re.search(r"all\s+1(?:['’]?s?)?|all\s+ones?", lowered):
+    if re.search(r"\ball\s+1(?:['’]?s?)?\b|\ball\s+ones?\b", lowered):
         return "sequence", ["1", "1", "1", "1", "1"]
 
     # Extract clear rows from OCR tables only when the values are unambiguous.
@@ -131,7 +131,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
             ("Squares", r"squares"),
             ("Triangular numbers", r"triangular numbers"),
             ("Cubes", r"cubes"),
-            ("All 1s", r"all\s+1(?:['’]?s?)?|all\s+ones?"),
+            ("All 1s", r"\ball\s+1(?:['’]?s?)?\b|\ball\s+ones?\b"),
             ("Counting numbers", r"counting numbers"),
             ("Odd numbers", r"odd numbers"),
             ("Even numbers", r"even numbers"),

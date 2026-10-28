@@ -2364,6 +2364,8 @@ def _lesson_language_variant(lesson_id: str, lesson: dict[str, Any], refs: list[
                 raise ValueError("translated narration/caption is empty or too long")
             if requested.casefold() == "tanglish" and re.search(r"[\u0B80-\u0BFF]", teacher_says + caption):
                 raise ValueError("Tanglish output contains Tamil script")
+            if requested.casefold() == "tanglish" and not re.search(r"\b(?:namma|idhu|ithu|oru|ippo|ippa|panni|pannum|panrom|aagum|irukku|illa|illai|paakalam|paaru|than|enna|adhunaala|appo|inga|anga|solrom|mudiyum)\b", teacher_says + " " + caption, re.IGNORECASE):
+                raise ValueError("Tanglish output lacks conversational Tamil markers")
             if requested.casefold() in {"தமிழ்", "tamil"} and not re.search(r"[\u0B80-\u0BFF]", teacher_says + caption):
                 raise ValueError("Tamil output is not in Tamil script")
             variant_steps[index]["teacher_says"] = teacher_says

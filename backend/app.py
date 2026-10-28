@@ -456,6 +456,12 @@ def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
             "nodes": nodes[:6],
             "svg_markup": visual.get("svg_markup", ""),
             "source_chunk_ids": visual.get("source_chunk_ids", []),
+            "animation_plan": blueprint.get("animation_plan", {"mode": "staggered_reveal", "duration_ms": 850, "loop": False}),
+            "actions": blueprint.get("actions", []),
+            "narration_sync": blueprint.get("narration_sync", []),
+            "spatial_relationships": blueprint.get("spatial_relationships", []),
+            "teaching_order": blueprint.get("teaching_order", []),
+            "reference_page_numbers": blueprint.get("reference_page_numbers", []),
         })
         for node_index, node in enumerate(nodes[:6]):
             if len(objects) >= 12:
@@ -479,7 +485,9 @@ def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
         "objects": objects,
         "steps": steps,
         "layout": "compact_2d",
-        "animation": "none",
+        "animation": "narration_synced_2d",
+        "animation_plan": steps[0].get("animation_plan", {"mode": "staggered_reveal", "duration_ms": 850, "loop": False}),
+        "reference_page_numbers": sorted({page for step in steps for page in step.get("reference_page_numbers", [])}),
     }
 
 

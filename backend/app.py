@@ -452,6 +452,7 @@ def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
             "label": blueprint.get("title", visual.get("summary_text", "")),
             "caption": visual.get("summary_text", ""),
             "visual_kind": visual.get("visual_kind", "concept_card"),
+            "nodes": nodes[:6],
             "svg_markup": visual.get("svg_markup", ""),
             "source_chunk_ids": visual.get("source_chunk_ids", []),
         })

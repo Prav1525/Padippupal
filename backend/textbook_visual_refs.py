@@ -13,11 +13,11 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-MAX_REFERENCE_PAGES = 16
+MAX_REFERENCE_PAGES = 8
 MAX_DESCRIPTION_CHARS = 900
 
 
-def describe_pdf_visual_references(pdf_bytes: bytes) -> dict[int, str]:
+def describe_pdf_visual_references(pdf_bytes: bytes, max_pages: int = MAX_REFERENCE_PAGES) -> dict[int, str]:
     """Return page-number -> originalizable figure description; fail open on optional vision."""
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
@@ -41,7 +41,7 @@ def describe_pdf_visual_references(pdf_bytes: bytes) -> dict[int, str]:
                     candidates.append((page_index + 1, page))
             except Exception:
                 continue
-        for page_no, page in candidates[:MAX_REFERENCE_PAGES]:
+        for page_no, page in candidates[:max(0, min(max_pages, MAX_REFERENCE_PAGES))]:
             try:
                 pixmap = page.get_pixmap(matrix=fitz.Matrix(1.15, 1.15), alpha=False)
                 png_bytes = pixmap.tobytes("png")
@@ -75,7 +75,7 @@ def describe_pdf_visual_references(pdf_bytes: bytes) -> dict[int, str]:
                     headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
                     method="POST",
                 )
-                with urllib.request.urlopen(request, timeout=35) as response:
+                with urllib.request.urlopen(request, timeout=18) as response:
                     result = json.loads(response.read().decode("utf-8"))
                 raw_text = result["candidates"][0]["content"]["parts"][0]["text"]
                 parsed = json.loads(raw_text)

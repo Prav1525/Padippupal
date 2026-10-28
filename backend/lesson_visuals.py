@@ -148,6 +148,7 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         except (TypeError, ValueError):
             continue
     visual_rationale = _clean(visual.get("visual_rationale"), 180)
+    visual_subtype = _clean(visual.get("visual_subtype") or kind, 32).lower()
     caption = _clean(step.get("caption") or step.get("teacher_says") or step.get("title"), 240)
     title = _clean(step.get("title") or caption, 90)
     nodes = labels[:6] or sync_labels[:4] or [title]
@@ -156,6 +157,7 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         "title": title,
         "caption": caption,
         "kind": kind,
+        "visual_subtype": visual_subtype,
         "layout": "compact_2d",
         "motion": "narration_synced_staggered_reveal",
         "animation_plan": {

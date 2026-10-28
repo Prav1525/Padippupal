@@ -335,6 +335,8 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
     val activeCaption = activeStep?.optString("caption").orEmpty().ifBlank { caption }
     val activeKind = activeStep?.optString("visual_kind").orEmpty()
         .ifBlank { lesson.optString("visual_kind", "concept_card") }
+    val activeSubtype = activeStep?.optString("visual_subtype").orEmpty()
+        .ifBlank { lesson.optString("visual_subtype", activeKind) }.lowercase()
     val activeLabels = buildList {
         val stepNodes = activeStep?.optJSONArray("nodes")
         if (stepNodes != null) {

@@ -99,6 +99,24 @@ class HomeLayoutContractTests(unittest.TestCase):
         self.assertNotIn('Tile("Study planner"', home)
         self.assertNotIn('"01 / 04"', home)
 
+
+class TutorInlineVisualContractTests(unittest.TestCase):
+    def test_curriculum_diagrams_and_source_page_references_render_inline(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        start = tutor.index("private fun DatabaseInteractiveLessonLab(")
+        end = tutor.index("private enum class LessonVisualKind", start)
+        lab = tutor[start:end]
+        self.assertIn('"fraction_builder" -> {', lab)
+        self.assertIn("drawArc(", lab)
+        self.assertIn('lesson.optJSONArray("source_refs")', lab)
+        self.assertIn('sourceRef.optInt("page_start", 0)', lab)
+        self.assertIn('sourceRef.optInt("page_end", pageStart)', lab)
+        backend = (Path(__file__).resolve().parents[2] / "backend/app.py").read_text()
+        row_start = backend.index("def _interactive_lesson_row(")
+        row_end = backend.index("\\ndef find_interactive_lesson(", row_start)
+        self.assertIn('"source_refs": payload.get("source_refs", [])', backend[row_start:row_end])
+
+
 class TutorPromptContractTests(unittest.TestCase):
     def test_prompt_has_no_legacy_short_step_or_forced_checkpoint_rules(self):
         backend = (Path(__file__).resolve().parents[2] / "backend" / "app.py").read_text()

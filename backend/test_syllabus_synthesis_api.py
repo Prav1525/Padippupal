@@ -380,3 +380,57 @@ def test_batch_synthesis_inventory_is_read_only_bounded_and_source_specific(monk
     assert result["failed_count"] == 0
     assert captured[0].source_id == "batch-source-b"
     assert captured[0].chapter == "Chapter One"
+
+def test_learner_topic_endpoint_returns_only_approved_validated_synthesis():
+    curriculum.DB_PATH = Path(tempfile.mkstemp(suffix=".sqlite3")[1])
+    curriculum.init_db()
+    now = time.time()
+    source_id = "learner-synthesis-source"
+    round_id = "learner-synthesis-round"
+    topic_id = "learner-synthesis-topic"
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO sources
+            (id,board,academic_year,class_level,subject,medium,term,edition,title,source_url,
+             license_note,sha256,status,page_count,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (source_id, "CBSE", "2026-27", 6, "Science", "English", "", "2026",
+             "Approved test textbook", "https://example.org/book", "Test rights review",
+             "learner-synthesis-sha", "ready", 10, now),
+        )
+        conn.execute(
+            """INSERT INTO syllabus_synthesis_rounds
+            (id,source_id,board,class_level,subject,chapter,curriculum_version,status,model,
+             prompt_version,source_chunk_ids_json,evidence_fingerprint,validation_json,error_message,
+             created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,'approved',?,?,?,?,?,'',?,?)""",
+            (round_id, source_id, "CBSE", 6, "Science", "Plants", "v1", "test-model", "v1",
+             json.dumps(["chunk-1"]), "a" * 64,
+             json.dumps({"valid": True}), now, now),
+        )
+        conn.execute(
+            """INSERT INTO syllabus_topic_syntheses
+            (id,round_id,source_id,topic,page_start,page_end,learning_objectives_json,
+             explanation_json,examples_json,practice_questions_json,citation_refs_json,
+             validation_status,validation_notes_json,approval_status,created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (topic_id, round_id, source_id, "Plant parts", 2, 4,
+             json.dumps(["Name plant parts"]),
+             json.dumps({"teacher_says": "Roots take in water."}),
+             json.dumps(["A root absorbs water from soil."]),
+             json.dumps(["What do roots do?"]), json.dumps(["chunk-1"]),
+             "passed", json.dumps([]), "approved", now, now),
+        )
+    client = TestClient(curriculum.app)
+    params = {"board": "CBSE", "class_level": 6, "subject": "Science",
+              "medium": "English", "chapter": "Plants", "topic": "Plant parts"}
+    response = client.get("/syllabus-synthesis/approved-topic", params=params)
+    assert response.status_code == 200
+    assert response.json()["status"] == "approved"
+    assert response.json()["explanation"]["teacher_says"] == "Roots take in water."
+    assert response.json()["citation_refs"] == ["chunk-1"]
+    with curriculum.db() as conn:
+        conn.execute("UPDATE syllabus_topic_syntheses SET approval_status='draft' WHERE id=?", (topic_id,))
+    response = client.get("/syllabus-synthesis/approved-topic", params=params)
+    assert response.status_code == 200
+    assert response.json()["status"] == "not_found"

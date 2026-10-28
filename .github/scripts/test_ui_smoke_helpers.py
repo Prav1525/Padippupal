@@ -67,6 +67,13 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertIn('shell rm -f /data/local/tmp/live-lesson.xml', poll)
         self.assertLess(poll.index('shell rm -f /data/local/tmp/live-lesson.xml'), poll.index('shell uiautomator dump /data/local/tmp/live-lesson.xml'))
 
+        completion_start = script.index('log "Waiting for playback to finish')
+        completion_end = script.index('assert-completed-lesson live-complete.xml | tee', completion_start)
+        completion_poll = script[completion_start:completion_end]
+        self.assertIn("rm -f live-complete.xml", completion_poll)
+        self.assertIn('shell rm -f /data/local/tmp/live-complete.xml', completion_poll)
+        self.assertLess(completion_poll.index('shell rm -f /data/local/tmp/live-complete.xml'), completion_poll.index('shell uiautomator dump /data/local/tmp/live-complete.xml'))
+
     def test_live_lesson_client_timeout_exceeds_two_backend_generation_attempts(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()

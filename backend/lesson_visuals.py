@@ -220,7 +220,8 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
 
 
 def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
-    caption = _clean(step.get("caption") or step.get("teacher_says") or step.get("title"), 240)
+    source_caption = _clean(step.get("caption") or step.get("teacher_says") or step.get("title"), 5000)
+    caption = _clean(source_caption, 240)
     title = _clean(step.get("title") or caption, 90)
     visual = step.get("visual") if isinstance(step.get("visual"), Mapping) else {}
     raw_kind = _clean(visual.get("type") or step.get("visual_type") or "none", 32).lower()
@@ -235,7 +236,7 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         if label:
             labels.append(label)
     if not labels:
-        inferred_kind, inferred_nodes = _infer_visual_content(title, caption, kind)
+        inferred_kind, inferred_nodes = _infer_visual_content(title, source_caption, kind)
         if inferred_nodes:
             kind = inferred_kind
             labels = inferred_nodes

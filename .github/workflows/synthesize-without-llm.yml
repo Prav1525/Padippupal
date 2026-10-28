@@ -19,6 +19,11 @@ on:
 permissions:
   contents: read
 
+# Only one writer may synthesize into the isolated prototype DB at a time.
+concurrency:
+  group: padippupal-syllabus-synthesis-prototype
+  cancel-in-progress: true
+
 jobs:
   deterministic-synthesis:
     if: ${{ github.event_name == 'push' || inputs.confirm_isolated_prototype == 'GENERATE_DRAFTS' }}

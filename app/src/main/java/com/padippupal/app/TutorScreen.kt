@@ -332,6 +332,18 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
     val active = (activeStepOverride ?: 0).coerceIn(0, stepCount - 1)
     val activeStep = steps?.optJSONObject(active)
     val activeCaption = activeStep?.optString("caption").orEmpty().ifBlank { caption }
+    val activeKind = activeStep?.optString("visual_kind").orEmpty()
+        .ifBlank { lesson.optString("visual_kind", "concept_card") }
+    val activeLabels = buildList {
+        val stepNodes = activeStep?.optJSONArray("nodes")
+        if (stepNodes != null) {
+            for (index in 0 until stepNodes.length()) {
+                val label = stepNodes.optString(index).trim()
+                if (label.isNotBlank()) add(label.take(42))
+            }
+        }
+        if (isEmpty()) addAll(labels)
+    }.take(6)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -343,7 +355,97 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
         if (activeCaption.isNotBlank()) {
             Text(activeCaption, color = Color(0xFF526477), fontSize = if (compact) 11.sp else 12.sp, lineHeight = if (compact) 15.sp else 17.sp)
         }
-        labels.chunked(3).forEach { group ->
+        Canvas(
+            Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)
+                .background(Color.White, RoundedCornerShape(10.dp))
+        ) {
+            val stroke = 1.6.dp.toPx()
+            val centerY = size.height * 0.52f
+            when (activeKind) {
+                "fraction" -> {
+                    val count = if (activeLabels.any { it.contains("four", true) || it == "4" }) 4 else activeLabels.size.coerceIn(2, 6)
+                    val gap = 5.dp.toPx()
+                    val totalWidth = size.width * 0.78f
+                    val cellWidth = (totalWidth - gap * (count - 1)) / count
+                    val left = (size.width - totalWidth) / 2f
+                    val top = size.height * 0.22f
+                    val height = size.height * 0.56f
+                    repeat(count) { index ->
+                        drawRoundRect(
+                            color = if (index == 0) Color(0xFF5BB7A5) else Color(0xFFF3F8FA),
+                            topLeft = Offset(left + index * (cellWidth + gap), top),
+                            size = androidx.compose.ui.geometry.Size(cellWidth, height),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Fill
+                        )
+                        drawRoundRect(
+                            color = Color(0xFF287F79),
+                            topLeft = Offset(left + index * (cellWidth + gap), top),
+                            size = androidx.compose.ui.geometry.Size(cellWidth, height),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+                        )
+                    }
+                }
+                "sequence", "process", "cycle" -> {
+                    val count = activeLabels.size.coerceIn(1, 4)
+                    val gap = 7.dp.toPx()
+                    val boxWidth = (size.width * 0.86f - gap * (count - 1)) / count
+                    val left = size.width * 0.07f
+                    val top = size.height * 0.28f
+                    activeLabels.take(count).forEachIndexed { index, _ ->
+                        val x = left + index * (boxWidth + gap)
+                        if (index > 0) drawLine(Color(0xFF7C91A0), Offset(x - gap, centerY), Offset(x - 2.dp.toPx(), centerY), stroke)
+                        drawRoundRect(Color(0xFFDCEFEB), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()))
+                        drawRoundRect(Color(0xFF287F79), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    }
+                }
+                "compare" -> {
+                    val heights = listOf(0.30f, 0.48f, 0.66f)
+                    val barWidth = size.width * 0.13f
+                    val gap = size.width * 0.12f
+                    val start = (size.width - (barWidth * 3 + gap * 2)) / 2f
+                    val colors = listOf(Color(0xFF5BB7A5), Color(0xFF7CA9E8), Color(0xFFF1C46A))
+                    heights.forEachIndexed { index, fraction ->
+                        drawRoundRect(colors[index], Offset(start + index * (barWidth + gap), size.height * (0.82f - fraction)), androidx.compose.ui.geometry.Size(barWidth, size.height * fraction), androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()))
+                    }
+                }
+                "geometry", "number_line" -> {
+                    val left = size.width * 0.12f
+                    val right = size.width * 0.88f
+                    drawLine(Color(0xFF287F79), Offset(left, centerY), Offset(right, centerY), stroke)
+                    val count = activeLabels.size.coerceIn(2, 5)
+                    repeat(count) { index ->
+                        val x = left + (right - left) * index / (count - 1)
+                        drawCircle(Color(0xFF5BB7A5), 5.dp.toPx(), Offset(x, centerY))
+                    }
+                    if (activeKind == "geometry") {
+                        val p1 = Offset(size.width * 0.32f, size.height * 0.82f)
+                        val p2 = Offset(size.width * 0.50f, size.height * 0.18f)
+                        val p3 = Offset(size.width * 0.68f, size.height * 0.82f)
+                        drawLine(Color(0xFF7CA9E8), p1, p2, stroke * 1.5f)
+                        drawLine(Color(0xFF7CA9E8), p2, p3, stroke * 1.5f)
+                        drawLine(Color(0xFF7CA9E8), p3, p1, stroke * 1.5f)
+                    }
+                }
+                "table" -> {
+                    val count = activeLabels.size.coerceIn(1, 3)
+                    val colWidth = size.width * 0.78f / count
+                    val left = size.width * 0.11f
+                    val top = size.height * 0.20f
+                    repeat(count) { index ->
+                        drawRect(Color(0xFFDCEFEB), Offset(left + index * colWidth, top), androidx.compose.ui.geometry.Size(colWidth - 2.dp.toPx(), size.height * 0.58f))
+                        drawRect(Color(0xFF7C91A0), Offset(left + index * colWidth, top), androidx.compose.ui.geometry.Size(colWidth - 2.dp.toPx(), size.height * 0.58f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    }
+                }
+                else -> {
+                    drawCircle(Color(0xFFDCEFEB), size.minDimension * 0.30f, Offset(size.width / 2f, centerY))
+                    drawCircle(Color(0xFF287F79), size.minDimension * 0.30f, Offset(size.width / 2f, centerY), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    if (activeLabels.size > 1) drawLine(Color(0xFF7CA9E8), Offset(size.width * 0.38f, centerY), Offset(size.width * 0.62f, centerY), stroke)
+                }
+            }
+        }
+        activeLabels.chunked(3).forEach { group ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.forEach { label ->
                     Surface(

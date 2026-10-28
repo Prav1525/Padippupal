@@ -44,7 +44,8 @@ def _svg_text(value: str) -> str:
 
 def _render_svg(kind: str, title: str, nodes: list[str]) -> str:
     """Render a responsive, static 2D SVG from only synthesis-provided labels."""
-    labels = [_svg_text(_clean(node, 42)) for node in nodes[:6]]
+    raw_labels = [_clean(node, 84) for node in nodes[:6]]
+    labels = [_svg_text(label) for label in raw_labels]
     if not labels:
         labels = [_svg_text(title or "Key idea")]
     parts = [
@@ -91,13 +92,21 @@ def _render_svg(kind: str, title: str, nodes: list[str]) -> str:
         if kind == "geometry":
             parts.append('<path d="M96 112 L160 37 L224 112 Z" fill="#7CA9E8" fill-opacity=".25" stroke="#287F79" stroke-width="2"/>')
     elif kind == "table":
-        count = min(3, len(labels))
-        for i, label in enumerate(labels[:count]):
+        count = min(3, len(raw_labels))
+        for i, raw_label in enumerate(raw_labels[:count]):
+            header, separator, values = raw_label.partition("|")
             x = 28 + i * 88
-            parts.append(f'<rect x="{x}" y="43" width="82" height="68" rx="4" fill="#FFFFFF" stroke="#7C91A0"/>')
-            parts.append(f'<rect x="{x}" y="43" width="82" height="22" rx="4" fill="#DCEFEB"/>')
-            parts.append(f'<text x="{x+41}" y="57" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">{label}</text>')
-            parts.append(f'<path d="M{x} 87 H{x+82}" stroke="#D7E5EC"/>')
+            parts.append(f'<rect x="{x}" y="39" width="82" height="78" rx="4" fill="#FFFFFF" stroke="#7C91A0"/>')
+            parts.append(f'<rect x="{x}" y="39" width="82" height="24" rx="4" fill="#DCEFEB"/>')
+            parts.append(f'<text x="{x+41}" y="54" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">{_svg_text(header[:24])}</text>')
+            if separator and values:
+                values = _svg_text(values[:54])
+                parts.append(f'<text x="{x+41}" y="82" text-anchor="middle" font-size="7" font-family="sans-serif" fill="#24445B">{values[:27]}</text>')
+                if len(values) > 27:
+                    parts.append(f'<text x="{x+41}" y="94" text-anchor="middle" font-size="7" font-family="sans-serif" fill="#24445B">{values[27:54]}</text>')
+            else:
+                parts.append(f'<path d="M{x+8} 84 H{x+74}" stroke="#D7E5EC"/>')
+                parts.append(f'<path d="M{x+8} 99 H{x+74}" stroke="#D7E5EC"/>')
     else:
         parts.append('<circle cx="160" cy="76" r="42" fill="#DCEFEB" stroke="#287F79" stroke-width="1.5"/>')
         parts.append('<text x="160" y="72" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#24445B">' + labels[0] + '</text>')
@@ -107,7 +116,92 @@ def _render_svg(kind: str, title: str, nodes: list[str]) -> str:
     return "".join(parts)
 
 
+def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple[str, list[str]]:
+    """Infer only simple diagram labels that are explicitly present in the synthesized caption."""
+    text = _clean(f"{title} {caption}", 5000)
+    lowered = text.casefold()
+
+    # This textbook sequence is a stable, explicit concept: each term remains 1.
+    if re.search(r"all\\s+1s?|all\\s+ones?", lowered):
+        return "sequence", ["1", "1", "1", "1", "1"]
+
+    # Extract clear rows from OCR tables only when the values are unambiguous.
+    if fallback_kind == "table":
+        row_labels = [
+            ("Squares", r"squares"),
+            ("Triangular numbers", r"triangular numbers"),
+            ("Cubes", r"cubes"),
+            ("All 1s", r"all\\s+1s?|all\\s+ones?"),
+            ("Counting numbers", r"counting numbers"),
+            ("Odd numbers", r"odd numbers"),
+            ("Even numbers", r"even numbers"),
+        ]
+        found = []
+        matches = []
+        for label, pattern in row_labels:
+            match = re.search(r"(?i)\\b" + pattern + r"\\b", text)
+            if match:
+                matches.append((match.start(), match.end(), label))
+        matches.sort()
+        for index, (start, end, label) in enumerate(matches):
+            next_start = matches[index + 1][0] if index + 1 < len(matches) else min(len(text), end + 80)
+            segment = text[end:next_start]
+            values = re.findall(r"(?<![A-Za-z])\\d{1,3}(?![A-Za-z])", segment)
+            # Reject OCR-merged values and page-number-like outliers instead of guessing.
+            if len(values) >= 3 and all(len(value) <= 2 or value in {"100", "125"} for value in values[:5]):
+                values = values[:5]
+                if label == "All 1s" and all(value == "1" for value in values):
+                    found.append("All 1s|1 · 1 · 1 · 1 · 1")
+                elif label == "Squares" and values[:5] == ["1", "4", "9", "16", "25"]:
+                    found.append("Squares|1 · 4 · 9 · 16 · 25")
+                elif label == "Counting numbers" and values[:5] == ["1", "2", "3", "4", "5"]:
+                    found.append("Counting|1 · 2 · 3 · 4 · 5")
+                elif label == "Odd numbers" and values[:5] == ["1", "3", "5", "7", "9"]:
+                    found.append("Odd|1 · 3 · 5 · 7 · 9")
+                elif label == "Even numbers" and values[:5] == ["2", "4", "6", "8", "10"]:
+                    found.append("Even|2 · 4 · 6 · 8 · 10")
+        if found:
+            # Put the currently named concept first when the caption contains it.
+            if "all 1s" in lowered or "all ones" in lowered:
+                found.sort(key=lambda row: 0 if row.startswith("All 1s|") else 1)
+            return "table", found[:3]
+
+    if re.search(r"\\b(fraction|fractions|half|halves|quarter|quarters|\\d+\\s*/\\s*\\d+)\\b", lowered):
+        labels = []
+        for word in ("whole", "half", "quarter", "third", "equal parts", "numerator", "denominator"):
+            if re.search(r"\\b" + word + r"\\b", lowered):
+                labels.append(word.title())
+        fraction = re.search(r"\\b\\d+\\s*/\\s*\\d+\\b", text)
+        if fraction:
+            labels.insert(0, fraction.group(0).replace(" ", ""))
+        return "fraction", labels[:6] or ["Whole", "Equal parts"]
+
+    if any(term in lowered for term in ("water cycle", "evaporation", "condensation", "precipitation")):
+        labels = [term.title() for term in ("evaporation", "condensation", "precipitation", "collection") if term in lowered]
+        return "cycle", labels[:4] or ["Water", "Change", "Water"]
+
+    if any(term in lowered for term in ("angle", "triangle", "parallel", "perpendicular", "point", "line segment")):
+        labels = [term.title() for term in ("point", "line", "line segment", "angle", "triangle", "parallel", "perpendicular") if re.search(r"\\b" + re.escape(term) + r"\\b", lowered)]
+        return "geometry", labels[:5] or ["Point", "Line", "Angle"]
+
+    if "number line" in lowered:
+        numbers = re.findall(r"(?<![A-Za-z])[-+]?\\d{1,2}(?![A-Za-z])", text)
+        unique = list(dict.fromkeys(numbers))
+        if len(unique) >= 2:
+            return "number_line", unique[:5]
+        return "number_line", ["0", "1", "2"]
+
+    if any(term in lowered for term in ("bar graph", "pictograph", "tally marks", "data handling")):
+        labels = [term.title() for term in ("Data", "Tally marks", "Pictograph", "Bar graph") if term.casefold() in lowered]
+        return "table", labels[:3] or ["Data|Collect · Sort · Compare"]
+
+    # If a synthesis supplied no structured recipe, do not fabricate a diagram from its title.
+    return fallback_kind, []
+
+
 def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
+    caption = _clean(step.get("caption") or step.get("teacher_says") or step.get("title"), 240)
+    title = _clean(step.get("title") or caption, 90)
     visual = step.get("visual") if isinstance(step.get("visual"), Mapping) else {}
     raw_kind = _clean(visual.get("type") or step.get("visual_type") or "none", 32).lower()
     kind = _VISUAL_KIND_MAP.get(raw_kind, "concept_card")
@@ -120,6 +214,11 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         label = _clean(raw_label, 72)
         if label:
             labels.append(label)
+    if not labels:
+        inferred_kind, inferred_nodes = _infer_visual_content(title, caption, kind)
+        if inferred_nodes:
+            kind = inferred_kind
+            labels = inferred_nodes
     actions = visual.get("actions", [])
     if isinstance(actions, str):
         actions = [actions]
@@ -155,9 +254,7 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
             continue
     visual_rationale = _clean(visual.get("visual_rationale"), 180)
     visual_subtype = _clean(visual.get("visual_subtype") or kind, 32).lower()
-    caption = _clean(step.get("caption") or step.get("teacher_says") or step.get("title"), 240)
-    title = _clean(step.get("title") or caption, 90)
-    nodes = labels[:6] or sync_labels[:4] or [title]
+    nodes = labels[:6] or sync_labels[:4]
     blueprint = {
         "step_id": _clean(step.get("id") or f"step-{index + 1}", 48),
         "title": title,

@@ -435,7 +435,7 @@ def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list
 
 
 def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
-                                     visuals: list[dict[str, Any]]) -> dict[str, Any] | None:
+                                     visuals: list[dict[str, Any]], topic: str = "") -> dict[str, Any] | None:
     """Adapt stored synthesis-linked blueprints to the existing inline tutor visual contract."""
     if not visuals:
         return None
@@ -466,8 +466,8 @@ def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
     return {
         "id": "synth-" + lesson_id,
         "chapter": str(lesson.get("chapter_title") or "Synthesized lesson"),
-        "topic": str(lesson.get("topic") or lesson.get("chapter_title") or "Lesson concept"),
-        "title": str(lesson.get("chapter_title") or "Lesson visual"),
+        "topic": str(topic or lesson.get("topic") or lesson.get("chapter_title") or "Lesson concept"),
+        "title": str(topic or lesson.get("chapter_title") or "Lesson visual"),
         "scene_type": "synthesis_static",
         "caption": str(lesson.get("overview") or steps[0]["caption"]),
         "objects": objects,
@@ -2491,7 +2491,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "chapter_overview": lesson.get("overview", ""),
                         "learning_objectives": lesson.get("learning_objectives", []),
                         "chapter_title": lesson.get("chapter_title", approved["chapter"]),
-                        "interactive_lesson": build_inline_synthesized_visual(str(approved["id"]), lesson, synthesized_visuals) or matched_visual,
+                        "interactive_lesson": build_inline_synthesized_visual(str(approved["id"]), lesson, synthesized_visuals, str(approved.get("topic") or "")) or matched_visual,
                         "synthesized_visuals": synthesized_visuals}
             if segments:
                 logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",

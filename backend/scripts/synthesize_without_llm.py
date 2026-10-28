@@ -24,7 +24,7 @@ from syllabus_synthesis import EvidenceChunk, evidence_fingerprint, make_run_id,
 BOARD = "CBSE"
 CLASS_LEVEL = 6
 MEDIUM = "English"
-CURRICULUM_VERSION = "extractive-v3"
+CURRICULUM_VERSION = "extractive-v4-tanglish"
 MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
@@ -102,6 +102,26 @@ def specific_objective(summary: str, chapter: str) -> str:
         raise ValueError(f"{chapter}: no readable source text for learning objective")
     return f"Explain the textbook idea or situation: {sentence}"
 
+def tanglish_explanation(summary: str) -> str:
+    """Tamil-in-Latin-script scaffold that retains the textbook's English terminology."""
+    return (
+        "Namma idha step-by-step-a paapom. Textbook-la irukkura idea: "
+        + summary.strip()
+        + " Idhula mukkiyamaana concept enna-nu yosichu, unga vaarthaigal-la explain pannunga. "
+        "Subject terms English-la irukkattum; meaning puriyalana teacher-kitta kelunga."
+    )
+
+
+def tanglish_checkpoint(summary: str, page: int | None) -> str:
+    page_hint = f" Page {page}-la irukkura passage-aiyum paarunga." if page is not None else ""
+    excerpt = summary[:180].rstrip(" .!?")
+    return (
+        "Indha passage enna solludhu-nu unga vaarthaigal-la explain pannunga."
+        + page_hint
+        + f" Mukkiya idea: “{excerpt}”. Idharku passage-la enna evidence irukku?"
+    )
+
+
 def source_based_example(summary: str) -> str:
     """Turn actual cited text into a learner task without inventing facts."""
     sentence = summary.strip()
@@ -129,6 +149,13 @@ def quality_gate(lesson: dict, chunks: list[dict]) -> list[str]:
     if len(steps) != len(chunks):
         errors.append("every source chunk must map to one cited teaching step")
     for i, step in enumerate(steps):
+        tanglish = step.get("tanglish")
+        if not isinstance(tanglish, dict):
+            errors.append(f"step {i + 1}: missing Tanglish scaffold")
+        else:
+            for field in ("teacher_says", "caption", "example", "checkpoint"):
+                if not isinstance(tanglish.get(field), str) or len(tanglish[field].strip()) < 35:
+                    errors.append(f"step {i + 1}: Tanglish {field} missing or too short")
         for field in ("teacher_says", "caption", "example", "checkpoint"):
             value = str(step.get(field) or "").strip()
             if len(value) < 35:
@@ -162,6 +189,10 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
             "concept": f"{heading} — {summary[:100]}",
             "prerequisite": "Connect the cited passage to the chapter's central question, using only the source evidence.",
             "source_chunk_ids": [cid],
+            "tanglish_support": {
+                "concept": f"{heading}: indha passage-la varra mukkiya idea — {summary[:100]}",
+                "prerequisite": "Indha idea-va munnaadi padicha concept-oda connect pannunga; source-la illaadha details-ai add panna vendaam.",
+            },
         })
         page = c.get("page_start")
         page_text = f" (textbook page {page})" if page is not None else ""
@@ -172,6 +203,20 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
             "teacher_says": f"Let's examine this part of {chapter}. The textbook passage says: {summary}",
             "caption": summary[:500],
             "example": source_based_example(summary),
+            "tanglish": {
+                "teacher_says": tanglish_explanation(summary),
+                "caption": f"Indha part-ai nalla gavaninga: {summary[:420]}",
+                "example": (
+                    "Textbook passage-ai padichu, adhu sollra idea enna-nu simple Tanglish-la explain pannunga. "
+                    "Passage-la irukkura words/evidence-ai use pannunga; source-la illaadha answer-ai guess panna vendaam. "
+                    + summary[:220]
+                ),
+                "checkpoint": tanglish_checkpoint(summary, page),
+                "misconception": (
+                    "Source-la irukkura evidence-ai check pannunga. Puriyadha English science/math term-ai guess pannaama, "
+                    "adhoda meaning-ai teacher-oda verify pannunga."
+                ),
+            },
             "misconception": "Check the explanation against the cited passage and its worked example before teaching; do not infer details absent from the source.",
             "checkpoint": f"Explain this passage in your own words{page_text}: “{checkpoint_text}”. Which idea does it communicate?",
             "source_chunk_ids": [cid],
@@ -188,7 +233,17 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
         "learning_objectives": objectives,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
-        "draft_method": "deterministic-extractive-v3",
+        "draft_method": "deterministic-extractive-v4-tanglish",
+        "language_variants": {
+            "English": {"language": "English", "available": True},
+            "Tanglish": {
+                "language": "Tanglish",
+                "script": "Tamil written in Latin characters, with English subject terminology retained",
+                "available": True,
+                "method": "bilingual scaffolding around cited English textbook passages; not a full translation",
+                "human_review_required": True,
+            },
+        },
         "human_review_required": True,
     }
     validation = validate_chapter_lesson_payload(lesson, allowed)
@@ -251,7 +306,7 @@ def main() -> None:
                         WHERE chapter_lessons.status='draft'""",
                         (lesson_id, BOARD, CLASS_LEVEL, subject, MEDIUM, chapter,
                          json.dumps(lesson, ensure_ascii=False), json.dumps(refs, ensure_ascii=False),
-                         "deterministic-extractive-v3", now, now),
+                         "deterministic-extractive-v4-tanglish", now, now),
                     )
                     conn.execute(
                         """INSERT INTO syllabus_synthesis_rounds
@@ -261,7 +316,7 @@ def main() -> None:
                         ON CONFLICT(id) DO UPDATE SET status='draft',model=excluded.model,
                           source_chunk_ids_json=excluded.source_chunk_ids_json,validation_json=excluded.validation_json,updated_at=excluded.updated_at""",
                         (round_id, str(source["id"]), BOARD, CLASS_LEVEL, subject, chapter, CURRICULUM_VERSION,
-                         "deterministic-extractive-v3", CURRICULUM_VERSION,
+                         "deterministic-extractive-v4-tanglish", CURRICULUM_VERSION,
                          json.dumps([c.id for c in evidence]), fingerprint, json.dumps(validation), now, now),
                     )
                     conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=%s", (round_id,))
@@ -279,8 +334,10 @@ def main() -> None:
                              next((c.page_end for c in evidence if c.id in citations), None),
                              json.dumps([step["title"]], ensure_ascii=False),
                              json.dumps({"teacher_says": step["teacher_says"], "caption": step["caption"],
-                                         "misconception": step["misconception"], "checkpoint": step["checkpoint"]}, ensure_ascii=False),
-                             json.dumps([step["example"]], ensure_ascii=False), json.dumps([step["checkpoint"]], ensure_ascii=False),
+                                         "misconception": step["misconception"], "checkpoint": step["checkpoint"],
+                                         "tanglish": step["tanglish"]}, ensure_ascii=False),
+                             json.dumps([step["example"], step["tanglish"]["example"]], ensure_ascii=False),
+                             json.dumps([step["checkpoint"], step["tanglish"]["checkpoint"]], ensure_ascii=False),
                              json.dumps(citations), json.dumps(["All citations verified against this source"]), now, now),
                         )
                 totals["drafts"] += 1

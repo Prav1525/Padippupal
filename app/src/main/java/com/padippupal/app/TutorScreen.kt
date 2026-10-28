@@ -2301,7 +2301,7 @@ internal fun TutorScreen(
                                 modifier = if (awaitingUnderstanding) {
                                     Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
                                 } else {
-                                    Modifier.weight(1f).fillMaxWidth()
+                                    Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 190.dp)
                                 },
                                 // Keep the narration caption bounded so the mapped 2D visual stays visible inline.
                                 // Word highlighting scrolls inside the caption rather than pushing the visual off-screen.

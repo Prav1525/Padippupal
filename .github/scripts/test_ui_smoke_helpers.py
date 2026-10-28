@@ -385,6 +385,9 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn("assert-live live-lesson.xml > live-assertion.log 2>&1", script)
         self.assertIn("cp live-assertion.log live-assertion-last.log", script)
         self.assertIn("Last active-lesson assertion:", script)
+        self.assertIn("Sampled active-lesson assertion history:", script)
+        self.assertIn("live-assertion-history.log", script)
+        self.assertIn("lesson_poll_count % 10", script)
         self.assertIn("live-complete.xml", script)
         self.assertNotIn("explicit understanding checkpoint", script)
 

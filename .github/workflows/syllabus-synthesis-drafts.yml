@@ -46,6 +46,7 @@ jobs:
           DATABASE_URL: ${{ secrets.SYLLABUS_DATABASE_URL }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+          PADIPPUPAL_GEMINI_CHAT_MODEL: gemini-3.1-flash-lite
         run: |
           set -euo pipefail
           uvicorn app:app --host 127.0.0.1 --port 8765 > /tmp/syllabus-api.log 2>&1 &

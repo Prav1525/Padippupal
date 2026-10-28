@@ -24,7 +24,7 @@ from syllabus_synthesis import EvidenceChunk, evidence_fingerprint, make_run_id,
 BOARD = "CBSE"
 CLASS_LEVEL = 6
 MEDIUM = "English"
-CURRICULUM_VERSION = "extractive-v7-natural-tanglish"
+CURRICULUM_VERSION = "extractive-v8-natural-tanglish"
 MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
@@ -134,22 +134,62 @@ def specific_objective(summary: str, chapter: str) -> str:
     return f"Explain the textbook idea or situation: {sentence}"
 
 def tanglish_explanation(summary: str, chapter: str, stage: int) -> str:
-    """Friendly spoken Tanglish for a Class 6 learner, with consistent informal address."""
-    openings = [
-        "Seri, idha easy-aa purinjukkalaam.",
-        "Okay, indha part-a serndhu paapom.",
-        "Nalla, inga oru mukkiyamaana idea irukku.",
-        "Ippo indha concept-a simple-aa break panni paapom.",
-        "Sari, indha example enna solludhu-nu yosippom.",
-        "Konjam slow-aa paapom; avasaram illa.",
-        "Super, indha idea purinja next part easy-aa irukkum.",
-        "Oru chinna recap pannittu continue pannalaam.",
-    ]
-    opener = openings[(stage - 1) % len(openings)]
-    excerpt = summary.strip().rstrip()
+    """Use natural topic-aware Tanglish where safe; keep source evidence separately in the caption."""
+    text = summary.casefold()
+    if any(term in text for term in ("fraction", "roti", "equal share", "numerator", "denominator")):
+        core = (
+            "Seri, oru roti-a rendu per equal-aa share panreenga-nu nenachukko. "
+            "Ovvorutharukkum kidaikkura share-ai fraction-la kaattalaam. "
+            "Ippo textbook example-la idhu eppadi irukku-nu paapom."
+        )
+    elif any(term in text for term in ("ice cube", "ice melts", "melts into water", "melt", "solid", "liquid")):
+        core = (
+            "Seri, ice-ku room temperature-la heat kidaikkumbodhu melt aagi water-a maarum. "
+            "Idhu state change. Textbook example-la change enga nadakkudhu-nu serndhu paapom."
+        )
+    elif any(term in text for term in ("water vapour", "evaporat", "dries up", "evaporation")):
+        core = (
+            "Paathiya, surface-la irundha water konjam konjama dry aagudhu. "
+            "Water vapour-a maari air-kku pogaradhu evaporation. Textbook clue vechu idha connect pannalaam."
+        )
+    elif any(term in text for term in ("condens", "condensation")):
+        core = (
+            "Air-la irukkura water vapour cool aana, adhu tiny water droplets-a maaralaam. "
+            "Indha process-ku condensation-nu peru. Example-la indha change enga theriyudhu-nu paapom."
+        )
+    elif "magnet" in text and any(term in text for term in ("iron", "attract", "metal")):
+        core = (
+            "Ella object-um magnet-kitta attract aagathu. Textbook example-la endha object attract aagudhu-nu "
+            "paathu, adhu enna kaattudhu-nu serndhu yosippom."
+        )
+    elif any(term in text for term in ("root", "leaf", "leaves", "stem", "flower", "plant")):
+        core = (
+            "Plant-la ovvoru part-kum oru velai irukku. Indha passage-la endha part pathi pesuraanga-nu paapom; "
+            "adha adhu seyyura velai-oda connect pannalaam."
+        )
+    elif any(term in text for term in ("place value", "digit", "number pattern", "multiple", "number line")):
+        core = (
+            "Seri, numbers-a just paathu mudikka vendaam; pattern illa place value enna solludhu-nu gavanippom. "
+            "Oru example vechu rule-a kandupidichu paapom."
+        )
+    else:
+        openings = [
+            "Seri, indha idea-va easy-aa purinjukkalaam.",
+            "Okay, indha part-a serndhu paapom.",
+            "Nalla, inga oru mukkiyamaana point irukku.",
+            "Ippo idha simple-aa break panni paapom.",
+            "Sari, indha example enna solludhu-nu yosippom.",
+            "Konjam slow-aa paapom; avasaram illa.",
+            "Super, indha idea purinja next part easy-aa irukkum.",
+            "Oru chinna recap pannittu continue pannalaam.",
+        ]
+        opener = openings[(stage - 1) % len(openings)]
+        excerpt = summary.strip().rstrip()
+        if len(excerpt) > 125:
+            excerpt = excerpt[:122].rsplit(" ", 1)[0] + "..."
+        core = f"{opener} Textbook-la indha point: “{excerpt}”"
     return (
-        f"{opener} Textbook-la indha point sollirukkaanga: “{excerpt}” "
-        "Idha padichuttu unakku enna purinjuchu-nu sollu. "
+        f"{core} Unakku enna purinjuchu-nu sollu. "
         "Answer perfect-aa irukkanum-nu avasiyam illa; namma serndhu clear pannikkalaam."
     )
 
@@ -347,7 +387,7 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
         "learning_objectives_tanglish": objectives_tanglish,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
-        "draft_method": "deterministic-extractive-v7-natural-tanglish",
+        "draft_method": "deterministic-extractive-v8-natural-tanglish",
         "language_variants": {
             "English": {"language": "English", "available": True},
             "Tanglish": {
@@ -422,7 +462,7 @@ def main() -> None:
                         WHERE chapter_lessons.status='draft'""",
                         (lesson_id, BOARD, CLASS_LEVEL, subject, MEDIUM, chapter,
                          json.dumps(lesson, ensure_ascii=False), json.dumps(refs, ensure_ascii=False),
-                         "deterministic-extractive-v7-natural-tanglish", now, now),
+                         "deterministic-extractive-v8-natural-tanglish", now, now),
                     )
                     conn.execute(
                         """INSERT INTO syllabus_synthesis_rounds
@@ -432,7 +472,7 @@ def main() -> None:
                         ON CONFLICT(id) DO UPDATE SET status='draft',model=excluded.model,
                           source_chunk_ids_json=excluded.source_chunk_ids_json,validation_json=excluded.validation_json,updated_at=excluded.updated_at""",
                         (round_id, str(source["id"]), BOARD, CLASS_LEVEL, subject, chapter, CURRICULUM_VERSION,
-                         "deterministic-extractive-v7-natural-tanglish", CURRICULUM_VERSION,
+                         "deterministic-extractive-v8-natural-tanglish", CURRICULUM_VERSION,
                          json.dumps([c.id for c in evidence]), fingerprint, json.dumps(validation), now, now),
                     )
                     conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=%s", (round_id,))

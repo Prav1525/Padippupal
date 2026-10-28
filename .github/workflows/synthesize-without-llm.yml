@@ -100,14 +100,10 @@ jobs:
                       assert len(step.get("caption", "")) <= 500
                       assert len(step.get("example", "")) <= 900
                       tanglish = step.get("tanglish", {})
-                      assert tanglish.get("teacher_says", "").startswith(("Seri", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru"))
+                      assert tanglish.get("teacher_says", "").startswith(natural_starters)
                       assert "unakku enna purinjuchu" in tanglish.get("teacher_says", "").lower()
                       assert "un words-la sollu" in tanglish.get("example", "").lower()
                       assert "confusing-aa irundhaa parava illa" in tanglish.get("misconception", "")
-                      tanglish = step.get("tanglish", {})
-                      assert tanglish.get("teacher_says", "").startswith(("Seri", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru"))
-                      assert "unakku enna purinjuchu" in tanglish.get("teacher_says", "").lower()
-                      assert "un words-la" in tanglish.get("example", "").lower()
               rounds = conn.execute("""
                 SELECT count(*) AS n FROM syllabus_synthesis_rounds
                 WHERE board='CBSE' AND class_level=6 AND subject IN ('Mathematics','Science')

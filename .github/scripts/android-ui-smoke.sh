@@ -169,8 +169,12 @@ log "Waiting for a complete lesson caption (hard deadline 150s; each ADB call is
 # Never let a failed UIAutomator dump leave a previous accessibility tree looking current.
 rm -f live-lesson.xml
 lesson_started=0
+lesson_started_at=$SECONDS
+lesson_poll_count=0
+: > live-assertion-history.log
 lesson_deadline=$((SECONDS + 150))
 while [ "$SECONDS" -lt "$lesson_deadline" ]; do
+  lesson_poll_count=$((lesson_poll_count + 1))
   # Remove both copies first: otherwise a failed dump/pull can leave stale XML
   # from an earlier state and make the smoke test pass or fail on old content.
   rm -f live-lesson.xml
@@ -189,6 +193,13 @@ while [ "$SECONDS" -lt "$lesson_deadline" ]; do
       # Keep the last concrete reason visible; previously every failed assertion
       # was discarded, hiding whether this was caption length, controls, or API state.
       cp live-assertion.log live-assertion-last.log
+      # Preserve the actual failure reason across the whole playback window.
+      # The final sample may be the completed screen, which has different labels
+      # from the active player and otherwise masks the first live-state failure.
+      if [ "$lesson_poll_count" -le 5 ] || [ $((lesson_poll_count % 10)) -eq 0 ]; then
+        printf 'poll=%s elapsed=%ss reason=' "$lesson_poll_count" "$((SECONDS - lesson_started_at))" >> live-assertion-history.log
+        tail -n 1 live-assertion.log >> live-assertion-history.log
+      fi
     fi
     if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s|too short to explain the selected topic|No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-lesson.xml; then
       FAILURE_CLASS="APP_FAILURE"
@@ -202,6 +213,7 @@ done
 if [ "$lesson_started" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
   log "FAIL: tutor did not expose a recognised active lesson within 150 seconds"
+  [ ! -s live-assertion-history.log ] || { log "Sampled active-lesson assertion history:"; cat live-assertion-history.log | tee -a "$REPORT"; }
   [ ! -s live-assertion-last.log ] || { log "Last active-lesson assertion:"; cat live-assertion-last.log | tee -a "$REPORT"; }
   [ ! -s live-lesson.xml ] || cat live-lesson.xml | tee -a "$REPORT"
   exit 1

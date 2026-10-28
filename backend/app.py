@@ -430,6 +430,49 @@ def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list
     } for row in rows]
 
 
+def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
+                                     visuals: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Adapt stored synthesis-linked blueprints to the existing inline tutor visual contract."""
+    if not visuals:
+        return None
+    steps: list[dict[str, Any]] = []
+    objects: list[dict[str, Any]] = []
+    for index, visual in enumerate(visuals):
+        blueprint = visual.get("blueprint", {})
+        nodes = blueprint.get("nodes", []) if isinstance(blueprint, dict) else []
+        if not isinstance(nodes, list):
+            nodes = []
+        steps.append({
+            "id": visual.get("step_id", f"step-{index + 1}"),
+            "label": blueprint.get("title", visual.get("summary_text", "")),
+            "caption": visual.get("summary_text", ""),
+            "visual_kind": visual.get("visual_kind", "concept_card"),
+            "source_chunk_ids": visual.get("source_chunk_ids", []),
+        })
+        for node_index, node in enumerate(nodes[:6]):
+            if len(objects) >= 12:
+                break
+            # Deterministic two-row layout coordinates for the existing Compose renderer.
+            objects.append({
+                "label": str(node)[:72],
+                "position": [0.08 + (node_index % 3) * 0.32, 0.18 + (index % 2) * 0.42],
+            })
+    if not steps or not objects:
+        return None
+    return {
+        "id": "synth-" + lesson_id,
+        "chapter": str(lesson.get("chapter_title") or "Synthesized lesson"),
+        "topic": str(lesson.get("topic") or lesson.get("chapter_title") or "Lesson concept"),
+        "title": str(lesson.get("chapter_title") or "Lesson visual"),
+        "scene_type": "synthesis_static",
+        "caption": str(lesson.get("overview") or steps[0]["caption"]),
+        "objects": objects,
+        "steps": steps,
+        "layout": "compact_2d",
+        "animation": "none",
+    }
+
+
 def split_chunks(text: str) -> list[str]:
     words = normalize(text).split()
     if not words:
@@ -2439,7 +2482,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "chapter_overview": lesson.get("overview", ""),
                         "learning_objectives": lesson.get("learning_objectives", []),
                         "chapter_title": lesson.get("chapter_title", approved["chapter"]),
-                        "interactive_lesson": matched_visual,
+                        "interactive_lesson": build_inline_synthesized_visual(str(approved["id"]), lesson, synthesized_visuals) or matched_visual,
                         "synthesized_visuals": synthesized_visuals}
             if segments:
                 logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",

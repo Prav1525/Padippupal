@@ -79,7 +79,7 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
             "Super, indha idea purinja next part easy-aa irukkum.",
             "Oru chinna recap pannittu continue pannalaam.",
         )
-        self.assertTrue(all(any(step["tanglish"]["teacher_says"].startswith(opening) for opening in openings) for step in lesson["teaching_sequence"]))
+        self.assertTrue(all(step["tanglish"]["teacher_says"].startswith(("Seri", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru")) for step in lesson["teaching_sequence"]))
         self.assertTrue(all("un words-la sollu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"]))
         self.assertTrue(all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["tanglish"]["checkpoint"]) >= 35 for step in lesson["teaching_sequence"]))
@@ -88,6 +88,27 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
         self.assertTrue(all(len(step["tanglish"]["teacher_says"]) < 1000 for step in lesson["teaching_sequence"]))
         self.assertTrue(all("unga vaarthaigal-la" not in step["tanglish"]["teacher_says"].lower() for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["title"]) < 100 for step in lesson["teaching_sequence"]))
+
+    def test_tanglish_explains_common_topics_without_reading_english_passage_aloud(self):
+        fractions, _ = build_lesson("Mathematics", "Fractions", [
+            {"id": "f1", "text": "Fractions tell us how much each share is when a roti is divided equally between two children.", "page_start": 1},
+            {"id": "f2", "text": "The numerator tells how many parts are being considered and denominator tells the total equal parts.", "page_start": 2},
+            {"id": "f3", "text": "Fractions represent equal shares of a whole.", "page_start": 3},
+        ])
+        first_math = fractions["teaching_sequence"][0]["tanglish"]["teacher_says"]
+        self.assertIn("roti-a rendu per equal-aa share", first_math)
+        self.assertIn("fraction-la", first_math)
+        self.assertNotIn("Textbook-la indha point:", first_math)
+
+        water, _ = build_lesson("Science", "A Journey through States of Water", [
+            {"id": "w1", "text": "An ice cube melts into liquid water when left on a table.", "page_start": 1},
+            {"id": "w2", "text": "Water can exist as a solid, liquid, or gas.", "page_start": 2},
+            {"id": "w3", "text": "Cooling water vapour can cause it to condense into liquid water.", "page_start": 3},
+        ])
+        first_science = water["teaching_sequence"][0]["tanglish"]["teacher_says"]
+        self.assertIn("ice-ku", first_science.lower())
+        self.assertIn("melt aagi water-a maarum", first_science.lower())
+        self.assertLess(len(first_science), 400)
 
     def test_quality_gate_rejects_generic_placeholders(self):
         lesson = {

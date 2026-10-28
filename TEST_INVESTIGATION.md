@@ -350,3 +350,16 @@ Use this format:
 ### 2026-10-27 — Correction-script regression finding
 - The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
 - The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.
+
+
+### 2026-10-28 — Expose approved synthesized lessons to learner curriculum screen
+- **Branch / commit:** `fix/learner-synthesized-lesson-retrieval`; implementation commits `41df99c6188029857877c8a0648ae6b0e5ac3118`, `7aaed6826b2575643a90e039a2b2127e765e1697`, `699443f3cbb484a29406615c3c44881034d56444`, `388c812bc6119dd9c1ff5b15035544ec92661489`.
+- **Test command or workflow URL:** Not run yet; CI will be checked after opening the focused PR.
+- **Result:** **UNVERIFIED** — code committed to an isolated branch; not merged or deployed.
+- **Exact requirement:** Learners need a read path for validated, approved topic synthesis records, not only source-passage retrieval.
+- **Evidence:** `backend/app.py` already exposed `GET /chapter-lessons/approved` for approved chapter-level lessons, but the Android Curriculum Connection screen called `/retrieve` only and explicitly described itself as source-passage-only. Synthesis records are stored separately in `syllabus_topic_syntheses`.
+- **Change made:** Added read-only `GET /curriculum/synthesized-lessons`, filtered by board, class, subject, medium, optional exact chapter/topic, approved round, approved topic, passed validation, and ready source. Added regression tests for approved-only filtering, chapter/topic filtering, and profile mismatch. Added a learner-screen action to request and display approved synthesis topics.
+- **Root cause:** **CONFIRMED for the missing read-path/UI integration** by route and client inspection. Whether the production API is connected to the same database branch containing the approved records remains **UNVERIFIED**.
+- **What this proves:** A code path and UI are proposed on an isolated branch; no production claim follows from the code edit alone.
+- **What remains unverified:** Backend tests, Android compile/JVM tests, emulator behavior, live API/database alignment, production deployment, and actual learner retrieval.
+- **Next action:** Run CI and review exact-head results. Do not merge or deploy until required checks pass and production endpoint returns approved lessons.

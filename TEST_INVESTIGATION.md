@@ -350,3 +350,12 @@ Use this format:
 ### 2026-10-27 — Correction-script regression finding
 - The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
 - The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.
+
+
+### 2026-10-28 — Connect learner curriculum screen to approved synthesized lessons
+- **Branch / PR:** `fix/learner-approved-synthesized-lessons`; [PR #44](https://github.com/Prav1525/Padippupal/pull/44).
+- **Observed cause:** `CurriculumConnection.kt` only called `/retrieve` for source passages and explicitly said it did not display generated lessons. The backend exposes an approved-only `/chapter-lessons/approved` endpoint, but the Android screen did not request it.
+- **Change made:** Added a chapter-specific request using the student's board, class, subject, and medium; added learner UI for the returned approved teaching sequence and a clear empty state. No approval status or production data was changed.
+- **Verification:** Exact-head Android APK and UI smoke workflows are running. Investigation Guidance Gate first failed because this required ledger entry was missing; this entry records the scope and current verification state. No merge or deployment has occurred.
+- **Root cause confidence:** **CONFIRMED** for the missing Android endpoint integration; **UNVERIFIED** for the endpoint response contract and learner UI until API contract review and exact-head CI finish.
+- **Next action:** Check the backend endpoint's actual response shape, fix any contract/build issues, and require passing Android build and UI smoke checks before merge. Do not claim live availability before merge/deploy and production verification.

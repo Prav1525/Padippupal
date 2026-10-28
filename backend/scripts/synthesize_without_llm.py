@@ -24,7 +24,7 @@ from syllabus_synthesis import EvidenceChunk, evidence_fingerprint, make_run_id,
 BOARD = "CBSE"
 CLASS_LEVEL = 6
 MEDIUM = "English"
-CURRICULUM_VERSION = "extractive-v2"
+CURRICULUM_VERSION = "extractive-v3"
 MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
@@ -54,19 +54,21 @@ PLACEHOLDER_PATTERNS = [
     re.compile(r"read the cited source passage carefully and identify its main idea", re.I),
 ]
 
-def clean_source_text(text: str) -> str:
+def clean_source_text(text: str, chapter: str | None = None) -> str:
     """Remove known PDF running headers, control/OCR noise, and duplicate whitespace."""
     text = text.replace("\uFFFD", " ").replace("\u008B", " ").replace("\x8b", " ")
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", " ", text)
     # Known running headers are embedded in some chunk text, so clean inline as well as at line starts.
+    if chapter:
+        text = re.sub(rf"\b{re.escape(chapter)}\s*\d{{0,3}}\s*Chapter\b", " ", text, flags=re.I)
     text = re.sub(r"(?:Ganita\s+Prakash|Curiosity)\s*\|\s*(?:Textbook of Science\s*\|\s*)?Grade\s*6\s*\d{1,4}", " ", text, flags=re.I)
     text = re.sub(r"\b(?:Figure it Out|Math Talk|Try This)\b", "Practice prompt", text, flags=re.I)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\s+", " ", text).strip(" \t\n-|")
     return text
 
-def clean_sentences(text: str) -> list[str]:
-    text = clean_source_text(text)
+def clean_sentences(text: str, chapter: str | None = None) -> list[str]:
+    text = clean_source_text(text, chapter)
     # Split around sentence boundaries, retaining short but meaningful textbook questions.
     parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9“‘])", text)
     cleaned = []
@@ -84,8 +86,8 @@ def clean_sentences(text: str) -> list[str]:
         cleaned.append(sentence)
     return cleaned
 
-def short_summary(text: str) -> str:
-    sentences = clean_sentences(text)
+def short_summary(text: str, chapter: str | None = None) -> str:
+    sentences = clean_sentences(text, chapter)
     if not sentences:
         return ""
     # Keep the first two readable, source-grounded sentences; avoid unbounded page dumps.
@@ -149,7 +151,7 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
     sequence = []
     for i, c in enumerate(chunks, 1):
         cid = str(c["id"])
-        summary = short_summary(str(c["text"]))
+        summary = short_summary(str(c["text"]), chapter)
         if not summary:
             raise ValueError(f"{chapter}: source chunk {cid} has no readable text after cleanup")
         objective = specific_objective(summary, chapter)
@@ -186,7 +188,7 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
         "learning_objectives": objectives,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
-        "draft_method": "deterministic-extractive-v2",
+        "draft_method": "deterministic-extractive-v3",
         "human_review_required": True,
     }
     validation = validate_chapter_lesson_payload(lesson, allowed)
@@ -249,7 +251,7 @@ def main() -> None:
                         WHERE chapter_lessons.status='draft'""",
                         (lesson_id, BOARD, CLASS_LEVEL, subject, MEDIUM, chapter,
                          json.dumps(lesson, ensure_ascii=False), json.dumps(refs, ensure_ascii=False),
-                         "deterministic-extractive-v2", now, now),
+                         "deterministic-extractive-v3", now, now),
                     )
                     conn.execute(
                         """INSERT INTO syllabus_synthesis_rounds
@@ -259,7 +261,7 @@ def main() -> None:
                         ON CONFLICT(id) DO UPDATE SET status='draft',model=excluded.model,
                           source_chunk_ids_json=excluded.source_chunk_ids_json,validation_json=excluded.validation_json,updated_at=excluded.updated_at""",
                         (round_id, str(source["id"]), BOARD, CLASS_LEVEL, subject, chapter, CURRICULUM_VERSION,
-                         "deterministic-extractive-v2", CURRICULUM_VERSION,
+                         "deterministic-extractive-v3", CURRICULUM_VERSION,
                          json.dumps([c.id for c in evidence]), fingerprint, json.dumps(validation), now, now),
                     )
                     conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=%s", (round_id,))

@@ -19,6 +19,9 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
         self.assertNotIn("\x8b", cleaned)
         self.assertIn("Activity 8.1", cleaned)
         self.assertIn("A cube of ice melts.", cleaned)
+        chapter_cleaned = clean_source_text("A Journey through States of Water8 Chapter On a bright summer afternoon, Aavi observes ice.", "A Journey through States of Water")
+        self.assertNotIn("States of Water8 Chapter", chapter_cleaned)
+        self.assertIn("On a bright summer afternoon", chapter_cleaned)
 
     def test_objective_is_source_specific(self):
         objective = specific_objective(

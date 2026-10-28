@@ -22,6 +22,7 @@ _VISUAL_KIND_MAP = {
     "diagram": "diagram",
     "fraction": "fraction",
     "parts": "fraction",
+    "fraction": "fraction",
     "cycle": "cycle",
     "none": "concept_card",
 }
@@ -118,7 +119,7 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         actions = [actions]
     if not isinstance(actions, list):
         actions = []
-    actions = [_clean(item, 90) for item in actions if _clean(item, 90)][:4]
+    actions = [_clean(item, 90) for item in actions if _clean(item, 90)][:6]
     narration_sync = visual.get("narration_sync", [])
     if isinstance(narration_sync, str):
         narration_sync = [narration_sync]

@@ -148,7 +148,7 @@ def test_dynamic_tutor_visuals_are_saved_under_the_exact_selected_topic(tmp_path
         "spoken_text": "In the All 1s pattern, every term stays 1.",
         "caption_text": "In the All 1s pattern, every term stays 1.",
         "source_chunk_ids": ["chunk-pattern-page-1"],
-        "visual_action": {"type": "none", "target": "", "value": ""},
+        "visual_action": {"type": "highlight", "target": "1", "value": "repeat each time"},
     }]
     sources = [{"chunk_id": "chunk-pattern-page-1", "page_start": 1, "page_end": 1}]
     result = curriculum.attach_topic_visuals(payload, segments, sources)

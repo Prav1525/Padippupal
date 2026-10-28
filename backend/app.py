@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
 from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
 from lesson_visuals import build_visual_records
+from textbook_visual_refs import describe_pdf_visual_references
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -724,11 +725,18 @@ async def ingest_pdf(
     try:
         metadata = SourceMetadata(**json.loads(metadata_json))
         reader = PdfReader(BytesIO(raw), strict=True)
+        # Inspect candidate figure pages transiently; only concise structural descriptions
+        # are retained, never the textbook images or rendered page screenshots.
+        visual_refs = describe_pdf_visual_references(raw)
         pages = []
         for index, page in enumerate(reader.pages, start=1):
             page_text = normalize(page.extract_text() or "")
-            if page_text:
-                pages.append(f"[Page {index}] {page_text}")
+            visual_note = visual_refs.get(index, "")
+            if page_text or visual_note:
+                section = f"[Page {index}] {page_text}".strip()
+                if visual_note:
+                    section += f"\n[Textbook visual reference | Page {index}] {visual_note}"
+                pages.append(section)
         text = "\n\n".join(pages)
         if len(text) < 30:
             raise HTTPException(status_code=422, detail="No usable text extracted. Scanned-PDF OCR is not enabled yet.")
@@ -736,7 +744,9 @@ async def ingest_pdf(
         raise
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Could not process PDF or metadata: {exc}") from exc
-    return enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
+    result = enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
+    result["visual_reference_pages"] = str(len(visual_refs))
+    return result
 
 
 @app.post("/admin/ingest-zip", dependencies=[Depends(require_admin)], status_code=202)
@@ -776,11 +786,16 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
             if not pdf_raw.startswith(b"%PDF"):
                 raise ValueError("Entry is not a valid PDF.")
             reader = PdfReader(BytesIO(pdf_raw), strict=True)
+            visual_refs = describe_pdf_visual_references(pdf_raw)
             page_texts = []
             for page_no, page in enumerate(reader.pages, start=1):
                 page_text = normalize(page.extract_text() or "")
-                if page_text:
-                    page_texts.append(f"[Page {page_no}] {page_text}")
+                visual_note = visual_refs.get(page_no, "")
+                if page_text or visual_note:
+                    section = f"[Page {page_no}] {page_text}".strip()
+                    if visual_note:
+                        section += f"\n[Textbook visual reference | Page {page_no}] {visual_note}"
+                    page_texts.append(section)
             extracted = "\n\n".join(page_texts)
             if len(extracted) < 30:
                 raise ValueError("No usable text extracted; scanned-PDF OCR is not enabled.")
@@ -800,7 +815,7 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
                     chapter_title = f"Chapter PDF ({filename})"
             metadata = base.model_copy(update={"title": f"{base.title} — {chapter_title}"})
             result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages))
-            results.append({"file": filename, "title": metadata.title, **result})
+            result["visual_reference_pages"] = str(len(visual_refs))\n            results.append({"file": filename, "title": metadata.title, **result})
         except Exception as exc:
             results.append({"file": filename, "status": "failed", "error": str(exc)[:300]})
     accepted = sum(1 for item in results if item.get("source_id"))
@@ -1549,10 +1564,13 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         context.append(json.dumps(ref, ensure_ascii=False) + "\n" + str(chunk["text"])[:1800])
     allowed = {ref["chunk_id"] for ref in refs}
     model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
-    prompt = ("You are PadippuPal's curriculum synthesizer. Use ONLY the supplied textbook chunks; never fill gaps with general knowledge. "
+    prompt = ("You are PadippuPal's curriculum synthesizer. Use ONLY the supplied textbook chunks and any explicitly tagged textbook visual-reference descriptions; never fill gaps with general knowledge. "
+        "Some chunks may contain a [Textbook visual reference | Page N] JSON description produced by transiently inspecting a source page. Treat it as structural evidence for the concept, not as artwork to copy. "
+        "Create an ORIGINAL, copyright-respectful 2D teaching illustration: preserve the concept, objects, mathematical/scientific relationships, sequence and necessary labels, but use new composition, simple vector geometry and PadippuPal's own clean visual style. Never trace, recreate distinctive artwork, copy decorative styling, or reproduce a whole textbook page. "
         "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
         "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, learning_objectives (a short list specific to THIS step), source_chunk_ids, visual). "
-        "visual has type (number_pattern, number_line, geometry, compare, process, table, diagram, none), objects, actions, narration_sync. "
+        "Each visual must include type (number_pattern, number_line, geometry, compare, process, table, diagram, fraction, cycle, none), objects (short strings for visible objects/labels), actions (ordered small motion/reveal actions), narration_sync (short phrases that trigger each reveal), spatial_relationships (array of relationships), teaching_order (array of visual stages), reference_page_numbers (only page numbers explicitly present in supplied visual-reference descriptions), and visual_rationale (short explanation of how the visual supports this step). "
+        "Create a meaningful visual only when source evidence supports one. Never invent quantities, labels, stages, or page numbers. If no source visual reference is available, derive a simple original diagram from the cited text and clearly keep it concept-level. "
         "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. Across the complete concept map and teaching sequence, cite EVERY supplied chunk_id at least once; do not omit a content-bearing chunk. No code; draft only.")
     body = json.dumps({"systemInstruction":{"parts":[{"text":prompt}]},
         "contents":[{"role":"user","parts":[{"text":"Profile: "+payload.board+", class "+str(payload.class_level)+", subject "+payload.subject+", medium "+payload.medium+", chapter "+payload.chapter+", topic "+(payload.topic or "whole chapter")+"\nALL STORED CHAPTER CHUNKS:\n"+"\n\n---\n\n".join(context)}]}],

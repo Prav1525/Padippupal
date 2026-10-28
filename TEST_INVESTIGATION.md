@@ -361,3 +361,13 @@ Use this format:
 - **Verification status:** **UNVERIFIED** pending exact-head CI. No APK build, emulator screenshot review, live text/audio check, or learner deployment has been performed for this branch yet.
 - **What this proves / does not prove:** Source now contains the intended inline rendering path and a simpler home layout. It does not prove that the live backend returns usable interactive visual metadata, that textbook image assets are present, or that the new layout renders correctly on-device.
 - **Next action:** Run the smoke-helper regression tests, Android JVM tests, debug APK build, and API-35 emulator flow. Inspect screenshots/accessibility output for the new home labels, inline visual rendering, caption alignment, and overlapping content; fix any real failures before declaring the UI verified. Do not merge or deploy without explicit permission.
+
+
+### 2026-10-28 — UI redesign first CI compile failure and correction
+- **Branch / commits:** `ui/modern-learner-layout`; first PR head `5a2db6f93b1c617b334129d224fe221bab7ab284`; compile correction `0744d5b27562f6fadc3e50b62aac74554771888c`; caption-test boundary correction `8310f8971b6b0ed38d99afbf6446923c7a5ba514`.
+- **Test / evidence:** [Android APK run 40713741627](https://github.com/Prav1525/Padippupal/actions/runs/40713741627), job 122905656986, compiled the PR merge ref with Gradle 8.9 and JDK 17.
+- **Result:** **FAIL** on the initial head at `:app:compileDebugKotlin`; exact error: `MainActivity.kt:259:26 Unresolved reference 'BorderStroke'`. The new home card used `BorderStroke` without importing it. The smoke run for that superseded head was cancelled after a newer commit was pushed.
+- **Correction:** Added `androidx.compose.foundation.BorderStroke` import. Also corrected a new source-contract test to find the now-active `ChapterOneMathAnimation` function directly after removing the unused `InteractiveLessonLab` composable.
+- **Root cause:** **CONFIRMED** for the compile error by the Kotlin compiler diagnostic. The correction is committed, but its build/test status is **UNVERIFIED** until CI on the corrected head completes.
+- **What remains:** Latest-head debug APK build, UI smoke helper tests, JVM tests, and API-35 emulator screenshots/flow must pass. Do not mark the redesign verified based on the import fix alone.
+- **Next action:** Inspect CI on the corrected head; if a new failure appears, use its first meaningful error and screenshot/log evidence rather than repeating an unchanged build. No merge or deployment performed.

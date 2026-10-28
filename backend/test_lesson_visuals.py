@@ -107,6 +107,11 @@ def test_visual_blueprints_are_persisted_and_updated_with_the_synthesis(tmp_path
     second = curriculum.get_or_create_lesson_visuals(lesson_id, revised)
     assert second[0]["summary_text"] == "One whole can be split into equal parts."
     assert second[0]["content_fingerprint"] != first[0]["content_fingerprint"]
+    inline = curriculum.build_inline_synthesized_visual(lesson_id, revised, second, topic="Equal parts")
+    assert inline["topic"] == "Equal parts"
+    assert inline["title"] == "Equal parts"
+    assert inline["scene_type"] == "synthesis_static"
+    assert inline["animation"] == "none"
 
     with curriculum.db() as conn:
         rows = conn.execute(

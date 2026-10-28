@@ -61,6 +61,23 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertEqual(build_visual_records("lesson-2", {}), [])
         self.assertEqual(build_visual_records("lesson-2", {"teaching_sequence": []}), [])
 
+    def test_svg_is_stored_with_blueprint_and_escapes_lesson_labels(self):
+        lesson = {"teaching_sequence": [{
+            "id": "safe-label",
+            "title": 'A < B',
+            "caption": "Compare the two values.",
+            "source_chunk_ids": ["chunk-1"],
+            "visual": {"type": "compare", "objects": ['A < B', 'C & D']},
+        }]}
+        record = build_visual_records("lesson-safe", lesson)[0]
+        svg = record["blueprint"]["svg_markup"]
+        self.assertIn("<svg", svg)
+        self.assertIn("compact_2d", record["blueprint"]["layout"])
+        self.assertIn("A &lt; B", svg)
+        self.assertIn("C &amp; D", svg)
+        self.assertNotIn("< B", svg)
+        self.assertEqual(json.loads(record["blueprint_json"])["svg_markup"], svg)
+
 
 if __name__ == "__main__":
     unittest.main()

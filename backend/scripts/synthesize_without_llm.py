@@ -375,7 +375,7 @@ def tanglish_example(summary: str, subject: str, stage: int, chapter: str) -> st
     task = next((question for key, question in task_by_chapter.items() if key in topic),
                 f"{chapter} chapter-oda main idea enna-nu un words-la sollu; adha support pannura oru clue-yum sollu.")
     return (
-        f"{starters[(stage - 1) % len(starters)]} {subject_hint} {task} "
+        f"{starters[(stage - 1) % len(starters)]} {subject_hint} {task} Idha un words-la sollu. "
         "Theriyalana parava illa; cited passage-a thirumba paathu serndhu figure out pannalaam."
     )
 

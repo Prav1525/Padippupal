@@ -448,3 +448,11 @@ Use this format:
 - **Constraints:** Small 2D vector/card blueprints only; no 3D, large animation, separate overlay, invented textbook images, or guessed page references. Empty or unsupported step metadata must not create unrelated visuals.
 - **Tests added:** `backend/test_lesson_visuals.py` covers step-to-summary mapping, source chunk retention, compact/static constraints, stable fingerprints, and empty-sequence behavior.
 - **Validation status:** Not yet verified on the exact head. Draft PR was opened to trigger CI; inspect backend tests and APK/emulator checks before calling this ready. No merge or deployment performed.
+
+
+### 2026-10-28 — New visual persistence changed assumptions in two existing tutor tests
+- **Workflow:** Curriculum Engine Tests run [40721266652](https://github.com/Prav1525/Padippupal/actions/runs/40721266652), head `b0bda67b7ce5e0a75da9cdf39942c341c5165364).
+- **Result:** 85 passed; 2 failed. One fake database asserted that every SQL statement must be the approved-lesson query; the other fake database returned an approved lesson row for the new visual-assets query, causing a missing `step_id`.
+- **Root cause:** **CONFIRMED** the tests were intended to isolate lesson selection/topic validation but did not stub the newly added visual persistence boundary.
+- **Fix:** Updated both tests to stub `get_or_create_lesson_visuals` as empty; dedicated tests cover the synthesis-to-visual builder separately. This preserves the original test purpose while avoiding fake DB behavior that cannot represent the new table.
+- **Validation:** Correction pushed in commit `888ffe464ed615c0e42b8d4435ee6caef6f6252a`; exact-head CI rerun pending. No merge or deployment performed.

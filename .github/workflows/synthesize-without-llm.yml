@@ -32,6 +32,9 @@ jobs:
       - name: Install backend dependencies
         working-directory: backend
         run: pip install -r requirements.txt
+      - name: Run synthesis and quality-gate unit tests
+        working-directory: backend
+        run: python -m unittest test_syllabus_synthesis test_synthesize_without_llm
       - name: Build and validate source-grounded drafts without Gemini
         working-directory: backend
         env:
@@ -55,7 +58,7 @@ jobs:
                 FROM chapter_lessons
                 WHERE board='CBSE' AND class_level=6 AND medium='English'
                   AND subject IN ('Mathematics','Science')
-                  AND model='deterministic-extractive-v1'
+                  AND model='deterministic-extractive-v2'
               """).fetchall()
               assert len(lessons) == 22, f"Expected 22 deterministic drafts, found {len(lessons)}"
               assert all(r["status"] == "draft" for r in lessons), "Found a non-draft lesson"
@@ -72,12 +75,20 @@ jobs:
                       validation_ids.update(step["source_chunk_ids"])
                   assert allowed == validation_ids, f"Citation mismatch in {lesson['chapter_title']}"
                   assert lesson.get("human_review_required") is True
+                  assert lesson.get("draft_method") == "deterministic-extractive-v2"
+                  assert len(lesson.get("learning_objectives", [])) >= 3
+                  assert all("identify and explain the main idea in source section" not in obj.lower() for obj in lesson["learning_objectives"])
+                  for step in lesson["teaching_sequence"]:
+                      assert len(step.get("example", "")) >= 35
+                      assert "use an example or diagram from the cited textbook passage" not in step["example"].lower()
+                      assert len(step.get("checkpoint", "")) >= 35
+                      assert not any(ch in step.get("caption", "") for ch in ("\ufffd", "\x8b"))
               rounds = conn.execute("""
                 SELECT count(*) AS n FROM syllabus_synthesis_rounds
                 WHERE board='CBSE' AND class_level=6 AND subject IN ('Mathematics','Science')
-                  AND curriculum_version='extractive-v1' AND status='draft'
+                  AND curriculum_version='extractive-v2' AND status='draft'
               """).fetchone()["n"]
               assert rounds == 22, f"Expected 22 persisted synthesis rounds, found {rounds}"
-              print("PASS: 10 Maths + 12 Science drafts persisted; all remain draft; source-chunk citation sets verified.")
+              print("PASS: 10 Maths + 12 Science v2 drafts persisted; all remain draft; citations and content quality gates verified.")
               print("NOTE: extractive summaries require teacher review; nothing was approved or deployed.")
           PY

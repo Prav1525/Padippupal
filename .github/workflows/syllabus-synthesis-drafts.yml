@@ -225,3 +225,5 @@ jobs:
               cat "$f"
             fi
           done
+
+# Manual reruns are safe: the API preserves existing approvals and writes only drafts.

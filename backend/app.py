@@ -2174,6 +2174,80 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
     return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback}
 
 
+@app.get("/curriculum/synthesized-lesson")
+def get_approved_synthesized_lesson(
+    board: str, class_level: int, subject: str, medium: str, chapter: str, topic: str
+) -> dict[str, Any]:
+    """Return only the exact, validated, human-approved synthesis for a learner's profile."""
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT t.*, r.board, r.class_level, r.subject, r.chapter,
+                      r.status AS round_status, src.medium, src.status AS source_status,
+                      src.title AS source_title, src.source_url
+               FROM syllabus_topic_syntheses t
+               JOIN syllabus_synthesis_rounds r ON r.id=t.round_id
+               JOIN sources src ON src.id=t.source_id
+               WHERE t.approval_status='approved' AND t.validation_status='passed'
+                 AND r.status='approved' AND src.status='ready'
+                 AND LOWER(r.board)=LOWER(?) AND r.class_level=?
+                 AND LOWER(r.subject)=LOWER(?) AND LOWER(src.medium)=LOWER(?)
+                 AND LOWER(r.chapter)=LOWER(?)
+               ORDER BY t.updated_at DESC""",
+            (board, class_level, subject, medium, chapter),
+        ).fetchall()
+        for row in rows:
+            if normalize(str(row["topic"])).casefold() != normalize(topic).casefold():
+                continue
+            item = dict(row)
+            def strings(value: Any) -> list[str]:
+                if isinstance(value, str):
+                    return [value.strip()] if value.strip() else []
+                if isinstance(value, dict):
+                    result: list[str] = []
+                    for nested in value.values():
+                        result.extend(strings(nested))
+                    return result
+                if isinstance(value, list):
+                    result: list[str] = []
+                    for nested in value:
+                        result.extend(strings(nested))
+                    return result
+                return []
+            objectives = json.loads(item.get("learning_objectives_json") or "[]")
+            explanation = json.loads(item.get("explanation_json") or "{}")
+            examples = json.loads(item.get("examples_json") or "[]")
+            questions = json.loads(item.get("practice_questions_json") or "[]")
+            lesson_text = " ".join(
+                part for part in [
+                    str(item["topic"]).strip(),
+                    *strings(objectives),
+                    *strings(explanation),
+                    *strings(examples),
+                ] if part
+            )
+            return {
+                "status": "approved",
+                "lesson_id": item["id"],
+                "lesson_text": lesson_text,
+                "topic": item["topic"],
+                "learning_objectives": objectives,
+                "explanation": explanation,
+                "examples": examples,
+                "practice_questions": questions,
+                "source_refs": json.loads(item.get("citation_refs_json") or "[]"),
+                "page_start": item.get("page_start"),
+                "page_end": item.get("page_end"),
+                "source_title": item.get("source_title"),
+                "source_url": item.get("source_url"),
+                "metadata": {
+                    "board": item["board"], "class_level": item["class_level"],
+                    "subject": item["subject"], "medium": item["medium"],
+                    "chapter": item["chapter"],
+                },
+            }
+    return {"status": "not_found", "lesson_id": None, "lesson_text": "", "source_refs": []}
+
+
 @app.get("/chapter-lessons/approved")
 def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medium: str, chapter: str) -> dict[str, Any]:
     with db() as conn:

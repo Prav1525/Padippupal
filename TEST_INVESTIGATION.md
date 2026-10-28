@@ -350,3 +350,15 @@ Use this format:
 ### 2026-10-27 — Correction-script regression finding
 - The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
 - The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.
+
+### 2026-10-28 — Connect learner tutor to approved synthesized topic lessons
+- **Branch / PR:** `fix/learner-synthesized-lesson-connection`; [PR #42](https://github.com/Prav1525/Padippupal/pull/42).
+- **Starting commit:** `078a85fa99a3a7503ff21c3c09e7169d196ac564`; implementation head before ledger update: `4bbc2c94cf7b7cf3e47fa4fab9d8e4eb11e8dc88`.
+- **Requirement / evidence:** Production data has approved synthesis topics, but source inspection confirmed Android `TutorScreen.kt` only calls `/tutor/lesson-plan`; no learner-facing route reads `syllabus_topic_syntheses`. The separate `CurriculumConnection.kt` screen only calls `/health` and `/retrieve`.
+- **Root cause:** **CONFIRMED** missing learner-facing integration in repository code. Live production learner behavior is still unverified.
+- **Change made:** Added read-only `GET /curriculum/synthesized-lesson`, filtering to exact board/class/subject/medium/chapter/topic and approved + passed + ready records; added backend regression coverage; Android English live lessons now prefer the approved exact-topic synthesis and fall back to the existing tutor API if none is available.
+- **Checks:** PR workflow run [40679250974](https://github.com/Prav1525/Padippupal/actions/runs/40679250974) has not been established; the initial runs for head `4bbc2c94cf7b7cf3e47fa4fab9d8e4eb11e8dc88` include Android APK, Curriculum Engine Tests and Android UI smoke still in progress when checked. Investigation Guidance Gate [40679250982](https://github.com/Prav1525/Padippupal/actions/runs/40679250982) failed because this ledger had not yet been updated; this is a process-gate failure, not a product test result.
+- **What this proves:** The code path is now present in the PR branch and a regression test has been added.
+- **What remains unverified:** Backend tests, Kotlin/JVM tests, APK build, emulator lesson playback, and deployed API/production database connection. Do not merge or deploy until exact-head checks pass.
+- **Next action:** Record this investigation before rerunning the gate, then inspect all required CI results on the new exact head and fix any product-test failures before considering release.
+

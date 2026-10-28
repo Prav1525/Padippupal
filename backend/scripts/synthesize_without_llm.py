@@ -135,19 +135,22 @@ def source_based_example(summary: str) -> str:
     )
 
 def quality_gate(lesson: dict, chunks: list[dict]) -> list[str]:
-    """Reject structural drafts with generic placeholders or obvious extraction noise."""
+    """Reject placeholder content, weak Tanglish scaffolds, OCR noise, and citation gaps."""
     errors: list[str] = []
     allowed = {str(c["id"]) for c in chunks}
     objectives = lesson.get("learning_objectives", [])
     if len(objectives) < 3:
         errors.append("need at least three chapter-specific learning objectives")
+    if len(lesson.get("learning_objectives_tanglish", [])) != len(objectives):
+        errors.append("English and Tanglish objective counts must match")
     for objective in objectives:
         if any(pattern.search(objective) for pattern in PLACEHOLDER_PATTERNS):
             errors.append("generic/placeholder learning objective detected")
             break
     steps = lesson.get("teaching_sequence", [])
-    if len(steps) != len(chunks):
-        errors.append("every source chunk must map to one cited teaching step")
+    if not 3 <= len(steps) <= 10:
+        errors.append("lesson must have 3–10 coherent teaching steps, not one step per PDF chunk")
+    cited_all: set[str] = set()
     for i, step in enumerate(steps):
         tanglish = step.get("tanglish")
         if not isinstance(tanglish, dict):
@@ -162,75 +165,100 @@ def quality_gate(lesson: dict, chunks: list[dict]) -> list[str]:
                 errors.append(f"step {i + 1}: {field} is too short")
             if any(pattern.search(value) for pattern in PLACEHOLDER_PATTERNS):
                 errors.append(f"step {i + 1}: placeholder {field} detected")
-        if re.search(r"[\uFFFD\u0080-\u009F]", " ".join(str(step.get(k, "")) for k in ("teacher_says", "caption", "example", "checkpoint"))):
+        combined = " ".join(str(step.get(k, "")) for k in ("teacher_says", "caption", "example", "checkpoint"))
+        if re.search(r"[\uFFFD\u0080-\u009F]", combined):
             errors.append(f"step {i + 1}: control/OCR replacement character remains")
         cited = {str(cid) for cid in step.get("source_chunk_ids", [])}
         if not cited or not cited.issubset(allowed):
             errors.append(f"step {i + 1}: invalid or missing source citation")
+        cited_all.update(cited)
+    if cited_all != allowed:
+        errors.append(f"teaching sequence citation coverage mismatch: {len(allowed - cited_all)} source chunks not cited")
+    variants = lesson.get("language_variants", {})
+    if not variants.get("Tanglish", {}).get("available"):
+        errors.append("Tanglish variant must be explicitly available")
     return errors
+
 
 def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, dict]:
     allowed = {str(c["id"]) for c in chunks}
     if not allowed:
         raise ValueError(f"No source chunks for {chapter}")
-    objectives: list[str] = []
-    concept_map = []
-    sequence = []
-    for i, c in enumerate(chunks, 1):
-        cid = str(c["id"])
+
+    # Turn a long PDF chunk list into a manageable lesson sequence of at most eight stages.
+    # Each stage cites every source chunk it summarizes, preserving full traceability.
+    prepared = []
+    for c in chunks:
         summary = short_summary(str(c["text"]), chapter)
         if not summary:
-            raise ValueError(f"{chapter}: source chunk {cid} has no readable text after cleanup")
+            raise ValueError(f"{chapter}: source chunk {c['id']} has no readable text after cleanup")
+        prepared.append({**c, "clean_summary": summary})
+    group_size = max(1, (len(prepared) + 7) // 8)
+    groups = [prepared[i:i + group_size] for i in range(0, len(prepared), group_size)]
+
+    objectives: list[str] = []
+    objectives_tanglish: list[str] = []
+    concept_map = []
+    sequence = []
+    for i, group in enumerate(groups, 1):
+        chunk_ids = [str(c["id"]) for c in group]
+        summary = " ".join(c["clean_summary"] for c in group)
+        summary = summary[:1150].rsplit(" ", 1)[0].strip()
         objective = specific_objective(summary, chapter)
         if objective not in objectives and len(objectives) < 6:
             objectives.append(objective)
-        heading = chapter if i == 1 else f"{chapter}: section {i}"
+            objective_core = objective.removeprefix("Explain the textbook idea or situation: ")
+            objectives_tanglish.append(
+                f"{chapter}-la indha concept-ai purinjukittu, {objective_core[:120]} enna-nu simple Tanglish-la explain pannunga."
+            )
+        heading = f"{chapter}: stage {i}"
         concept_map.append({
-            "concept": f"{heading} — {summary[:100]}",
-            "prerequisite": "Connect the cited passage to the chapter's central question, using only the source evidence.",
-            "source_chunk_ids": [cid],
+            "concept": f"{heading} — {summary[:130]}",
+            "prerequisite": "Connect this cited passage group to the chapter's central question, using only source evidence.",
+            "source_chunk_ids": chunk_ids,
             "tanglish_support": {
-                "concept": f"{heading}: indha passage-la varra mukkiya idea — {summary[:100]}",
+                "concept": f"{heading}: indha passages-la varra mukkiya idea — {summary[:100]}",
                 "prerequisite": "Indha idea-va munnaadi padicha concept-oda connect pannunga; source-la illaadha details-ai add panna vendaam.",
             },
         })
-        page = c.get("page_start")
-        page_text = f" (textbook page {page})" if page is not None else ""
-        checkpoint_text = summary[:220].rstrip(" .!?")
+        pages = [c.get("page_start") for c in group if c.get("page_start") is not None]
+        page_text = f" (textbook pages {min(pages)}–{max(pages)})" if pages else ""
+        checkpoint_text = summary[:200].rstrip(" .!?")
         sequence.append({
             "id": f"step_{i}",
-            "title": heading,
-            "teacher_says": f"Let's examine this part of {chapter}. The textbook passage says: {summary}",
+            "title": f"{chapter} — Part {i}",
+            "teacher_says": f"Let's work through Part {i} of {chapter}. Read the cited textbook passages and notice the main idea: {summary}",
             "caption": summary[:500],
             "example": source_based_example(summary),
+            "misconception": "Distinguish what the source states from an inference. Verify any worked calculation, diagram, or scientific claim before teaching.",
+            "checkpoint": f"Explain the main idea in your own words{page_text}: “{checkpoint_text}”. Which evidence in these passages supports your explanation?",
+            "source_chunk_ids": chunk_ids,
             "tanglish": {
                 "teacher_says": tanglish_explanation(summary),
-                "caption": f"Indha part-ai nalla gavaninga: {summary[:420]}",
+                "caption": f"Indha part-ai nalla gavaninga. Mukkiya idea: {summary[:400]}",
                 "example": (
-                    "Textbook passage-ai padichu, adhu sollra idea enna-nu simple Tanglish-la explain pannunga. "
-                    "Passage-la irukkura words/evidence-ai use pannunga; source-la illaadha answer-ai guess panna vendaam. "
-                    + summary[:220]
+                    "Indha textbook passages-ai padichu, mukkiya idea enna-nu simple Tanglish-la explain pannunga. "
+                    "Passage-la irukkura evidence-ai use pannunga; source-la illaadha answer-ai guess panna vendaam. "
+                    + summary[:180]
                 ),
-                "checkpoint": tanglish_checkpoint(summary, page),
+                "checkpoint": tanglish_checkpoint(summary, min(pages) if pages else None),
                 "misconception": (
-                    "Source-la irukkura evidence-ai check pannunga. Puriyadha English science/math term-ai guess pannaama, "
-                    "adhoda meaning-ai teacher-oda verify pannunga."
+                    "Textbook evidence-oda unga answer-ai compare pannunga. Puriyadha English Maths/Science term-ai "
+                    "guess pannaama, teacher-kitta meaning verify pannunga."
                 ),
             },
-            "misconception": "Check the explanation against the cited passage and its worked example before teaching; do not infer details absent from the source.",
-            "checkpoint": f"Explain this passage in your own words{page_text}: “{checkpoint_text}”. Which idea does it communicate?",
-            "source_chunk_ids": [cid],
             "visual": {"type": "table", "objects": [], "actions": [], "narration_sync": True},
         })
+
     lesson = {
         "chapter_title": chapter,
         "overview": (
-            f"Class 6 {subject}: {chapter}. This is an automatically assembled, source-grounded study draft. "
-            "Text has been cleaned for common running headers and control characters; teaching prompts are built "
-            "from cited textbook passages. This deterministic process does not independently establish factual "
-            "correctness or pedagogical quality."
+            f"Class 6 {subject}: {chapter}. This source-grounded draft organizes textbook chunks into "
+            f"{len(sequence)} manageable teaching stages, with citations preserved for every stage. "
+            "Worked solutions and factual accuracy still require domain review."
         ),
         "learning_objectives": objectives,
+        "learning_objectives_tanglish": objectives_tanglish,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
         "draft_method": "deterministic-extractive-v4-tanglish",
@@ -238,9 +266,9 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
             "English": {"language": "English", "available": True},
             "Tanglish": {
                 "language": "Tanglish",
-                "script": "Tamil written in Latin characters, with English subject terminology retained",
+                "script": "Tamil written in Latin characters, retaining English subject terms",
                 "available": True,
-                "method": "bilingual scaffolding around cited English textbook passages; not a full translation",
+                "method": "bilingual teaching scaffolds around cited English textbook passages; not a full textbook translation",
                 "human_review_required": True,
             },
         },
@@ -253,6 +281,8 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
     if quality_errors:
         raise ValueError(f"{chapter}: quality gate failed: " + "; ".join(quality_errors[:8]))
     validation["quality_gate"] = {"passed": True, "errors": []}
+    validation["teaching_stage_count"] = len(sequence)
+    validation["tanglish_scaffold"] = True
     return lesson, validation
 
 def main() -> None:

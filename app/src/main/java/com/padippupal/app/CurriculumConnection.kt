@@ -53,6 +53,8 @@ internal fun CurriculumConnectionScreen(
     var baseUrl by remember { mutableStateOf(BuildConfig.CURRICULUM_API_BASE_URL) }
     var subject by remember { mutableStateOf("Science") }
     var query by remember { mutableStateOf("Explain the main idea of this chapter") }
+    var chapter by remember { mutableStateOf("") }
+    var synthesizedLessons by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
     var status by remember { mutableStateOf("Not checked yet") }
     var loading by remember { mutableStateOf(false) }
     var matches by remember { mutableStateOf<List<CurriculumMatch>>(emptyList()) }
@@ -129,6 +131,46 @@ internal fun CurriculumConnectionScreen(
         }
     }
 
+    fun loadApprovedSynthesizedLessons() {
+        val cleanBase = baseUrl.trim().trimEnd('/')
+        if (!cleanBase.startsWith("https://")) {
+            status = "Enter a valid deployed HTTPS API address before loading lessons."
+            return
+        }
+        loading = true
+        synthesizedLessons = emptyList()
+        status = "Loading approved synthesized lessons…"
+        apiExecutor.execute {
+            val result = runCatching {
+                val params = "board=${URLEncoder.encode(board, "UTF-8")}" +
+                    "&class_level=$grade" +
+                    "&subject=${URLEncoder.encode(subject, "UTF-8")}" +
+                    "&medium=${URLEncoder.encode(medium, "UTF-8")}" +
+                    if (chapter.trim().isNotEmpty()) "&chapter=${URLEncoder.encode(chapter.trim(), "UTF-8")}" else ""
+                apiGet("$cleanBase/curriculum/synthesized-lessons?$params")
+            }
+            apiMainHandler.post {
+                loading = false
+                result.fold(
+                    onSuccess = { response ->
+                        val found = mutableListOf<JSONObject>()
+                        val rows = response.optJSONArray("lessons")
+                        if (rows != null) for (i in 0 until rows.length()) {
+                            rows.optJSONObject(i)?.let(found::add)
+                        }
+                        synthesizedLessons = found
+                        status = if (found.isEmpty()) {
+                            "Connected, but no approved synthesized lessons match this profile and chapter."
+                        } else {
+                            "Loaded ${found.size} approved synthesized lesson(s)."
+                        }
+                    },
+                    onFailure = { status = "Lesson load failed: ${it.message ?: "network error"}" }
+                )
+            }
+        }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.spacedBy(13.dp),
@@ -173,6 +215,52 @@ internal fun CurriculumConnectionScreen(
         }
         item {
             Text(status, color = if (status.startsWith("Connected")) ApiGreen else ApiGrey, fontSize = 13.sp)
+        }
+        item { Divider() }
+        item {
+            Text("Approved synthesized lessons", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ApiInk)
+            Text("Loads reviewed lesson content from the curriculum API. Leave chapter blank to show all matching chapters.", color = ApiGrey, fontSize = 12.sp)
+        }
+        item {
+            OutlinedTextField(
+                value = chapter,
+                onValueChange = { chapter = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Chapter (optional exact title)") },
+                singleLine = true
+            )
+        }
+        item {
+            Button(
+                onClick = { loadApprovedSynthesizedLessons() },
+                enabled = !loading && subject.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("  Load approved lessons")
+            }
+        }
+        items(synthesizedLessons, key = { it.optString("id") }) { lesson ->
+            val objectives = lesson.optJSONArray("learning_objectives")
+            val objectivesText = if (objectives == null) "" else
+                (0 until objectives.length()).mapNotNull { objectives.optString(it).takeIf(String::isNotBlank) }.joinToString(" · ")
+            val explanationObject = lesson.optJSONObject("explanation")
+            val explanation = explanationObject?.let { obj ->
+                listOf("teacher_says", "explanation", "summary", "text", "overview")
+                    .map { obj.optString(it).trim() }
+                    .firstOrNull { it.isNotBlank() }
+                    .orEmpty()
+            }.orEmpty()
+            val examples = lesson.optJSONArray("examples")?.toString().orEmpty()
+            Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(18.dp)) {
+                Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text(lesson.optString("topic", "Approved topic"), fontWeight = FontWeight.Bold, color = ApiInk)
+                    Text("${lesson.optString("chapter")} · pages ${lesson.optString("page_start")}–${lesson.optString("page_end")}", color = ApiGreen, fontSize = 11.sp)
+                    if (objectivesText.isNotBlank()) Text("You will learn: $objectivesText", fontSize = 13.sp, color = ApiInk)
+                    if (explanation.isNotBlank()) Text(explanation, fontSize = 14.sp, lineHeight = 20.sp, color = ApiInk)
+                    if (examples.isNotBlank() && examples != "[]") Text("Examples: $examples", fontSize = 13.sp, color = ApiInk)
+                    Text("Source: ${lesson.optString("source_title", "reviewed curriculum source")}", color = ApiGrey, fontSize = 11.sp)
+                }
+            }
         }
         item { Divider() }
         item { Text("Search indexed material", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ApiInk) }

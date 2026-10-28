@@ -435,13 +435,17 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                     }
                 }
                 "compare" -> {
-                    val heights = listOf(0.30f, 0.48f, 0.66f)
-                    val barWidth = size.width * 0.13f
-                    val gap = size.width * 0.12f
-                    val start = (size.width - (barWidth * 3 + gap * 2)) / 2f
-                    val colors = listOf(Color(0xFF5BB7A5), Color(0xFF7CA9E8), Color(0xFFF1C46A))
-                    heights.forEachIndexed { index, fraction ->
-                        if (index < revealCount) drawRoundRect(colors[index], Offset(start + index * (barWidth + gap), size.height * (0.82f - fraction)), androidx.compose.ui.geometry.Size(barWidth, size.height * fraction), androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()))
+                    val count = activeLabels.size.coerceIn(1, 3)
+                    val gap = 7.dp.toPx()
+                    val panelWidth = (size.width * 0.82f - gap * (count - 1)) / count
+                    val left = size.width * 0.09f
+                    val top = size.height * 0.20f
+                    repeat(count) { index ->
+                        if (index < revealCount) {
+                            val x = left + index * (panelWidth + gap)
+                            drawRoundRect(Color(0xFFDCEFEB), Offset(x, top), androidx.compose.ui.geometry.Size(panelWidth, size.height * 0.58f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()))
+                            drawRoundRect(Color(0xFF7C91A0), Offset(x, top), androidx.compose.ui.geometry.Size(panelWidth, size.height * 0.58f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
                     }
                 }
                 "geometry", "number_line" -> {

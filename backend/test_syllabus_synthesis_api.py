@@ -380,3 +380,81 @@ def test_batch_synthesis_inventory_is_read_only_bounded_and_source_specific(monk
     assert result["failed_count"] == 0
     assert captured[0].source_id == "batch-source-b"
     assert captured[0].chapter == "Chapter One"
+
+
+def test_learner_endpoint_serves_only_exact_approved_validated_synthesis():
+    curriculum.DB_PATH = Path(tempfile.mkstemp(suffix=".sqlite3")[1])
+    curriculum.init_db()
+    now = time.time()
+    source_id = "learner-synthesis-source"
+    round_id = "learner-synthesis-round"
+    topic_id = "learner-synthesis-topic"
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO sources
+            (id,board,academic_year,class_level,subject,medium,term,edition,title,source_url,
+             license_note,sha256,status,page_count,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (source_id, "CBSE", "2026-27", 6, "Science", "English", "", "2026",
+             "Approved science source", "https://example.org/science", "Reviewed test fixture",
+             "learner-synthesis-sha", "ready", 2, now),
+        )
+        conn.execute(
+            """INSERT INTO syllabus_synthesis_rounds
+            (id,source_id,board,class_level,subject,chapter,curriculum_version,status,model,
+             prompt_version,source_chunk_ids_json,evidence_fingerprint,validation_json,error_message,
+             created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,'approved',?,?,?,?,?,'',?,?)""",
+            (round_id, source_id, "CBSE", 6, "Science", "Living Things", "v10",
+             "test-model", "v1", json.dumps(["chunk-approved"]),
+             "a" * 64, json.dumps({"valid": True}), now, now),
+        )
+        conn.execute(
+            """INSERT INTO syllabus_topic_syntheses
+            (id,round_id,source_id,topic,page_start,page_end,learning_objectives_json,
+             explanation_json,examples_json,practice_questions_json,citation_refs_json,
+             validation_status,validation_notes_json,approval_status,created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (topic_id, round_id, source_id, "Photosynthesis", 1, 2,
+             json.dumps(["Explain how plants make food"]),
+             json.dumps({"teacher_says": "Leaves use sunlight to make food."}),
+             json.dumps(["A green leaf uses light energy."]),
+             json.dumps(["Why do leaves need sunlight?"]),
+             json.dumps(["chunk-approved"]), "passed", json.dumps(["Reviewed"]),
+             "approved", now, now),
+        )
+
+    client = TestClient(curriculum.app)
+    params = {
+        "board": "CBSE", "class_level": 6, "subject": "Science",
+        "medium": "English", "chapter": "Living Things", "topic": "photosynthesis",
+    }
+    response = client.get("/curriculum/synthesized-lesson", params=params)
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["status"] == "approved"
+    assert data["lesson_id"] == topic_id
+    assert "Leaves use sunlight to make food." in data["lesson_text"]
+    assert "A green leaf uses light energy." in data["lesson_text"]
+    assert data["source_refs"] == ["chunk-approved"]
+    assert data["page_start"] == 1 and data["page_end"] == 2
+
+    wrong_profile = client.get(
+        "/curriculum/synthesized-lesson",
+        params={**params, "medium": "Tamil"},
+    )
+    assert wrong_profile.json()["status"] == "not_found"
+    wrong_topic = client.get(
+        "/curriculum/synthesized-lesson",
+        params={**params, "topic": "Photosynthesis and unrelated topic"},
+    )
+    assert wrong_topic.json()["status"] == "not_found"
+
+    with curriculum.db() as conn:
+        conn.execute(
+            "UPDATE syllabus_topic_syntheses SET approval_status='draft' WHERE id=?",
+            (topic_id,),
+        )
+    unapproved = client.get("/curriculum/synthesized-lesson", params=params)
+    assert unapproved.json()["status"] == "not_found"
+

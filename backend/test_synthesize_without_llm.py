@@ -51,6 +51,27 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
         self.assertTrue(all("Use an example or diagram" not in step["example"] for step in lesson["teaching_sequence"]))
         self.assertEqual(quality_gate(lesson, chunks), [])
 
+    def test_tanglish_variant_and_manageable_lesson_pacing(self):
+        chunks = [
+            {"id": f"c{i}", "text": f"Water changes state in example number {i}. Heating and cooling can cause changes in water.", "page_start": i}
+            for i in range(1, 25)
+        ]
+        lesson, validation = build_lesson("Science", "A Journey through States of Water", chunks)
+        self.assertTrue(validation["valid"], validation["errors"])
+        self.assertLessEqual(len(lesson["teaching_sequence"]), 8)
+        self.assertGreaterEqual(len(lesson["teaching_sequence"]), 3)
+        self.assertEqual(lesson["language_variants"]["Tanglish"]["available"], True)
+        self.assertTrue(lesson["language_variants"]["Tanglish"]["human_review_required"])
+        self.assertEqual(len(lesson["learning_objectives"]), len(lesson["learning_objectives_tanglish"]))
+        cited = {
+            cid
+            for step in lesson["teaching_sequence"]
+            for cid in step["source_chunk_ids"]
+        }
+        self.assertEqual(cited, {chunk["id"] for chunk in chunks})
+        self.assertTrue(all(step["tanglish"]["teacher_says"].startswith("Namma") for step in lesson["teaching_sequence"]))
+        self.assertTrue(all(len(step["tanglish"]["checkpoint"]) >= 35 for step in lesson["teaching_sequence"]))
+
     def test_quality_gate_rejects_generic_placeholders(self):
         lesson = {
             "learning_objectives": ["Identify and explain the main idea in source section 1."],

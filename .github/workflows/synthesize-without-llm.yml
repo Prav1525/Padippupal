@@ -85,8 +85,8 @@ jobs:
                   assert lesson.get("draft_method") == "deterministic-extractive-v8-natural-tanglish"
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("available") is True
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("human_review_required") is True
-                  natural_starters = ("Seri", "Paathiya", "Air-la", "Ella", "Plant-la", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru")
-                  assert all(step["tanglish"]["teacher_says"].startswith(natural_starters) for step in lesson["teaching_sequence"])
+                  assert all(len(step["tanglish"]["teacher_says"].strip()) >= 100 for step in lesson["teaching_sequence"])
+                  assert all("unakku enna purinjuchu" in step["tanglish"]["teacher_says"].lower() for step in lesson["teaching_sequence"])
                   assert all("un words-la sollu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"])
                   assert all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"].lower() for step in lesson["teaching_sequence"])
                   assert 3 <= len(lesson.get("teaching_sequence", [])) <= 10
@@ -100,7 +100,7 @@ jobs:
                       assert len(step.get("caption", "")) <= 500
                       assert len(step.get("example", "")) <= 900
                       tanglish = step.get("tanglish", {})
-                      assert tanglish.get("teacher_says", "").startswith(natural_starters)
+                      assert len(tanglish.get("teacher_says", "").strip()) >= 100
                       assert "unakku enna purinjuchu" in tanglish.get("teacher_says", "").lower()
                       assert "un words-la sollu" in tanglish.get("example", "").lower()
                       assert "confusing-aa irundhaa parava illa" in tanglish.get("misconception", "").lower()

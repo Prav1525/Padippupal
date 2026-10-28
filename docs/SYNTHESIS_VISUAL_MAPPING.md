@@ -8,13 +8,13 @@ PadippuPal's `chapter_lessons` records are the source of truth. Visuals must be 
 2. During approved PDF ingestion, transiently render only candidate figure pages and ask the configured vision model for a concise structural description (concept, objects, relationships, labels and teaching order). Rendered page images are discarded; only the description and page number are appended to the source text. ZIP ingestion uses the same path.
 3. During synthesis, use those explicit figure-reference descriptions as structural evidence. The model must create an original composition and artwork—not trace or reproduce textbook illustration style—and include supported objects, relationships, reveal actions, narration sync phrases and reference page numbers.
 4. For every saved teaching step, generate a compact 2D vector blueprint from that step's `title`, `caption`, `visual` fields, reference page numbers and `source_chunk_ids`. The blueprint and SVG are stored together in `blueprint_json`.
-5. Store it in `lesson_visual_assets` with a stable lesson/step key, the summary/caption it illustrates, source chunk IDs, page references and a content fingerprint.
-6. Return the stored visual alongside the same approved lesson response. The tutor renderer draws the visual in the same content flow and reveals its diagram parts once as speech progress moves through the teaching steps.
-7. When a lesson synthesis changes, the fingerprint changes and the corresponding step record is updated. Removed steps are marked inactive so stale visual cards do not linger.
+5. For approved chapter syntheses, store it in `lesson_visual_assets` with a stable lesson/step key. For the live generated tutor path, store it in `tutor_topic_visual_assets` under the normalized board/class/subject/medium/chapter/topic profile and step ID. Both records keep the exact caption, source chunk IDs, cited page references and content fingerprint.
+6. Attach the stored visual to the same tutor segment that carries the spoken explanation. The Android renderer draws it inline in the lesson flow and reveals its diagram parts once as speech progress moves through the teaching step; it is not a popup, overlay or separate window.
+7. When the synthesis content changes, the fingerprint changes and the corresponding step record is updated. Removed steps are marked inactive so stale visual assets do not linger.
 
 ## Data contract
 
-- `lesson_id + step_id`: stable mapping from one synthesis step to its visual.
+- Approved chapter lessons use `lesson_id + step_id`; generated live tutor lessons use the selected curriculum profile key plus `step_id`. The latter is stored in `tutor_topic_visual_assets`, so visuals cannot leak between different topics or learner curriculum profiles.
 - `summary_text`: the exact lesson caption/summary that the visual accompanies.
 - `source_chunk_ids_json`: the source chunks cited by that step; no unrelated topic-only visual is attached.
 - `blueprint_json`: a small, renderer-friendly 2D scene recipe plus generated SVG markup (kind, labels, spatial relationships, teaching order, reveal actions, narration sync, and explicit textbook reference pages where available).

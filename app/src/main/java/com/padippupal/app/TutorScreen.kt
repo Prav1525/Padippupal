@@ -367,8 +367,8 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(title, color = Color(0xFF17324D), fontSize = if (compact) 13.sp else 15.sp, fontWeight = FontWeight.Bold)
-        if (activeCaption.isNotBlank()) {
-            Text(activeCaption, color = Color(0xFF526477), fontSize = if (compact) 11.sp else 12.sp, lineHeight = if (compact) 15.sp else 17.sp)
+        if (activeCaption.isNotBlank() && !compact) {
+            Text(activeCaption, color = Color(0xFF526477), fontSize = 12.sp, lineHeight = 17.sp)
         }
         Canvas(
             Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)

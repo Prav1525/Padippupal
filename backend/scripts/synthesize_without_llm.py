@@ -24,7 +24,7 @@ from syllabus_synthesis import EvidenceChunk, evidence_fingerprint, make_run_id,
 BOARD = "CBSE"
 CLASS_LEVEL = 6
 MEDIUM = "English"
-CURRICULUM_VERSION = "extractive-v4-tanglish"
+CURRICULUM_VERSION = "extractive-v5-tanglish"
 MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
@@ -93,11 +93,42 @@ def short_summary(text: str, chapter: str | None = None) -> str:
     # Keep the first two readable, source-grounded sentences; avoid unbounded page dumps.
     return " ".join(s[:420] for s in sentences[:2])[:700].strip()
 
+def summarize_group(group: list[dict], chapter: str, max_chars: int = 560) -> str:
+    """Select a few readable source sentences instead of concatenating entire PDF chunks."""
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for chunk in group:
+        for sentence in clean_sentences(str(chunk.get("clean_summary") or chunk.get("text") or ""), chapter):
+            sentence = re.sub(r"\s+", " ", sentence).strip()
+            if len(sentence) < 35 or len(sentence) > 300:
+                continue
+            if re.search(r"\b(?:Practice prompt|Fill in the blanks|Figure it Out)\b", sentence, re.I):
+                continue
+            key = re.sub(r"\W+", " ", sentence).casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(sentence)
+    selected: list[str] = []
+    used = 0
+    for sentence in candidates:
+        addition = len(sentence) + (1 if selected else 0)
+        if used + addition > max_chars:
+            continue
+        selected.append(sentence)
+        used += addition
+        if len(selected) >= 4:
+            break
+    if not selected:
+        raise ValueError(f"{chapter}: no concise, readable sentences for a teaching stage")
+    return " ".join(selected)
+
+
 def specific_objective(summary: str, chapter: str) -> str:
-    """Create a source-specific objective rather than a generic section placeholder."""
+    """Create a short, source-specific objective without pasting a whole page."""
     sentence = summary.strip().rstrip(".!?")
-    if len(sentence) > 150:
-        sentence = sentence[:147].rsplit(" ", 1)[0] + "..."
+    if len(sentence) > 105:
+        sentence = sentence[:102].rsplit(" ", 1)[0] + "..."
     if not sentence:
         raise ValueError(f"{chapter}: no readable source text for learning objective")
     return f"Explain the textbook idea or situation: {sentence}"
@@ -202,8 +233,10 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
     sequence = []
     for i, group in enumerate(groups, 1):
         chunk_ids = [str(c["id"]) for c in group]
-        summary = " ".join(c["clean_summary"] for c in group)
-        summary = summary[:1150].rsplit(" ", 1)[0].strip()
+        summary = summarize_group(group, chapter)
+        if len(summary) > 600:
+            errors_summary = True
+            raise ValueError(f"{chapter}: teaching stage summary exceeds 600 characters")
         objective = specific_objective(summary, chapter)
         if objective not in objectives and len(objectives) < 6:
             objectives.append(objective)
@@ -253,22 +286,23 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
     lesson = {
         "chapter_title": chapter,
         "overview": (
-            f"Class 6 {subject}: {chapter}. This source-grounded draft organizes textbook chunks into "
-            f"{len(sequence)} manageable teaching stages, with citations preserved for every stage. "
+            f"Class 6 {subject}: {chapter}. This source-grounded draft organizes textbook material into "
+            f"{len(sequence)} manageable teaching stages. Each stage uses a short extractive summary and preserves "
+            "source-chunk citations. Tanglish fields provide learner instructions, not a complete translation. "
             "Worked solutions and factual accuracy still require domain review."
         ),
         "learning_objectives": objectives,
         "learning_objectives_tanglish": objectives_tanglish,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
-        "draft_method": "deterministic-extractive-v4-tanglish",
+        "draft_method": "deterministic-extractive-v5-tanglish",
         "language_variants": {
             "English": {"language": "English", "available": True},
             "Tanglish": {
                 "language": "Tanglish",
                 "script": "Tamil written in Latin characters, retaining English subject terms",
                 "available": True,
-                "method": "bilingual teaching scaffolds around cited English textbook passages; not a full textbook translation",
+                "method": "Tanglish instructions and checkpoints around short cited English source excerpts; not a full textbook translation",
                 "human_review_required": True,
             },
         },
@@ -336,7 +370,7 @@ def main() -> None:
                         WHERE chapter_lessons.status='draft'""",
                         (lesson_id, BOARD, CLASS_LEVEL, subject, MEDIUM, chapter,
                          json.dumps(lesson, ensure_ascii=False), json.dumps(refs, ensure_ascii=False),
-                         "deterministic-extractive-v4-tanglish", now, now),
+                         "deterministic-extractive-v5-tanglish", now, now),
                     )
                     conn.execute(
                         """INSERT INTO syllabus_synthesis_rounds
@@ -346,7 +380,7 @@ def main() -> None:
                         ON CONFLICT(id) DO UPDATE SET status='draft',model=excluded.model,
                           source_chunk_ids_json=excluded.source_chunk_ids_json,validation_json=excluded.validation_json,updated_at=excluded.updated_at""",
                         (round_id, str(source["id"]), BOARD, CLASS_LEVEL, subject, chapter, CURRICULUM_VERSION,
-                         "deterministic-extractive-v4-tanglish", CURRICULUM_VERSION,
+                         "deterministic-extractive-v5-tanglish", CURRICULUM_VERSION,
                          json.dumps([c.id for c in evidence]), fingerprint, json.dumps(validation), now, now),
                     )
                     conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=%s", (round_id,))

@@ -2303,7 +2303,9 @@ internal fun TutorScreen(
                                 } else {
                                     Modifier.weight(1f).fillMaxWidth()
                                 },
-                                expandToAvailableHeight = !awaitingUnderstanding
+                                // Keep the narration caption bounded so the mapped 2D visual stays visible inline.
+                                // Word highlighting scrolls inside the caption rather than pushing the visual off-screen.
+                                expandToAvailableHeight = false
                             )
                         } else {
                             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {

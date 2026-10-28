@@ -191,10 +191,10 @@ if [ "$lesson_started" -ne 1 ]; then
   [ ! -s live-lesson.xml ] || cat live-lesson.xml | tee -a "$REPORT"
   exit 1
 fi
-log "Lesson UI detected; capturing the active caption and moving word highlight"
+log "Lesson UI detected; capturing a short active-caption window so the spoken-word highlight can be verified before playback finishes"
 timeout 10s "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
 timeout 10s "${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames
-(timeout 70s "${ADB[@]}" shell 'i=0; while [ "$i" -lt 40 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done' > ui-screenshots/frame-capture.log 2>&1) &
+(timeout 25s "${ADB[@]}" shell 'i=0; while [ "$i" -lt 12 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done' > ui-screenshots/frame-capture.log 2>&1) &
 FRAME_CAPTURE_PID=$!
 wait "$FRAME_CAPTURE_PID"
 timeout 20s "${ADB[@]}" pull /data/local/tmp/padippupal-live-frames ui-screenshots/live-frames

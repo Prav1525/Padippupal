@@ -123,51 +123,43 @@ private fun WordByWordCaption(
     modifier: Modifier = Modifier,
     expandToAvailableHeight: Boolean = false
 ) {
-    val words = remember(text) { Regex("\\S+").findAll(text).map { it.value }.toList() }
-    val wordStarts = remember(text) {
-        buildList {
-            var offset = 0
-            var sentencesInParagraph = 0
-            words.forEachIndexed { index, word ->
-                add(offset)
-                offset += word.length
-                if (index < words.lastIndex) {
-                    val endsSentence = word.endsWith(".") || word.endsWith("?") || word.endsWith("!")
-                    if (endsSentence) sentencesInParagraph += 1
-                    offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1
-                }
-            }
-        }
-    }
+    // Keep the source's spaces and paragraph breaks. Word highlighting must not rewrite
+    // the lesson into a new paragraph structure while speech is playing.
+    val words = remember(text) { Regex("\\S+").findAll(text).toList() }
+    val wordStarts = remember(text) { words.map { it.range.first } }
     val scrollState = rememberScrollState()
     var layoutResult by remember(text) { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     val density = LocalDensity.current
     val caption = remember(text, active, currentWordIndex) {
         buildAnnotatedString {
-            var sentencesInParagraph = 0
-            words.forEachIndexed { index, pair ->
-                val word = pair
-                if (index > 0) {
-                    val previous = words[index - 1]
-                    val endsSentence = previous.endsWith(".") || previous.endsWith("?") || previous.endsWith("!")
-                    if (endsSentence) sentencesInParagraph += 1
-                    // Keep several sentences together like a natural tutor explanation;
-                    // separate paragraphs only after every third sentence.
-                    append(if (endsSentence && sentencesInParagraph % 3 == 0) "\n\n" else " ")
-                }
-                val start = length
-                append(word)
-                val end = length
+            var cursor = 0
+            words.forEachIndexed { index, match ->
+                val matchStart = match.range.first
+                if (matchStart > cursor) append(text.substring(cursor, matchStart))
+                val startOffset = length
+                append(match.value)
+                val endOffset = length
                 if (active && index == currentWordIndex.coerceIn(0, (words.size - 1).coerceAtLeast(0))) {
-                    addStyle(SpanStyle(background = Color(0xFFDCE7FF), fontWeight = FontWeight.ExtraBold), start, end)
+                    addStyle(
+                        SpanStyle(background = Color(0xFFDCE7FF), fontWeight = FontWeight.ExtraBold),
+                        startOffset,
+                        endOffset
+                    )
                 }
-                addStringAnnotation("word", word.trimEnd(',', '.', ';', ':', '?', '!'), start, end)
+                addStringAnnotation(
+                    "word",
+                    match.value.trimEnd(',', '.', ';', ':', '?', '!'),
+                    startOffset,
+                    endOffset
+                )
+                cursor = match.range.last + 1
             }
+            if (cursor < text.length) append(text.substring(cursor))
         }
     }
     LaunchedEffect(currentWordIndex, layoutResult, active, text) {
         val layout = layoutResult
-        if (active && layout != null && words.isNotEmpty()) {
+        if (active && layout != null && words.isNotEmpty() && caption.isNotEmpty()) {
             val index = currentWordIndex.coerceIn(0, words.lastIndex)
             val displayOffset = wordStarts.getOrElse(index) { 0 }.coerceAtMost(caption.length - 1).coerceAtLeast(0)
             val line = layout.getLineForOffset(displayOffset)
@@ -178,7 +170,7 @@ private fun WordByWordCaption(
     val captionModifier = if (expandToAvailableHeight) {
         modifier.fillMaxWidth().verticalScroll(scrollState)
     } else {
-        modifier.fillMaxWidth().heightIn(max = 150.dp).verticalScroll(scrollState)
+        modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scrollState)
     }
     Box(captionModifier) {
         Text(
@@ -187,8 +179,10 @@ private fun WordByWordCaption(
             style = androidx.compose.ui.text.TextStyle(
                 color = TutorDeep,
                 fontSize = 16.sp,
-                lineHeight = 25.sp,
-                fontWeight = FontWeight.Medium
+                lineHeight = 26.sp,
+                letterSpacing = 0.1.sp,
+                fontWeight = FontWeight.Normal,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Start
             ),
             onTextLayout = { layoutResult = it }
         )
@@ -331,9 +325,6 @@ private fun ChapterOneMathAnimation(
     caption: String,
     compact: Boolean = false
 ) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
     var stage by remember(scene, title) { mutableIntStateOf(0) }
     LaunchedEffect(scene, title) {
         stage = 0
@@ -770,9 +761,6 @@ private fun chooseLessonVisual(text: String): LessonVisualKind {
 
 @Composable
 private fun DatabaseLessonVisual(lesson: JSONObject) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
     val array = lesson.optJSONArray("steps")
     val steps = remember(lesson) {
         if (array == null) emptyList() else (0 until array.length()).mapNotNull { array.optJSONObject(it) }
@@ -2038,47 +2026,6 @@ internal fun TutorScreen(
             verticalArrangement = Arrangement.spacedBy(9.dp),
             contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp)
         ) {
-            if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
-                item(key = "live-teaching-passage") {
-                    Surface(
-                        Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 390.dp),
-                        color = Color(0xFFF8FAFC), shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFDCE3ED))
-                    ) {
-                        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LESSON EXPLANATION", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.weight(1f))
-                                if (liveLessonActive && liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
-                            }
-                            if (liveCaption.isNotBlank()) {
-                                WordByWordCaption(
-                                    liveCaption, speechActive, liveWordIndex,
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp, max = 170.dp),
-                                    expandToAvailableHeight = false
-                                )
-                            }
-                            if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                            if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
-                                val topicKey = topic.lowercase(Locale.ROOT)
-                                val scene = when {
-                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
-                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
-                                    else -> "number_pattern"
-                                }
-                                ChapterOneMathAnimation(
-                                    scene = scene,
-                                    title = topic.ifBlank { "Patterns in Mathematics" },
-                                    topic = topic,
-                                    caption = "Watch the pattern change automatically as your teacher explains."
-                                )
-                            }
-                        }
-                    }
-                }
-            }
             if (!liveLessonActive) items(messages) { message ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (message.role == "user") Arrangement.End else Arrangement.Start) {
                     Surface(

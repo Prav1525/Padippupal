@@ -44,7 +44,10 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         for record in records:
             blueprint = record["blueprint"]
             self.assertEqual(blueprint["layout"], "compact_2d")
-            self.assertEqual(blueprint["motion"], "none")
+            self.assertEqual(blueprint["motion"], "narration_step_reveal")
+            self.assertEqual(blueprint["animation_plan"]["mode"], "step_reveal")
+            self.assertFalse(blueprint["animation_plan"]["loop"])
+            self.assertLessEqual(blueprint["animation_plan"]["duration_ms"], 1000)
             self.assertNotIn("3d", json.dumps(blueprint).lower())
             self.assertLessEqual(len(blueprint["nodes"]), 6)
 

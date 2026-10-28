@@ -1671,6 +1671,60 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
+                // Prefer the exact, reviewed synthesis for this profile/topic. Older deployments
+                // may not expose this route yet, so a missing route safely falls back to the tutor API.
+                val approvedText = if (selectedLanguage.equals("English", ignoreCase = true)) {
+                    try {
+                        val params = listOf(
+                            "board" to board,
+                            "class_level" to grade.toString(),
+                            "subject" to subject,
+                            "medium" to medium,
+                            "chapter" to chapter,
+                            "topic" to topic
+                        ).joinToString("&") { (key, value) ->
+                            "$key=" + URLEncoder.encode(value, "UTF-8")
+                        }
+                        val approvedConnection = URL("$base/curriculum/synthesized-lesson?$params")
+                            .openConnection() as HttpURLConnection
+                        approvedConnection.requestMethod = "GET"
+                        approvedConnection.connectTimeout = 8000
+                        approvedConnection.readTimeout = 12000
+                        approvedConnection.setRequestProperty("Accept", "application/json")
+                        try {
+                            val code = approvedConnection.responseCode
+                            val stream = if (code in 200..299) approvedConnection.inputStream else approvedConnection.errorStream
+                            val responseText = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+                            if (code !in 200..299) "" else {
+                                val approved = JSONObject(responseText.ifBlank { "{}" })
+                                approved.optString("lesson_text").trim()
+                                    .takeIf { approved.optString("status") == "approved" && it.length >= 220 }
+                                    .orEmpty()
+                            }
+                        } finally {
+                            approvedConnection.disconnect()
+                        }
+                    } catch (_: Exception) {
+                        ""
+                    }
+                } else ""
+                if (approvedText.isNotBlank()) {
+                    if (allOnesTopic) {
+                        val validationError = AllOnesTopicValidator.failureReason(listOf(approvedText to approvedText))
+                        if (validationError != null) {
+                            throw IllegalStateException(
+                                "The approved lesson did not stay on All 1s ($validationError). No lesson was started."
+                            )
+                        }
+                    }
+                    val completeLesson = JSONObject()
+                        .put("id", "approved-synthesized-lesson")
+                        .put("spoken_text", approvedText)
+                        .put("caption_text", approvedText)
+                        .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+                        .put("checkpoint", JSONObject.NULL)
+                    return@runCatching listOf(completeLesson)
+                }
                 val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)

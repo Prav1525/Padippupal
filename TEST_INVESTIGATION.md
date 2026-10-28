@@ -350,3 +350,13 @@ Use this format:
 ### 2026-10-27 — Correction-script regression finding
 - The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
 - The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.
+
+
+### 2026-10-28 — Make tutor Tanglish generation more natural
+- **Branch:** `fix/tutor-tanglish-naturalness` (based on current `main`).
+- **Guidance applied:** Re-read `AGENTS.md` and the full `TESTING_GUIDANCE.md` before the edit. No merge or deployment is authorized.
+- **Observed evidence:** `backend/app.py` already asked for conversational Tanglish, but the rule was generic. `backend/test_tutor.py` accepted a mixed output that switched from Tanglish to a complete English sentence: “Namma simple-a paakalam. Plants use sunlight to make food.”
+- **Root cause confidence:** **PROBABLE** for inconsistent generated Tanglish: the prompt rule did not define Tamil sentence structure, permitted English terminology, or explicitly reject random full-English sentence switching. Live production behavior still needs a phone/audio reproduction.
+- **Change made:** Strengthened the `/tutor/chat` language contract with concrete natural-Tanglish rules and an example; changed the mocked response and regression assertions to reject the previous mostly-English mixed output. Curriculum scope and factual grounding rules are unchanged.
+- **Verification:** Not yet run in this tool session. Required next checks: backend tutor tests, full curriculum backend suite, Android debug APK build, and phone/emulator text + speech review. A prompt test can prove the contract is sent, not that Gemini always follows it or that speech sounds natural.
+- **Next action:** Run exact-branch backend tests and the required build/acceptance checks. Keep the PR unmerged and do not deploy until results are reviewed.

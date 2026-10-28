@@ -478,3 +478,11 @@ Use this format:
 - **Purpose:** The earlier visual-builder tests checked mapping in memory but did not prove database persistence or updates after a synthesis caption changes.
 - **Change:** Added a temporary-SQLite test that inserts an approved synthesized lesson, verifies the generated visual is stored with its source chunk IDs, then updates the synthesis caption and verifies the stored visual fingerprint and summary update.
 - **Verification:** Exact-head backend test run pending. No merge or deployment performed.
+
+
+### 2026-10-28 — Keep generated visual title bound to the exact approved topic
+- **Branch / PR:** `feat/synthesis-linked-2d-visuals`, draft PR #49; code commit `9127e326ae745df7570a01d39f207ad1cb804b87`, regression assertion `af1113f15eb3b745c868d53d4d91bad8ff16fcb8`.
+- **Reason:** The saved lesson JSON may contain a chapter title but omit the topic field; the exact approved topic is held separately in the `chapter_lessons` row.
+- **Fix:** Pass the approved row's topic into the inline visual adapter and use it for the visual title/topic, while each visual card's caption remains the exact teaching-step summary.
+- **Validation:** Added assertions for exact topic binding and static inline payload. Exact-head backend/APK/emulator checks must rerun; earlier backend test run passed 88 tests before this topic-binding assertion.
+- **No merge or deployment performed.**

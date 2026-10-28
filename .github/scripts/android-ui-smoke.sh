@@ -166,9 +166,15 @@ python3 .github/scripts/ui_smoke.py assert-tutor ready-to-teach.xml | tee -a "$R
 python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
 log "Waiting for a complete lesson caption (hard deadline 150s; each ADB call is separately bounded)"
+# Never let a failed UIAutomator dump leave a previous accessibility tree looking current.
+rm -f live-lesson.xml
 lesson_started=0
 lesson_deadline=$((SECONDS + 150))
 while [ "$SECONDS" -lt "$lesson_deadline" ]; do
+  # Remove both copies first: otherwise a failed dump/pull can leave stale XML
+  # from an earlier state and make the smoke test pass or fail on old content.
+  rm -f live-lesson.xml
+  timeout 8s "${ADB[@]}" shell rm -f /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
   if [ -s live-lesson.xml ]; then

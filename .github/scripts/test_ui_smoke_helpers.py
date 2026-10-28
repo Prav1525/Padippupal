@@ -93,7 +93,7 @@ class ExactSelectorTests(unittest.TestCase):
     def test_live_assertion_accepts_a_short_first_segment_before_later_segments(self):
         root = ET.fromstring("""<hierarchy>
           <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease." bounds="[0,50][300,250]"/>
+          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,50][300,250]"/>
           <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
           <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
           <node text="" content-desc="Pause playback" bounds="[0,350][100,400]"/>

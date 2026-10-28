@@ -439,3 +439,12 @@ Use this format:
 - **Root cause:** **CONFIRMED** test expected the old two-argument `TutorMessage` constructor. Current source correctly retains `liveInteractiveLesson` when saving the completed lesson so follow-up chat can keep the inline lesson visual.
 - **Fix:** Updated the helper assertion to require the current constructor call including `interactiveLesson = liveInteractiveLesson`. No production code changed.
 - **Validation:** Corrected prompt assertions and this helper assertion are queued for latest-head CI. No merge or deployment performed.
+
+
+### 2026-10-28 — Synthesis-linked compact 2D visuals
+- **Branch / PR:** `feat/synthesis-linked-2d-visuals`, draft [PR #49](https://github.com/Prav1525/Padippupal/pull/49), stacked on `ui/modern-learner-layout`.
+- **Goal:** Derive visuals from approved `chapter_lessons.lesson_json.teaching_sequence`, persist one visual blueprint per lesson step, and return it beside the exact matching summary and source chunk IDs.
+- **Implementation:** Added `backend/lesson_visuals.py`, `lesson_visual_assets` table, lazy create/update and retrieval in the approved lesson path, and `GET /chapter-lessons/{lesson_id}/visuals`. The existing tutor response gets a compact `interactive_lesson` adapted from these stored records.
+- **Constraints:** Small 2D vector/card blueprints only; no 3D, large animation, separate overlay, invented textbook images, or guessed page references. Empty or unsupported step metadata must not create unrelated visuals.
+- **Tests added:** `backend/test_lesson_visuals.py` covers step-to-summary mapping, source chunk retention, compact/static constraints, stable fingerprints, and empty-sequence behavior.
+- **Validation status:** Not yet verified on the exact head. Draft PR was opened to trigger CI; inspect backend tests and APK/emulator checks before calling this ready. No merge or deployment performed.

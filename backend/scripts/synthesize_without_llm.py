@@ -157,7 +157,7 @@ def tanglish_explanation(summary: str, chapter: str, stage: int) -> str:
 def tanglish_checkpoint(summary: str, page: int | None, chapter: str, stage: int) -> str:
     """Ask a conversational check-for-understanding question grounded in the excerpt."""
     text = summary.casefold()
-    page_hint = f" Textbook page {page-a} pakkathula irukkum." if page is not None else ""
+    page_hint = f" Textbook page {page}-la indha part irukku." if page is not None else ""
     if any(term in text for term in ("fraction", "roti", "equal share", "numerator", "denominator")):
         question = "Idha equal-aa share panninaa ovvorutharukku evlo kidaikkum? Eppadi decide panneenga?"
     elif any(term in text for term in ("ice", "water vapour", "evaporat", "condens", "melt", "boil", "solid", "liquid", "gas")):

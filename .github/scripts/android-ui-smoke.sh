@@ -182,9 +182,13 @@ while [ "$SECONDS" -lt "$lesson_deadline" ]; do
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
   if [ -s live-lesson.xml ]; then
-    if python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml >/dev/null 2>&1; then
+    if python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml > live-assertion.log 2>&1; then
       lesson_started=1
       break
+    else
+      # Keep the last concrete reason visible; previously every failed assertion
+      # was discarded, hiding whether this was caption length, controls, or API state.
+      cp live-assertion.log live-assertion-last.log
     fi
     if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s|too short to explain the selected topic|No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-lesson.xml; then
       FAILURE_CLASS="APP_FAILURE"
@@ -197,7 +201,8 @@ while [ "$SECONDS" -lt "$lesson_deadline" ]; do
 done
 if [ "$lesson_started" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: tutor did not leave lesson preparation within 150 seconds"
+  log "FAIL: tutor did not expose a recognised active lesson within 150 seconds"
+  [ ! -s live-assertion-last.log ] || { log "Last active-lesson assertion:"; cat live-assertion-last.log | tee -a "$REPORT"; }
   [ ! -s live-lesson.xml ] || cat live-lesson.xml | tee -a "$REPORT"
   exit 1
 fi

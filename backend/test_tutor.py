@@ -34,7 +34,7 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
 
         def read(self):
             return json.dumps({
-                "candidates": [{"content": {"parts": [{"text": "Namma simple-a paakalam. Plants use sunlight to make food."}]}}]
+                "candidates": [{"content": {"parts": [{"text": "Namma photosynthesis-a simple-a paakalam. Oru plant sunlight-a use panni thanoda food-a prepare pannum."}]}}]
             }).encode("utf-8")
 
     def fake_urlopen(request, timeout):
@@ -77,7 +77,10 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
         "history": [{"role": "user", "content": "I am confused."}],
     })
     assert response.status_code == 200
-    assert response.json()["answer"].startswith("Namma")
+    answer = response.json()["answer"]
+    assert answer.startswith("Namma photosynthesis-a")
+    assert "Oru plant sunlight-a use panni" in answer
+    assert "Plants use sunlight to make food." not in answer
     assert response.json()["grounded"] is True
     assert response.json()["visual_lesson"]["title"] == "Photosynthesis"
     assert "systemInstruction" in captured["payload"]
@@ -85,6 +88,9 @@ def test_tutor_uses_profile_and_gentle_prompt(monkeypatch):
     prompt = captured["payload"]["systemInstruction"]["parts"][0]["text"]
     assert "warm, patient school tutor" in prompt
     assert "Tanglish" in prompt
+    assert "Tamil sentence structure" in prompt
+    assert "Do NOT write an English sentence" in prompt
+    assert "Keep both the answer shown on screen and the text sent for speech" in prompt
     assert "chapter=Life Processes" in prompt
     assert "subtopic=Photosynthesis" in prompt
     assert "SYLLABUS AND LESSON-PLAN BOUNDARY" in prompt

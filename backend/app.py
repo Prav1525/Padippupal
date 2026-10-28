@@ -742,9 +742,11 @@ async def ingest_pdf(
             page_text = normalize(page.extract_text() or "")
             visual_note = visual_refs.get(index, "")
             if page_text or visual_note:
-                section = f"[Page {index}] {page_text}".strip()
+                section = f"[Page {index}]"
                 if visual_note:
                     section += f"\n[Textbook visual reference | Page {index}] {visual_note}"
+                if page_text:
+                    section += f"\n{page_text}"
                 pages.append(section)
         text = "\n\n".join(pages)
         if len(text) < 30:
@@ -801,9 +803,11 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
                 page_text = normalize(page.extract_text() or "")
                 visual_note = visual_refs.get(page_no, "")
                 if page_text or visual_note:
-                    section = f"[Page {page_no}] {page_text}".strip()
+                    section = f"[Page {page_no}]"
                     if visual_note:
                         section += f"\n[Textbook visual reference | Page {page_no}] {visual_note}"
+                    if page_text:
+                        section += f"\n{page_text}"
                     page_texts.append(section)
             extracted = "\n\n".join(page_texts)
             if len(extracted) < 30:

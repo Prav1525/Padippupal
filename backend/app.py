@@ -462,6 +462,129 @@ def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list
     } for row in ordered_rows]
 
 
+def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, Any]],
+                         sources: list[dict[str, Any]], fallback_visual: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Persist source-grounded compact visuals under the exact selected lesson topic.
+
+    This path covers dynamically planned lessons too, not only pre-approved
+    chapter-wide lessons. Every asset is tied to the selected curriculum profile,
+    step ID, and the source chunk IDs cited by that step.
+    """
+    profile = [
+        normalize(payload.board).casefold(), int(payload.class_level),
+        normalize(payload.subject).casefold(), normalize(payload.medium).casefold(),
+        normalize(payload.chapter).casefold(), normalize(payload.topic).casefold(),
+    ]
+    profile_key = hashlib.sha256(json.dumps(profile, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+    allowed_ids = {str(source.get("chunk_id", "")) for source in sources if source.get("chunk_id")}
+    source_by_id = {str(source.get("chunk_id", "")): source for source in sources if source.get("chunk_id")}
+    lesson = {"chapter_title": payload.chapter, "topic": payload.topic,
+              "overview": f"{payload.topic or payload.chapter} — source-grounded teaching visuals"}
+    sequence = []
+    for index, segment in enumerate(segments):
+        if not isinstance(segment, dict):
+            continue
+        source_ids = segment.get("source_chunk_ids")
+        if not isinstance(source_ids, list) or not source_ids:
+            continue
+        normalized_ids = list(dict.fromkeys(str(value) for value in source_ids if str(value)))
+        if not normalized_ids or not set(normalized_ids).issubset(allowed_ids):
+            continue
+        action = segment.get("visual_action") if isinstance(segment.get("visual_action"), dict) else {}
+        action_type = _clean(action.get("type") or "none", 32).lower()
+        objects = []
+        if action_type != "none":
+            for key in ("target", "value"):
+                label = _clean(action.get(key), 72)
+                if label and label not in objects:
+                    objects.append(label)
+        page_numbers = []
+        for chunk_id in normalized_ids:
+            source = source_by_id.get(chunk_id, {})
+            for key in ("page_start", "page_end"):
+                try:
+                    page_number = int(source.get(key))
+                except (TypeError, ValueError):
+                    continue
+                if page_number > 0 and page_number not in page_numbers:
+                    page_numbers.append(page_number)
+        visual = {"type": action_type, "objects": objects}
+        if page_numbers:
+            visual["reference_page_numbers"] = sorted(page_numbers)[:8]
+        caption = str(segment.get("caption_text") or segment.get("spoken_text") or "").strip()
+        spoken = str(segment.get("spoken_text") or caption).strip()
+        if not caption or not spoken:
+            continue
+        sequence.append({
+            "id": str(segment.get("id") or f"segment-{index + 1}")[:48],
+            "title": payload.topic or payload.chapter or f"Teaching step {index + 1}",
+            "caption": caption,
+            "teacher_says": spoken,
+            "source_chunk_ids": normalized_ids[:8],
+            "visual": visual,
+        })
+    lesson["teaching_sequence"] = sequence
+    records = build_visual_records(profile_key, lesson)
+    now = time.time()
+    with db() as conn:
+        conn.execute("UPDATE tutor_topic_visual_assets SET active=0, updated_at=? WHERE profile_key=?",
+                     (now, profile_key))
+        for record in records:
+            conn.execute(
+                """INSERT INTO tutor_topic_visual_assets
+                   (id, profile_key, board, class_level, subject, medium, chapter, topic,
+                    step_id, summary_text, visual_kind, blueprint_json, source_chunk_ids_json,
+                    content_fingerprint, active, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                   ON CONFLICT(profile_key, step_id) DO UPDATE SET
+                     summary_text=excluded.summary_text, visual_kind=excluded.visual_kind,
+                     blueprint_json=excluded.blueprint_json,
+                     source_chunk_ids_json=excluded.source_chunk_ids_json,
+                     content_fingerprint=excluded.content_fingerprint,
+                     active=1, updated_at=excluded.updated_at""",
+                (record["id"], profile_key, payload.board, payload.class_level, payload.subject,
+                 payload.medium, payload.chapter, payload.topic, record["step_id"],
+                 record["summary_text"], record["visual_kind"], record["blueprint_json"],
+                 record["source_chunk_ids_json"], record["content_fingerprint"], now, now),
+            )
+        if records:
+            step_ids = [record["step_id"] for record in records]
+            placeholders = ",".join("?" for _ in step_ids)
+            rows = conn.execute(
+                f"""SELECT step_id, summary_text, visual_kind, blueprint_json,
+                           source_chunk_ids_json, content_fingerprint
+                    FROM tutor_topic_visual_assets
+                    WHERE profile_key=? AND active=1 AND step_id IN ({placeholders})""",
+                (profile_key, *step_ids),
+            ).fetchall()
+        else:
+            rows = []
+    rows_by_step = {str(row["step_id"]): row for row in rows}
+    ordered = []
+    for record in records:
+        row = rows_by_step.get(record["step_id"])
+        if not row:
+            continue
+        blueprint = json.loads(row["blueprint_json"])
+        ordered.append({
+            "step_id": row["step_id"], "summary_text": row["summary_text"],
+            "visual_kind": row["visual_kind"], "blueprint": blueprint,
+            "svg_markup": blueprint.get("svg_markup", ""),
+            "source_chunk_ids": json.loads(row["source_chunk_ids_json"]),
+            "content_fingerprint": row["content_fingerprint"],
+        })
+    visuals_by_step = {str(item["step_id"]): item for item in ordered}
+    for segment in segments:
+        if not isinstance(segment, dict):
+            continue
+        visual_record = visuals_by_step.get(str(segment.get("id") or ""))
+        inline = build_inline_synthesized_visual(
+            profile_key, lesson, [visual_record] if visual_record else [], topic=payload.topic
+        ) if visual_record else None
+        segment["interactive_lesson"] = inline or fallback_visual
+    return segments
+
+
 def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
                                      visuals: list[dict[str, Any]], topic: str = "") -> dict[str, Any] | None:
     """Adapt stored synthesis-linked blueprints to the existing inline tutor visual contract."""

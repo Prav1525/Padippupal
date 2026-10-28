@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import kotlinx.coroutines.delay
 import androidx.compose.ui.text.input.ImeAction
@@ -188,7 +189,9 @@ private fun WordByWordCaption(
                 color = TutorDeep,
                 fontSize = 16.sp,
                 lineHeight = 25.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Start,
+                letterSpacing = 0.1.sp
             ),
             onTextLayout = { layoutResult = it }
         )
@@ -331,9 +334,8 @@ private fun ChapterOneMathAnimation(
     caption: String,
     compact: Boolean = false
 ) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
+    // This animation is rendered inside the live teaching column, below the synchronized caption.
+    // It is intentionally not a dialog, overlay, or separate screen.
     var stage by remember(scene, title) { mutableIntStateOf(0) }
     LaunchedEffect(scene, title) {
         stage = 0
@@ -1665,13 +1667,67 @@ internal fun TutorScreen(
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
                 require(base.startsWith("https://") || (BuildConfig.DEBUG && base == "http://10.0.2.2:8765")) { "The secure PadippuPal API URL is not configured." }
+                // Prefer an approved, source-cited synthesis for this exact learner profile.
+                // Fall back to the existing grounded Gemini lesson when none is available.
+                val approvedLesson = runCatching {
+                    val query = listOf("board" to board, "class_level" to grade.toString(), "subject" to subject,
+                        "medium" to medium, "chapter" to chapter, "topic" to topic)
+                        .joinToString("&") { (key, value) -> key + "=" + java.net.URLEncoder.encode(value, "UTF-8") }
+                    val approvedConnection = URL("$base/syllabus-synthesis/approved-topic?$query").openConnection() as HttpURLConnection
+                    approvedConnection.requestMethod = "GET"
+                    approvedConnection.connectTimeout = 8000
+                    approvedConnection.readTimeout = 12000
+                    approvedConnection.setRequestProperty("Accept", "application/json")
+                    try {
+                        val code = approvedConnection.responseCode
+                        if (code !in 200..299) throw IllegalStateException("Approved lesson lookup returned HTTP $code.")
+                        val response = JSONObject(approvedConnection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() })
+                        // Tanglish is a spoken teaching style, not a display toggle. Route it
+                        // through the language-aware grounded tutor instead of reading the
+                        // stored English synthesis verbatim.
+                        if (response.optString("status") != "approved" || selectedLanguage == "Tanglish") null else {
+                            val parts = mutableListOf<String>()
+                            val explanation = response.opt("explanation")
+                            when (explanation) {
+                                is JSONObject -> {
+                                    val keys = listOf("teacher_says", "explanation", "text", "overview", "summary", "definition", "recap")
+                                    for (key in keys) { val value = explanation.optString(key).trim(); if (value.isNotBlank() && value != "null" && value !in parts) parts += value }
+                                    if (parts.isEmpty()) { val it = explanation.keys(); while (it.hasNext()) { val value = explanation.optString(it.next()).trim(); if (value.isNotBlank() && value != "null" && value !in parts) parts += value } }
+                                }
+                                is String -> if (explanation.isNotBlank()) parts += explanation.trim()
+                            }
+                            val examples = response.optJSONArray("examples")
+                            if (examples != null) for (i in 0 until examples.length()) {
+                                val item = examples.opt(i)
+                                val value = if (item is JSONObject) listOf("example", "worked_example", "text", "description").map { item.optString(it).trim() }.firstOrNull { it.isNotBlank() && it != "null" }.orEmpty() else if (item is String) item.trim() else ""
+                                if (value.isNotBlank() && value !in parts) parts += "Example: $value"
+                            }
+                            val questions = response.optJSONArray("practice_questions")
+                            if (questions != null && questions.length() > 0) { val q = questions.opt(0); val value = if (q is JSONObject) listOf("question", "text", "prompt").map { q.optString(it).trim() }.firstOrNull { it.isNotBlank() && it != "null" }.orEmpty() else q.toString().trim(); if (value.isNotBlank() && value != "null") parts += "Try this: $value" }
+                            val completeText = parts.joinToString("\n\n").trim()
+                            val isAllOnesTopic = topic.equals("All 1s", ignoreCase = true) ||
+                                topic.equals("All ones", ignoreCase = true) ||
+                                topic.equals("All one's", ignoreCase = true)
+                            val approvedTopicError = if (isAllOnesTopic) {
+                                AllOnesTopicValidator.failureReason(listOf(completeText to completeText))
+                            } else null
+                            if (completeText.length < 220 || approvedTopicError != null) null else JSONObject().put("id", "approved-synthesis").put("spoken_text", completeText).put("caption_text", completeText).put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", "")).put("checkpoint", JSONObject.NULL)
+                        }
+                    } finally { approvedConnection.disconnect() }
+                }.getOrNull()
+                if (approvedLesson != null) return@runCatching listOf(approvedLesson)
                 val allOnesTopic = topic.equals("All 1s", ignoreCase = true) ||
                     topic.equals("All ones", ignoreCase = true) ||
                     topic.equals("All one's", ignoreCase = true)
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
+                val languageStyle = when (selectedLanguage) {
+                    "Tanglish" -> " LANGUAGE REQUIREMENT: Teach in natural spoken Tanglish for a Tamil-speaking child: conversational Tamil grammar and phrasing written in Tamil-English transliteration, with familiar English subject terms where children normally use them. Do not answer in English paragraphs and do not merely append Tamil words to English sentences. Keep sentences short, warm, and teacher-like. Preserve textbook facts, names, formulas, numbers, and examples exactly; do not invent facts. Use the same Tanglish style for spoken_text and caption_text."
+                    "தமிழ்" -> " LANGUAGE REQUIREMENT: Teach in clear, child-friendly spoken Tamil. Keep necessary textbook terms, names, formulas, and numbers accurate. Use the same language for spoken_text and caption_text."
+                    else -> " LANGUAGE REQUIREMENT: Teach in clear, child-friendly English."
+                }
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + languageStyle + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
                     .put("message", lessonPrompt).put("max_segments", 6)

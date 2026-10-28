@@ -350,3 +350,15 @@ Use this format:
 ### 2026-10-27 — Correction-script regression finding
 - The first regression run caught a case-sensitive text replacement in the diagonal wording guard. The script was corrected to replace the full targeted teacher narration after verifying the expected old phrase case-insensitively.
 - The follow-up CI run on the corrected commit is pending. Do not run the production correction script until the latest tests pass and a trusted authenticated environment is available.
+
+### 2026-10-28 — Deliver approved topic syntheses to the learner tutor
+- **Branch:** `fix/approved-synthesis-learner-delivery`, based on main commit `078a85fa99a3a7503ff21c3c09e7169d196ac564`.
+- **Observed requirement:** Approved topic syntheses exist in `syllabus_topic_syntheses`, but the Android live lesson flow only calls `/tutor/lesson-plan`; no learner-facing endpoint served the approved topic rows.
+- **Root-cause confidence:** **CONFIRMED** for the missing route/integration from code inspection. Production end-to-end retrieval remains unverified.
+- **Change made:** Added `GET /syllabus-synthesis/approved-topic`, which returns only rows whose topic approval is `approved`, validation is `passed`, and parent synthesis round is `approved`, scoped by board, class, subject, medium, chapter and topic. Added a backend regression test proving draft topics are not returned. Updated the Android tutor to prefer an approved synthesis for the selected profile/topic and fall back to the existing grounded Gemini lesson if no usable approved synthesis is returned.
+- **Commits:** Backend route `00c81f5189ed376e35f587f5f660020cc4cbd97a`; endpoint test `99af23bc3466fdc25151fbb71601de669535bca7`; Android integration `ce9c62982f103968f53b2d54f7c547f9e778224a` (includes the existing All 1s topic guard for approved content).
+- **Verification status:** **UNVERIFIED** — exact-head backend tests, Android build, and live API/learner flow have not yet been run. No merge or deployment performed.
+- **Next action:** Open an isolated PR, inspect exact-head CI, fix any failures, then verify the deployed endpoint and Android lesson path before considering release.
+
+- **CI update (2026-10-28):** On code commit `ce9c62982f103968f53b2d54f7c547f9e778224a`, [Curriculum Engine Tests run 40686313954](https://github.com/Prav1525/Padippupal/actions/runs/40686313954) **PASS**, [Android APK run 40686313767](https://github.com/Prav1525/Padippupal/actions/runs/40686313767) **PASS**, and [Investigation Guidance Gate run 40686313734](https://github.com/Prav1525/Padippupal/actions/runs/40686313734) **PASS**. [Android UI smoke run 40686313839](https://github.com/Prav1525/Padippupal/actions/runs/40686313839) was **CANCELLED**, so emulator acceptance remains unverified. The later head commit `bfa58bedd79f098b93450e8ae864d8ae7504342a` changes only this investigation log and has no separate workflow runs. No merge or deployment performed.
+- **Follow-up:** The cancelled emulator-smoke job was manually re-run (workflow run `40686313839`, new job `122810817137`). Latest observed state is **PENDING**; emulator acceptance is not yet complete.

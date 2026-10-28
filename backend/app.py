@@ -390,6 +390,10 @@ def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list
     """Persist compact 2D blueprints derived from an approved synthesis, then retrieve them."""
     records = build_visual_records(lesson_id, lesson)
     if not records:
+        # If an approved synthesis was edited to remove its teaching sequence, deactivate stale visuals.
+        with db() as conn:
+            conn.execute("UPDATE lesson_visual_assets SET active=0, updated_at=? WHERE lesson_id=?",
+                         (time.time(), lesson_id))
         return []
     now = time.time()
     with db() as conn:
@@ -2230,7 +2234,7 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
     now = time.time()
     with db() as conn:
         row=conn.execute(
-            "SELECT id,source_refs_json,chapter FROM chapter_lessons WHERE id=?",
+            "SELECT id,source_refs_json,chapter,lesson_json FROM chapter_lessons WHERE id=?",
             (lesson_id,),
         ).fetchone()
         if not row:
@@ -2275,7 +2279,12 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
                     "UPDATE syllabus_topic_syntheses SET approval_status=?,updated_at=? WHERE round_id=?",
                     (topic_status,now,round_row["id"]),
                 )
-    return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback}
+    visual_count = 0
+    if status == "approved":
+        # Build and persist visuals at approval time; retrieval remains a safe backfill for older approved lessons.
+        lesson_payload = json.loads(row["lesson_json"] or "{}")
+        visual_count = len(get_or_create_lesson_visuals(lesson_id, lesson_payload))
+    return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback,"visual_count":visual_count}
 
 
 @app.get("/chapter-lessons/approved")

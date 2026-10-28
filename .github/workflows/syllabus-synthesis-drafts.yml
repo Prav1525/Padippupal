@@ -216,6 +216,8 @@ jobs:
         if: always()
         run: |
           echo "This workflow intentionally creates drafts only. Human review and tutor integration validation remain required before approval or production deployment."
+          echo "---- /tmp/syllabus-api.log (provider failure diagnostics; credentials must never be logged) ----"
+          if [ -f /tmp/syllabus-api.log ]; then tail -n 160 /tmp/syllabus-api.log; fi
           for f in /tmp/math-results.json /tmp/science-results.json /tmp/coverage-Mathematics.json /tmp/coverage-Science.json; do
             if [ -f "$f" ]; then
               echo "---- $f ----"

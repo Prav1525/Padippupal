@@ -1486,7 +1486,7 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         refs.append(ref)
         context.append(json.dumps(ref, ensure_ascii=False) + "\n" + str(chunk["text"])[:1800])
     allowed = {ref["chunk_id"] for ref in refs}
-    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-3.8-flash").strip()
     prompt = ("You are PadippuPal's curriculum synthesizer. Use ONLY the supplied textbook chunks; never fill gaps with general knowledge. "
         "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
         "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, source_chunk_ids, visual). "
@@ -2282,7 +2282,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         + "Do not interrupt the lesson with questions, feedback requests, or checkpoints. Set checkpoint to null for every segment; the app joins all spoken segments into one uninterrupted explanation. If a practice question is useful, include at most one at the very end after the recap inside the final spoken_text. "
         + "This product mode is text-only: set visual_action to type none with empty target and value for every segment. Do not request animations, visual actions, or interactive labs. "
         + "Each segment must cite exact chunk_id values shown in the passages. visual_action type must be one of highlight,reveal,move,compare,label,draw-line,show-result,none. Never return code or invent unsupported visuals. Use none if no matching visual is supported.")
-    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-3.8-flash").strip()
     base_user_prompt = "Student request: " + payload.message + "\nRetrieved passages:\n" + "\n\n---\n\n".join(context)
     retry_instruction = (
         "The previous response failed lesson-plan JSON/schema validation. Return exactly one valid JSON object, "
@@ -2799,7 +2799,7 @@ PADIPPUPAL CHAT-FIRST TEACHING CONTRACT — overrides older step-by-step/short-r
     # prerequisite for the tutor to answer.
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
     if gemini_key:
-        gemini_model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+        gemini_model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-3.8-flash").strip()
         system_text = "\n\n".join(item["content"] for item in messages if item.get("role") == "system")
         gemini_contents = [
             {
@@ -3137,7 +3137,7 @@ def voice_health() -> dict[str, Any]:
     model = (
         os.getenv("PADIPPUPAL_SARVAM_TTS_MODEL", "bulbul:v3").strip()
         if primary == "sarvam"
-        else os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts").strip()
+        else os.getenv("PADIPPUPAL_GEMINI_TTS_MODEL", "gemini-3.8-flash-preview-tts").strip()
         if primary == "gemini"
         else "system-default"
     )
@@ -3463,7 +3463,7 @@ def parse_school_diary(payload: DiaryParseRequest) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="The selected image could not be read.") from exc
     if len(image_bytes) > 6_000_000:
         raise HTTPException(status_code=413, detail="Please choose a smaller or more compressed diary photo.")
-    model = os.getenv("PADIPPUPAL_GEMINI_VISION_MODEL", "gemini-2.5-flash").strip()
+    model = os.getenv("PADIPPUPAL_GEMINI_VISION_MODEL", "gemini-3.8-flash").strip()
     prompt = f"""You are transcribing a real school diary, including children's handwriting, for a learner in class {payload.class_level}, board {payload.board}, textbook medium {payload.medium}. Preferred language for notes is {payload.app_language}.
 Treat the image as a diary page, not a printed worksheet. The learner local date for this scan is {payload.today_date or "NOT PROVIDED"}. Act like a visual document scanner (Google Lens style): inspect the full page layout before transcribing. First locate the date/day column and match ONLY the row for the supplied local date. Track the matched date row’s vertical position and the homework text aligned horizontally with it; use text positions, baselines, ruled lines, indentation, and visible whitespace together. Read from the homework cell/area associated with that date and stop at the next date marker or a clear row/section boundary (including a substantial blank gap). Never continue into the next dated entry just because the handwriting is continuous. If date and homework alignment cannot be determined confidently from layout, require a crop rather than guessing. Accept unambiguous dates written as DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY, YYYY-MM-DD, 24 Oct 2026, October 24, 2026, weekday-plus-date, and clearly supported local-language or short day/month forms. Resolve DD/MM versus MM/DD only from clear diary/locale context; if ambiguous, do not guess. Read homework only from the matched row and never include adjacent rows. If today is absent, date is unclear, or row alignment/blank-space boundary is uncertain, return no tasks and set match_status to "no_today_row" when the date is clearly absent, otherwise "needs_crop". Read handwritten English and regional-language text when visible. If the page is tilted or text is faint, use the visible strokes and context cautiously, but never invent a word.
 Extract only homework, assignments, tests, projects, page numbers and due dates actually supported by the image. Do not assume the photo date is the diary date. Set diary_date to the matched date in YYYY-MM-DD form. If no confident match to the supplied local date exists, tasks must be empty. For each extracted task, internally verify that its text lies in the matched date section and above the next date marker/clear section boundary. Use whitespace as one layout cue, not the only cue. Do not combine text from separate rows. For illegible words, preserve the readable part and include [check photo] plus a short reason in details. Keep each task separate.

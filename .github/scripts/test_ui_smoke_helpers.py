@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import (assert_composer_question, concept_candidates, exact_color_mask,
+from ui_smoke import (assert_composer_question, assert_home, concept_candidates, exact_color_mask,
                        exact_text_candidates, tap, tap_input)
 
 
@@ -71,6 +71,41 @@ class ExactSelectorTests(unittest.TestCase):
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
+
+
+class HomeLayoutContractTests(unittest.TestCase):
+    def test_home_smoke_contract_matches_refreshed_primary_action(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="YOUR LEARNING SPACE" bounds="[0,0][300,50]"/>
+          <node text="YOUR PERSONAL TUTOR" bounds="[0,50][300,100]"/>
+          <node text="Start learning" bounds="[0,100][300,150]"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-home-layout-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_home(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_home_has_one_primary_tutor_action_and_compact_secondary_actions(self):
+        source = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                  "java" / "com" / "padippupal" / "app" / "MainActivity.kt").read_text()
+        home = source[source.index("private fun Home("):source.index("@Composable private fun Stat(")]
+        self.assertIn('Text(if (tamil) "பாடத்தைத் தொடங்கு" else "Start learning"', home)
+        self.assertIn('else "Scan homework"', home)
+        self.assertIn('else "Exam practice"', home)
+        self.assertIn('else "Connect your syllabus"', home)
+        self.assertNotIn('Tile("My subjects"', home)
+        self.assertNotIn('Tile("Study planner"', home)
+        self.assertNotIn('"01 / 04"', home)
+
+    def test_caption_keeps_original_whitespace_and_paragraph_boundaries(self):
+        source = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        caption = source[source.index("private fun WordByWordCaption("):source.index("@Composable\\nprivate fun InteractiveLessonLab(")]
+        self.assertIn("text.substring(cursor, matchStart)", caption)
+        self.assertNotIn("sentencesInParagraph", caption)
+        self.assertIn("lineHeight = 26.sp", caption)
 
 
 class TutorPromptContractTests(unittest.TestCase):

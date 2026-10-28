@@ -1561,7 +1561,7 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
             error_body = exc.read().decode("utf-8", errors="replace")[:600]
         except Exception:
             error_body = "<unreadable provider error body>"
-        logger.warning("Chapter synthesis rejected: status=%s model=%s provider_error=%s", exc.code, model, error_body)
+        logger.warning("Chapter synthesis rejected: status=%s model=%s provider_error=%s", exc.code, model, error_body)  # provider error is logged without exposing credentials
         raise HTTPException(status_code=503 if exc.code==429 else 502,detail="Chapter synthesis failed; no draft was published.") from exc
     except (urllib.error.URLError,TimeoutError) as exc:
         raise HTTPException(status_code=502,detail="Chapter synthesis connection failed; no draft was published.") from exc

@@ -174,7 +174,11 @@ while [ "$SECONDS" -lt "$lesson_deadline" ]; do
   # Remove both copies first: otherwise a failed dump/pull can leave stale XML
   # from an earlier state and make the smoke test pass or fail on old content.
   rm -f live-lesson.xml
-  timeout 8s "${ADB[@]}" shell rm -f /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
+  if ! timeout 8s "${ADB[@]}" shell rm -f /data/local/tmp/live-lesson.xml >/dev/null 2>&1; then
+    log "Could not clear remote live-lesson.xml; refusing to read a potentially stale tree"
+    sleep 2
+    continue
+  fi
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
   if [ -s live-lesson.xml ]; then
@@ -225,7 +229,14 @@ python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playi
 
 log "Waiting for playback to finish; verify the complete explanation remains in chat"
 lesson_finished=0
+rm -f live-complete.xml
 for attempt in $(seq 1 90); do
+  rm -f live-complete.xml
+  if ! timeout 8s "${ADB[@]}" shell rm -f /data/local/tmp/live-complete.xml >/dev/null 2>&1; then
+    log "Could not clear remote live-complete.xml; refusing to read a potentially stale tree"
+    sleep 2
+    continue
+  fi
   timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
   if [ -s live-complete.xml ] && python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml >/dev/null 2>&1; then

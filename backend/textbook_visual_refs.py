@@ -61,7 +61,7 @@ def describe_pdf_visual_references(pdf_bytes: bytes) -> dict[int, str]:
                 payload = json.dumps({
                     "contents": [{"role": "user", "parts": [
                         {"text": prompt},
-                        {"inline_data": {"mime_type": "image/png", "data": encoded}},
+                        {"inlineData": {"mimeType": "image/png", "data": encoded}},
                     ]}],
                     "generationConfig": {
                         "responseMimeType": "application/json",

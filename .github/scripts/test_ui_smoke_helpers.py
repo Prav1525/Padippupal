@@ -58,6 +58,15 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertIn('description = node.attrib.get("content-desc", "").strip()', tap_body)
         self.assertIn('target.lower() in description.lower()', tap_body)
 
+    def test_live_lesson_polling_clears_stale_accessibility_trees(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        poll_start = script.index('log "Waiting for a complete lesson caption')
+        poll_end = script.index('log "Lesson UI detected;', poll_start)
+        poll = script[poll_start:poll_end]
+        self.assertIn("rm -f live-lesson.xml", poll)
+        self.assertIn('shell rm -f /data/local/tmp/live-lesson.xml', poll)
+        self.assertLess(poll.index('shell rm -f /data/local/tmp/live-lesson.xml'), poll.index('shell uiautomator dump /data/local/tmp/live-lesson.xml'))
+
     def test_live_lesson_client_timeout_exceeds_two_backend_generation_attempts(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()

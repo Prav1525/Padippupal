@@ -110,6 +110,28 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
         self.assertIn("melt aagi water-a maarum", first_science.lower())
         self.assertLess(len(first_science), 400)
 
+    def test_chapter_context_prevents_false_topic_matches_and_english_excerpt_readout(self):
+        symmetry, _ = build_lesson("Mathematics", "Symmetry", [
+            {"id": "s1", "text": "A flower has petals arranged around the centre. Fold the paper along the line and compare both sides.", "page_start": 1},
+            {"id": "s2", "text": "A shape may have one or more lines of symmetry.", "page_start": 2},
+            {"id": "s3", "text": "Check whether both halves match when folded along the line.", "page_start": 3},
+        ])
+        first = symmetry["teaching_sequence"][0]["tanglish"]["teacher_says"].lower()
+        checkpoint = symmetry["teaching_sequence"][0]["tanglish"]["checkpoint"].lower()
+        self.assertIn("symmetry", first)
+        self.assertNotIn("plant-la", first)
+        self.assertNotIn("plant part", checkpoint)
+        self.assertNotIn("textbook-la indha point:", first)
+
+        data, _ = build_lesson("Mathematics", "Data Handling and Presentation", [
+            {"id": "d1", "text": "Collect data about favourite colours and organize the list in a table.", "page_start": 1},
+            {"id": "d2", "text": "A pictograph uses symbols to represent the values in the data.", "page_start": 2},
+            {"id": "d3", "text": "A bar graph uses bars of the same width and a suitable scale.", "page_start": 3},
+        ])
+        data_says = data["teaching_sequence"][0]["tanglish"]["teacher_says"].lower()
+        self.assertIn("data-na", data_says)
+        self.assertNotIn("textbook-la indha point:", data_says)
+
     def test_quality_gate_rejects_generic_placeholders(self):
         lesson = {
             "learning_objectives": ["Identify and explain the main idea in source section 1."],

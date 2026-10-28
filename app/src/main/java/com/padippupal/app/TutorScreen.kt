@@ -1700,7 +1700,13 @@ internal fun TutorScreen(
                             val questions = response.optJSONArray("practice_questions")
                             if (questions != null && questions.length() > 0) { val q = questions.opt(0); val value = if (q is JSONObject) listOf("question", "text", "prompt").map { q.optString(it).trim() }.firstOrNull { it.isNotBlank() && it != "null" }.orEmpty() else q.toString().trim(); if (value.isNotBlank() && value != "null") parts += "Try this: $value" }
                             val completeText = parts.joinToString("\n\n").trim()
-                            if (completeText.length < 220) null else JSONObject().put("id", "approved-synthesis").put("spoken_text", completeText).put("caption_text", completeText).put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", "")).put("checkpoint", JSONObject.NULL)
+                            val isAllOnesTopic = topic.equals("All 1s", ignoreCase = true) ||
+                                topic.equals("All ones", ignoreCase = true) ||
+                                topic.equals("All one's", ignoreCase = true)
+                            val approvedTopicError = if (isAllOnesTopic) {
+                                AllOnesTopicValidator.failureReason(listOf(completeText to completeText))
+                            } else null
+                            if (completeText.length < 220 || approvedTopicError != null) null else JSONObject().put("id", "approved-synthesis").put("spoken_text", completeText).put("caption_text", completeText).put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", "")).put("checkpoint", JSONObject.NULL)
                         }
                     } finally { approvedConnection.disconnect() }
                 }.getOrNull()

@@ -282,3 +282,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** **CONFIRMED** the test searched for a newline-escaped function boundary that did not match the source file's literal text. The application source was not the failing component.
 - **Fix:** Commit `43dd69b52760cb020e3c6545720bdcf875c84c51` changes the test to search directly for `def find_interactive_lesson(`.
 - **Validation:** Latest-head helper tests and API-35 emulator flow are **PENDING**. No merge or deployment performed.
+
+
+## Incident: visual persistence was not isolated in lesson-plan unit tests
+- **Date:** 2026-10-28
+- **Affected PR:** [#49](https://github.com/Prav1525/Padippupal/pull/49), branch `feat/synthesis-linked-2d-visuals`.
+- **Evidence:** [Curriculum Engine Tests run 40721266652](https://github.com/Prav1525/Padippupal/actions/runs/40721266652), exact head `b0bda67b7ce5e0a75da9cdf39942c341c5165364).
+- **Observed failure:** Two existing tests failed after the approved lesson path began persisting visual assets; the fake DB expected only the original SELECT and returned a lesson row for the new visual-assets query.
+- **Root cause:** **CONFIRMED** the tests mocked the database but not the newly introduced visual-persistence boundary.
+- **Fix:** Stubbed `get_or_create_lesson_visuals` in those tests so they continue to isolate lesson selection/topic validation; dedicated visual-builder tests cover the new mapping contract.
+- **Validation:** Exact-head backend, APK, and emulator checks are **PENDING** on the correction. No merge or deployment performed.

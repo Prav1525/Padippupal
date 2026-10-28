@@ -377,7 +377,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             val centerY = size.height * 0.52f
             when (activeKind) {
                 "fraction" -> {
-                    val count = if (activeLabels.any { it.contains("four", true) || it == "4" }) 4 else activeLabels.size.coerceIn(2, 6)
+                    val count = when { activeLabels.any { it.contains("six", true) || it == "6" } -> 6; activeLabels.any { it.contains("five", true) || it == "5" } -> 5; activeLabels.any { it.contains("four", true) || it == "4" } -> 4; activeLabels.any { it.contains("three", true) || it == "3" } -> 3; activeLabels.any { it.contains("two", true) || it == "2" } -> 2; else -> activeLabels.size.coerceIn(2, 6) }
                     val gap = 5.dp.toPx()
                     val totalWidth = size.width * 0.78f
                     val cellWidth = (totalWidth - gap * (count - 1)) / count

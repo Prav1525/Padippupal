@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
 from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
+from lesson_visuals import build_visual_records
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -238,6 +239,22 @@ def init_db() -> None:
         );
         CREATE INDEX IF NOT EXISTS interactive_lessons_profile
           ON interactive_lessons(board, class_level, subject, chapter, active);
+        CREATE TABLE IF NOT EXISTS lesson_visual_assets (
+            id TEXT PRIMARY KEY,
+            lesson_id TEXT NOT NULL REFERENCES chapter_lessons(id) ON DELETE CASCADE,
+            step_id TEXT NOT NULL,
+            summary_text TEXT NOT NULL,
+            visual_kind TEXT NOT NULL,
+            blueprint_json TEXT NOT NULL,
+            source_chunk_ids_json TEXT NOT NULL DEFAULT '[]',
+            content_fingerprint TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL,
+            UNIQUE(lesson_id, step_id)
+        );
+        CREATE INDEX IF NOT EXISTS lesson_visual_assets_lookup
+          ON lesson_visual_assets(lesson_id, active);
         CREATE TABLE IF NOT EXISTS planner_tasks (
             id TEXT PRIMARY KEY,
             profile_id TEXT NOT NULL,
@@ -367,6 +384,50 @@ def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
 
 def normalize(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
+
+
+def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list[dict[str, Any]]:
+    """Persist compact 2D blueprints derived from an approved synthesis, then retrieve them."""
+    records = build_visual_records(lesson_id, lesson)
+    if not records:
+        return []
+    now = time.time()
+    with db() as conn:
+        for record in records:
+            conn.execute(
+                """INSERT INTO lesson_visual_assets
+                   (id, lesson_id, step_id, summary_text, visual_kind, blueprint_json,
+                    source_chunk_ids_json, content_fingerprint, active, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                   ON CONFLICT(lesson_id, step_id) DO UPDATE SET
+                     summary_text=excluded.summary_text, visual_kind=excluded.visual_kind,
+                     blueprint_json=excluded.blueprint_json,
+                     source_chunk_ids_json=excluded.source_chunk_ids_json,
+                     content_fingerprint=excluded.content_fingerprint,
+                     active=1, updated_at=excluded.updated_at""",
+                (record["id"], lesson_id, record["step_id"], record["summary_text"],
+                 record["visual_kind"], record["blueprint_json"], record["source_chunk_ids_json"],
+                 record["content_fingerprint"], now, now),
+            )
+        current_ids = [record["step_id"] for record in records]
+        placeholders = ",".join("?" for _ in current_ids)
+        conn.execute(
+            f"UPDATE lesson_visual_assets SET active=0, updated_at=? WHERE lesson_id=? AND step_id NOT IN ({placeholders})",
+            (now, lesson_id, *current_ids),
+        )
+        rows = conn.execute(
+            """SELECT step_id, summary_text, visual_kind, blueprint_json,
+                      source_chunk_ids_json, content_fingerprint
+               FROM lesson_visual_assets WHERE lesson_id=? AND active=1 ORDER BY rowid""",
+            (lesson_id,),
+        ).fetchall()
+    return [{
+        "step_id": row["step_id"], "summary_text": row["summary_text"],
+        "visual_kind": row["visual_kind"], "blueprint": json.loads(row["blueprint_json"]),
+        "source_chunk_ids": json.loads(row["source_chunk_ids_json"]),
+        "content_fingerprint": row["content_fingerprint"],
+        "layout": "compact_2d", "animation": "none",
+    } for row in rows]
 
 
 def split_chunks(text: str) -> list[str]:
@@ -2181,8 +2242,25 @@ def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medi
     for row in rows:
         if normalize(str(row["chapter"])).casefold()!=normalize(chapter).casefold(): continue
         item=dict(row); lesson=json.loads(item.pop("lesson_json")); refs=json.loads(item.pop("source_refs_json"))
-        return {"lesson_id":item["id"],"status":"approved","lesson":lesson,"source_refs":refs,"metadata":{k:item[k] for k in ("board","class_level","subject","medium","chapter","topic","updated_at")}}
-    return {"lesson_id":None,"status":"not_found","lesson":None,"source_refs":[]}
+        visuals = get_or_create_lesson_visuals(str(item["id"]), lesson)
+        return {"lesson_id":item["id"],"status":"approved","lesson":lesson,"source_refs":refs,"visuals":visuals,"metadata":{k:item[k] for k in ("board","class_level","subject","medium","chapter","topic","updated_at")}}
+    return {"lesson_id":None,"status":"not_found","lesson":None,"source_refs":[],"visuals":[]}
+
+
+@app.get("/chapter-lessons/{lesson_id}/visuals")
+def get_chapter_lesson_visuals(lesson_id: str) -> dict[str, Any]:
+    """Retrieve stored 2D visual blueprints for a synthesized chapter lesson."""
+    with db() as conn:
+        lesson_row = conn.execute(
+            "SELECT id, lesson_json, status FROM chapter_lessons WHERE id=?",
+            (lesson_id,),
+        ).fetchone()
+    if not lesson_row or str(lesson_row["status"]).lower() != "approved":
+        raise HTTPException(status_code=404, detail="Approved synthesized lesson not found")
+    lesson = json.loads(lesson_row["lesson_json"])
+    visuals = get_or_create_lesson_visuals(lesson_id, lesson)
+    return {"lesson_id": lesson_id, "visuals": visuals, "count": len(visuals),
+            "render_policy": {"layout": "compact_2d", "animation": "none", "overlay": False}}
 
 
 
@@ -2318,6 +2396,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
         if approved:
             lesson = json.loads(approved["lesson_json"])
             refs = json.loads(approved["source_refs_json"])
+            synthesized_visuals = get_or_create_lesson_visuals(str(approved["id"]), lesson)
             allowed_ids = {str(ref.get("chunk_id", "")) for ref in refs if ref.get("chunk_id")}
             visual_map = {"number_pattern": "highlight", "number_line": "move",
                           "geometry": "draw-line", "compare": "compare", "process": "reveal",
@@ -2360,7 +2439,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "chapter_overview": lesson.get("overview", ""),
                         "learning_objectives": lesson.get("learning_objectives", []),
                         "chapter_title": lesson.get("chapter_title", approved["chapter"]),
-                        "interactive_lesson": matched_visual}
+                        "interactive_lesson": matched_visual,
+                        "synthesized_visuals": synthesized_visuals}
             if segments:
                 logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",
                                payload.topic, approved["id"])

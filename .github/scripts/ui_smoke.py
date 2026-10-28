@@ -284,9 +284,15 @@ def assert_followup_answer(path):
 
 
 def assert_live(path):
-    _, texts = load(path)
-    joined = "\n".join(texts).lower()
+    nodes, texts = load(path)
+    # Icon-only Compose controls are exposed through content-desc, not text.
+    # Include those accessibility labels in state assertions or a valid live
+    # lesson is rejected even while Pause/Stop are visibly available.
+    descriptions = [n.attrib.get("content-desc", "").strip() for n in nodes]
+    descriptions = [value for value in descriptions if value]
+    joined = "\n".join(texts + descriptions).lower()
     print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
+    print("LIVE LESSON ACCESSIBILITY LABELS:", " | ".join(descriptions[:40]))
     # The app intentionally exposes progress as "Playing segment N of M" /
     # "Live lesson · segment N of M"; it never renders the obsolete literal
     # "teacher is speaking". Validate the real progress + inline lesson content.

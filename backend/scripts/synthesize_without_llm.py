@@ -178,12 +178,9 @@ def tanglish_checkpoint(summary: str, page: int | None, chapter: str, stage: int
 
 def tanglish_objective(summary: str, chapter: str) -> str:
     """Keep objectives learner-friendly and spoken, avoiding word-for-word English translation."""
-    excerpt = summary.strip().rstrip(".!?")
-    if len(excerpt) > 115:
-        excerpt = excerpt[:112].rsplit(" ", 1)[0] + "..."
     return (
-        f"{chapter}-la indha idea-va purinjukittu, “{excerpt}” appadinu enna artham-nu "
-        "simple-aa unga vaarthaigal-la solla mudiyanum."
+        "Indha part padichadhukku apram, main idea enna-nu unga vaarthaigal-la simple-aa solla mudiyanum. "
+        "Adha oru example-oda connect panna mudinja, concept innum clear aagum."
     )
 
 def source_based_example(summary: str) -> str:
@@ -299,16 +296,16 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
             "source_chunk_ids": chunk_ids,
             "tanglish": {
                 "teacher_says": tanglish_explanation(summary, chapter, i),
-                "caption": f"Indha part-ai nalla gavaninga. Mukkiya idea: {summary[:400]}",
+                "caption": f"Indha part-oda main point: {summary[:320]}",
                 "example": (
-                    "Indha textbook passages-ai padichu, mukkiya idea enna-nu simple Tanglish-la explain pannunga. "
-                    "Passage-la irukkura evidence-ai use pannunga; source-la illaadha answer-ai guess panna vendaam. "
-                    + summary[:180]
+                    f"{'Seri, indha Maths idea-va oru chinna example-la try panni paakalam.' if subject.lower() in {'mathematics', 'maths', 'math'} else 'Seri, indha Science idea-va namma daily life-oda connect panni paakalam.'} "
+                    f"Textbook-la irukkura point: {summary[:180]} "
+                    "Idha un words-la explain pannu; example yosikkumbodhu textbook-la illaadha facts-ai guess panna vendaam."
                 ),
                 "checkpoint": tanglish_checkpoint(summary, min(pages) if pages else None, chapter, i),
                 "misconception": (
-                    "Textbook evidence-oda unga answer-ai compare pannunga. Puriyadha English Maths/Science term-ai "
-                    "guess pannaama, teacher-kitta meaning verify pannunga."
+                    "Idhu konjam confusing-aa irundhaalum parava illa. Textbook clue-oda thirumba paakalam; "
+                    "term puriyalana adha first clear pannittu continue pannalaam."
                 ),
             },
             "visual": {"type": "table", "objects": [], "actions": [], "narration_sync": True},

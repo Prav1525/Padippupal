@@ -24,7 +24,7 @@ from syllabus_synthesis import EvidenceChunk, evidence_fingerprint, make_run_id,
 BOARD = "CBSE"
 CLASS_LEVEL = 6
 MEDIUM = "English"
-CURRICULUM_VERSION = "extractive-v5-tanglish"
+CURRICULUM_VERSION = "extractive-v6-natural-tanglish"
 MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
@@ -133,25 +133,58 @@ def specific_objective(summary: str, chapter: str) -> str:
         raise ValueError(f"{chapter}: no readable source text for learning objective")
     return f"Explain the textbook idea or situation: {sentence}"
 
-def tanglish_explanation(summary: str) -> str:
-    """Tamil-in-Latin-script scaffold that retains the textbook's English terminology."""
+def tanglish_explanation(summary: str, chapter: str, stage: int) -> str:
+    """Write a warm, spoken Tanglish bridge around the source excerpt, not formal translation."""
+    openings = [
+        "Seri, idha easy-aa paapom.",
+        "Okay, indha part-a serndhu purinjukalaam.",
+        "Nalla gavaninga, inga oru mukkiyamaana idea irukku.",
+        "Ippo indha concept-a simple-aa break panni paapom.",
+        "Sari, indha example enna solludhu-nu paapom.",
+        "Konjam yosichu paarunga; idhu namma daily life-layum varalaam.",
+        "Super, ippo next idea-ku polaam.",
+        "Oru chinna recap pannitu idha paapom.",
+    ]
+    opener = openings[(stage - 1) % len(openings)]
+    excerpt = summary.strip().rstrip()
     return (
-        "Namma idha step-by-step-a paapom. Textbook-la irukkura idea: "
-        + summary.strip()
-        + " Idhula mukkiyamaana concept enna-nu yosichu, unga vaarthaigal-la explain pannunga. "
-        "Subject terms English-la irukkattum; meaning puriyalana teacher-kitta kelunga."
+        f"{opener} Textbook-la ippadi sollirukkaanga: “{excerpt}” "
+        "Idha padichuttu, ungalukku enna purinjadhu-nu unga style-la sollunga. "
+        "English term konjam pudhusa irundhaalum parava illa; adha namma context-oda purinjukalaam."
     )
 
 
-def tanglish_checkpoint(summary: str, page: int | None) -> str:
-    page_hint = f" Page {page}-la irukkura passage-aiyum paarunga." if page is not None else ""
-    excerpt = summary[:180].rstrip(" .!?")
+def tanglish_checkpoint(summary: str, page: int | None, chapter: str, stage: int) -> str:
+    """Ask a conversational check-for-understanding question grounded in the excerpt."""
+    text = summary.casefold()
+    page_hint = f" Textbook page {page-a} pakkathula irukkum." if page is not None else ""
+    if any(term in text for term in ("fraction", "roti", "equal share", "numerator", "denominator")):
+        question = "Idha equal-aa share panninaa ovvorutharukku evlo kidaikkum? Eppadi decide panneenga?"
+    elif any(term in text for term in ("ice", "water vapour", "evaporat", "condens", "melt", "boil", "solid", "liquid", "gas")):
+        question = "Indha change-la enna nadakkudhu? Start-la enna irundhuchu, apram enna aachu?"
+    elif any(term in text for term in ("magnet", "attract", "iron", "metal")):
+        question = "Indha example-la edhu attract aagudhu? Textbook example-la irundhu sollunga."
+    elif any(term in text for term in ("plant", "root", "leaf", "seed", "flower")):
+        question = "Indha plant part enna velai seyyudhu? Passage-la irukkura example vechu sollunga."
+    elif any(term in text for term in ("number", "digit", "place value", "pattern", "multiple")):
+        question = "Indha number/pattern-la enna rule theriyudhu? Oru example vechu explain pannunga."
+    else:
+        question = "Indha part-la main idea enna? Unga vaarthaigal-la oru chinna explanation sollunga."
     return (
-        "Indha passage enna solludhu-nu unga vaarthaigal-la explain pannunga."
-        + page_hint
-        + f" Mukkiya idea: “{excerpt}”. Idharku passage-la enna evidence irukku?"
+        f"Seri, oru quick check. {question}{page_hint} "
+        "Answer theriyalana parava illa—passage-a innoru thadava paarthu try pannalaam."
     )
 
+
+def tanglish_objective(summary: str, chapter: str) -> str:
+    """Keep objectives learner-friendly and spoken, avoiding word-for-word English translation."""
+    excerpt = summary.strip().rstrip(".!?")
+    if len(excerpt) > 115:
+        excerpt = excerpt[:112].rsplit(" ", 1)[0] + "..."
+    return (
+        f"{chapter}-la indha idea-va purinjukittu, “{excerpt}” appadinu enna artham-nu "
+        "simple-aa unga vaarthaigal-la solla mudiyanum."
+    )
 
 def source_based_example(summary: str) -> str:
     """Turn actual cited text into a learner task without inventing facts."""
@@ -241,9 +274,7 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
         if objective not in objectives and len(objectives) < 6:
             objectives.append(objective)
             objective_core = objective.removeprefix("Explain the textbook idea or situation: ")
-            objectives_tanglish.append(
-                f"{chapter}-la indha concept-ai purinjukittu, {objective_core[:120]} enna-nu simple Tanglish-la explain pannunga."
-            )
+            objectives_tanglish.append(tanglish_objective(summary, chapter))
         heading = f"{chapter}: stage {i}"
         concept_map.append({
             "concept": f"{heading} — {summary[:130]}",
@@ -267,14 +298,14 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
             "checkpoint": f"Explain the main idea in your own words{page_text}: “{checkpoint_text}”. Which evidence in these passages supports your explanation?",
             "source_chunk_ids": chunk_ids,
             "tanglish": {
-                "teacher_says": tanglish_explanation(summary),
+                "teacher_says": tanglish_explanation(summary, chapter, i),
                 "caption": f"Indha part-ai nalla gavaninga. Mukkiya idea: {summary[:400]}",
                 "example": (
                     "Indha textbook passages-ai padichu, mukkiya idea enna-nu simple Tanglish-la explain pannunga. "
                     "Passage-la irukkura evidence-ai use pannunga; source-la illaadha answer-ai guess panna vendaam. "
                     + summary[:180]
                 ),
-                "checkpoint": tanglish_checkpoint(summary, min(pages) if pages else None),
+                "checkpoint": tanglish_checkpoint(summary, min(pages) if pages else None, chapter, i),
                 "misconception": (
                     "Textbook evidence-oda unga answer-ai compare pannunga. Puriyadha English Maths/Science term-ai "
                     "guess pannaama, teacher-kitta meaning verify pannunga."
@@ -295,14 +326,14 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
         "learning_objectives_tanglish": objectives_tanglish,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
-        "draft_method": "deterministic-extractive-v5-tanglish",
+        "draft_method": "deterministic-extractive-v6-natural-tanglish",
         "language_variants": {
             "English": {"language": "English", "available": True},
             "Tanglish": {
                 "language": "Tanglish",
                 "script": "Tamil written in Latin characters, retaining English subject terms",
                 "available": True,
-                "method": "Tanglish instructions and checkpoints around short cited English source excerpts; not a full textbook translation",
+                "method": "natural conversational Tanglish teacher prompts, learner-friendly objectives, and topic-aware checkpoints around cited English source excerpts; not a full textbook translation",
                 "human_review_required": True,
             },
         },
@@ -370,7 +401,7 @@ def main() -> None:
                         WHERE chapter_lessons.status='draft'""",
                         (lesson_id, BOARD, CLASS_LEVEL, subject, MEDIUM, chapter,
                          json.dumps(lesson, ensure_ascii=False), json.dumps(refs, ensure_ascii=False),
-                         "deterministic-extractive-v5-tanglish", now, now),
+                         "deterministic-extractive-v6-natural-tanglish", now, now),
                     )
                     conn.execute(
                         """INSERT INTO syllabus_synthesis_rounds
@@ -380,7 +411,7 @@ def main() -> None:
                         ON CONFLICT(id) DO UPDATE SET status='draft',model=excluded.model,
                           source_chunk_ids_json=excluded.source_chunk_ids_json,validation_json=excluded.validation_json,updated_at=excluded.updated_at""",
                         (round_id, str(source["id"]), BOARD, CLASS_LEVEL, subject, chapter, CURRICULUM_VERSION,
-                         "deterministic-extractive-v5-tanglish", CURRICULUM_VERSION,
+                         "deterministic-extractive-v6-natural-tanglish", CURRICULUM_VERSION,
                          json.dumps([c.id for c in evidence]), fingerprint, json.dumps(validation), now, now),
                     )
                     conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=%s", (round_id,))

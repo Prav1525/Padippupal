@@ -272,3 +272,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** **CONFIRMED** stale UI automation selector after home redesign, not an app launch/build failure.
 - **Fix:** Commit `2e21c2fa49838825d13a6ba88c551c906d7e9db0` updates the smoke tap target to `Start learning`; commit `d2ada5de0225b18a0d998b98717bfb44b9ea648f` adds a regression test requiring the new selector and forbidding the removed label.
 - **Validation:** Latest-head UI smoke, JVM tests, APK build and guidance gate are **PENDING**. Do not merge until the emulator flow passes and its artifact is reviewed.
+
+
+## Incident: inline-visual regression test used an invalid source boundary
+- **Date:** 2026-10-28
+- **Affected PR:** [#48](https://github.com/Prav1525/Padippupal/pull/48), branch `ui/modern-learner-layout`.
+- **Evidence:** [Android UI smoke run 40716183030](https://github.com/Prav1525/Padippupal/actions/runs/40716183030), helper-test output in the smoke-script validation step.
+- **Observed failure:** JVM tests and APK build passed, but smoke-script validation failed in `test_curriculum_diagrams_and_source_page_references_render_inline` with `ValueError: substring not found` while locating the end of `_interactive_lesson_row`.
+- **Root cause:** **CONFIRMED** the test searched for a newline-escaped function boundary that did not match the source file's literal text. The application source was not the failing component.
+- **Fix:** Commit `43dd69b52760cb020e3c6545720bdcf875c84c51` changes the test to search directly for `def find_interactive_lesson(`.
+- **Validation:** Latest-head helper tests and API-35 emulator flow are **PENDING**. No merge or deployment performed.

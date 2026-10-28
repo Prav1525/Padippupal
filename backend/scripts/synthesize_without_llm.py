@@ -24,7 +24,7 @@ from syllabus_synthesis import EvidenceChunk, evidence_fingerprint, make_run_id,
 BOARD = "CBSE"
 CLASS_LEVEL = 6
 MEDIUM = "English"
-CURRICULUM_VERSION = "extractive-v5-tanglish"
+CURRICULUM_VERSION = "extractive-v7-natural-tanglish"
 MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
@@ -422,7 +422,7 @@ def main() -> None:
                         WHERE chapter_lessons.status='draft'""",
                         (lesson_id, BOARD, CLASS_LEVEL, subject, MEDIUM, chapter,
                          json.dumps(lesson, ensure_ascii=False), json.dumps(refs, ensure_ascii=False),
-                         "deterministic-extractive-v5-tanglish", now, now),
+                         "deterministic-extractive-v7-natural-tanglish", now, now),
                     )
                     conn.execute(
                         """INSERT INTO syllabus_synthesis_rounds
@@ -432,7 +432,7 @@ def main() -> None:
                         ON CONFLICT(id) DO UPDATE SET status='draft',model=excluded.model,
                           source_chunk_ids_json=excluded.source_chunk_ids_json,validation_json=excluded.validation_json,updated_at=excluded.updated_at""",
                         (round_id, str(source["id"]), BOARD, CLASS_LEVEL, subject, chapter, CURRICULUM_VERSION,
-                         "deterministic-extractive-v5-tanglish", CURRICULUM_VERSION,
+                         "deterministic-extractive-v7-natural-tanglish", CURRICULUM_VERSION,
                          json.dumps([c.id for c in evidence]), fingerprint, json.dumps(validation), now, now),
                     )
                     conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=%s", (round_id,))

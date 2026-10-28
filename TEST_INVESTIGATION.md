@@ -420,3 +420,13 @@ Use this format:
 - **Rights and source scope:** Only original app-rendered diagrams and existing source page references are used; no NCERT images are copied into the software. Actual NCERT image reuse remains subject to the relevant permission/license.
 - **Regression coverage:** Add a backend assertion that an exact matched blueprint is attached to an approved live lesson and source-contract assertions for inline visual rendering and word-progress synchronization.
 - **Verification status:** **PENDING** exact-head JVM tests, APK build, guidance gate, and API-35 emulator flow. No merge or deployment performed.
+
+
+### 2026-10-28 — UI branch CI exposed stale text-only prompt assertions
+- **Branch:** `ui/modern-learner-layout`; failing head `036cc7058d58bf891895db99b818b0bfaaca899b`; test correction `7210cd2a3cf3ec5003a931675a6696a06eb09973`.
+- **Workflow:** [Curriculum Engine Tests run 40718714772](https://github.com/Prav1525/Padippupal/actions/runs/40718714772).
+- **Result:** 81 passed, 2 failed. Both failures were assertions that the lesson-plan prompt must be text-only. The current intended product contract is chat-first with optional inline concept visuals, with exact chapter/topic-matched blueprints rendered in the same tutor screen.
+- **Root cause:** **CONFIRMED** stale tests contradicted the current source contract; they were not runtime app failures.
+- **Fix:** Updated both assertions in `backend/test_tutor.py` to require the inline visual policy and current chat-first mode wording. No production behavior changed in this correction.
+- **Validation:** New-head CI is pending. APK run for prior head passed; UI smoke run for prior head was cancelled by a newer push and must be checked on the latest head.
+- **Next:** Inspect fresh curriculum test, APK build, and emulator smoke on commit `7210cd2a3cf3ec5003a931675a6696a06eb09973`. No merge or deployment performed.

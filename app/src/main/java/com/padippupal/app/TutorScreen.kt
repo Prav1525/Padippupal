@@ -1665,6 +1665,46 @@ internal fun TutorScreen(
             val outcome = runCatching {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
                 require(base.startsWith("https://") || (BuildConfig.DEBUG && base == "http://10.0.2.2:8765")) { "The secure PadippuPal API URL is not configured." }
+                // Prefer an approved, source-cited synthesis for this exact learner profile.
+                // Fall back to the existing grounded Gemini lesson when none is available.
+                val approvedLesson = runCatching {
+                    val query = listOf("board" to board, "class_level" to grade.toString(), "subject" to subject,
+                        "medium" to medium, "chapter" to chapter, "topic" to topic)
+                        .joinToString("&") { (key, value) -> key + "=" + java.net.URLEncoder.encode(value, "UTF-8") }
+                    val approvedConnection = URL("$base/syllabus-synthesis/approved-topic?$query").openConnection() as HttpURLConnection
+                    approvedConnection.requestMethod = "GET"
+                    approvedConnection.connectTimeout = 8000
+                    approvedConnection.readTimeout = 12000
+                    approvedConnection.setRequestProperty("Accept", "application/json")
+                    try {
+                        val code = approvedConnection.responseCode
+                        if (code !in 200..299) throw IllegalStateException("Approved lesson lookup returned HTTP $code.")
+                        val response = JSONObject(approvedConnection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() })
+                        if (response.optString("status") != "approved") null else {
+                            val parts = mutableListOf<String>()
+                            val explanation = response.opt("explanation")
+                            when (explanation) {
+                                is JSONObject -> {
+                                    val keys = listOf("teacher_says", "explanation", "text", "overview", "summary", "definition", "recap")
+                                    for (key in keys) { val value = explanation.optString(key).trim(); if (value.isNotBlank() && value != "null" && value !in parts) parts += value }
+                                    if (parts.isEmpty()) { val it = explanation.keys(); while (it.hasNext()) { val value = explanation.optString(it.next()).trim(); if (value.isNotBlank() && value != "null" && value !in parts) parts += value } }
+                                }
+                                is String -> if (explanation.isNotBlank()) parts += explanation.trim()
+                            }
+                            val examples = response.optJSONArray("examples")
+                            if (examples != null) for (i in 0 until examples.length()) {
+                                val item = examples.opt(i)
+                                val value = if (item is JSONObject) listOf("example", "worked_example", "text", "description").map { item.optString(it).trim() }.firstOrNull { it.isNotBlank() && it != "null" }.orEmpty() else if (item is String) item.trim() else ""
+                                if (value.isNotBlank() && value !in parts) parts += "Example: $value"
+                            }
+                            val questions = response.optJSONArray("practice_questions")
+                            if (questions != null && questions.length() > 0) { val q = questions.opt(0); val value = if (q is JSONObject) listOf("question", "text", "prompt").map { q.optString(it).trim() }.firstOrNull { it.isNotBlank() && it != "null" }.orEmpty() else q.toString().trim(); if (value.isNotBlank() && value != "null") parts += "Try this: $value" }
+                            val completeText = parts.joinToString("\n\n").trim()
+                            if (completeText.length < 220) null else JSONObject().put("id", "approved-synthesis").put("spoken_text", completeText).put("caption_text", completeText).put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", "")).put("checkpoint", JSONObject.NULL)
+                        }
+                    } finally { approvedConnection.disconnect() }
+                }.getOrNull()
+                if (approvedLesson != null) return@runCatching listOf(approvedLesson)
                 val allOnesTopic = topic.equals("All 1s", ignoreCase = true) ||
                     topic.equals("All ones", ignoreCase = true) ||
                     topic.equals("All one's", ignoreCase = true)

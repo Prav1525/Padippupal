@@ -24,7 +24,7 @@ from syllabus_synthesis import EvidenceChunk, evidence_fingerprint, make_run_id,
 BOARD = "CBSE"
 CLASS_LEVEL = 6
 MEDIUM = "English"
-CURRICULUM_VERSION = "extractive-v9-topic-accurate-tanglish"
+CURRICULUM_VERSION = "extractive-v10-spoken-content-cleanup"
 MATH_IDS = [
     "6cd135e7-63e4-4350-9b7c-02fe1f566ec3", "189326ea-8ba7-4992-8322-96d988039d03",
     "ed0a6261-c9e2-483b-813a-bec262393ab9", "b1fe815a-ceac-4fde-85dc-fd90eba18450",
@@ -340,7 +340,7 @@ def tanglish_objective(summary: str, chapter: str) -> str:
     )
 
 
-def tanglish_example(summary: str, subject: str, stage: int) -> str:
+def tanglish_example(summary: str, subject: str, stage: int, chapter: str) -> str:
     """A conversational task that invites reasoning without fabricating a worked answer."""
     starters = [
         "Oru chinna try pannalama?",
@@ -357,26 +357,36 @@ def tanglish_example(summary: str, subject: str, stage: int) -> str:
         if subject.lower() in {"mathematics", "maths", "math"}
         else "Indha Science idea namma daily life-la enga varudhu-nu yosippom."
     )
-    excerpt = summary.strip().rstrip(".!?")
-    if len(excerpt) > 160:
-        excerpt = excerpt[:157].rsplit(" ", 1)[0] + "..."
+    task_by_chapter = {
+        "fractions": "Rendu equal parts-la oru part eduthaa, adha fraction-aa eppadi ezhudhuva?",
+        "data handling": "Indha data-va table illa graph-la eppadi arrange pannuva? Adhu enna compare panna help pannum?",
+        "symmetry": "Indha shape-ai fold panninaa rendu pakkamum match aagudha-nu eppadi check pannuva?",
+        "lines and angles": "Indha diagram-la vertex-um angle-oda rendu arms-um identify panni sollu.",
+        "states of water": "Water-oda starting state-um ending state-um enna? Heat illa cooling enna role play pannudhu?",
+        "exploring magnets": "Endha objects magnet-kitta attract aagudhu-nu fair test eppadi arrange pannuva?",
+        "prime time": "Indha number-oda factors list panni, prime-aa illaiyaa-nu eppadi decide pannuva?",
+        "perimeter and area": "Shape-oda boundary length-um inside space-um eppadi different-nu explain pannuva?",
+        "other side of zero": "Number line-la oru value zero-vukku left-aa right-aa irukku-nu eppadi kandupidippa?",
+        "temperature and its measurement": "Temperature accurate-aa measure panna enna tool-um unit-um use pannuva?",
+        "methods of separation": "Indha mixture-la irukkura materials-ai separate panna endha property help pannum?",
+        "measurement of length and motion": "Length measure pannumbodhu start point, scale, unit-ai eppadi check pannuva?",
+    }
+    topic = chapter.casefold()
+    task = next((question for key, question in task_by_chapter.items() if key in topic),
+                f"{chapter} chapter-oda main idea enna-nu un words-la sollu; adha support pannura oru clue-yum sollu.")
     return (
-        f"{starters[(stage - 1) % len(starters)]} {subject_hint} "
-        f"Textbook clue: “{excerpt}”. Idhula irundhu enna puriyudhu-nu un words-la sollu. "
-        "Theriyalana clue-va thirumba paathu serndhu figure out pannalaam."
+        f"{starters[(stage - 1) % len(starters)]} {subject_hint} {task} "
+        "Theriyalana parava illa; cited passage-a thirumba paathu serndhu figure out pannalaam."
     )
 
 
 def source_based_example(summary: str) -> str:
     """Turn actual cited text into a learner task without inventing facts."""
-    sentence = summary.strip()
-    if len(sentence) > 240:
-        sentence = sentence[:237].rsplit(" ", 1)[0] + "..."
-    if not sentence:
+    if not summary.strip():
         raise ValueError("Cannot build an example from empty source text")
     return (
-        f"Textbook-based application: read this passage — “{sentence}” "
-        "— then identify the key idea and explain it using evidence from the passage."
+        "Use the cited textbook passage to identify the main idea and explain it in your own words. "
+        "Point to one detail in the passage that supports your answer."
     )
 
 def quality_gate(lesson: dict, chunks: list[dict]) -> list[str]:
@@ -472,16 +482,16 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
         sequence.append({
             "id": f"step_{i}",
             "title": f"{chapter} — Part {i}",
-            "teacher_says": f"Let's work through Part {i} of {chapter}. Read the cited textbook passages and notice the main idea: {summary}",
+            "teacher_says": f"Let's explore {chapter}, Part {i}. Use the cited passage to identify the main idea, then explain it in your own words.",
             "caption": summary[:500],
             "example": source_based_example(summary),
             "misconception": "Distinguish what the source states from an inference. Verify any worked calculation, diagram, or scientific claim before teaching.",
-            "checkpoint": f"Explain the main idea in your own words{page_text}: “{checkpoint_text}”. Which evidence in these passages supports your explanation?",
+            "checkpoint": f"What is the main idea in this part of {chapter}{page_text}? Which detail in the cited passage supports your answer?",
             "source_chunk_ids": chunk_ids,
             "tanglish": {
                 "teacher_says": tanglish_explanation(summary, chapter, i),
-                "caption": f"Indha part-oda main point: {summary[:260]}",
-                "example": tanglish_example(summary, subject, i),
+                "caption": f"Indha part-la {chapter} chapter-oda oru mukkiya idea-va cited passage-oda connect pannuvom.",
+                "example": tanglish_example(summary, subject, i, chapter),
                 "checkpoint": tanglish_checkpoint(summary, min(pages) if pages else None, chapter, i),
                 "misconception": (
                     "Indha bit confusing-aa irundhaa parava illa. Textbook clue-va thirumba paapom; "
@@ -503,14 +513,14 @@ def build_lesson(subject: str, chapter: str, chunks: list[dict]) -> tuple[dict, 
         "learning_objectives_tanglish": objectives_tanglish,
         "concept_map": concept_map,
         "teaching_sequence": sequence,
-        "draft_method": "deterministic-extractive-v9-topic-accurate-tanglish",
+        "draft_method": "deterministic-extractive-v10-spoken-content-cleanup",
         "language_variants": {
             "English": {"language": "English", "available": True},
             "Tanglish": {
                 "language": "Tanglish",
                 "script": "Tamil written in Latin characters, retaining English subject terms",
                 "available": True,
-                "method": "chapter-aware conversational Tanglish explanations and checkpoints, learner-friendly objectives, and tasks grounded in cited source passages; not a full textbook translation",
+                "method": "chapter-aware Tanglish explanations, topic-matched learner tasks, and concise spoken prompts grounded in cited source passages; not a full textbook translation",
                 "human_review_required": True,
             },
         },
@@ -578,7 +588,7 @@ def main() -> None:
                         WHERE chapter_lessons.status='draft'""",
                         (lesson_id, BOARD, CLASS_LEVEL, subject, MEDIUM, chapter,
                          json.dumps(lesson, ensure_ascii=False), json.dumps(refs, ensure_ascii=False),
-                         "deterministic-extractive-v9-topic-accurate-tanglish", now, now),
+                         "deterministic-extractive-v10-spoken-content-cleanup", now, now),
                     )
                     conn.execute(
                         """INSERT INTO syllabus_synthesis_rounds
@@ -588,7 +598,7 @@ def main() -> None:
                         ON CONFLICT(id) DO UPDATE SET status='draft',model=excluded.model,
                           source_chunk_ids_json=excluded.source_chunk_ids_json,validation_json=excluded.validation_json,updated_at=excluded.updated_at""",
                         (round_id, str(source["id"]), BOARD, CLASS_LEVEL, subject, chapter, CURRICULUM_VERSION,
-                         "deterministic-extractive-v9-topic-accurate-tanglish", CURRICULUM_VERSION,
+                         "deterministic-extractive-v10-spoken-content-cleanup", CURRICULUM_VERSION,
                          json.dumps([c.id for c in evidence]), fingerprint, json.dumps(validation), now, now),
                     )
                     conn.execute("DELETE FROM syllabus_topic_syntheses WHERE round_id=%s", (round_id,))

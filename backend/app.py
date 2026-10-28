@@ -2492,13 +2492,38 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             # Persist only visuals whose exact synthesis step cites approved source chunks.
             # This prevents a structurally plausible but ungrounded visual from attaching to a lesson.
             visual_lesson = dict(lesson)
-            visual_lesson["teaching_sequence"] = [
-                step for step in lesson.get("teaching_sequence", [])
-                if isinstance(step, dict)
-                and isinstance(step.get("source_chunk_ids"), list)
-                and step.get("source_chunk_ids")
-                and {str(chunk_id) for chunk_id in step["source_chunk_ids"]}.issubset(allowed_ids)
-            ]
+            visual_lesson["teaching_sequence"] = []
+            for source_step in lesson.get("teaching_sequence", []):
+                if not isinstance(source_step, dict):
+                    continue
+                source_ids = source_step.get("source_chunk_ids")
+                if not isinstance(source_ids, list) or not source_ids:
+                    continue
+                normalized_ids = {str(chunk_id) for chunk_id in source_ids}
+                if not normalized_ids.issubset(allowed_ids):
+                    continue
+                # Preserve exact source-page provenance with the visual recipe. These
+                # are cited passage pages, not a claim that vision inspected a figure.
+                source_pages = []
+                for source_ref in refs:
+                    if str(source_ref.get("chunk_id", "")) not in normalized_ids:
+                        continue
+                    for page_key in ("page_start", "page_end"):
+                        page_value = source_ref.get(page_key)
+                        if page_value is None:
+                            continue
+                        try:
+                            page_number = int(page_value)
+                        except (TypeError, ValueError):
+                            continue
+                        if page_number > 0 and page_number not in source_pages:
+                            source_pages.append(page_number)
+                step = dict(source_step)
+                visual = dict(step.get("visual")) if isinstance(step.get("visual"), dict) else {}
+                if not visual.get("reference_page_numbers") and source_pages:
+                    visual["reference_page_numbers"] = sorted(source_pages)[:8]
+                step["visual"] = visual
+                visual_lesson["teaching_sequence"].append(step)
             synthesized_visuals = get_or_create_lesson_visuals(str(approved["id"]), visual_lesson)
             visual_map = {"number_pattern": "highlight", "number_line": "move",
                           "geometry": "draw-line", "compare": "compare", "process": "reveal",

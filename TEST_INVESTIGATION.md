@@ -464,3 +464,10 @@ Use this format:
 - **Change:** Added a dedicated `synthesis_static` renderer that shows the synthesis step's caption and up to six compact labels in a simple 2D card; its active summary follows the existing speech-progress step index.
 - **Verification plan:** Exact-head Android APK build and API-35 emulator UI smoke, plus backend tests. The prior backend run passed 87 tests before this Android renderer edit; the exact new head still needs verification.
 - **No merge or deployment performed.**
+
+
+### 2026-10-28 — Generate visuals at synthesis approval, not only on first learner retrieval
+- **Branch / PR:** `feat/synthesis-linked-2d-visuals`, draft PR #49; commit `6b9900d1bfa04dbec7a036c2133fdc8037cca263`.
+- **Requirement clarification:** The user's intended workflow is generate/store visuals from already-synthesized content, then retrieve those stored visuals like lesson/topic data.
+- **Change:** Approval now generates and persists the per-step visual records immediately and returns `visual_count`; the retrieval path still backfills existing approved lessons that predate this feature. Empty teaching sequences deactivate old visual rows.
+- **Verification:** Exact-head backend tests, Android build, and emulator smoke must rerun after this change. No merge or deployment performed.

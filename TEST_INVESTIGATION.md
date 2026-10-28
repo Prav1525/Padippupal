@@ -456,3 +456,11 @@ Use this format:
 - **Root cause:** **CONFIRMED** the tests were intended to isolate lesson selection/topic validation but did not stub the newly added visual persistence boundary.
 - **Fix:** Updated both tests to stub `get_or_create_lesson_visuals` as empty; dedicated tests cover the synthesis-to-visual builder separately. This preserves the original test purpose while avoiding fake DB behavior that cannot represent the new table.
 - **Validation:** Correction pushed in commit `888ffe464ed615c0e42b8d4435ee6caef6f6252a`; exact-head CI rerun pending. No merge or deployment performed.
+
+
+### 2026-10-28 — Render synthesized visual blueprints with a dedicated static Compose card
+- **Branch / PR:** `feat/synthesis-linked-2d-visuals`, draft PR #49; Android renderer commit `f446d1ae05bc3c780177354f72f247f54fbee522`.
+- **Requirement:** The generated visuals must appear in the same tutor screen, remain compact, and not inherit large or looping animation behavior from the generic interactive lesson renderer.
+- **Change:** Added a dedicated `synthesis_static` renderer that shows the synthesis step's caption and up to six compact labels in a simple 2D card; its active summary follows the existing speech-progress step index.
+- **Verification plan:** Exact-head Android APK build and API-35 emulator UI smoke, plus backend tests. The prior backend run passed 87 tests before this Android renderer edit; the exact new head still needs verification.
+- **No merge or deployment performed.**

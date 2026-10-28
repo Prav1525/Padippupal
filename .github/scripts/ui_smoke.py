@@ -298,9 +298,14 @@ def assert_live(path):
     # "teacher is speaking". Validate the real progress + inline lesson content.
     # Audio/highlight progression is checked independently below, so this
     # assertion must not mask those checks with a stale accessibility label.
-    teaching_texts = [value.strip() for value in texts if len(value.strip()) >= 220]
+    # A live caption is the current segment, not the whole lesson transcript.
+    # The deterministic smoke fixture intentionally has a short first segment;
+    # waiting for a 220-character caption skipped valid active playback until a
+    # later segment (or until the whole lesson had already completed).
+    teaching_texts = [value.strip() for value in texts if len(value.strip()) >= 120]
     if not teaching_texts:
-        raise SystemExit("Tutor screen does not expose one complete teaching explanation in its active caption")
+        lengths = sorted((len(value.strip()) for value in texts), reverse=True)[:8]
+        raise SystemExit(f"Tutor screen has no readable active teaching segment (longest accessible text lengths={lengths})")
     forbidden_interruptions = ("quick check", "let's check your understanding", "does that make sense so far", "i understand", "explain again", "i have a question", "visual focus")
     found_interruptions = [label for label in forbidden_interruptions if label in joined]
     if found_interruptions:

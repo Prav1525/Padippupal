@@ -67,7 +67,11 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
         )
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setattr(curriculum.urllib.request, "urlopen", lambda *_args, **_kwargs: _fake_gemini_response())
+    captured = {}
+    def fake_urlopen(request, *_args, **_kwargs):
+        captured["request"] = json.loads(request.data.decode("utf-8"))
+        return _fake_gemini_response()
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(curriculum, "_chapter_source_chunks", lambda _payload: [{
         "chunk_id": "chunk-test", "chunk_no": 0, "chunk_chapter": "Test chapter",
         "page_start": 1, "page_end": 1, "text": "Textbook evidence for the key idea.",
@@ -88,6 +92,10 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert data["synthesis_round_id"]
     assert len(data["evidence_fingerprint"]) == 64
     assert data["validation"]["valid"] is True
+    synthesis_prompt = captured["request"]["systemInstruction"]["parts"][0]["text"]
+    assert "copyright-respectful" in synthesis_prompt
+    assert "reference_page_numbers" in synthesis_prompt
+    assert "Never trace" in synthesis_prompt
 
     with curriculum.db() as conn:
         rounds = conn.execute(

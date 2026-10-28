@@ -262,3 +262,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** **CONFIRMED** stale regression assertions encoded the superseded behavior, rather than the new requirement.
 - **Fix:** Commit `3dec9a073ba5622ad1853972aaf3a3468e6c6543` replaces that assertion with checks that the caption appends original source gaps and trailing text, and does not use the forced every-third-sentence rule. The duplicate paragraph-preservation test was removed to avoid redundant coverage.
 - **Validation:** Corrected test and full UI smoke workflow are **UNVERIFIED** pending CI on the updated head. Do not mark the UI verified or merge until script validation and API-35 emulator flow pass.
+
+
+## Incident: UI smoke still tapped the removed home CTA
+- **Date:** 2026-10-28
+- **Affected PR:** [#48](https://github.com/Prav1525/Padippupal/pull/48), branch `ui/modern-learner-layout`.
+- **Evidence:** [Android UI smoke run 40714616741](https://github.com/Prav1525/Padippupal/actions/runs/40714616741), failed emulator step log at the lesson-selection transition.
+- **Observed failure:** JVM tests, APK build, and smoke-script validation passed. Emulator confirmed the refreshed home labels, then failed because `.github/scripts/android-ui-smoke.sh` still tried to tap `Begin lesson`, which is no longer on the screen; the current primary CTA is `Start learning`.
+- **Root cause:** **CONFIRMED** stale UI automation selector after home redesign, not an app launch/build failure.
+- **Fix:** Commit `2e21c2fa49838825d13a6ba88c551c906d7e9db0` updates the smoke tap target to `Start learning`; commit `d2ada5de0225b18a0d998b98717bfb44b9ea648f` adds a regression test requiring the new selector and forbidding the removed label.
+- **Validation:** Latest-head UI smoke, JVM tests, APK build and guidance gate are **PENDING**. Do not merge until the emulator flow passes and its artifact is reviewed.

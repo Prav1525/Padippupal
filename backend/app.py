@@ -828,7 +828,7 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
                     chapter_title = f"Chapter PDF ({filename})"
             metadata = base.model_copy(update={"title": f"{base.title} — {chapter_title}"})
             result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages))
-            result["visual_reference_pages"] = str(len(visual_refs))\n            results.append({"file": filename, "title": metadata.title, **result})
+            result["visual_reference_pages"] = str(len(visual_refs)); results.append({"file": filename, "title": metadata.title, **result})
         except Exception as exc:
             results.append({"file": filename, "status": "failed", "error": str(exc)[:300]})
     accepted = sum(1 for item in results if item.get("source_id"))

@@ -116,7 +116,7 @@ class TutorInlineVisualContractTests(unittest.TestCase):
         self.assertIn('sourceRef.optInt("page_end", pageStart)', lab)
         backend = (Path(__file__).resolve().parents[2] / "backend/app.py").read_text()
         row_start = backend.index("def _interactive_lesson_row(")
-        row_end = backend.index("\\ndef find_interactive_lesson(", row_start)
+        row_end = backend.index("def find_interactive_lesson(", row_start)
         self.assertIn('"source_refs": payload.get("source_refs", [])', backend[row_start:row_end])
 
 

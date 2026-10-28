@@ -98,6 +98,9 @@ class HomeLayoutContractTests(unittest.TestCase):
         self.assertNotIn('Tile("My subjects"', home)
         self.assertNotIn('Tile("Study planner"', home)
         self.assertNotIn('"01 / 04"', home)
+        smoke = (Path(__file__).resolve().parents[2] / ".github" / "scripts" / "android-ui-smoke.sh").read_text()
+        self.assertIn('tap home.xml "Start learning"', smoke)
+        self.assertNotIn('tap home.xml "Begin lesson"', smoke)
 
 
 class TutorInlineVisualContractTests(unittest.TestCase):

@@ -71,6 +71,10 @@ class ExtractiveSynthesisQualityTests(unittest.TestCase):
         self.assertEqual(cited, {chunk["id"] for chunk in chunks})
         self.assertTrue(all(step["tanglish"]["teacher_says"].startswith("Namma") for step in lesson["teaching_sequence"]))
         self.assertTrue(all(len(step["tanglish"]["checkpoint"]) >= 35 for step in lesson["teaching_sequence"]))
+        self.assertTrue(all(len(step["caption"]) <= 500 for step in lesson["teaching_sequence"]))
+        self.assertTrue(all(len(step["caption"]) <= 600 for step in lesson["teaching_sequence"]))
+        self.assertTrue(all(len(step["tanglish"]["teacher_says"]) < 1000 for step in lesson["teaching_sequence"]))
+        self.assertTrue(all(len(step["title"]) < 100 for step in lesson["teaching_sequence"]))
 
     def test_quality_gate_rejects_generic_placeholders(self):
         lesson = {

@@ -99,15 +99,6 @@ class HomeLayoutContractTests(unittest.TestCase):
         self.assertNotIn('Tile("Study planner"', home)
         self.assertNotIn('"01 / 04"', home)
 
-    def test_caption_keeps_original_whitespace_and_paragraph_boundaries(self):
-        source = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
-                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
-        caption = source[source.index("private fun WordByWordCaption("):source.index("private fun ChapterOneMathAnimation(")]
-        self.assertIn("text.substring(cursor, matchStart)", caption)
-        self.assertNotIn("sentencesInParagraph", caption)
-        self.assertIn("lineHeight = 26.sp", caption)
-
-
 class TutorPromptContractTests(unittest.TestCase):
     def test_prompt_has_no_legacy_short_step_or_forced_checkpoint_rules(self):
         backend = (Path(__file__).resolve().parents[2] / "backend" / "app.py").read_text()
@@ -269,11 +260,13 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn("Per-segment checkpoint or animation UI reappeared", smoke)
         self.assertNotIn("missing its passive auto-playing concept animation", smoke)
 
-    def test_spoken_caption_groups_sentences_into_natural_paragraphs(self):
+    def test_spoken_caption_preserves_source_paragraphs(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertIn("separate paragraphs only after every third sentence", tutor)
-        self.assertIn(r'append(if (endsSentence && sentencesInParagraph % 3 == 0) "\n\n" else " ")', tutor)
-        self.assertIn("offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1", tutor)
+        caption = tutor[tutor.index("private fun WordByWordCaption("):tutor.index("private fun ChapterOneMathAnimation(")]
+        self.assertIn("text.substring(cursor, matchStart)", caption)
+        self.assertIn("if (cursor < text.length) append(text.substring(cursor))", caption)
+        self.assertNotIn("sentencesInParagraph", caption)
+        self.assertNotIn("separate paragraphs only after every third sentence", caption)
 
     def test_completed_lesson_is_kept_for_follow_up_chat(self):
         root = Path(__file__).resolve().parents[2]

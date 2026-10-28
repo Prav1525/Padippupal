@@ -53,7 +53,7 @@ jobs:
               sys.exit("FAIL: Patterns in Mathematics has fewer than five topic entries")
           print("PASS: deployed API returns all 10 CBSE Class 6 Mathematics chapters and the expected first chapter/topics.")
           PY
-      - name: Verify retrieval returns the indexed test source
+      - name: Verify retrieval response and profile isolation
         shell: bash
         run: |
           set -euo pipefail

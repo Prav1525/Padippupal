@@ -11,6 +11,10 @@ import os
 import re
 import time
 import uuid
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import psycopg
 from psycopg.rows import dict_row

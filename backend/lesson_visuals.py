@@ -107,7 +107,12 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
     objects = visual.get("objects", [])
     if not isinstance(objects, list):
         objects = []
-    labels = [_clean(item, 72) for item in objects if _clean(item, 72)]
+    labels = []
+    for item in objects:
+        raw_label = item.get("label") if isinstance(item, Mapping) else item
+        label = _clean(raw_label, 72)
+        if label:
+            labels.append(label)
     actions = visual.get("actions", [])
     if isinstance(actions, str):
         actions = [actions]
@@ -119,7 +124,29 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         narration_sync = [narration_sync]
     if not isinstance(narration_sync, list):
         narration_sync = []
-    sync_labels = [_clean(item, 90) for item in narration_sync if _clean(item, 90)][:4]
+    sync_labels = [_clean(item, 90) for item in narration_sync if _clean(item, 90)][:6]
+    spatial = visual.get("spatial_relationships", [])
+    if not isinstance(spatial, list):
+        spatial = []
+    spatial = [_clean(item, 120) for item in spatial if _clean(item, 120)][:6]
+    teaching_order = visual.get("teaching_order", [])
+    if not isinstance(teaching_order, list):
+        teaching_order = []
+    teaching_order = [_clean(item, 100) for item in teaching_order if _clean(item, 100)][:6]
+    raw_pages = visual.get("reference_page_numbers", [])
+    if isinstance(raw_pages, (str, int)):
+        raw_pages = [raw_pages]
+    if not isinstance(raw_pages, list):
+        raw_pages = []
+    reference_pages = []
+    for page in raw_pages[:8]:
+        try:
+            page_no = int(page)
+            if page_no > 0 and page_no not in reference_pages:
+                reference_pages.append(page_no)
+        except (TypeError, ValueError):
+            continue
+    visual_rationale = _clean(visual.get("visual_rationale"), 180)
     caption = _clean(step.get("caption") or step.get("teacher_says") or step.get("title"), 240)
     title = _clean(step.get("title") or caption, 90)
     nodes = labels[:6] or sync_labels[:4] or [title]
@@ -129,18 +156,23 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         "caption": caption,
         "kind": kind,
         "layout": "compact_2d",
-        "motion": "narration_step_reveal",
+        "motion": "narration_synced_staggered_reveal",
         "animation_plan": {
-            "mode": "step_reveal",
+            "mode": "staggered_reveal",
             "duration_ms": 850,
             "loop": False,
             "reveal_order": list(range(min(6, len(nodes)))),
-            "actions": actions[:4],
-            "sync_markers": sync_labels[:4],
+            "actions": actions[:6],
+            "sync_markers": sync_labels[:6],
+            "stages": teaching_order[:6] or actions[:6] or sync_labels[:6],
         },
         "nodes": nodes,
         "actions": actions,
         "narration_sync": sync_labels,
+        "spatial_relationships": spatial,
+        "teaching_order": teaching_order,
+        "reference_page_numbers": reference_pages,
+        "visual_rationale": visual_rationale,
         "source_chunk_ids": [str(value) for value in step.get("source_chunk_ids", []) if value][:8]
             if isinstance(step.get("source_chunk_ids", []), list) else [],
     }

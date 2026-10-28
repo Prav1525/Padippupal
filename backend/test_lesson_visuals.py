@@ -66,6 +66,20 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         changed = build_visual_records("lesson-1", self.lesson)
         self.assertNotEqual(first[0]["content_fingerprint"], changed[0]["content_fingerprint"])
 
+    def test_sequence_alias_uses_sequence_renderer_not_generic_concept_card(self):
+        lesson = {"teaching_sequence": [{
+            "id": "all-ones",
+            "title": "All 1s",
+            "caption": "Each term stays 1.",
+            "source_chunk_ids": ["chunk-pattern-1"],
+            "visual": {"type": "sequence", "objects": ["1", "1", "1", "1", "1"]},
+        }]}
+        record = build_visual_records("lesson-pattern", lesson)[0]
+        self.assertEqual(record["visual_kind"], "sequence")
+        self.assertEqual(record["blueprint"]["kind"], "sequence")
+        self.assertIn("sequence", record["blueprint"]["svg_markup"])
+        self.assertEqual(record["source_chunk_ids_json"], '["chunk-pattern-1"]')
+
     def test_empty_or_missing_sequence_produces_no_unrelated_visual(self):
         self.assertEqual(build_visual_records("lesson-2", {}), [])
         self.assertEqual(build_visual_records("lesson-2", {"teaching_sequence": []}), [])

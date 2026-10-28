@@ -393,3 +393,13 @@ Use this format:
 - **Regression coverage:** Added source-contract tests for the fraction diagram, angle arc, and source-reference rendering. Exact-head CI remains the authority for build/test status.
 - **What remains unverified:** Visual balance on-device, actual source page labels in a live API response, and natural narration/highlight synchronization. No merge or deployment performed.
 - **Next action:** Let latest-head CI finish; inspect emulator screenshot/artifact for home layout, inline diagram size/overlap, source label readability, and lesson navigation before adding more scene-specific diagrams.
+
+
+### 2026-10-28 — Emulator failure after home redesign: stale CTA selector
+- **Branch:** `ui/modern-learner-layout`; failed head `901a0888c8285e383bb0d76f821a1b714eab2067`; fix commits `2e21c2fa49838825d13a6ba88c551c906d7e9db0` and `d2ada5de0225b18a0d998b98717bfb44b9ea648f`.
+- **Workflow:** [Android UI smoke run 40714616741](https://github.com/Prav1525/Padippupal/actions/runs/40714616741).
+- **Result:** JVM tests, APK build, and smoke-script validation **PASS**; emulator end-to-end **FAIL**. The home screen loaded and all new expected labels were accessible.
+- **Exact failure:** Automation tried to tap `Begin lesson`; current home UI exposes `Start learning`.
+- **Root cause:** **CONFIRMED** stale selector in `.github/scripts/android-ui-smoke.sh` after the home redesign.
+- **Correction:** Changed the tap target to `Start learning` and added a regression assertion that the current target is present and the removed target is absent. Added incident details to `docs/TEST_FAILURE_REGISTER.md`.
+- **What remains unverified:** Fresh API-35 emulator run after this fix, including lesson selection and tutor visual flow. No merge or deployment performed.

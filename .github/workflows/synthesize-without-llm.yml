@@ -85,7 +85,7 @@ jobs:
                   assert lesson.get("draft_method") == "deterministic-extractive-v8-natural-tanglish"
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("available") is True
                   assert lesson.get("language_variants", {}).get("Tanglish", {}).get("human_review_required") is True
-                  natural_starters = ("Seri", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru")
+                  natural_starters = ("Seri", "Paathiya", "Air-la", "Ella", "Plant-la", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru")
                   assert all(step["tanglish"]["teacher_says"].startswith(natural_starters) for step in lesson["teaching_sequence"])
                   assert all("un words-la sollu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"])
                   assert all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"])

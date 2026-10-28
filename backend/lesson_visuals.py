@@ -184,6 +184,19 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
         labels = [term.title() for term in ("point", "line", "line segment", "angle", "triangle", "parallel", "perpendicular") if re.search(r"\b" + re.escape(term) + r"\b", lowered)]
         return "geometry", labels[:5] or ["Point", "Line", "Angle"]
 
+    if any(term in lowered for term in ("perimeter", "area of a rectangle", "area of a square")):
+        labels = [term.title() for term in ("length", "width", "area", "perimeter") if re.search(r"\b" + re.escape(term) + r"\b", lowered)]
+        return "geometry", labels[:5] or ["Length", "Width", "Area"]
+
+    if any(term in lowered for term in ("magnet", "magnetic", "north pole", "south pole")):
+        labels = [term.title() for term in ("north pole", "south pole", "attract", "repel", "magnetic field") if term in lowered]
+        return "diagram", labels[:4] or ["Magnet", "Poles"]
+
+    if any(term in lowered for term in ("melting", "freezing", "solid", "liquid", "gas")):
+        labels = [term.title() for term in ("solid", "liquid", "gas", "melting", "freezing", "evaporation", "condensation") if re.search(r"\b" + re.escape(term) + r"\b", lowered)]
+        if len(labels) >= 2:
+            return "process", labels[:5]
+
     if "number line" in lowered:
         numbers = re.findall(r"(?<![A-Za-z])[-+]?\d{1,2}(?![A-Za-z])", text)
         unique = list(dict.fromkeys(numbers))
@@ -191,9 +204,16 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
             return "number_line", unique[:5]
         return "number_line", ["0", "1", "2"]
 
-    if any(term in lowered for term in ("bar graph", "pictograph", "tally marks", "data handling")):
-        labels = [term.title() for term in ("Data", "Tally marks", "Pictograph", "Bar graph") if term.casefold() in lowered]
-        return "table", labels[:3] or ["Data|Collect · Sort · Compare"]
+    if any(term in lowered for term in ("bar graph", "pictograph", "tally marks")):
+        labels = []
+        if "tally marks" in lowered and "count" in lowered:
+            labels.append("Tally marks|Count")
+        if "pictograph" in lowered and "symbol" in lowered:
+            labels.append("Pictograph|Picture symbols")
+        if "bar graph" in lowered and any(term in lowered for term in ("value", "values", "height", "heights")):
+            labels.append("Bar graph|Values")
+        if labels:
+            return "table", labels[:3]
 
     # If a synthesis supplied no structured recipe, do not fabricate a diagram from its title.
     return fallback_kind, []

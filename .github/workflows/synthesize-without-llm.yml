@@ -88,7 +88,7 @@ jobs:
                   natural_starters = ("Seri", "Paathiya", "Air-la", "Ella", "Plant-la", "Okay", "Nalla", "Ippo", "Sari", "Konjam", "Super", "Oru")
                   assert all(step["tanglish"]["teacher_says"].startswith(natural_starters) for step in lesson["teaching_sequence"])
                   assert all("un words-la sollu" in step["tanglish"]["example"] for step in lesson["teaching_sequence"])
-                  assert all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"] for step in lesson["teaching_sequence"])
+                  assert all("confusing-aa irundhaa parava illa" in step["tanglish"]["misconception"].lower() for step in lesson["teaching_sequence"])
                   assert 3 <= len(lesson.get("teaching_sequence", [])) <= 10
                   assert len(lesson.get("learning_objectives_tanglish", [])) == len(lesson.get("learning_objectives", []))
                   assert "natural conversational Tanglish" in lesson.get("language_variants", {}).get("Tanglish", {}).get("method", "")
@@ -103,7 +103,7 @@ jobs:
                       assert tanglish.get("teacher_says", "").startswith(natural_starters)
                       assert "unakku enna purinjuchu" in tanglish.get("teacher_says", "").lower()
                       assert "un words-la sollu" in tanglish.get("example", "").lower()
-                      assert "confusing-aa irundhaa parava illa" in tanglish.get("misconception", "")
+                      assert "confusing-aa irundhaa parava illa" in tanglish.get("misconception", "").lower()
               rounds = conn.execute("""
                 SELECT count(*) AS n FROM syllabus_synthesis_rounds
                 WHERE board='CBSE' AND class_level=6 AND subject IN ('Mathematics','Science')

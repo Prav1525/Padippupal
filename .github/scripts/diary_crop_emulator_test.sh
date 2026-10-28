@@ -79,7 +79,9 @@ if [ "$indexed" -ne 1 ]; then
   "${ADB[@]}" shell content query --uri content://media/external/images/media --projection _id:_display_name:_data | tee -a "$REPORT"
   exit 1
 fi
+# Start from a deterministic home screen, not a page left by a prior emulator run.
 "${ADB[@]}" shell am force-stop com.padippupal.app
+"${ADB[@]}" shell pm clear com.padippupal.app >/dev/null
 "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity >/dev/null
 sleep 6
 # Home is a LazyColumn and its content height varies with emulator density,

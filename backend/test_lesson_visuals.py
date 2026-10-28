@@ -20,6 +20,9 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
                         "objects": ["one whole", "four equal parts", "one shaded part"],
                         "actions": ["shade one part"],
                         "narration_sync": ["four equal parts"],
+                        "spatial_relationships": ["four equal-sized parts make one whole"],
+                        "teaching_order": ["show the whole", "divide into four equal parts", "shade one part"],
+                        "reference_page_numbers": [12],
                     },
                 },
                 {
@@ -38,14 +41,17 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertEqual(records[0]["summary_text"], self.lesson["teaching_sequence"][0]["caption"])
         self.assertEqual(records[0]["source_chunk_ids_json"], '["chunk-12"]')
         self.assertEqual(records[0]["blueprint"]["nodes"], ["one whole", "four equal parts", "one shaded part"])
+        self.assertEqual(records[0]["blueprint"]["reference_page_numbers"], [12])
+        self.assertEqual(records[0]["blueprint"]["spatial_relationships"], ["four equal-sized parts make one whole"])
+        self.assertEqual(records[0]["blueprint"]["animation_plan"]["stages"], ["show the whole", "divide into four equal parts", "shade one part"])
 
     def test_visuals_are_small_static_2d_blueprints(self):
         records = build_visual_records("lesson-1", self.lesson)
         for record in records:
             blueprint = record["blueprint"]
             self.assertEqual(blueprint["layout"], "compact_2d")
-            self.assertEqual(blueprint["motion"], "narration_step_reveal")
-            self.assertEqual(blueprint["animation_plan"]["mode"], "step_reveal")
+            self.assertEqual(blueprint["motion"], "narration_synced_staggered_reveal")
+            self.assertEqual(blueprint["animation_plan"]["mode"], "staggered_reveal")
             self.assertFalse(blueprint["animation_plan"]["loop"])
             self.assertLessEqual(blueprint["animation_plan"]["duration_ms"], 1000)
             self.assertNotIn("3d", json.dumps(blueprint).lower())

@@ -17,7 +17,7 @@ def load(path):
 def assert_home(path):
     _, texts = load(path)
     joined = "\n".join(texts)
-    expected = ("YOUR LEARNING DESK", "A little wiser today", "YOUR PERSONAL TUTOR", "Begin lesson")
+    expected = ("YOUR LEARNING SPACE", "YOUR PERSONAL TUTOR", "Start learning")
     missing = [term for term in expected if term.lower() not in joined.lower()]
     print("HOME TEXT:", " | ".join(texts[:80]))
     if missing:

@@ -295,7 +295,7 @@ def assert_live(path):
     teaching_texts = [value.strip() for value in texts if len(value.strip()) >= 220]
     if not teaching_texts:
         raise SystemExit("Tutor screen does not expose one complete teaching explanation in its active caption")
-    forbidden_interruptions = ("quick check", "let's check your understanding", "does that make sense so far", "i understand", "explain again", "i have a question", "watch the pattern", "visual focus")
+    forbidden_interruptions = ("quick check", "let's check your understanding", "does that make sense so far", "i understand", "explain again", "i have a question", "visual focus")
     found_interruptions = [label for label in forbidden_interruptions if label in joined]
     if found_interruptions:
         raise SystemExit("Per-segment checkpoint or animation UI reappeared: " + ", ".join(found_interruptions))
@@ -320,6 +320,10 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
+    if "all 1s pattern visual" not in joined:
+        raise SystemExit("The source-mapped synthesized 2D visual is missing from the inline tutor flow")
+    if "each term stays 1" not in joined:
+        raise SystemExit("The inline visual is not mapped to the All 1s teaching summary")
     if "ask your teacher" in joined or "send question" in joined:
         raise SystemExit("Chat composer is still visible during the dedicated live teaching experience")
     forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")

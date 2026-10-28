@@ -88,6 +88,12 @@ LESSON = {
     ],
 }
 
+# The live Android player reads the visual from the active segment. Keep the
+# deterministic fixture faithful to that contract instead of relying only on
+# the response-level visual, which chat mode uses.
+for _segment in LESSON["segments"]:
+    _segment["interactive_lesson"] = LESSON["interactive_lesson"]
+
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, status: int, body: dict) -> None:

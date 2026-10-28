@@ -10,6 +10,15 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Regression prevention:** Added `.github/scripts/test_diary_emulator_script.py`, which checks the ADB command shape and the dump/pull/parse order before emulator allocation. It also verifies the workflow preserves failure reports.
 - **Acceptance still required:** A fresh emulator run must select the fixture, crop it, rescan through the deterministic API, save both expected tasks, and verify the planner excludes tasks from other dates.
 
+
+## Incident: topic-level visual persistence used a helper from the wrong module
+
+- **Symptom:** Curriculum Engine Tests failed on the visual-assets branch with `NameError: name '_clean' is not defined` in `attach_topic_visuals`; one long-caption inference test also incorrectly expected the full caption to survive the deliberately bounded summary field.
+- **Root cause:** The new API helper called a private normalizer defined only in `lesson_visuals.py`, and the test asserted against a truncated summary rather than the visual blueprint inferred from the full source caption.
+- **Fix:** Commit `deeb5a412e8043a8c2c103b6e4a909dbaf501fc9` uses the backend's existing `normalize` helper and asserts bounded summary length while checking the inferred 2D sequence nodes.
+- **Regression prevention:** Added a topic-level persistence test proving that the selected topic, source chunk IDs, cited page number, inline visual payload and active database row stay connected. The Curriculum Engine Tests workflow passed on the fix commit.
+- **Acceptance still required:** Android APK and emulator UI smoke checks must pass on the latest PR head; inspect the actual live-lesson screenshot to confirm the generated visual is inline and synchronized before approval.
+
 ## Required incident-closing checklist
 
 - [ ] Capture the exact failing step, command, exit code, and relevant log excerpt.

@@ -25,6 +25,25 @@ class VisualEngineTests(unittest.TestCase):
         out=engine.svg(a,engine.classify(a.subject,a.topic,a.chapter))
         for label in (">Solid<",">Liquid<",">Gas<"): self.assertIn(label,out)
 
+
+    def test_science_chapter_one_has_topic_specific_renderers(self):
+        cases = [
+            ("Science", "The Wonderful World of Science", "Knowledge jigsaw", "science_jigsaw", "New discovery"),
+            ("Science", "The Wonderful World of Science", "Pen stops writing: test the refill", "science_pen_inquiry", "Test refill"),
+            ("Science", "The Wonderful World of Science", "Scientific inquiry: observe ask guess test", "science_inquiry", "Review"),
+            ("Science", "The Wonderful World of Science", "Everyday objects: paper, metal key, plastic ruler", "science_everyday_objects", "Metal key"),
+            ("Science", "The Wonderful World of Science", "Daily life problems and cooking", "science_daily_life", "Daily problem"),
+            ("Science", "The Wonderful World of Science", "Curiosity: ask why", "science_curiosity", "Ask why"),
+        ]
+        for subject, chapter, topic, expected_family, visible_label in cases:
+            with self.subTest(topic=topic):
+                a = args(subject=subject, chapter=chapter, topic=topic)
+                family = engine.classify(a.subject, a.topic, a.chapter)
+                self.assertEqual(family, expected_family)
+                rendered = engine.svg(a, family)
+                self.assertIn(visible_label, rendered)
+                self.assertIn("test-source", rendered)
+
     def test_unsupported_topic_fails_closed(self):
         with self.assertRaises(engine.VisualError):
             engine.classify("Science","Unmapped topic","Unknown chapter")

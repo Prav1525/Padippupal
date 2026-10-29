@@ -376,7 +376,7 @@ def test_science_chapter1_pen_inquiry_gets_topic_specific_scene():
     }]}
     record = build_visual_records("science-ch1", lesson)[0]
     assert record["visual_kind"] == "process"
-    assert record["blueprint"]["nodes"] == ["Notice the problem", "Make a guess", "Test the refill"]
+    assert record["blueprint"]["nodes"] == ["Pen stops writing", "Possible explanation", "Check the refill"]
     assert "Check the refill" in record["blueprint"]["svg_markup"]
     assert json.loads(record["source_chunk_ids_json"]) == ["source-pen-page-4"]
 

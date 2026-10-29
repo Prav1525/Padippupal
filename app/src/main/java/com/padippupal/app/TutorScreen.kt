@@ -580,7 +580,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
-private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int, modifier: Modifier = Modifier, fillRemaining: Boolean = false) {
+private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int, modifier: Modifier = Modifier) {
     // Synthesized lessons store a separate, source-mapped visual blueprint per teaching
     // step. Resolve that step first; otherwise the old renderer treated the whole lesson
     // as one generic scene and silently drew the same fallback circles for every topic.
@@ -664,7 +664,7 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int, modif
             )
         }
         // Draw directly on the lesson canvas: no card, border, overlay, or inset panel.
-        Canvas(Modifier.fillMaxWidth().then(if (fillRemaining) Modifier.weight(1f) else Modifier.height(104.dp))) {
+        Canvas(modifier.fillMaxWidth().height(112.dp)) {
                 val w = size.width
                 val h = size.height
                 val center = Offset(w * .5f, h * .5f)
@@ -676,14 +676,37 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int, modif
                         val left = w * .12f
                         val right = w * .88f
                         val y = h * .54f
-                        drawLine(ink, Offset(left, y), Offset(right, y), stroke)
-                        repeat(5) { i ->
-                            val x = left + (right - left) * i / 4f
-                            drawLine(ink, Offset(x, y - 8.dp.toPx()), Offset(x, y + 8.dp.toPx()), stroke)
-                            if (i <= stage + 1) drawCircle(Color(0xFF3987C9), 5.dp.toPx(), Offset(x, y))
+                        val isRepeatingOnes = topic.contains("all 1s", true) || topic.contains("all ones", true)
+                        if (isRepeatingOnes) {
+                            // Show all terms at once: a repeating pattern is not a number line.
+                            val spacing = (right - left) / 4f
+                            repeat(5) { i ->
+                                val x = left + spacing * i
+                                val boxSize = 25.dp.toPx()
+                                drawRoundRect(
+                                    if (i == stage.coerceIn(0, 4)) Color(0xFFDCE7FF) else Color(0xFFF1F5F9),
+                                    Offset(x - boxSize / 2f, y - boxSize / 2f),
+                                    androidx.compose.ui.geometry.Size(boxSize, boxSize),
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(5.dp.toPx())
+                                )
+                                drawRoundRect(
+                                    ink, Offset(x - boxSize / 2f, y - boxSize / 2f),
+                                    androidx.compose.ui.geometry.Size(boxSize, boxSize),
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()),
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+                                )
+                                drawCircle(Color(0xFF3987C9), 3.dp.toPx(), Offset(x, y))
+                            }
+                        } else {
+                            drawLine(ink, Offset(left, y), Offset(right, y), stroke)
+                            repeat(5) { i ->
+                                val x = left + (right - left) * i / 4f
+                                drawLine(ink, Offset(x, y - 8.dp.toPx()), Offset(x, y + 8.dp.toPx()), stroke)
+                                drawCircle(if (i == stage.coerceIn(0, 4)) Color(0xFF3987C9) else ink, 4.dp.toPx(), Offset(x, y))
+                            }
+                            drawLine(ink, Offset(right - 8.dp.toPx(), y - 5.dp.toPx()), Offset(right, y), stroke)
+                            drawLine(ink, Offset(right - 8.dp.toPx(), y + 5.dp.toPx()), Offset(right, y), stroke)
                         }
-                        drawLine(ink, Offset(right - 8.dp.toPx(), y - 5.dp.toPx()), Offset(right, y), stroke)
-                        drawLine(ink, Offset(right - 8.dp.toPx(), y + 5.dp.toPx()), Offset(right, y), stroke)
                     }
                     scene == "geometry" -> {
                         val left = w * .25f
@@ -2852,8 +2875,7 @@ internal fun TutorScreen(
                             liveCaption.isNotBlank() && liveInteractiveLesson != null -> TeacherDrawnConceptVisual(
                                 lesson = liveInteractiveLesson!!,
                                 activeStep = liveVisualStep,
-                                modifier = Modifier.weight(1f),
-                                fillRemaining = true
+                                modifier = Modifier
                             )
                             liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
                                 val topicKey = topic.lowercase(Locale.ROOT)

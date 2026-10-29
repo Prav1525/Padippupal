@@ -627,7 +627,12 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                         // the Sun; the Moon follows a smaller path around the Earth.
                         val sun = Offset(w * .19f, h * .49f)
                         val earth = Offset(w * .62f, h * .49f)
-                        val moon = Offset(w * (.72f + if (stage % 2 == 0) .025f else -.025f), h * .27f)
+                        val moonAngle = if (stage % 2 == 0) -0.72 else 0.72
+                        val moonRadius = h * .20f
+                        val moon = Offset(
+                            earth.x + kotlin.math.cos(moonAngle).toFloat() * moonRadius,
+                            earth.y + kotlin.math.sin(moonAngle).toFloat() * moonRadius
+                        )
                         drawOval(
                             orbit,
                             topLeft = Offset(w * .13f, h * .10f),
@@ -654,10 +659,10 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                             androidx.compose.ui.geometry.Size(h * .40f, h * .40f),
                             style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
                         )
-                        if (stage >= 1) {
-                            drawCircle(orbit, h * .20f, earth, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
-                            drawCircle(Color(0xFF94A3B8), h * .045f, moon)
-                        }
+                        // Always show the Moon and its path in the static explanation too.
+                        // Previously stage 0 hid the Moon while the labels still said "Moon".
+                        drawCircle(orbit, moonRadius, earth, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        drawCircle(Color(0xFF94A3B8), h * .045f, moon)
                         if (stage >= 2) {
                             // Small arrowhead indicates direction without suggesting a 3D animation.
                             drawLine(ink, Offset(w * .49f, h * .12f), Offset(w * .53f, h * .14f), stroke)

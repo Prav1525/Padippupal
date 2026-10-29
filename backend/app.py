@@ -941,6 +941,28 @@ def _generate_synthesis_visual_candidates(round_id: str) -> int:
                 lesson = {"chapter_title": str(row["chapter"]), "topic": topic,
                           "overview": objective or caption[:300], "teaching_sequence": [step]}
                 records = build_visual_records(profile_key, lesson)
+                if not records:
+                    # Every new synthesis gets a traceable visual-generation
+                    # result. Unsupported/ambiguous concepts become review tasks,
+                    # never invented generic learner-facing drawings.
+                    review_blueprint = {
+                        "step_id": step_id, "title": topic, "caption": caption[:500],
+                        "kind": "needs_review", "layout": "compact_2d",
+                        "svg_markup": "", "nodes": [],
+                        "source_chunk_ids": citation_ids,
+                        "reference_page_numbers": sorted(cited_pages)[:8],
+                        "evidence_status": "needs_review",
+                        "quality_flags": ["no_topic_specific_renderer"],
+                        "review_reason": "No evidence-matched scene renderer; add a reviewed topic-specific visual before activation.",
+                        "renderer_version": "topic-aware-visual-engine",
+                    }
+                    serialized_review = json.dumps(review_blueprint, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                    records = [{
+                        "id": hashlib.sha256(f"{profile_key}:{step_id}".encode()).hexdigest()[:32],
+                        "step_id": step_id, "summary_text": caption[:500],
+                        "visual_kind": "needs_review", "blueprint_json": serialized_review,
+                        "content_fingerprint": hashlib.sha256(serialized_review.encode("utf-8")).hexdigest(),
+                    }]
                 for record in records:
                     # A candidate is never learner-visible until approval promotes it.
                     conn.execute(

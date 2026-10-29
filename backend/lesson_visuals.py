@@ -180,10 +180,10 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
     if ("pen stops writing" in lowered or "pen has stopped writing" in lowered) and any(
         term in lowered for term in ("ink", "refill", "guess", "test", "check")
     ):
-        return "process", ["Pen stops writing", "Possible explanation", "Check the refill"]
+        return "process", ["Notice the problem", "Make a guess", "Test the refill"]
 
-    if ("jigsaw" in lowered and any(term in lowered for term in ("knowledge", "science", "discover", "question"))):
-        return "diagram", ["What we know", "New discovery", "New question"]
+    if "jigsaw" in lowered and any(term in lowered for term in ("knowledge", "discover", "question", "piece")):
+        return "process", ["What we know", "New discovery", "New questions"]
 
     if any(term in lowered for term in ("scientific method", "scientific inquiry", "investigation")) and any(
         term in lowered for term in ("observe", "question", "test", "evidence")
@@ -194,7 +194,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
             ("Ask", ("question", "ask why")),
             ("Suggest", ("guess", "possible explanation", "hypothesis")),
             ("Test", ("test", "experiment", "check")),
-            ("Learn", ("evidence", "result", "conclusion")),
+            ("Review results", ("evidence", "result", "conclusion")),
         ):
             if any(cue in lowered for cue in cues):
                 labels.append(label)
@@ -209,7 +209,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
             ("Plastic ruler", "plastic ruler"), ("Rubber eraser", "rubber eraser")
         ) if cue in lowered]
         if len(labels) >= 2:
-            return "compare", labels[:3]
+            return "compare", labels[:4]
 
     if any(term in lowered for term in ("curious", "curiosity", "flower bloom", "stars shine")) and any(
         term in lowered for term in ("why", "question", "wonder", "explore")
@@ -318,10 +318,17 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
             labels.append(label)
     source_evidence = _clean(step.get("source_evidence") or "", 5000)
     inferred_kind, inferred_nodes = _infer_visual_content(title, source_caption, kind, source_evidence)
-    if inferred_nodes:
-        # Source-grounded concept rules outrank broad model-provided labels such
-        # as "process" or "diagram"; this prevents unrelated generic shapes from
-        # overriding a known topic-specific scene.
+    topic_specific_cues = (
+        "jigsaw", "pen stops writing", "pen has stopped writing", "scientific method",
+        "scientific inquiry", "observe, ask", "paper, a metal key", "plastic ruler",
+        "curiosity", "flower bloom", "stars shine",
+    )
+    if inferred_nodes and (
+        kind in {"concept_card", "table"} or source_evidence.strip()
+        or any(cue in (title + " " + source_caption).casefold() for cue in topic_specific_cues)
+    ):
+        # Source-grounded scene rules outrank broad model-provided labels only
+        # when a strong topic cue or explicit source excerpt supports the scene.
         kind = inferred_kind
         labels = inferred_nodes
     actions = visual.get("actions", [])

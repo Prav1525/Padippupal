@@ -1094,3 +1094,28 @@ def test_tutor_prompt_requires_complete_grade_aware_chat_and_text_only_visuals()
     assert "Adapt vocabulary, sentence length, abstraction, and example complexity to class" in source
     assert "Current product mode: chat-first with optional inline concept visuals" in source
     assert "Do not request lesson feedback until the complete explanation" in source
+
+
+
+def test_tutor_rejects_repeated_generic_placeholder_segments():
+    segments = [
+        {"spoken_text": "Let's explore Beyond Earth, Part 1. Use the cited passage to identify the main idea, then explain it in your own words.",
+         "caption_text": "Use the cited passage to identify the main idea, then explain it in your own words."},
+        {"spoken_text": "Let's explore Beyond Earth, Part 2. Use the cited passage to identify the main idea, then explain it in your own words.",
+         "caption_text": "Use the cited passage to identify the main idea, then explain it in your own words."},
+        {"spoken_text": "Let's explore Beyond Earth, Part 3. Use the cited passage to identify the main idea, then explain it in your own words.",
+         "caption_text": "Use the cited passage to identify the main idea, then explain it in your own words."},
+    ]
+    assert not curriculum._lesson_segments_are_substantive(segments)
+
+
+def test_tutor_accepts_topic_specific_teaching_segments():
+    segments = [
+        {"spoken_text": "Earth is the planet we live on, and the Moon travels around Earth.",
+         "caption_text": "Earth and the Moon"},
+        {"spoken_text": "The Sun looks as if it moves across the sky because Earth spins once each day.",
+         "caption_text": "Earth's rotation and the Sun's apparent movement"},
+        {"spoken_text": "The Moon shines by reflecting sunlight; it does not make its own light.",
+         "caption_text": "The Moon reflects sunlight"},
+    ]
+    assert curriculum._lesson_segments_are_substantive(segments)

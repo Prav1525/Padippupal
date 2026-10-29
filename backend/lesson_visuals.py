@@ -129,8 +129,15 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
     text = _clean(f"{title} {caption} {source_evidence}", 5000)
     lowered = text.casefold()
 
-    # Highest-priority exact concept match: the jigsaw metaphor needs a linked
-    # concept map, not a generic process strip, even when "question" is present.
+    # Exact topic rules take precedence over broad terms such as "question".
+    # A pen investigation must stay a testable process even if nearby lesson text
+    # mentions discoveries or questions.
+    if ("pen stops writing" in lowered or "pen may stop writing" in lowered or "pen investigation" in lowered) and any(
+        term in lowered for term in ("ink", "refill", "guess", "test", "check")
+    ):
+        return "process", ["Pen stops writing", "Possible explanation", "Check the refill"]
+
+    # The jigsaw metaphor is a connected concept map, not a generic process strip.
     if "jigsaw" in lowered and any(term in lowered for term in ("knowledge", "discover", "question", "piece")):
         return "diagram", ["What we know", "New discovery", "New questions"]
 

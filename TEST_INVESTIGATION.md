@@ -502,3 +502,13 @@ Use this format:
 - **Evidence:** Read-only Neon query on main branch returned 22 approved lessons, 22 chapter-wide lessons, 0 topic-specific lessons; `lesson_visual_assets` contains 66 active assets across 19 lessons. The existing selection code continued whenever a selected topic differed from the stored topic, including when the stored topic was empty.
 - **Change:** Topic playback now filters a chapter-wide lesson to source-cited teaching steps that match the selected topic before creating narration segments and inline visuals. Exact topic-specific lessons remain preferred; if no matching step exists, the existing safe fallback remains.
 - **Next action:** Run the exact-head curriculum tests, Android build and UI smoke; fix any failures, then merge only if all required checks pass and verify the Render deployment and live playback.
+
+
+
+### 2026-10-29 — Reject repeated placeholder tutor content
+- **Branch / PR:** `fix/tutor-placeholder-content-guard`, PR #53; code commit `040e33e9a5559d973c0668b124f4a0c6be173d78`, regression tests commit `20f1a36afffae0d812b528c435e6ecab82f76f76`.
+- **Observed symptom:** Learner screenshot for “Beyond Earth · Earth, Moon and Sun” displayed six parts repeating “Use the cited passage to identify the main idea, then explain it in your own words” instead of teaching the selected topic.
+- **Root cause:** Topic validation allowed repeated generic instructions when the chapter name appeared in the text; it checked topicality but did not reject placeholder/template filler.
+- **Fix:** Added a substantive-content gate for approved and dynamically generated tutor segments. Repeated placeholder language or duplicated long segments are rejected, leaving the existing topic-filtered retrieval/fail-closed path to supply safe content or no lesson.
+- **Regression coverage:** Added a test reproducing the repeated “Beyond Earth, Part 1/2/3” placeholder and a positive test for substantive Earth/Moon/Sun teaching.
+- **Validation status:** Curriculum Engine Tests passed; Android APK and UI smoke were still running; Investigation Guidance Gate initially failed because this ledger entry was missing and is being corrected. Do not merge until all required checks pass.

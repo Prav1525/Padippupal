@@ -581,9 +581,35 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 @Composable
 private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
-    val scene = lesson.optString("scene_type", "diagram")
+    // Synthesized lessons store a separate, source-mapped visual blueprint per teaching
+    // step. Resolve that step first; otherwise the old renderer treated the whole lesson
+    // as one generic scene and silently drew the same fallback circles for every topic.
+    val steps = lesson.optJSONArray("steps")
+    val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
+    val stage = activeStep.coerceIn(0, stepCount - 1)
+    val step = steps?.optJSONObject(stage)
     val topic = lesson.optString("topic", lesson.optString("title", "Concept"))
-    val stage = activeStep.coerceAtLeast(0)
+    val rawScene = if (lesson.optString("scene_type") == "synthesis_static") {
+        step?.optString("visual_subtype").orEmpty()
+            .ifBlank { step?.optString("visual_kind").orEmpty() }
+            .ifBlank { lesson.optString("visual_kind", "diagram") }
+    } else lesson.optString("scene_type", "diagram")
+    val scene = when (rawScene.lowercase()) {
+        "fraction", "fraction_bar" -> "fraction_builder"
+        "cycle" -> if (topic.contains("water", true)) "water_cycle" else "life_cycle"
+        "flow" -> "food_chain"
+        "number_line" -> "number_line"
+        "process" -> "process"
+        else -> rawScene.lowercase()
+    }
+    val stepLabels = buildList {
+        val nodes = step?.optJSONArray("nodes")
+        if (nodes != null) for (i in 0 until nodes.length()) {
+            val label = nodes.optString(i).trim()
+            if (label.isNotBlank()) add(label.take(42))
+        }
+    }.take(6)
+    val isSynthesisStep = lesson.optString("scene_type") == "synthesis_static" && step != null
     Column(
         Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 3.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -601,7 +627,7 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                 letterSpacing = 1.1.sp
             )
             Text(
-                "Step ${(stage + 1).coerceAtMost(3)} of 3",
+                "Step ${stage + 1} of ${stepCount}",
                 color = Color(0xFF64748B),
                 fontSize = 10.sp
             )
@@ -621,6 +647,31 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                 val orbit = Color(0xFF94A3B8)
                 val ink = Color(0xFF334155)
                 when {
+                    scene == "number_line" -> {
+                        val left = w * .12f
+                        val right = w * .88f
+                        val y = h * .54f
+                        drawLine(ink, Offset(left, y), Offset(right, y), stroke)
+                        repeat(5) { i ->
+                            val x = left + (right - left) * i / 4f
+                            drawLine(ink, Offset(x, y - 8.dp.toPx()), Offset(x, y + 8.dp.toPx()), stroke)
+                            if (i <= stage + 1) drawCircle(Color(0xFF3987C9), 5.dp.toPx(), Offset(x, y))
+                        }
+                        drawLine(ink, Offset(right - 8.dp.toPx(), y - 5.dp.toPx()), Offset(right, y), stroke)
+                        drawLine(ink, Offset(right - 8.dp.toPx(), y + 5.dp.toPx()), Offset(right, y), stroke)
+                    }
+                    scene == "process" -> {
+                        val points = listOf(w * .15f, w * .38f, w * .61f, w * .84f)
+                        points.forEachIndexed { i, x ->
+                            drawCircle(Color(0xFFB9E3C7), 10.dp.toPx(), Offset(x, h * .50f))
+                            drawCircle(Color(0xFF24734B), 10.dp.toPx(), Offset(x, h * .50f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            if (i < points.lastIndex && i < stage + 2) {
+                                drawLine(orbit, Offset(x + 11.dp.toPx(), h * .50f), Offset(points[i + 1] - 11.dp.toPx(), h * .50f), stroke)
+                                drawLine(ink, Offset(points[i + 1] - 16.dp.toPx(), h * .45f), Offset(points[i + 1] - 11.dp.toPx(), h * .50f), stroke)
+                                drawLine(ink, Offset(points[i + 1] - 16.dp.toPx(), h * .55f), Offset(points[i + 1] - 11.dp.toPx(), h * .50f), stroke)
+                            }
+                        }
+                    }
                     scene in setOf("orbit_lab", "moon_phase") ||
                         topic.contains("earth", true) && topic.contains("moon", true) -> {
                         // A clear classroom sketch: the Earth follows the larger path around
@@ -794,7 +845,9 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                 }
             }
         }
-        val labels = when {
+        val labels = if (isSynthesisStep && stepLabels.isNotEmpty()) {
+            stepLabels
+        } else when {
             scene in setOf("orbit_lab", "moon_phase") || topic.contains("earth", true) && topic.contains("moon", true) ->
                 listOf("Sun", "Earth", "Moon")
             scene in setOf("fraction_builder", "fractions") || topic.contains("fraction", true) ->

@@ -976,7 +976,8 @@ def _generate_synthesis_visual_candidates(round_id: str) -> int:
                              blueprint_json=excluded.blueprint_json,
                              source_chunk_ids_json=excluded.source_chunk_ids_json,
                              content_fingerprint=excluded.content_fingerprint,
-                             active=CASE WHEN tutor_topic_visual_assets.active=1 THEN 1 ELSE 0 END,
+                             active=CASE WHEN tutor_topic_visual_assets.content_fingerprint=excluded.content_fingerprint
+                                          THEN tutor_topic_visual_assets.active ELSE 0 END,
                              updated_at=excluded.updated_at""",
                         (record["id"],profile_key,str(row["board"]),int(row["class_level"]),
                          str(row["subject"]),str(row["medium"]),str(row["chapter"]),topic,

@@ -290,9 +290,12 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         if label:
             labels.append(label)
     inferred_kind, inferred_nodes = _infer_visual_content(title, source_caption, kind)
-    if inferred_nodes and kind in {"concept_card", "table"}:
-        # A generic action label must not override a more specific diagram that
-        # is directly supported by the selected topic's caption.
+    if inferred_nodes and (
+        kind in {"concept_card", "table"}
+        or inferred_kind in {"orbit", "day_night", "moon_phase"}
+    ):
+        # A generic action label must not override a topic-specific astronomy
+        # diagram directly supported by the selected topic's caption.
         kind = inferred_kind
         labels = inferred_nodes
     elif not labels and inferred_nodes:

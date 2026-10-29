@@ -23,7 +23,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPExcepti
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
-from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
+from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload, decode_json_field, build_visual_generation_event)
 from lesson_visuals import build_visual_records
 from textbook_visual_refs import describe_pdf_visual_references
 
@@ -846,8 +846,9 @@ def _generate_synthesis_visual_candidates(round_id: str) -> int:
         ).fetchall()
         for row in rows:
             try:
-                citations = json.loads(row["citation_refs_json"] or "[]")
+                citations = decode_json_field(row["citation_refs_json"], [])
                 if not isinstance(citations, list) or not citations:
+                    logger.warning("Visual candidate skipped: synthesis has no citation list synthesis_id=%s", row["synthesis_id"])
                     continue
                 citation_ids = list(dict.fromkeys(str(value) for value in citations if str(value)))
                 placeholders = ",".join("?" for _ in citation_ids)
@@ -860,9 +861,24 @@ def _generate_synthesis_visual_candidates(round_id: str) -> int:
                 if set(citation_ids) != set(page_by_id):
                     logger.warning("Visual candidate skipped: unresolved citations synthesis_id=%s", row["synthesis_id"])
                     continue
-                explanation_value = json.loads(row["explanation_json"] or "{}")
-                objectives = json.loads(row["learning_objectives_json"] or "[]")
-                examples = json.loads(row["examples_json"] or "[]")
+                explanation_value = decode_json_field(row["explanation_json"], {})
+                objectives = decode_json_field(row["learning_objectives_json"], [])
+                examples = decode_json_field(row["examples_json"], [])
+                try:
+                    event = build_visual_generation_event(
+                        str(row["synthesis_id"]), str(row["topic"] or ""), explanation_value,
+                        citation_ids, set(page_by_id), source_id=str(row["source_id"]),
+                        board=str(row["board"]), class_level=int(row["class_level"]),
+                        subject=str(row["subject"]), medium=str(row["medium"]),
+                        chapter=str(row["chapter"]),
+                    )
+                except (TypeError, ValueError) as event_error:
+                    logger.warning("Visual generation event rejected synthesis_id=%s reason=%s",
+                                   row["synthesis_id"], event_error)
+                    continue
+                # From this point onward the renderer consumes the validated event,
+                # not unverified topic labels or a partial citation set.
+                citation_ids = event["citation_refs"]
                 def flatten(value: Any, limit: int = 1000) -> str:
                     if isinstance(value, str):
                         return normalize(value)[:limit]
@@ -875,7 +891,7 @@ def _generate_synthesis_visual_candidates(round_id: str) -> int:
                             chosen = [flatten(v, 240) for k,v in value.items() if k not in {"citation_refs","source_chunk_ids","page_numbers"}]
                         return normalize(" ".join(v for v in chosen if v))[:limit]
                     return normalize(str(value))[:limit] if value is not None else ""
-                topic = normalize(str(row["topic"] or ""))
+                topic = event["topic"]
                 caption = flatten(explanation_value)
                 if len(caption) < 12:
                     caption = flatten(examples[0], 600) if isinstance(examples, list) and examples else ""

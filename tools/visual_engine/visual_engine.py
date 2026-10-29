@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse, html, json, re, sys, uuid
 from pathlib import Path
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 ALLOWED_EVIDENCE = {"source_verified", "concept_source_verified"}
 INK, BLUE, PALE_BLUE, GREEN, ORANGE, GREY = "#25364A", "#4C83D6", "#E7F0FF", "#3C9B78", "#E7A34B", "#64748B"
 
@@ -25,6 +25,12 @@ def classify(subject, topic, chapter):
         if any(k in text for k in ("states of water", "state of water", "solid liquid gas", "particle state")): return "science_states_water"
         if "water cycle" in text: return "science_water_cycle"
         if "magnet" in text: return "science_magnets"
+        if any(k in text for k in ("jigsaw", "knowledge grows", "new discovery")): return "science_jigsaw"
+        if any(k in text for k in ("pen stops writing", "pen inquiry", "check the refill", "ink is empty")): return "science_pen_inquiry"
+        if any(k in text for k in ("scientific method", "scientific inquiry", "observe ask guess test")): return "science_inquiry"
+        if any(k in text for k in ("paper", "metal key", "plastic ruler", "rubber eraser", "everyday objects")): return "science_everyday_objects"
+        if any(k in text for k in ("daily life", "everyday problem", "cooking", "bicycle tyre", "light bulb")): return "science_daily_life"
+        if any(k in text for k in ("curiosity", "ask why", "flower bloom", "stars shine", "ask questions")): return "science_curiosity"
     raise VisualError(f"No topic-specific renderer for {subject!r} / {chapter!r} / {topic!r}; refusing generic fallback.")
 
 def validate(a):
@@ -66,8 +72,26 @@ def svg(a, family):
         body += f'<text x="35" y="295" font-size="12" fill="{GREY}">Packed and ordered • Close and mobile • Far apart</text>'
     elif family == "science_water_cycle":
         body = f'<circle cx="110" cy="150" r="25" fill="#FFF0D9" stroke="{ORANGE}" stroke-width="3"/><text x="75" y="193" font-size="12" fill="{INK}">Sun warms water</text><path d="M150 150 Q210 110 255 150" fill="none" stroke="{BLUE}" stroke-width="3"/><path d="M245 140 L257 150 L245 160" fill="none" stroke="{BLUE}" stroke-width="3"/><path d="M275 135 Q290 110 310 132 Q340 115 355 140 Q375 142 370 160 H275 Q260 151 275 135Z" fill="{PALE_BLUE}" stroke="{BLUE}" stroke-width="2"/><text x="270" y="185" font-size="12" fill="{INK}">Vapour cools</text><path d="M390 165 Q430 190 450 220" fill="none" stroke="{BLUE}" stroke-width="3"/><path d="M440 211 L451 222 L455 207" fill="none" stroke="{BLUE}" stroke-width="3"/><path d="M425 245 Q500 210 575 245 Q615 255 650 245 V285 H425Z" fill="{PALE_BLUE}" stroke="{BLUE}" stroke-width="2"/><text x="465" y="275" font-size="12" fill="{INK}">Water returns</text><text x="28" y="315" font-size="11" fill="{GREY}">Simplified cycle; confirm all stages against source.</text>'
-    else:
+    elif family == "science_magnets":
         body = f'<text x="28" y="105" font-size="15" fill="{INK}">Test objects with a magnet</text><rect x="55" y="145" width="170" height="55" rx="9" fill="{PALE_BLUE}" stroke="{BLUE}" stroke-width="2"/><rect x="55" y="145" width="85" height="55" rx="8" fill="#C65353"/><text x="88" y="179" font-size="18" font-weight="700" fill="white">N</text><text x="174" y="179" font-size="18" font-weight="700" fill="{INK}">S</text><path d="M245 171 H300" stroke="{GREEN}" stroke-width="3"/><path d="M290 161 L302 171 L290 181" fill="none" stroke="{GREEN}" stroke-width="3"/><circle cx="355" cy="170" r="18" fill="#FFF0D9" stroke="{ORANGE}" stroke-width="2"/><rect x="410" y="154" width="42" height="32" rx="4" fill="#E4F5ED" stroke="{GREEN}" stroke-width="2"/><text x="310" y="220" font-size="12" fill="{INK}">Test one object at a time</text><text x="28" y="285" font-size="12" fill="{GREY}">Classify only after source-supported evidence.</text>'
+    elif family in {"science_jigsaw", "science_curiosity", "science_pen_inquiry", "science_inquiry", "science_daily_life", "science_everyday_objects"}:
+        labels = {
+            "science_jigsaw": ["What we know", "New discovery", "New questions"],
+            "science_curiosity": ["Notice", "Ask why", "Explore"],
+            "science_pen_inquiry": ["Notice problem", "Make a guess", "Test refill"],
+            "science_inquiry": ["Observe", "Ask", "Guess", "Test", "Review"],
+            "science_daily_life": ["Daily problem", "Suggest", "Test"],
+            "science_everyday_objects": ["Paper", "Metal key", "Plastic ruler", "Eraser"],
+        }[family]
+        count = len(labels)
+        box_w = min(125, 620 / count)
+        left = (720 - (count * box_w + (count - 1) * 12)) / 2
+        for i, label in enumerate(labels):
+            x = left + i * (box_w + 12)
+            body += f'<rect x="{x:.1f}" y="125" width="{box_w:.1f}" height="72" rx="10" fill="{PALE_BLUE if i % 2 == 0 else "#E4F5ED"}" stroke="{BLUE if i % 2 == 0 else GREEN}" stroke-width="2"/><text x="{x+box_w/2:.1f}" y="165" text-anchor="middle" font-size="13" fill="{INK}">{esc(label)}</text>'
+            if i < count - 1:
+                body += f'<path d="M{x+box_w+1:.1f} 161 H{x+box_w+11:.1f}" stroke="{ORANGE}" stroke-width="3"/><path d="M{x+box_w+5:.1f} 155 L{x+box_w+11:.1f} 161 L{x+box_w+5:.1f} 167" fill="none" stroke="{ORANGE}" stroke-width="2"/>'
+        body += f'<text x="28" y="270" font-size="12" fill="{GREY}">Original schematic based on the named topic; teacher source review is still required.</text>'
     return start + body + "</svg>\n"
 
 def excalidraw(a, family):

@@ -87,6 +87,7 @@ def svg(a, family):
         count = len(labels)
         box_w = min(125, 620 / count)
         left = (720 - (count * box_w + (count - 1) * 12)) / 2
+        body = ""
         for i, label in enumerate(labels):
             x = left + i * (box_w + 12)
             body += f'<rect x="{x:.1f}" y="125" width="{box_w:.1f}" height="72" rx="10" fill="{PALE_BLUE if i % 2 == 0 else "#E4F5ED"}" stroke="{BLUE if i % 2 == 0 else GREEN}" stroke-width="2"/><text x="{x+box_w/2:.1f}" y="165" text-anchor="middle" font-size="13" fill="{INK}">{esc(label)}</text>'

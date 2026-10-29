@@ -80,6 +80,38 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertIn('<rect x="', record["blueprint"]["svg_markup"])
         self.assertEqual(record["source_chunk_ids_json"], '["chunk-pattern-1"]')
 
+    def test_unsupported_synthesis_topic_is_not_replaced_with_generic_title_card(self):
+        lesson = {"teaching_sequence": [{
+            "id": "unknown-topic",
+            "title": "A newly synthesized unfamiliar concept",
+            "caption": "The textbook describes a topic that has no reviewed renderer yet.",
+            "source_chunk_ids": ["source-chunk-9"],
+            "visual": {"type": "none", "objects": [], "narration_sync": ["A newly synthesized unfamiliar concept"]},
+        }]}
+        # The renderer must fail closed. The orchestration layer converts this
+        # empty drawable result into an inactive needs_review asset.
+        self.assertEqual(build_visual_records("lesson-unknown", lesson), [])
+
+    def test_science_chapter_one_scenes_are_topic_specific(self):
+        cases = [
+            ("A pen stops writing", "When a pen stops writing, check the ink refill and test the explanation.", "process"),
+            ("Science as a jigsaw", "Knowledge grows like a jigsaw as new discoveries create new questions.", "process"),
+            ("Objects and materials", "Compare paper, a metal key, a plastic ruler and a rubber eraser by their materials.", "compare"),
+            ("Scientific inquiry", "Observe the problem, ask a question, test a possible explanation and review evidence.", "process"),
+        ]
+        for title, caption, expected_kind in cases:
+            with self.subTest(title=title):
+                records = build_visual_records("profile", {"teaching_sequence": [{
+                    "id": "topic-step", "title": title, "caption": caption,
+                    "source_chunk_ids": ["source-1"],
+                    "source_evidence": caption,
+                    "visual": {"type": "none", "objects": [], "narration_sync": [title]},
+                }]})
+                self.assertEqual(len(records), 1)
+                self.assertEqual(records[0]["visual_kind"], expected_kind)
+                self.assertEqual(records[0]["blueprint"]["source_chunk_ids"], ["source-1"])
+                self.assertIn("<svg", records[0]["blueprint"]["svg_markup"])
+
     def test_empty_or_missing_sequence_produces_no_unrelated_visual(self):
         self.assertEqual(build_visual_records("lesson-2", {}), [])
         self.assertEqual(build_visual_records("lesson-2", {"teaching_sequence": []}), [])

@@ -318,12 +318,10 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
             labels.append(label)
     source_evidence = _clean(step.get("source_evidence") or "", 5000)
     inferred_kind, inferred_nodes = _infer_visual_content(title, source_caption, kind, source_evidence)
-    if inferred_nodes and kind in {"concept_card", "table"}:
-        # A generic action label must not override a more specific diagram that
-        # is directly supported by the selected topic's caption.
-        kind = inferred_kind
-        labels = inferred_nodes
-    elif not labels and inferred_nodes:
+    if inferred_nodes:
+        # Source-grounded concept rules outrank broad model-provided labels such
+        # as "process" or "diagram"; this prevents unrelated generic shapes from
+        # overriding a known topic-specific scene.
         kind = inferred_kind
         labels = inferred_nodes
     actions = visual.get("actions", [])

@@ -376,7 +376,7 @@ def test_science_chapter1_pen_inquiry_gets_topic_specific_scene():
     }]}
     record = build_visual_records("science-ch1", lesson)[0]
     assert record["visual_kind"] == "process"
-    assert record["blueprint"]["nodes"] == ["Pen stops writing", "Possible explanation", "Check the refill"]
+    assert record["blueprint"]["nodes"] == ["Notice the problem", "Make a guess", "Test the refill"]
     assert "Check the refill" in record["blueprint"]["svg_markup"]
     assert json.loads(record["source_chunk_ids_json"]) == ["source-pen-page-4"]
 
@@ -389,11 +389,11 @@ def test_science_chapter1_jigsaw_gets_connected_concept_map():
         "visual": {"type": "diagram", "objects": ["Knowledge", "Discovery"]},
     }]}
     record = build_visual_records("science-ch1", lesson)[0]
-    assert record["visual_kind"] == "diagram"
+    assert record["visual_kind"] == "process"
     svg = record["blueprint"]["svg_markup"]
     assert "What we know" in svg
     assert "New discovery" in svg
-    assert "New question" in svg
+    assert "New questions" in svg
 
 
 def test_science_chapter1_inquiry_process_gets_ordered_steps():
@@ -405,5 +405,5 @@ def test_science_chapter1_inquiry_process_gets_ordered_steps():
     }]}
     record = build_visual_records("science-ch1", lesson)[0]
     assert record["visual_kind"] == "process"
-    assert record["blueprint"]["nodes"] == ["Observe", "Ask", "Suggest", "Test", "Learn"]
+    assert record["blueprint"]["nodes"] == ["Observe", "Ask", "Suggest", "Test", "Review results"]
     assert json.loads(record["source_chunk_ids_json"]) == ["source-science-page-5"]

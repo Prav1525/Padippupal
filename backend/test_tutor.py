@@ -902,8 +902,12 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     }
     monkeypatch.setattr(curriculum, "find_interactive_lesson", lambda *args: matched_blueprint)
     monkeypatch.setattr(curriculum, "db", fake_db)
-    # This test isolates approved lesson selection; visual persistence has its own tests.
+    # Isolate approved lesson selection from DB-backed visual persistence and provider translation.
     monkeypatch.setattr(curriculum, "get_or_create_lesson_visuals", lambda lesson_id, lesson: [])
+    monkeypatch.setattr(curriculum, "attach_topic_visuals", lambda payload, segments, sources, fallback_visual=None: [
+        {**segment, "interactive_lesson": fallback_visual} for segment in segments
+    ])
+    monkeypatch.setattr(curriculum, "_translate_approved_segments", lambda segments, language: segments)
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
         AssertionError("approved lesson should bypass fresh retrieval")))
     client = TestClient(curriculum.app)

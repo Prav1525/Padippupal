@@ -129,6 +129,11 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
     text = _clean(f"{title} {caption} {source_evidence}", 5000)
     lowered = text.casefold()
 
+    # Highest-priority exact concept match: the jigsaw metaphor needs a linked
+    # concept map, not a generic process strip, even when "question" is present.
+    if "jigsaw" in lowered and any(term in lowered for term in ("knowledge", "discover", "question", "piece")):
+        return "diagram", ["What we know", "New discovery", "New questions"]
+
     # This textbook sequence is a stable, explicit concept: each term remains 1.
     if re.search(r"\ball\s+1(?:['’]?s?)?\b|\ball\s+ones?\b", lowered):
         return "sequence", ["1", "1", "1", "1", "1"]

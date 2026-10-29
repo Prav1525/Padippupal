@@ -80,6 +80,66 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertIn('<rect x="', record["blueprint"]["svg_markup"])
         self.assertEqual(record["source_chunk_ids_json"], '["chunk-pattern-1"]')
 
+    def test_beyond_earth_orbit_scene_is_topic_specific(self):
+        lesson = {"teaching_sequence": [{
+            "id": "earth-moon-sun",
+            "title": "Earth, Moon and Sun",
+            "caption": "Move the Moon around Earth and Earth around the Sun to compare their paths.",
+            "source_chunk_ids": ["beyond-earth-page-1"],
+            "visual": {"type": "orbit_lab", "objects": ["Sun", "Earth", "Moon"]},
+        }]}
+        record = build_visual_records("beyond-earth", lesson)[0]
+        self.assertEqual(record["visual_kind"], "orbit")
+        svg = record["blueprint"]["svg_markup"]
+        self.assertIn("Sun", svg)
+        self.assertIn("Earth", svg)
+        self.assertIn("Moon", svg)
+        self.assertIn("not to scale", svg)
+        self.assertEqual(record["source_chunk_ids_json"], '["beyond-earth-page-1"]')
+
+    def test_beyond_earth_day_night_scene_shows_illuminated_and_dark_sides(self):
+        lesson = {"teaching_sequence": [{
+            "id": "day-and-night",
+            "title": "Day and night",
+            "caption": "Sunlight reaches one side of Earth. Earth's rotation brings each place into day and night.",
+            "source_chunk_ids": ["beyond-earth-page-2"],
+            "visual": {"type": "day_night", "objects": ["Sunlight", "Earth", "rotation"]},
+        }]}
+        record = build_visual_records("beyond-earth", lesson)[0]
+        self.assertEqual(record["visual_kind"], "day_night")
+        svg = record["blueprint"]["svg_markup"]
+        self.assertIn("DAY", svg)
+        self.assertIn("NIGHT", svg)
+        self.assertIn("Rotation", svg)
+
+    def test_beyond_earth_moon_phases_scene_shows_distinct_phases(self):
+        lesson = {"teaching_sequence": [{
+            "id": "phases-of-the-moon",
+            "title": "Phases of the Moon",
+            "caption": "The Moon's appearance changes as it moves around Earth; sunlight illuminates half of the Moon.",
+            "source_chunk_ids": ["beyond-earth-page-3"],
+            "visual": {"type": "moon_phase", "objects": ["Sunlight", "Earth", "Moon"]},
+        }]}
+        record = build_visual_records("beyond-earth", lesson)[0]
+        self.assertEqual(record["visual_kind"], "moon_phase")
+        svg = record["blueprint"]["svg_markup"]
+        self.assertIn("New Moon", svg)
+        self.assertIn("Quarter", svg)
+        self.assertIn("Full Moon", svg)
+        self.assertIn("Sunlight lights half the Moon", svg)
+
+    def test_astronomy_topic_overrides_generic_diagram_scene(self):
+        lesson = {"teaching_sequence": [{
+            "id": "day-and-night",
+            "title": "Day and night",
+            "caption": "Earth rotates while one side faces sunlight.",
+            "source_chunk_ids": ["beyond-earth-page-2"],
+            "visual": {"type": "diagram", "objects": ["Earth", "Sunlight", "rotation"]},
+        }]}
+        record = build_visual_records("beyond-earth", lesson)[0]
+        self.assertEqual(record["visual_kind"], "day_night")
+        self.assertIn("NIGHT", record["blueprint"]["svg_markup"])
+
     def test_empty_or_missing_sequence_produces_no_unrelated_visual(self):
         self.assertEqual(build_visual_records("lesson-2", {}), [])
         self.assertEqual(build_visual_records("lesson-2", {"teaching_sequence": []}), [])

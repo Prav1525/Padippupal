@@ -524,3 +524,27 @@ Use this format:
 
 - **Scope extension:** Startup now also scans approved `syllabus_topic_syntheses`, verifies each cited chunk belongs to the same source, and persists a reusable topic-scoped visual for synthesis explanations/examples where a compact diagram or concept card can be grounded. Unsupported/uncited topics are skipped; existing lesson content and approval state are not modified. Exact-head regression checks must verify this backfill is safe and idempotent.
 - **Backfill regression test:** Added a temporary-SQLite test with one approved, cited water-cycle synthesis; it verifies topic/chapter binding, cited chunk provenance, active persistence, and stored SVG markup. The test also exercises startup backfill's source-scoped chunk filtering.
+
+
+### 2026-10-29 — Production-path visuals for CBSE Class 6 Science: Beyond Earth
+- **Branch / commit:** `feat/production-beyond-earth-inline-visuals`; based on current `main`.
+- **Test command or workflow URL:** Pending PR CI on the exact head; expected gates include backend visual tests, Android build, and UI smoke workflow.
+- **Result:** **PENDING** — added explicit scene selection/rendering for Earth–Moon–Sun orbits, day/night, and Moon phases in the existing saved-synthesis visual path and the existing inline Android Canvas renderer. Exact-head tests and Android acceptance have not run yet.
+- **Exact failure or assertion:** Prior renderer mapped unknown astronomy visual types to a generic concept card, so a topic could have labels but not a teaching-appropriate drawing. This change adds topic-specific scene mappings and regression tests.
+- **Evidence links (logs/screenshots/XML/artifacts):** Pending CI.
+- **Change made (files + rationale):** `backend/lesson_visuals.py` adds compact source-linked SVG scenes and explicit inference for the three astronomy concepts; `backend/test_lesson_visuals.py` adds regression coverage; `app/src/main/java/com/padippupal/app/TutorScreen.kt` adds matching animated Canvas scenes that remain inside the existing module/narration flow.
+- **Root cause:** **CONFIRMED** — astronomy scene types were absent from the backend visual-kind map and Android Canvas switch, which caused generic fallback rendering.
+- **What this attempt proves:** Code paths now contain topic-specific backend and Android rendering for the three Chapter 12 visual concepts. This is not proof of a successful Android build, correct live source selection, database persistence, or production deployment.
+- **What remains unverified:** Exact-head backend tests, Android build, emulator screenshots/scroll behavior, selected-language narration/caption sync, and production API/database behavior. No production deployment or database mutation has been performed.
+- **Difference from previous attempt:** Unlike the standalone draft asset pilot, this branch modifies the existing mainline synthesis visual generator and inline Android renderer.
+- **Next action and why:** Run all PR checks, inspect the rendered drawings on API-35 emulator at phone size, verify each visual appears directly below its module without overlays, and only then consider merging and deploying.
+
+
+### Verification update — Beyond Earth inline visual integration
+- **Exact tested commit:** `2013a2a406a1ff4233f93c6e2495b952f7fcc0ef`.
+- **Backend:** PASS — Curriculum Engine Tests run 1245, https://github.com/Prav1525/Padippupal/actions/runs/40913934267.
+- **Android build:** PASS — Android APK run 1610, https://github.com/Prav1525/Padippupal/actions/runs/40913933990; debug APK artifact uploaded.
+- **Android emulator:** PASS — API-35 Android UI smoke run 1667, https://github.com/Prav1525/Padippupal/actions/runs/40913934255; screenshots, UI trees, and test report uploaded. The smoke fixture exercises Mathematics / All 1s, so this confirms the app's general inline lesson flow and navigation, not a screenshot of the new astronomy scenes.
+- **Investigation guidance gate:** PASS — run 578, https://github.com/Prav1525/Padippupal/actions/runs/40913934023.
+- **Visual-specific limitation:** The new astronomy scenes have backend regression coverage and the Android renderer compiles, but the emulator artifact does not yet capture the exact Beyond Earth chapter. A source-page and phone-size visual review of the new astronomy scene remains a release follow-up.
+- **Release status:** Not yet merged or deployed. No production database writes or learner activation were performed.

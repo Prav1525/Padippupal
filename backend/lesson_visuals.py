@@ -30,6 +30,12 @@ _VISUAL_KIND_MAP = {
     "fraction": "fraction",
     "parts": "fraction",
     "cycle": "cycle",
+    "orbit_lab": "orbit",
+    "orbit": "orbit",
+    "solar_system": "orbit",
+    "day_night": "day_night",
+    "moon_phase": "moon_phase",
+    "lunar_phase": "moon_phase",
     "none": "concept_card",
 }
 
@@ -53,7 +59,47 @@ def _render_svg(kind: str, title: str, nodes: list[str]) -> str:
         'aria-label="' + _svg_text(title or "Lesson visual") + '" preserveAspectRatio="xMidYMid meet">',
         '<rect x="1" y="1" width="318" height="154" rx="14" fill="#F5FAFC" stroke="#D7E5EC"/>',
     ]
-    if kind == "fraction":
+    if kind == "orbit":
+        # Schematic, labelled orbital relationships. Not drawn to scale.
+        parts.extend([
+            '<ellipse cx="177" cy="78" rx="112" ry="48" fill="none" stroke="#7CA9E8" stroke-width="1.6" stroke-dasharray="4 4"/>',
+            '<circle cx="65" cy="78" r="17" fill="#FFE69A" stroke="#C79B2A" stroke-width="1.5"/>',
+            '<path d="M53 75 Q65 64 76 76 M56 84 Q66 91 76 82" fill="none" stroke="#C79B2A" stroke-width="1.2"/>',
+            '<circle cx="245" cy="78" r="11" fill="#DCEFEB" stroke="#287F79" stroke-width="1.5"/>',
+            '<ellipse cx="245" cy="78" rx="25" ry="17" fill="none" stroke="#7C91A0" stroke-width="1.2" stroke-dasharray="3 3"/>',
+            '<circle cx="268" cy="69" r="4.5" fill="#E8E1FF" stroke="#6554A5" stroke-width="1.2"/>',
+            '<text x="65" y="108" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#24445B">Sun</text>',
+            '<text x="245" y="108" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#24445B">Earth</text>',
+            '<text x="268" y="57" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">Moon</text>',
+            '<text x="160" y="143" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#526477">Paths are schematic, not to scale</text>',
+        ])
+    elif kind == "day_night":
+        parts.extend([
+            '<circle cx="53" cy="76" r="15" fill="#FFE69A" stroke="#C79B2A" stroke-width="1.5"/>',
+            '<g stroke="#E7B83D" stroke-width="1.5" stroke-linecap="round"><path d="M53 53 V47 M53 99 V105 M30 76 H24 M76 76 H82 M37 60 L32 55 M69 92 L74 97 M69 60 L74 55 M37 92 L32 97"/></g>',
+            '<path d="M78 76 H122 M115 70 L122 76 L115 82" fill="none" stroke="#C79B2A" stroke-width="1.8" stroke-linecap="round"/>',
+            '<circle cx="181" cy="76" r="43" fill="#FFE69A" stroke="#287F79" stroke-width="1.7"/>',
+            '<path d="M181 33 A43 43 0 0 1 181 119 Z" fill="#33445F"/>',
+            '<text x="160" y="79" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">DAY</text>',
+            '<text x="202" y="79" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#FFFFFF">NIGHT</text>',
+            '<path d="M255 51 Q276 76 255 101" fill="none" stroke="#7CA9E8" stroke-width="1.7" stroke-linecap="round"/>',
+            '<path d="M250 94 L255 101 L261 95" fill="none" stroke="#7CA9E8" stroke-width="1.7" stroke-linecap="round"/>',
+            '<text x="263" y="121" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">Rotation</text>',
+        ])
+    elif kind == "moon_phase":
+        parts.extend([
+            '<circle cx="40" cy="77" r="9" fill="#FFE69A" stroke="#C79B2A" stroke-width="1.2"/>',
+            '<path d="M54 77 H82 M76 72 L82 77 L76 82" fill="none" stroke="#C79B2A" stroke-width="1.5" stroke-linecap="round"/>',
+        ])
+        for x, label, phase in [(105, "New Moon", "dark"), (170, "Quarter", "quarter"), (235, "Full Moon", "full")]:
+            parts.append(f'<circle cx="{x}" cy="77" r="15" fill="#E8EAF0" stroke="#7C91A0" stroke-width="1.3"/>')
+            if phase == "dark":
+                parts.append(f'<circle cx="{x}" cy="77" r="14" fill="#33445F"/>')
+            elif phase == "quarter":
+                parts.append(f'<path d="M{x} 62 A15 15 0 0 1 {x} 92 Z" fill="#33445F"/>')
+            parts.append(f'<text x="{x}" y="108" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">{label}</text>')
+        parts.append('<text x="160" y="137" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#526477">Sunlight lights half the Moon</text>')
+    elif kind == "fraction":
         # Four equal parts is a safe visual default only when the synthesis itself
         # explicitly mentions four; otherwise use the number of labelled parts.
         count = 4 if any("four" in n.lower() or n.strip() == "4" for n in nodes) else max(2, min(6, len(labels)))
@@ -120,6 +166,14 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
     """Infer only simple diagram labels that are explicitly present in the synthesized caption."""
     text = _clean(f"{title} {caption}", 5000)
     lowered = text.casefold()
+
+    # Explicit Class 6 Science astronomy concepts get a topic-specific scene.
+    if "phases of the moon" in lowered or "moon phase" in lowered or ("new moon" in lowered and "full moon" in lowered):
+        return "moon_phase", ["Sunlight", "New Moon", "Quarter Moon", "Full Moon", "Earth"]
+    if "day and night" in lowered or ("earth" in lowered and "sunlight" in lowered and "rotation" in lowered):
+        return "day_night", ["Sunlight", "Day", "Night", "Earth rotation"]
+    if "earth, moon and sun" in lowered or ("earth" in lowered and "moon" in lowered and "sun" in lowered and any(word in lowered for word in ("orbit", "around", "revolve"))):
+        return "orbit", ["Sun", "Earth", "Moon"]
 
     # This textbook sequence is a stable, explicit concept: each term remains 1.
     if re.search(r"\ball\s+1(?:['’]?s?)?\b|\ball\s+ones?\b", lowered):
@@ -236,9 +290,12 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         if label:
             labels.append(label)
     inferred_kind, inferred_nodes = _infer_visual_content(title, source_caption, kind)
-    if inferred_nodes and kind in {"concept_card", "table"}:
-        # A generic action label must not override a more specific diagram that
-        # is directly supported by the selected topic's caption.
+    if inferred_nodes and (
+        kind in {"concept_card", "table"}
+        or inferred_kind in {"orbit", "day_night", "moon_phase"}
+    ):
+        # A generic action label must not override a topic-specific astronomy
+        # diagram directly supported by the selected topic's caption.
         kind = inferred_kind
         labels = inferred_nodes
     elif not labels and inferred_nodes:

@@ -361,10 +361,12 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
     val revealCount = if (activeLabels.isEmpty()) 0 else
         (activeLabels.size * revealProgress).toInt().coerceAtLeast(1).coerceAtMost(activeLabels.size)
     Column(
+        // Keep the diagram snug to the explanation above and avoid a blank tail
+        // beneath the inline drawing when the next lesson segment scrolls in.
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = if (compact) 2.dp else 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(top = if (compact) 2.dp else 4.dp, bottom = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp)
     ) {
         Text(title, color = Color(0xFF17324D), fontSize = if (compact) 13.sp else 15.sp, fontWeight = FontWeight.Bold)
         // Keep the visual's teaching summary visible in the compact live-tutor layout too.
@@ -384,6 +386,87 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             val stroke = 1.6.dp.toPx()
             val centerY = size.height * 0.52f
             when (activeKind) {
+                "orbit" -> {
+                    val sun = Offset(size.width * 0.16f, centerY)
+                    val earth = Offset(size.width * 0.58f, centerY)
+                    val moon = Offset(size.width * 0.72f, size.height * 0.36f)
+                    drawOval(
+                        color = Color(0xFF7CA9E8),
+                        topLeft = Offset(size.width * 0.20f, size.height * 0.12f),
+                        size = androidx.compose.ui.geometry.Size(size.width * 0.66f, size.height * 0.76f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(7.dp.toPx(), 5.dp.toPx())))
+                    )
+                    drawCircle(Color(0xFFFFE69A), 17.dp.toPx(), sun)
+                    drawCircle(Color(0xFFC79B2A), 17.dp.toPx(), sun, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    drawOval(
+                        color = Color(0xFF7C91A0),
+                        topLeft = Offset(earth.x - 23.dp.toPx(), earth.y - 14.dp.toPx()),
+                        size = androidx.compose.ui.geometry.Size(46.dp.toPx(), 28.dp.toPx()),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke * 0.8f)
+                    )
+                    drawCircle(Color(0xFFDCEFEB), 11.dp.toPx(), earth)
+                    drawCircle(Color(0xFF287F79), 11.dp.toPx(), earth, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    drawCircle(Color(0xFFE8E1FF), 5.dp.toPx(), moon)
+                    drawCircle(Color(0xFF6554A5), 5.dp.toPx(), moon, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke * 0.8f))
+                }
+                "day_night" -> {
+                    val sun = Offset(size.width * 0.13f, centerY)
+                    drawCircle(Color(0xFFFFE69A), 13.dp.toPx(), sun)
+                    drawCircle(Color(0xFFC79B2A), 13.dp.toPx(), sun, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    repeat(8) { index ->
+                        val angle = index * (Math.PI / 4.0)
+                        val inner = Offset(sun.x + kotlin.math.cos(angle).toFloat() * 17.dp.toPx(), sun.y + kotlin.math.sin(angle).toFloat() * 17.dp.toPx())
+                        val outer = Offset(sun.x + kotlin.math.cos(angle).toFloat() * 22.dp.toPx(), sun.y + kotlin.math.sin(angle).toFloat() * 22.dp.toPx())
+                        drawLine(Color(0xFFE7B83D), inner, outer, stroke)
+                    }
+                    val earthRadius = size.height * 0.39f
+                    val earthTopLeft = Offset(size.width * 0.42f, centerY - earthRadius)
+                    val earthSize = androidx.compose.ui.geometry.Size(earthRadius * 2f, earthRadius * 2f)
+                    drawCircle(Color(0xFFFFE69A), earthRadius, Offset(earthTopLeft.x + earthRadius, centerY))
+                    drawArc(
+                        color = Color(0xFF33445F),
+                        startAngle = -90f,
+                        sweepAngle = 180f,
+                        useCenter = true,
+                        topLeft = earthTopLeft,
+                        size = earthSize
+                    )
+                    drawCircle(Color(0xFF287F79), earthRadius, Offset(earthTopLeft.x + earthRadius, centerY), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    drawArc(
+                        color = Color(0xFF7CA9E8),
+                        startAngle = -70f,
+                        sweepAngle = 140f,
+                        useCenter = false,
+                        topLeft = Offset(size.width * 0.73f, centerY - 17.dp.toPx()),
+                        size = androidx.compose.ui.geometry.Size(28.dp.toPx(), 34.dp.toPx()),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+                    )
+                }
+                "moon_phase" -> {
+                    val centers = listOf(size.width * 0.30f, size.width * 0.52f, size.width * 0.74f)
+                    val radius = (size.height * 0.20f).coerceAtLeast(8.dp.toPx())
+                    drawCircle(Color(0xFFFFE69A), 8.dp.toPx(), Offset(size.width * 0.10f, centerY))
+                    drawLine(Color(0xFFC79B2A), Offset(size.width * 0.16f, centerY), Offset(size.width * 0.22f, centerY), stroke)
+                    centers.forEachIndexed { index, x ->
+                        if (index < revealCount) {
+                            val center = Offset(x, centerY)
+                            drawCircle(Color(0xFFE8EAF0), radius, center)
+                            when (index) {
+                                0 -> drawCircle(Color(0xFF33445F), radius * 0.94f, center)
+                                1 -> drawArc(
+                                    color = Color(0xFF33445F),
+                                    startAngle = -90f,
+                                    sweepAngle = 180f,
+                                    useCenter = true,
+                                    topLeft = Offset(x - radius, centerY - radius),
+                                    size = androidx.compose.ui.geometry.Size(radius * 2f, radius * 2f)
+                                )
+                                else -> Unit
+                            }
+                            drawCircle(Color(0xFF7C91A0), radius, center, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                    }
+                }
                 "fraction" -> {
                     val count = when { activeLabels.any { it.contains("six", true) || it == "6" } -> 6; activeLabels.any { it.contains("five", true) || it == "5" } -> 5; activeLabels.any { it.contains("four", true) || it == "4" } -> 4; activeLabels.any { it.contains("three", true) || it == "3" } -> 3; activeLabels.any { it.contains("two", true) || it == "2" } -> 2; else -> activeLabels.size.coerceIn(2, 6) }
                     val gap = 5.dp.toPx()

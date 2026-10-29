@@ -538,3 +538,13 @@ Use this format:
 - **What remains unverified:** Exact-head backend tests, Android build, emulator screenshots/scroll behavior, selected-language narration/caption sync, and production API/database behavior. No production deployment or database mutation has been performed.
 - **Difference from previous attempt:** Unlike the standalone draft asset pilot, this branch modifies the existing mainline synthesis visual generator and inline Android renderer.
 - **Next action and why:** Run all PR checks, inspect the rendered drawings on API-35 emulator at phone size, verify each visual appears directly below its module without overlays, and only then consider merging and deploying.
+
+
+### Verification update — Beyond Earth inline visual integration
+- **Exact tested commit:** `2013a2a406a1ff4233f93c6e2495b952f7fcc0ef`.
+- **Backend:** PASS — Curriculum Engine Tests run 1245, https://github.com/Prav1525/Padippupal/actions/runs/40913934267.
+- **Android build:** PASS — Android APK run 1610, https://github.com/Prav1525/Padippupal/actions/runs/40913933990; debug APK artifact uploaded.
+- **Android emulator:** PASS — API-35 Android UI smoke run 1667, https://github.com/Prav1525/Padippupal/actions/runs/40913934255; screenshots, UI trees, and test report uploaded. The smoke fixture exercises Mathematics / All 1s, so this confirms the app's general inline lesson flow and navigation, not a screenshot of the new astronomy scenes.
+- **Investigation guidance gate:** PASS — run 578, https://github.com/Prav1525/Padippupal/actions/runs/40913934023.
+- **Visual-specific limitation:** The new astronomy scenes have backend regression coverage and the Android renderer compiles, but the emulator artifact does not yet capture the exact Beyond Earth chapter. A source-page and phone-size visual review of the new astronomy scene remains a release follow-up.
+- **Release status:** Not yet merged or deployed. No production database writes or learner activation were performed.

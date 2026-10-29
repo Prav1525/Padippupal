@@ -823,11 +823,136 @@ def _backfill_approved_lesson_visuals() -> None:
         logger.exception("Approved lesson visual backfill failed; service startup will continue")
 
 
+def _backfill_approved_topic_synthesis_visuals() -> None:
+    """Build reusable inline 2D visuals for every approved, source-cited topic synthesis.
+
+    The stored synthesis and its cited chunks are the only inputs. A simple concept
+    card is acceptable when a precise diagram cannot be inferred; uncited topics are
+    skipped rather than drawing an ungrounded or neighbouring-topic visual.
+    """
+    try:
+        with db() as conn:
+            rows = conn.execute(
+                """SELECT t.id AS synthesis_id, t.topic, t.learning_objectives_json,
+                          t.explanation_json, t.examples_json, t.citation_refs_json,
+                          r.source_id, r.board, r.class_level, r.subject, r.chapter,
+                          s.medium, s.title AS source_title
+                   FROM syllabus_topic_syntheses t
+                   JOIN syllabus_synthesis_rounds r ON r.id=t.round_id
+                   JOIN sources s ON s.id=r.source_id
+                   WHERE LOWER(t.approval_status)='approved'
+                   ORDER BY r.board, r.class_level, r.subject, r.chapter, t.topic"""
+            ).fetchall()
+        built_topics = 0
+        built_steps = 0
+        for row in rows:
+            try:
+                citations = json.loads(row["citation_refs_json"] or "[]")
+                if not isinstance(citations, list):
+                    continue
+                citation_ids = list(dict.fromkeys(str(value) for value in citations if str(value)))
+                if not citation_ids:
+                    continue
+                with db() as conn:
+                    placeholders = ",".join("?" for _ in citation_ids)
+                    chunk_rows = conn.execute(
+                        f"SELECT id, page_start, page_end FROM chunks WHERE source_id=? AND id IN ({placeholders})",
+                        (row["source_id"], *citation_ids),
+                    ).fetchall()
+                sources = [{
+                    "chunk_id": str(chunk["id"]), "page_start": chunk["page_start"],
+                    "page_end": chunk["page_end"], "title": row["source_title"],
+                } for chunk in chunk_rows]
+                allowed_ids = {item["chunk_id"] for item in sources}
+                citation_ids = [value for value in citation_ids if value in allowed_ids]
+                if not citation_ids:
+                    continue
+
+                def flatten(value: Any, limit: int = 1200) -> str:
+                    if isinstance(value, str):
+                        return normalize(value)[:limit]
+                    if isinstance(value, list):
+                        return normalize(" ".join(flatten(item, 240) for item in value if item is not None))[:limit]
+                    if isinstance(value, dict):
+                        preferred = ("simple_explanation", "explanation", "teacher_script", "summary",
+                                     "steps", "key_ideas", "main_idea", "description", "text", "content")
+                        pieces = [flatten(value[key], 300) for key in preferred if key in value]
+                        if not pieces:
+                            pieces = [flatten(item, 240) for key, item in value.items()
+                                      if key not in {"citation_refs", "source_chunk_ids", "page_numbers"}]
+                        return normalize(" ".join(piece for piece in pieces if piece))[:limit]
+                    return normalize(str(value))[:limit] if value is not None else ""
+
+                topic = normalize(str(row["topic"] or ""))
+                explanation = flatten(json.loads(row["explanation_json"] or "{}"))
+                objectives = json.loads(row["learning_objectives_json"] or "[]")
+                examples = json.loads(row["examples_json"] or "[]")
+                if not topic:
+                    continue
+                # Only use the synthesis explanation and examples that already passed
+                # the approval gate. Objectives supply a safe concise label when useful.
+                captions = []
+                if explanation and len(explanation) >= 24:
+                    captions.append(("explanation", explanation))
+                if isinstance(examples, list):
+                    for index, example in enumerate(examples[:2], start=1):
+                        example_text = flatten(example, 600)
+                        if len(example_text) >= 24 and example_text.casefold() not in {
+                            caption.casefold() for _, caption in captions
+                        }:
+                            captions.append((f"example-{index}", example_text))
+                if not captions:
+                    continue
+                first_objective = flatten(objectives[0], 120) if isinstance(objectives, list) and objectives else ""
+                segments = []
+                stable_topic_id = hashlib.sha256(
+                    (str(row["synthesis_id"]) + ":" + topic.casefold()).encode("utf-8")
+                ).hexdigest()[:12]
+                for index, (kind, caption) in enumerate(captions, start=1):
+                    visual_type = "label"
+                    lowered = (topic + " " + caption).casefold()
+                    if any(word in lowered for word in ("cycle", "evaporation", "condensation", "life cycle")):
+                        visual_type = "reveal"
+                    elif any(word in lowered for word in ("fraction", "half", "quarter", "equal parts")):
+                        visual_type = "compare"
+                    elif any(word in lowered for word in ("sequence", "pattern", "step by step", "first", "then", "finally")):
+                        visual_type = "reveal"
+                    segments.append({
+                        "id": f"syn-{stable_topic_id}-{index}",
+                        "spoken_text": caption[:500],
+                        "caption_text": caption[:500],
+                        "source_chunk_ids": citation_ids[:5],
+                        "visual_action": {
+                            "type": visual_type,
+                            "target": topic[:100],
+                            "value": (first_objective or caption)[:160],
+                        },
+                    })
+                profile = type("TopicVisualProfile", (), {
+                    "board": str(row["board"]), "class_level": int(row["class_level"]),
+                    "subject": str(row["subject"]), "medium": str(row["medium"]),
+                    "chapter": str(row["chapter"]), "topic": topic,
+                })()
+                attach_topic_visuals(profile, segments, sources)
+                count = sum(1 for segment in segments if segment.get("interactive_lesson"))
+                if count:
+                    built_topics += 1
+                    built_steps += count
+            except Exception:
+                logger.exception("Approved topic visual backfill skipped synthesis_id=%s", row["synthesis_id"])
+        logger.info("Approved topic synthesis visual backfill complete: topics=%s visual_steps=%s",
+                    built_topics, built_steps)
+    except Exception:
+        # Visual generation must never prevent the curriculum API from starting.
+        logger.exception("Approved topic synthesis visual backfill failed; service startup will continue")
+
+
 @app.on_event("startup")
 def startup() -> None:
     global _worker
     init_db()
     _backfill_approved_lesson_visuals()
+    _backfill_approved_topic_synthesis_visuals()
     _stop.clear()
     if _worker is None or not _worker.is_alive():
         _worker = threading.Thread(target=worker_loop, name="curriculum-indexer", daemon=True)

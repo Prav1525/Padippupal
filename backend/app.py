@@ -2832,7 +2832,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             # Approval verifies source provenance, not that every step still matches
             # the learner's selected topic. Treat stored lessons like generated lessons:
             # validate the actual playable segments before returning them.
-            if segments and _lesson_segments_match_topic(payload.topic, segments):
+            if (segments and _lesson_segments_match_topic(payload.topic, segments)
+                    and _lesson_segments_are_substantive(segments)):
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",

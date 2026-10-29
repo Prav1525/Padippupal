@@ -823,6 +823,127 @@ def _backfill_approved_lesson_visuals() -> None:
         logger.exception("Approved lesson visual backfill failed; service startup will continue")
 
 
+
+def _generate_synthesis_visual_candidates(round_id: str) -> int:
+    """Generate source-linked, inactive visual candidates immediately after synthesis.
+
+    This uses the same deterministic vector renderer as the tutor runtime. Draft
+    synthesis can create candidates, but only the normal approval/backfill path
+    activates them for learners.
+    """
+    now = time.time()
+    generated = 0
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT t.id AS synthesis_id,t.topic,t.learning_objectives_json,
+                      t.explanation_json,t.examples_json,t.citation_refs_json,
+                      r.source_id,r.board,r.class_level,r.subject,r.chapter,s.medium
+               FROM syllabus_topic_syntheses t
+               JOIN syllabus_synthesis_rounds r ON r.id=t.round_id
+               JOIN sources s ON s.id=r.source_id
+               WHERE t.round_id=? ORDER BY t.created_at,t.topic""",
+            (round_id,),
+        ).fetchall()
+        for row in rows:
+            try:
+                citations = json.loads(row["citation_refs_json"] or "[]")
+                if not isinstance(citations, list) or not citations:
+                    continue
+                citation_ids = list(dict.fromkeys(str(value) for value in citations if str(value)))
+                placeholders = ",".join("?" for _ in citation_ids)
+                chunks = conn.execute(
+                    f"SELECT id,page_start,page_end FROM chunks WHERE source_id=? AND id IN ({placeholders})",
+                    (str(row["source_id"]), *citation_ids),
+                ).fetchall()
+                page_by_id = {str(chunk["id"]): chunk for chunk in chunks}
+                # Fail closed: do not draw from a partially unresolved citation set.
+                if set(citation_ids) != set(page_by_id):
+                    logger.warning("Visual candidate skipped: unresolved citations synthesis_id=%s", row["synthesis_id"])
+                    continue
+                explanation_value = json.loads(row["explanation_json"] or "{}")
+                objectives = json.loads(row["learning_objectives_json"] or "[]")
+                examples = json.loads(row["examples_json"] or "[]")
+                def flatten(value: Any, limit: int = 1000) -> str:
+                    if isinstance(value, str):
+                        return normalize(value)[:limit]
+                    if isinstance(value, list):
+                        return normalize(" ".join(flatten(v, 240) for v in value if v is not None))[:limit]
+                    if isinstance(value, dict):
+                        keys = ("teacher_says", "caption", "simple_explanation", "explanation", "summary", "main_idea", "description", "text", "content")
+                        chosen = [flatten(value[k], 300) for k in keys if k in value]
+                        if not chosen:
+                            chosen = [flatten(v, 240) for k,v in value.items() if k not in {"citation_refs","source_chunk_ids","page_numbers"}]
+                        return normalize(" ".join(v for v in chosen if v))[:limit]
+                    return normalize(str(value))[:limit] if value is not None else ""
+                topic = normalize(str(row["topic"] or ""))
+                caption = flatten(explanation_value)
+                if len(caption) < 12:
+                    caption = flatten(examples[0], 600) if isinstance(examples, list) and examples else ""
+                if not topic or len(caption) < 12:
+                    continue
+                stable_topic_id = hashlib.sha256(
+                    (str(row["synthesis_id"]) + ":" + topic.casefold()).encode("utf-8")
+                ).hexdigest()[:12]
+                step_id = f"syn-{stable_topic_id}-1"
+                profile = [
+                    normalize(str(row["board"])).casefold(), int(row["class_level"]),
+                    normalize(str(row["subject"])).casefold(), normalize(str(row["medium"])).casefold(),
+                    normalize(str(row["chapter"])).casefold(), topic.casefold(),
+                ]
+                profile_key = hashlib.sha256(json.dumps(profile, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+                cited_pages = []
+                for chunk_id in citation_ids:
+                    chunk = page_by_id[chunk_id]
+                    for field in ("page_start", "page_end"):
+                        page = chunk[field]
+                        if page is not None and int(page) > 0 and int(page) not in cited_pages:
+                            cited_pages.append(int(page))
+                objective = flatten(objectives[0], 120) if isinstance(objectives, list) and objectives else ""
+                lowered = (topic + " " + caption).casefold()
+                visual_type = "none"
+                if any(word in lowered for word in ("cycle", "evaporation", "condensation", "life cycle")):
+                    visual_type = "cycle"
+                elif any(word in lowered for word in ("fraction", "half", "quarter", "equal parts")):
+                    visual_type = "fraction"
+                elif any(word in lowered for word in ("sequence", "pattern", "step by step", "first", "then", "finally", "process")):
+                    visual_type = "process"
+                step = {
+                    "id": step_id, "title": topic, "caption": caption[:500],
+                    "teacher_says": caption[:500], "source_chunk_ids": citation_ids,
+                    "visual": {"type": visual_type, "objects": [topic[:80], (objective or caption)[:80]],
+                               "narration_sync": [topic[:80]], "reference_page_numbers": sorted(cited_pages)[:8]},
+                }
+                lesson = {"chapter_title": str(row["chapter"]), "topic": topic,
+                          "overview": objective or caption[:300], "teaching_sequence": [step]}
+                records = build_visual_records(profile_key, lesson)
+                for record in records:
+                    # A candidate is never learner-visible until approval promotes it.
+                    conn.execute(
+                        """INSERT INTO tutor_topic_visual_assets
+                           (id,profile_key,board,class_level,subject,medium,chapter,topic,step_id,
+                            summary_text,visual_kind,blueprint_json,source_chunk_ids_json,
+                            content_fingerprint,active,created_at,updated_at)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?)
+                           ON CONFLICT(profile_key,step_id) DO UPDATE SET
+                             summary_text=excluded.summary_text,visual_kind=excluded.visual_kind,
+                             blueprint_json=excluded.blueprint_json,
+                             source_chunk_ids_json=excluded.source_chunk_ids_json,
+                             content_fingerprint=excluded.content_fingerprint,
+                             active=CASE WHEN tutor_topic_visual_assets.active=1 THEN 1 ELSE 0 END,
+                             updated_at=excluded.updated_at""",
+                        (record["id"],profile_key,str(row["board"]),int(row["class_level"]),
+                         str(row["subject"]),str(row["medium"]),str(row["chapter"]),topic,
+                         record["step_id"],record["summary_text"],record["visual_kind"],
+                         record["blueprint_json"],json.dumps(citation_ids,ensure_ascii=False),
+                         record["content_fingerprint"],now,now),
+                    )
+                    generated += 1
+            except Exception:
+                logger.exception("Visual candidate generation failed for synthesis_id=%s", row["synthesis_id"])
+    logger.info("Synthesis visual candidates generated: round_id=%s assets=%s", round_id, generated)
+    return generated
+
+
 def _backfill_approved_topic_synthesis_visuals() -> None:
     """Build reusable inline 2D visuals for every approved, source-cited topic synthesis.
 
@@ -2018,10 +2139,12 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                           + ([] if topic_objectives else ["No step-specific learning objectives returned; left empty rather than copying chapter-wide objectives"]),
                           ensure_ascii=False),
                      "draft", now, now))
+        visual_candidates = _generate_synthesis_visual_candidates(synthesis_round_id)
         return {"lesson_id":lesson_id,"synthesis_round_id":synthesis_round_id,
                 "evidence_fingerprint":evidence_fingerprint_value,"status":"draft",
                 "source_chunk_count":len(chunks),"source_refs":refs,"lesson":lesson,
-                "validation":validation,"review_required":True}
+                "validation":validation,"visual_candidates_generated":visual_candidates,
+                "visual_candidates_active":0,"review_required":True}
     except urllib.error.HTTPError as exc:
         logger.warning("Chapter synthesis rejected: status=%s model=%s",exc.code,model)
         raise HTTPException(status_code=503 if exc.code==429 else 502,detail="Chapter synthesis failed; no draft was published.") from exc

@@ -361,10 +361,12 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
     val revealCount = if (activeLabels.isEmpty()) 0 else
         (activeLabels.size * revealProgress).toInt().coerceAtLeast(1).coerceAtMost(activeLabels.size)
     Column(
+        // Keep the diagram snug to the explanation above and avoid a blank tail
+        // beneath the inline drawing when the next lesson segment scrolls in.
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = if (compact) 2.dp else 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(top = if (compact) 2.dp else 4.dp, bottom = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp)
     ) {
         Text(title, color = Color(0xFF17324D), fontSize = if (compact) 13.sp else 15.sp, fontWeight = FontWeight.Bold)
         // Keep the visual's teaching summary visible in the compact live-tutor layout too.

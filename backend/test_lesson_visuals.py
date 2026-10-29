@@ -223,3 +223,61 @@ def test_visual_blueprints_are_persisted_and_updated_with_the_synthesis(tmp_path
             (lesson_id,),
         ).fetchone()
     assert rows["count"] == 1
+
+
+def test_approved_topic_synthesis_visual_backfill_persists_only_source_cited_topics(tmp_path, monkeypatch):
+    import app as curriculum
+
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "approved-topic-visuals.sqlite3")
+    curriculum.init_db()
+    now = 1.0
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO sources
+               (id, board, academic_year, class_level, subject, medium, term, edition,
+                title, source_url, license_note, sha256, status, page_count, created_at)
+               VALUES ('source-water', 'CBSE', '2026', 5, 'Science', 'English', '', '1',
+                       'Class 5 Science', '', 'approved textbook', 'sha-water', 'ready', 1, ?)""",
+            (now,),
+        )
+        conn.execute(
+            """INSERT INTO chunks (id, source_id, chunk_no, chapter, page_start, page_end, text)
+               VALUES ('water-chunk-1', 'source-water', 0, 'Water Cycle', 12, 12,
+                       'Water evaporates, condenses into clouds and returns as precipitation.')"""
+        )
+        conn.execute(
+            """INSERT INTO syllabus_synthesis_rounds
+               (id, source_id, board, class_level, subject, chapter, curriculum_version, status,
+                model, prompt_version, source_chunk_ids_json, evidence_fingerprint, validation_json,
+                error_message, created_at, updated_at)
+               VALUES ('round-water', 'source-water', 'CBSE', 5, 'Science', 'Water Cycle', 'v1',
+                       'approved', 'test-model', 'v1', '["water-chunk-1"]', 'fingerprint',
+                       '{}', '', ?, ?)""",
+            (now, now),
+        )
+        conn.execute(
+            """INSERT INTO syllabus_topic_syntheses
+               (id, round_id, source_id, topic, page_start, page_end, learning_objectives_json,
+                explanation_json, examples_json, practice_questions_json, citation_refs_json,
+                validation_status, validation_notes_json, approval_status, created_at, updated_at)
+               VALUES ('topic-water', 'round-water', 'source-water', 'Water Cycle', 12, 12,
+                       '["Explain evaporation and condensation"]',
+                       '{"simple_explanation":"In the water cycle, water evaporates, condenses into clouds, and returns as precipitation."}',
+                       '["Sunlight warms water and starts evaporation."]', '[]',
+                       '["water-chunk-1"]', 'approved', '[]', 'approved', ?, ?)""",
+            (now, now),
+        )
+
+    curriculum._backfill_approved_topic_synthesis_visuals()
+
+    with curriculum.db() as conn:
+        rows = conn.execute(
+            """SELECT topic, chapter, source_chunk_ids_json, active, blueprint_json
+               FROM tutor_topic_visual_assets WHERE topic='Water Cycle'"""
+        ).fetchall()
+    assert rows
+    assert all(row["topic"] == "Water Cycle" and row["chapter"] == "Water Cycle" for row in rows)
+    assert all(row["source_chunk_ids_json"] == '["water-chunk-1"]' for row in rows)
+    assert all(row["active"] == 1 for row in rows)
+    assert all("svg_markup" in json.loads(row["blueprint_json"]) for row in rows)

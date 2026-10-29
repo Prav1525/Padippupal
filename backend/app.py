@@ -823,11 +823,136 @@ def _backfill_approved_lesson_visuals() -> None:
         logger.exception("Approved lesson visual backfill failed; service startup will continue")
 
 
+def _backfill_approved_topic_synthesis_visuals() -> None:
+    """Build reusable inline 2D visuals for every approved, source-cited topic synthesis.
+
+    The stored synthesis and its cited chunks are the only inputs. A simple concept
+    card is acceptable when a precise diagram cannot be inferred; uncited topics are
+    skipped rather than drawing an ungrounded or neighbouring-topic visual.
+    """
+    try:
+        with db() as conn:
+            rows = conn.execute(
+                """SELECT t.id AS synthesis_id, t.topic, t.learning_objectives_json,
+                          t.explanation_json, t.examples_json, t.citation_refs_json,
+                          r.source_id, r.board, r.class_level, r.subject, r.chapter,
+                          s.medium, s.title AS source_title
+                   FROM syllabus_topic_syntheses t
+                   JOIN syllabus_synthesis_rounds r ON r.id=t.round_id
+                   JOIN sources s ON s.id=r.source_id
+                   WHERE LOWER(t.approval_status)='approved'
+                   ORDER BY r.board, r.class_level, r.subject, r.chapter, t.topic"""
+            ).fetchall()
+        built_topics = 0
+        built_steps = 0
+        for row in rows:
+            try:
+                citations = json.loads(row["citation_refs_json"] or "[]")
+                if not isinstance(citations, list):
+                    continue
+                citation_ids = list(dict.fromkeys(str(value) for value in citations if str(value)))
+                if not citation_ids:
+                    continue
+                with db() as conn:
+                    placeholders = ",".join("?" for _ in citation_ids)
+                    chunk_rows = conn.execute(
+                        f"SELECT id, page_start, page_end FROM chunks WHERE source_id=? AND id IN ({placeholders})",
+                        (row["source_id"], *citation_ids),
+                    ).fetchall()
+                sources = [{
+                    "chunk_id": str(chunk["id"]), "page_start": chunk["page_start"],
+                    "page_end": chunk["page_end"], "title": row["source_title"],
+                } for chunk in chunk_rows]
+                allowed_ids = {item["chunk_id"] for item in sources}
+                citation_ids = [value for value in citation_ids if value in allowed_ids]
+                if not citation_ids:
+                    continue
+
+                def flatten(value: Any, limit: int = 1200) -> str:
+                    if isinstance(value, str):
+                        return normalize(value)[:limit]
+                    if isinstance(value, list):
+                        return normalize(" ".join(flatten(item, 240) for item in value if item is not None))[:limit]
+                    if isinstance(value, dict):
+                        preferred = ("simple_explanation", "explanation", "teacher_script", "summary",
+                                     "steps", "key_ideas", "main_idea", "description", "text", "content")
+                        pieces = [flatten(value[key], 300) for key in preferred if key in value]
+                        if not pieces:
+                            pieces = [flatten(item, 240) for key, item in value.items()
+                                      if key not in {"citation_refs", "source_chunk_ids", "page_numbers"}]
+                        return normalize(" ".join(piece for piece in pieces if piece))[:limit]
+                    return normalize(str(value))[:limit] if value is not None else ""
+
+                topic = normalize(str(row["topic"] or ""))
+                explanation = flatten(json.loads(row["explanation_json"] or "{}"))
+                objectives = json.loads(row["learning_objectives_json"] or "[]")
+                examples = json.loads(row["examples_json"] or "[]")
+                if not topic:
+                    continue
+                # Only use the synthesis explanation and examples that already passed
+                # the approval gate. Objectives supply a safe concise label when useful.
+                captions = []
+                if explanation and len(explanation) >= 24:
+                    captions.append(("explanation", explanation))
+                if isinstance(examples, list):
+                    for index, example in enumerate(examples[:2], start=1):
+                        example_text = flatten(example, 600)
+                        if len(example_text) >= 24 and example_text.casefold() not in {
+                            caption.casefold() for _, caption in captions
+                        }:
+                            captions.append((f"example-{index}", example_text))
+                if not captions:
+                    continue
+                first_objective = flatten(objectives[0], 120) if isinstance(objectives, list) and objectives else ""
+                segments = []
+                stable_topic_id = hashlib.sha256(
+                    (str(row["synthesis_id"]) + ":" + topic.casefold()).encode("utf-8")
+                ).hexdigest()[:12]
+                for index, (kind, caption) in enumerate(captions, start=1):
+                    visual_type = "label"
+                    lowered = (topic + " " + caption).casefold()
+                    if any(word in lowered for word in ("cycle", "evaporation", "condensation", "life cycle")):
+                        visual_type = "reveal"
+                    elif any(word in lowered for word in ("fraction", "half", "quarter", "equal parts")):
+                        visual_type = "compare"
+                    elif any(word in lowered for word in ("sequence", "pattern", "step by step", "first", "then", "finally")):
+                        visual_type = "reveal"
+                    segments.append({
+                        "id": f"syn-{stable_topic_id}-{index}",
+                        "spoken_text": caption[:500],
+                        "caption_text": caption[:500],
+                        "source_chunk_ids": citation_ids[:5],
+                        "visual_action": {
+                            "type": visual_type,
+                            "target": topic[:100],
+                            "value": (first_objective or caption)[:160],
+                        },
+                    })
+                profile = type("TopicVisualProfile", (), {
+                    "board": str(row["board"]), "class_level": int(row["class_level"]),
+                    "subject": str(row["subject"]), "medium": str(row["medium"]),
+                    "chapter": str(row["chapter"]), "topic": topic,
+                })()
+                attach_topic_visuals(profile, segments, sources)
+                count = sum(1 for segment in segments if segment.get("interactive_lesson"))
+                if count:
+                    built_topics += 1
+                    built_steps += count
+            except Exception:
+                logger.exception("Approved topic visual backfill skipped synthesis_id=%s", row["synthesis_id"])
+        logger.info("Approved topic synthesis visual backfill complete: topics=%s visual_steps=%s",
+                    built_topics, built_steps)
+    except Exception:
+        # Visual generation must never prevent the curriculum API from starting.
+        logger.exception("Approved topic synthesis visual backfill failed; service startup will continue")
+
+
 @app.on_event("startup")
 def startup() -> None:
     global _worker
     init_db()
     _backfill_approved_lesson_visuals()
+    _backfill_approved_topic_synthesis_visuals()
     _stop.clear()
     if _worker is None or not _worker.is_alive():
         _worker = threading.Thread(target=worker_loop, name="curriculum-indexer", daemon=True)
@@ -2629,6 +2754,77 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
     return has_relevant_speech
 
 
+def _translate_approved_segments(segments: list[dict[str, Any]], language: str) -> list[dict[str, Any]]:
+    """Translate stored approved lesson narration at playback time without changing its evidence.
+
+    Synthesized lessons are persisted in their reviewed source language. The selected
+    app language must still apply when a learner replays one of those lessons.
+    """
+    target = normalize(language or "English")
+    if not target or target.casefold() in {"english", "en"}:
+        return segments
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Language translation is not configured on the backend.")
+    compact = [{
+        "id": str(item.get("id") or ""),
+        "spoken_text": str(item.get("spoken_text") or ""),
+        "caption_text": str(item.get("caption_text") or ""),
+    } for item in segments]
+    prompt = (
+        "Translate the following approved school lesson into " + target + ". "
+        "Keep every segment id unchanged and return JSON only as {segments:[{id,spoken_text,caption_text}]}. "
+        "Preserve all scientific/mathematical facts, examples, numbers, names, and meaning exactly; "
+        "do not add, omit, or simplify away a teaching point. Keep captions concise and child-friendly. "
+        "For Tanglish, write natural spoken Tamil-English using Tamil words in Latin letters, as a kind patient "
+        "Tamil teacher would speak; do not return formal English or Tamil script. For Tamil, use natural Tamil script. "
+        "Do not translate source IDs because they are not included. Input JSON:\\n"
+        + json.dumps({"segments": compact}, ensure_ascii=False)
+    )
+    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+    body = json.dumps({
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0, "maxOutputTokens": 1800},
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+        data=body,
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=25) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        raw = " ".join(
+            part.get("text", "") for part in result["candidates"][0]["content"]["parts"]
+            if isinstance(part, dict)
+        )
+        translated = json.loads(re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", raw, flags=re.IGNORECASE))
+        items = translated.get("segments") if isinstance(translated, dict) else None
+        if not isinstance(items, list):
+            raise ValueError("translation response has no segments list")
+        by_id = {str(item.get("id") or ""): item for item in items if isinstance(item, dict)}
+        result_segments = []
+        for original in segments:
+            item = by_id.get(str(original.get("id") or ""))
+            spoken = str(item.get("spoken_text") or "").strip() if item else ""
+            caption = str(item.get("caption_text") or "").strip() if item else ""
+            if not spoken or not caption:
+                raise ValueError("translation omitted a lesson segment")
+            translated_segment = dict(original)
+            translated_segment["spoken_text"] = spoken[:500]
+            translated_segment["caption_text"] = caption[:500]
+            result_segments.append(translated_segment)
+        if len(result_segments) != len(segments):
+            raise ValueError("translation changed the lesson segment count")
+        return result_segments
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("Approved lesson translation failed: language=%s error=%s", target, type(exc).__name__)
+        raise HTTPException(status_code=502, detail="This lesson could not be translated into the selected language. Please retry.") from exc
+
+
 def _lesson_segments_are_substantive(segments: list[dict[str, Any]]) -> bool:
     """Reject repeated lesson-template filler even when it mentions the selected chapter.
 
@@ -2829,11 +3025,22 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                     "interactive_lesson": inline_visual,
                     "checkpoint": str(step.get("checkpoint"))[:240] if step.get("checkpoint") else None,
                 })
+            # Persist topic-scoped visuals for this exact selected topic, including
+            # simple original 2D diagrams inferred from source-cited synthesis captions.
+            # The renderer consumes each segment's visual inline beside that narration.
+            try:
+                segments = attach_topic_visuals(payload, segments, refs, fallback_visual=matched_visual)
+            except Exception:
+                logger.exception("Topic visual persistence failed; preserving any exact-match visual fallback")
+                for segment in segments:
+                    if not segment.get("interactive_lesson"):
+                        segment["interactive_lesson"] = matched_visual
             # Approval verifies source provenance, not that every step still matches
-            # the learner's selected topic. Treat stored lessons like generated lessons:
-            # validate the actual playable segments before returning them.
+            # the learner's selected topic. Validate source-language text before translating,
+            # because topic gates are deliberately tied to the approved source vocabulary.
             if (segments and _lesson_segments_match_topic(payload.topic, segments)
                     and _lesson_segments_are_substantive(segments)):
+                segments = _translate_approved_segments(segments, payload.app_language)
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",

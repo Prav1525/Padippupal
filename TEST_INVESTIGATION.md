@@ -512,3 +512,15 @@ Use this format:
 - **Fix:** Added a substantive-content gate for approved and dynamically generated tutor segments. Repeated placeholder language or duplicated long segments are rejected, leaving the existing topic-filtered retrieval/fail-closed path to supply safe content or no lesson.
 - **Regression coverage:** Added a test reproducing the repeated “Beyond Earth, Part 1/2/3” placeholder and a positive test for substantive Earth/Moon/Sun teaching.
 - **Validation status:** Curriculum Engine Tests passed; Android APK and UI smoke were still running; Investigation Guidance Gate initially failed because this ledger entry was missing and is being corrected. Do not merge until all required checks pass.
+
+
+### 2026-10-29 — Translate approved lessons and persist topic-scoped inline visuals
+- **Branch / PR:** `fix/tanglish-inline-topic-visuals`, PR #54; implementation commit `361deef758968b2d2532d856513d2d6f4e96524b`, tests commit `9a731312ee08cd7f167427d2df58c6a9e717010c`.
+- **Observed symptom:** Selecting Tanglish still replayed stored English narration for approved synthesized lessons; visuals could exist at the response level but be absent from individual playback segments.
+- **Root cause:** The approved-lesson branch returned persisted `teacher_says` and `caption` unchanged, and it only attached visuals from pre-existing lesson assets without running the selected-topic persistence builder for those playback segments.
+- **Fix:** Translate approved segment narration/captions to the selected app language after source-language topic/content validation, preserving source chunk IDs and inline visual payloads. Invoke the existing topic-scoped visual builder for approved playback so supported original compact 2D visuals are persisted by selected board/class/subject/medium/chapter/topic and attached to each segment; use an exact-topic matched visual as fallback.
+- **Regression coverage:** Added Tanglish translation and English pass-through unit tests. Existing topic visual persistence tests cover source citations, exact topic binding, SVG generation and DB persistence.
+- **Validation status:** Curriculum Engine Tests, Android APK and Android UI smoke are running. Investigation Guidance Gate initially failed because this ledger entry was missing; rerun required checks on the updated head. Do not merge or deploy until all required checks pass and live playback is verified.
+
+- **Scope extension:** Startup now also scans approved `syllabus_topic_syntheses`, verifies each cited chunk belongs to the same source, and persists a reusable topic-scoped visual for synthesis explanations/examples where a compact diagram or concept card can be grounded. Unsupported/uncited topics are skipped; existing lesson content and approval state are not modified. Exact-head regression checks must verify this backfill is safe and idempotent.
+- **Backfill regression test:** Added a temporary-SQLite test with one approved, cited water-cycle synthesis; it verifies topic/chapter binding, cited chunk provenance, active persistence, and stored SVG markup. The test also exercises startup backfill's source-scoped chunk filtering.

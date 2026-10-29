@@ -180,8 +180,6 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
     if ("pen stops writing" in lowered or "pen has stopped writing" in lowered) and any(
         term in lowered for term in ("ink", "refill", "guess", "test", "check")
     ):
-        if "pen investigation" in title.casefold():
-            return "process", ["Notice the problem", "Make a guess", "Test the refill"]
         return "process", ["Pen stops writing", "Possible explanation", "Check the refill"]
 
     if "jigsaw" in lowered and any(term in lowered for term in ("knowledge", "discover", "question", "piece")):

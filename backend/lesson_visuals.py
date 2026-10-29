@@ -211,7 +211,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
                 found.sort(key=lambda row: 0 if row.startswith("All 1s|") else 1)
             return "table", found[:3]
 
-    if any(term in lowered for term in ("work together", "with friends", "scientists work", "joyful exploration", "journey ahead", "never stop wondering")):
+    if any(term in lowered for term in ("work together", "with friends", "scientists work", "joyful exploration", "share ideas", "learn together")):
         return "collaborative_exploration", ["Ask together", "Share ideas", "Keep exploring"]
 
     if any(term in lowered for term in ("scientific method", "test this guess", "pen stops writing", "observe something", "analyse the results", "analyze the results")):

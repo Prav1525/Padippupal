@@ -405,5 +405,5 @@ def test_science_chapter1_inquiry_process_gets_ordered_steps():
     }]}
     record = build_visual_records("science-ch1", lesson)[0]
     assert record["visual_kind"] == "process"
-    assert record["blueprint"]["nodes"] == ["Observe", "Ask", "Suggest", "Test", "Review results"]
+    assert record["blueprint"]["nodes"] == ["Observe", "Ask", "Guess", "Test", "Review results"]
     assert json.loads(record["source_chunk_ids_json"]) == ["source-science-page-5"]

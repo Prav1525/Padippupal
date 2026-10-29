@@ -92,6 +92,11 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert data["synthesis_round_id"]
     assert len(data["evidence_fingerprint"]) == 64
     assert data["validation"]["valid"] is True
+    # Synthesis and visual generation are one pipeline: every saved synthesis
+    # round immediately attempts source-cited visual generation. Candidates stay
+    # inactive until a reviewer approves the lesson.
+    assert data["visual_candidates_generated"] >= 1
+    assert data["visual_candidates_active"] == 0
     synthesis_prompt = captured["request"]["systemInstruction"]["parts"][0]["text"]
     assert "copyright-respectful" in synthesis_prompt
     assert "reference_page_numbers" in synthesis_prompt
@@ -113,6 +118,15 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert topics[0]["validation_status"] == "passed"
     assert topics[0]["approval_status"] == "draft"
     assert json.loads(topics[0]["citation_refs_json"]) == ["chunk-test"]
+    with curriculum.db() as conn:
+        generated_assets = conn.execute(
+            "SELECT topic, step_id, source_chunk_ids_json, active, blueprint_json "
+            "FROM tutor_topic_visual_assets WHERE chapter=?",
+            ("Test chapter",),
+        ).fetchall()
+    assert len(generated_assets) >= 1
+    assert all(row["active"] == 0 for row in generated_assets)
+    assert all(json.loads(row["source_chunk_ids_json"]) == ["chunk-test"] for row in generated_assets)
     assert topics[0]["page_start"] == 1
     assert topics[0]["page_end"] == 1
     # Do not copy chapter-wide objectives into every topic when the model omitted step-level objectives.

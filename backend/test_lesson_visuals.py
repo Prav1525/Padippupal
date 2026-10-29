@@ -313,3 +313,55 @@ def test_approved_topic_synthesis_visual_backfill_persists_only_source_cited_top
     assert all(row["source_chunk_ids_json"] == '["water-chunk-1"]' for row in rows)
     assert all(row["active"] == 1 for row in rows)
     assert all("svg_markup" in json.loads(row["blueprint_json"]) for row in rows)
+
+
+def test_topic_specific_visual_engine_uses_cited_evidence_not_generic_cards():
+    from lesson_visuals import build_visual_records
+
+    cases = [
+        ("The Wonderful World of Science — Part 2", "Knowledge is like a jigsaw puzzle; each discovery adds a piece.",
+         "Our knowledge is like a giant and unending jigsaw puzzle.", "process",
+         ["What we know", "New discovery", "New questions"]),
+        ("Pen investigation", "If a pen stops writing, guess that the ink is empty and check the refill.",
+         "A pen may stop writing; test whether the refill has ink.", "process",
+         ["Notice the problem", "Make a guess", "Test the refill"]),
+        ("Scientific inquiry", "Observe, ask, guess, test and analyse the results.",
+         "Scientists ask questions and test their guesses.", "process",
+         ["Observe", "Ask", "Guess", "Test", "Review results"]),
+        ("Everyday objects", "Compare paper, a metal key, a plastic ruler and a rubber eraser.",
+         "Paper, a metal key, a plastic ruler and a rubber eraser are everyday objects.", "compare",
+         ["Paper", "Metal key", "Plastic ruler", "Rubber eraser"]),
+    ]
+    for topic, caption, evidence, expected_kind, expected_nodes in cases:
+        records = build_visual_records("profile-test", {
+            "teaching_sequence": [{
+                "id": "source-step-1", "title": topic, "caption": caption,
+                "source_chunk_ids": ["chunk-source-1"], "source_evidence": evidence,
+                "visual": {"type": "none", "objects": [], "evidence_status": "source_cited_draft"},
+            }]
+        })
+        assert len(records) == 1
+        blueprint = records[0]["blueprint"]
+        assert blueprint["kind"] == expected_kind
+        assert blueprint["nodes"] == expected_nodes
+        assert blueprint["source_chunk_ids"] == ["chunk-source-1"]
+        assert blueprint["evidence_status"] == "source_cited_draft"
+        assert "svg_markup" in blueprint["svg_markup"] or blueprint["svg_markup"].startswith("<svg")
+
+
+def test_visual_engine_preserves_quality_flags_and_never_activates_candidates():
+    from lesson_visuals import build_visual_records
+
+    records = build_visual_records("profile-test", {
+        "teaching_sequence": [{
+            "id": "ocr-step-1", "title": "Curiosity", "caption": "Notice something and ask why.",
+            "source_chunk_ids": ["chunk-ocr-1"], "source_evidence": "Or watched a flower bloom. Chapter 1.indd 1",
+            "visual": {"type": "none", "objects": [], "evidence_status": "needs_review",
+                       "quality_flags": ["running_header_or_timestamp", "malformed_ocr_sentence"]},
+        }]
+    })
+    assert len(records) == 1
+    blueprint = records[0]["blueprint"]
+    assert blueprint["evidence_status"] == "needs_review"
+    assert "running_header_or_timestamp" in blueprint["quality_flags"]
+    assert "malformed_ocr_sentence" in blueprint["quality_flags"]

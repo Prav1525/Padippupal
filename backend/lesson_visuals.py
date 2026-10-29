@@ -183,7 +183,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
         return "process", ["Pen stops writing", "Possible explanation", "Check the refill"]
 
     if "jigsaw" in lowered and any(term in lowered for term in ("knowledge", "discover", "question", "piece")):
-        return "process", ["What we know", "New discovery", "New questions"]
+        return "diagram", ["What we know", "New discovery", "New questions"]
 
     if any(term in lowered for term in ("scientific method", "scientific inquiry", "investigation")) and any(
         term in lowered for term in ("observe", "question", "test", "evidence")

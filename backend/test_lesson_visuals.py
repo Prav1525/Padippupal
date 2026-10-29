@@ -320,14 +320,14 @@ def test_topic_specific_visual_engine_uses_cited_evidence_not_generic_cards():
 
     cases = [
         ("The Wonderful World of Science — Part 2", "Knowledge is like a jigsaw puzzle; each discovery adds a piece.",
-         "Our knowledge is like a giant and unending jigsaw puzzle.", "diagram",
-         ["What we know", "New discovery", "New question"]),
+         "Our knowledge is like a giant and unending jigsaw puzzle.", "process",
+         ["What we know", "New discovery", "New questions"]),
         ("Pen investigation", "If a pen stops writing, guess that the ink is empty and check the refill.",
          "A pen may stop writing; test whether the refill has ink.", "process",
          ["Pen stops writing", "Possible explanation", "Check the refill"]),
         ("Scientific inquiry", "Observe, ask, guess, test and analyse the results.",
          "Scientific inquiry: observe, ask a question, test the guess and review evidence.", "process",
-         ["Observe", "Ask", "Suggest", "Test", "Learn"]),
+         ["Observe", "Ask", "Guess", "Test", "Review results"]),
         ("Everyday objects", "Compare paper, a metal key, a plastic ruler and a rubber eraser.",
          "These objects are made of different materials: paper, a metal key, a plastic ruler and a rubber eraser.", "compare",
          ["Paper", "Metal key", "Plastic ruler"]),

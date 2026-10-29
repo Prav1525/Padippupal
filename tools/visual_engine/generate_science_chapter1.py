@@ -12,7 +12,7 @@ from pathlib import Path
 SOURCE_ID = "28077c43-b7fe-4a40-85c8-663b8ac326a2"
 CHAPTER = "The Wonderful World of Science"
 VERSION = "0.2.0"
-INK, BLUE, PALE, GREEN, ORANGE, RED, GREY = "#25364A", "#4C83D6", "#E7F0FF", "#3C9B78", "#E7A34B", "#C65353", "#64748B"
+INK, BLUE, PALE, PALE_BLUE, GREEN, ORANGE, RED, GREY = "#25364A", "#4C83D6", "#F7F9FC", "#E7F0FF", "#3C9B78", "#E7A34B", "#C65353", "#64748B"
 
 def e(v): return html.escape(str(v), quote=True)
 def family(topic, explanation, evidence):
@@ -39,6 +39,7 @@ def svg_scene(topic, family_name, source_excerpt):
     elif family_name=="pen_inquiry":
         body=f'<rect x="48" y="105" width="150" height="22" rx="8" transform="rotate(-12 48 105)" fill="{PALE_BLUE}" stroke="{BLUE}" stroke-width="3"/><text x="48" y="165" font-size="15" fill="{INK}">Pen stops writing</text><path d="M210 120 H265" stroke="{BLUE}" stroke-width="3"/><path d="M255 110 L267 120 L255 130" fill="none" stroke="{BLUE}" stroke-width="3"/><rect x="285" y="82" width="145" height="65" rx="10" fill="#FFF0D9" stroke="{ORANGE}" stroke-width="2"/><text x="357" y="108" text-anchor="middle" font-size="14" fill="{INK}">Possible guess</text><text x="357" y="129" text-anchor="middle" font-size="13" fill="{INK}">Ink is empty</text><path d="M440 120 H490" stroke="{GREEN}" stroke-width="3"/><path d="M480 110 L492 120 L480 130" fill="none" stroke="{GREEN}" stroke-width="3"/><rect x="510" y="82" width="165" height="65" rx="10" fill="#E4F5ED" stroke="{GREEN}" stroke-width="2"/><text x="592" y="108" text-anchor="middle" font-size="14" fill="{INK}">Test the guess</text><text x="592" y="129" text-anchor="middle" font-size="13" fill="{INK}">Check refill</text><text x="48" y="220" font-size="13" fill="{GREY}">If the guess is not supported, try another explanation and test again.</text>'
     elif family_name=="scientific_method":
+        body=""
         labels=["Observe","Ask","Guess","Test","Analyse"]
         xs=[55,190,325,460,595]
         for i,(x,label) in enumerate(zip(xs,labels)):

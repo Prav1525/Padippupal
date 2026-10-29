@@ -145,6 +145,12 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
             {"id": "step_5", "title": "Scientific method",
              "caption": "The scientific method starts with observation and a question, then we test the guess and analyse the results. Reprint 2026-27.",
              "source_chunk_ids": ["ncert-page-6"], "visual": {"type": "table", "objects": []}},
+            {"id": "step_6", "title": "Learning together",
+             "caption": "Scientists work together in teams and learn from friends. We may not find every answer right away.",
+             "source_chunk_ids": ["ncert-page-7"], "visual": {"type": "table", "objects": []}},
+            {"id": "step_7", "title": "Keep wondering",
+             "caption": "Enjoy your scientific journey, keep exploring and never stop wondering about mysteries of the universe.",
+             "source_chunk_ids": ["ncert-page-8"], "visual": {"type": "table", "objects": []}},
         ]}
         records = build_visual_records("chapter-1", lesson)
         by_step = {row["step_id"]: row for row in records}
@@ -155,6 +161,8 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertEqual(by_step["step_3"]["blueprint"]["nodes"], ["Paper", "Metal key", "Plastic ruler", "Rubber eraser"])
         self.assertEqual(by_step["step_4"]["visual_kind"], "scientific_method")
         self.assertEqual(by_step["step_5"]["visual_kind"], "scientific_method")
+        self.assertEqual(by_step["step_6"]["visual_kind"], "collaborative_exploration")
+        self.assertEqual(by_step["step_7"]["visual_kind"], "curiosity")
         self.assertNotEqual(by_step["step_5"]["visual_kind"], "fraction")
         for row in records:
             self.assertIn("<svg", row["blueprint"]["svg_markup"])

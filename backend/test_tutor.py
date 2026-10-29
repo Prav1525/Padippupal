@@ -1119,3 +1119,58 @@ def test_tutor_accepts_topic_specific_teaching_segments():
          "caption_text": "The Moon reflects sunlight"},
     ]
     assert curriculum._lesson_segments_are_substantive(segments)
+
+
+def test_approved_lesson_translation_preserves_segment_identity_and_visuals(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps({
+                "candidates": [{"content": {"parts": [{"text": json.dumps({
+                    "segments": [{
+                        "id": "step-1",
+                        "spoken_text": "Ippo leaf sunlight use panni food make pannum.",
+                        "caption_text": "Leaf food make pannum.",
+                    }]
+                })}]}}]
+            }).encode("utf-8")
+
+    def fake_urlopen(request, timeout):
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+    original = [{
+        "id": "step-1",
+        "spoken_text": "Leaves use sunlight to make food.",
+        "caption_text": "How leaves make food.",
+        "source_chunk_ids": ["chunk-12"],
+        "interactive_lesson": {"title": "Photosynthesis", "steps": [{"label": "Sunlight"}]},
+    }]
+    translated = curriculum._translate_approved_segments(original, "Tanglish")
+    assert translated[0]["spoken_text"].startswith("Ippo leaf")
+    assert translated[0]["caption_text"] == "Leaf food make pannum."
+    assert translated[0]["source_chunk_ids"] == ["chunk-12"]
+    assert translated[0]["interactive_lesson"] == original[0]["interactive_lesson"]
+    assert captured["timeout"] == 25
+    prompt = captured["payload"]["contents"][0]["parts"][0]["text"]
+    assert "natural spoken Tamil-English" in prompt
+    assert "do not return formal English" in prompt
+
+
+def test_approved_lesson_translation_leaves_english_unchanged(monkeypatch):
+    def unexpected_request(*args, **kwargs):
+        raise AssertionError("English approved lessons should not call translation")
+
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_request)
+    segments = [{"id": "step-1", "spoken_text": "Hello.", "caption_text": "Hello."}]
+    assert curriculum._translate_approved_segments(segments, "English") is segments

@@ -622,6 +622,29 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
         Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 3.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        // Keep the visual's identity and learning takeaway visible while the lesson is
+        // actively speaking. The previous renderer drew the diagram but omitted its
+        // synthesis title/caption, so learners (and the accessibility smoke test) saw
+        // an unlabeled sketch until the lesson had already completed.
+        val visualTitle = lesson.optString("title").ifBlank { topic }.ifBlank { "Concept drawing" }
+        val visualTakeaway = step?.optString("caption").orEmpty()
+            .ifBlank { lesson.optString("caption") }
+            .ifBlank { step?.optString("label").orEmpty() }
+        Text(
+            visualTitle,
+            color = TutorDeep,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        if (visualTakeaway.isNotBlank()) {
+            Text(
+                visualTakeaway,
+                color = Color(0xFF475569),
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+        }
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

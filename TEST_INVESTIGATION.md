@@ -486,3 +486,11 @@ Use this format:
 - **Fix:** Pass the approved row's topic into the inline visual adapter and use it for the visual title/topic, while each visual card's caption remains the exact teaching-step summary.
 - **Validation:** Added assertions for exact topic binding and static inline payload. Exact-head backend/APK/emulator checks must rerun; earlier backend test run passed 88 tests before this topic-binding assertion.
 - **No merge or deployment performed.**
+
+
+### 2026-10-29 — Backfill visuals for approved synthesized lessons at startup
+- **Branch / PR:** \`fix/backfill-approved-lesson-visual-assets-v2\`, PR #51; commit \`d6e1680aa57e3342afd3bfb38a736356c3c0b63c\`.
+- **Observed production state:** Neon contained 22 approved chapter lessons while both \`lesson_visual_assets\` and \`tutor_topic_visual_assets\` had zero rows.
+- **Root cause:** The approved-lesson playback path materialized visual assets lazily when a learner opened a lesson. Existing approved lessons had not been backfilled after deployment.
+- **Fix:** Startup now idempotently scans approved lessons, retains only steps whose cited chunk IDs are present in that lesson's source references, and materializes visuals with the existing builder. It does not change lesson content or approval state; failures are logged without preventing startup.
+- **Validation:** Curriculum Engine Tests passed on the exact head. Investigation guidance initially failed because this ledger entry was missing; this entry addresses that gate. Android APK and emulator smoke checks were still running at the time of this update. No merge or deployment performed.

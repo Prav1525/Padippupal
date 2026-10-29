@@ -827,31 +827,36 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
 
 @Composable
 private fun TeacherDrawnExplanation(content: String, lesson: JSONObject) {
-    val sentences = remember(content) {
-        Regex("[^.!?]+[.!?]+|[^.!?]+$")
+    val chunks = remember(content) {
+        val sentences = Regex("[^.!?]+[.!?]+|[^.!?]+$")
             .findAll(content)
             .map { it.value.trim() }
             .filter { it.isNotBlank() }
             .toList()
+            .ifEmpty { listOf(content.trim()).filter { it.isNotBlank() } }
+        // Keep each teaching beat short, with the matching sketch immediately after it.
+        // Three beats is enough to show a concept progressing without turning the chat
+        // into a stack of cards. Longer explanations are grouped evenly across those beats.
+        if (sentences.size <= 3) sentences.map { listOf(it) }
+        else {
+            val chunkCount = 3
+            val chunkSize = (sentences.size + chunkCount - 1) / chunkCount
+            sentences.chunked(chunkSize).take(chunkCount)
+        }
     }
-    // One message should feel like a teacher's explanation, not a stack of repeated widgets.
-    // Keep the prose readable and draw once at the natural pause in the explanation.
-    val chunks = if (sentences.size > 2) {
-        val splitAt = (sentences.size + 1) / 2
-        listOf(sentences.take(splitAt), sentences.drop(splitAt)).filter { it.isNotEmpty() }
-    } else {
-        listOf(sentences.ifEmpty { listOf(content) })
-    }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         chunks.forEachIndexed { index, chunk ->
             Text(
                 chunk.joinToString(" "),
+                modifier = Modifier.fillMaxWidth(),
                 color = TutorDeep,
                 fontSize = 15.sp,
-                lineHeight = 23.sp,
+                lineHeight = 24.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Start
             )
-            if (index == 0) TeacherDrawnConceptVisual(lesson, activeStep = 0)
+            // Draw inline after every explanation beat, changing the drawing stage so
+            // the child can connect the teacher's words to the next part of the sketch.
+            TeacherDrawnConceptVisual(lesson, activeStep = index.coerceAtMost(2))
         }
     }
 }

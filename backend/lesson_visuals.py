@@ -220,7 +220,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
     if "jigsaw puzzle" in lowered or ("new discovery" in lowered and "piece" in lowered):
         return "jigsaw", ["Question", "Explore", "Discovery", "New question"]
 
-    if any(term in lowered for term in ("curiosity", "flower bloom", "stars shine", "wondered why")):
+    if any(term in lowered for term in ("curiosity", "flower bloom", "stars shine", "wondered why", "never stop wondering", "keep wondering")):
         return "curiosity", ["Notice", "Wonder", "Ask why"]
 
     if any(term in lowered for term in ("plastic ruler", "rubber eraser", "metal key", "paper we write")):

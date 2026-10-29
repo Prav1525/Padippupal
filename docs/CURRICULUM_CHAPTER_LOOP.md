@@ -26,7 +26,7 @@
 - [x] Re-query live DB: 11 synthesis rows (7 approved page-part rows, 4 broad drafts); findings in [Chapter 1 live synthesis audit](CHAPTER_1_LIVE_SYNTHESIS_AUDIT.md).
 - [ ] Review sequence against exact textbook page images where accessible.
 - [ ] Reconcile broad draft rows with seven part rows using version-safe supersession; do not silently delete or approve rows.
-- [ ] Fix/test concept-to-visual inference and stage mappings, including timestamp/header false-positive regression.
+- [x] Fix the observed Chapter 1 closing-step inference bug: “never stop wondering” was incorrectly classified as collaborative exploration; removed that phrase from the collaboration trigger so the dedicated curiosity rule can handle it. Existing regression test covers Step 7; CI rerun is pending.
 - [ ] Persist visuals only through a reviewed, supported write path; no production DB mutation in this loop.
 - [ ] Verify visual rows by DB read-back in approved test/staging path.
 - [ ] Run curriculum tests, Android build and UI smoke on latest commit.
@@ -36,8 +36,8 @@
 ### In progress — A Journey through States of Water (Grade 6 Science)
 - [x] Query live synthesis rows from exact source ID `ed0b5f40-e9e0-474d-82ac-9681b0f4c1cd`.
 - [x] Create [initial live DB audit](CHAPTER_8_STATES_OF_WATER_LIVE_AUDIT.md) with row-level OCR/segmentation defects and topic-specific visual storyboard.
-- [ ] Resolve source metadata discrepancy: live `sources.page_count=20`; a lesson/source reference previously implied 24. Use actual source/PDF pages as authority.
-- [ ] Audit all approved page-part rows, including Parts 8 and later rows; query truncated output was not treated as complete.
+- [x] Reconcile page count: live source/chunk inventory spans 20 PDF pages (printed textbook pages 143–162); the earlier 24-page reference was not the PDF page count. Exact page-image review remains outstanding.
+- [x] Audit full synthesis inventory: 16 rows total, 8 approved page-part rows (Parts 1–8) and 8 broad draft topics; Part 8 is OCR-contaminated end-of-chapter assessment content.
 - [ ] Reconcile eight broad draft concepts with approved part rows (overlapping spans currently 1–20).
 - [ ] Inspect exact source page images and verify condensation, evaporation, cooling-effect and water-cycle wording.
 - [ ] Inspect active visuals by exact lesson ID and source chunk mapping; add regression tests.
@@ -60,4 +60,4 @@ Every topic reviewed against source evidence; visuals mapped to exact topic/step
 ## Run log
 | Date (IST) | Result | Next item |
 |---|---|---|
-| 2026-10-29 | Stored workflow and Chapter 1 sequence; live read-only queries confirm Chapter 1 OCR contamination and overlapping synthesis rows. Added States of Water audit with specific row issues. No production DB writes, approvals, merge or deployment. CI for latest audit commit is still running/pending (Android UI smoke pending; curriculum tests, guidance gate and Android APK in progress). | Verify source page images; continue row reconciliation and inference tests for Chapter 1, then finish States of Water. |
+| 2026-10-29 | Stored workflow and Chapter 1 sequence; live read-only queries confirm OCR contamination and overlapping synthesis rows. Added full 16-row States of Water audit. Fixed a failing visual-inference regression where “never stop wondering” was misclassified as collaboration. Commit `74135882` triggers CI; previous Python run had 1 failure/99 passes, Android APK passed, UI smoke failed in unrelated diary-picker automation (`UiTestAutomationBridge` returned null root node). No production DB writes, approvals, merge or deployment. | Wait for exact-SHA CI; review screenshot artifact; continue Chapter 1 source-image review and safe visual inference regression work. |

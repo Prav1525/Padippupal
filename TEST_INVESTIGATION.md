@@ -565,3 +565,17 @@ Use this format:
 - **What remains unverified:** Android APK and UI smoke-test results for this exact branch head; real production tutor screen rendering; end-to-end Tanglish playback/caption sync; production learner availability. Live Neon candidate writes have not been run as part of this CI test.
 - **Difference from previous attempt:** Connects synthesis persistence to the topic-aware visual generator instead of requiring a separate manual visual-generation command.
 - **Next action and why:** Review the remaining Android build/smoke-test results and then test one approved chapter through the live tutor UI before any candidate is activated for learners.
+
+
+### 2026-10-29 — Draft inline drawing pilot for CBSE Class 6 Science Chapter 12
+- **Branch / commit:** `feat/science-beyond-earth-inline-drawing-sample`; pilot for *Beyond Earth*.
+- **Test command or workflow URL:** Topic-aware Visual Engine workflow on the previous head: https://github.com/Prav1525/Padippupal/actions/runs/40913271980. The Investigation Guidance Gate on that head failed: https://github.com/Prav1525/Padippupal/actions/runs/40913271940.
+- **Result:** **BLOCKED / PARTIAL** — existing topic-aware visual engine CI passed, but the investigation gate failed because this PR changed code without updating this ledger. A missing palette constant in the new Excalidraw export was also found by source review and fixed on the branch. The new focused pilot tests have not yet been observed passing on the updated head.
+- **Exact failure or assertion:** `validate_investigation_ledger.py`: “code/config changed but TEST_INVESTIGATION.md was not updated in this PR.” The pilot export also needed a defined green palette constant.
+- **Evidence links (logs/screenshots/XML/artifacts):** https://github.com/Prav1525/Padippupal/actions/runs/40913271940 and https://github.com/Prav1525/Padippupal/actions/runs/40913271980.
+- **Change made (files + rationale):** Added original SVG and editable Excalidraw-compatible storyboard drafts for Earth/Moon/Sun paths, day/night, and Moon phases; added a module manifest with narration, captions, prompts and inline placement contract; added focused regression tests; documented the NCERT review gate; corrected the missing palette constant and Moon phase ordering.
+- **Root cause:** **CONFIRMED** — this is a new draft asset pilot, not a live tutor integration. The first CI attempt was blocked by the mandatory investigation ledger gate; automated checks and exact textbook review for the pilot still need confirmation.
+- **What this attempt proves:** The branch contains a module-owned visual-asset draft design intended for normal document flow beneath each explanation. It does not prove live Android rendering or production availability.
+- **What remains unverified:** Updated-head focused tests and workflow checks; exact NCERT source-page correctness; integration into the deployed Android tutor; Android APK build and emulator/phone acceptance; production API/service status. No production database writes or learner activation were performed.
+- **Difference from previous attempt:** Adds a dedicated Chapter 12 inline visual sample, distinct from the existing Science Chapter 1 visual engine and the separate tutor-fix PR.
+- **Next action and why:** Rerun CI on the updated head, review each generated drawing against the official textbook, integrate only after checks pass, and perform Android end-to-end acceptance before release. Keep all sample assets inactive until reviewed.

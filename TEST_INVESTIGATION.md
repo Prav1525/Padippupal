@@ -497,8 +497,8 @@ Use this format:
 
 
 ### 2026-10-29 — Reuse approved chapter visuals for matching selected topics
-- **Result:** **BLOCKED** pending exact-head CI and review.
+- **Result:** **PASS** — exact-head Curriculum Engine Tests, Android APK build, Android UI smoke test, and Investigation Guidance Gate all passed on commit `9ad997359567a3295be9147a9ad098da2a131323`.
 - **Root cause:** Production has 22 approved synthesized lessons, all with an empty topic field; tutor selection rejected chapter-wide lessons whenever a subtopic was selected. This bypassed stored visuals and fell through to dynamic generation.
 - **Evidence:** Read-only Neon query on main branch returned 22 approved lessons, 22 chapter-wide lessons, 0 topic-specific lessons; `lesson_visual_assets` contains 66 active assets across 19 lessons. The existing selection code continued whenever a selected topic differed from the stored topic, including when the stored topic was empty.
 - **Change:** Topic playback now filters a chapter-wide lesson to source-cited teaching steps that match the selected topic before creating narration segments and inline visuals. Exact topic-specific lessons remain preferred; if no matching step exists, the existing safe fallback remains.
-- **Next action:** Run the exact-head curriculum tests, Android build and UI smoke; fix any failures, then merge only if all required checks pass and verify the Render deployment and live playback.
+- **Next action:** Merge this tutor-fix PR after all required checks pass, then verify the Render deployment and live playback. Do not merge separate process or automation PRs.

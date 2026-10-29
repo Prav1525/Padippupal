@@ -1,0 +1,21 @@
+{
+  "source_id": "28077c43-b7fe-4a40-85c8-663b8ac326a2",
+  "synthesis_id": "bc8c23f4f2ffe8df3b621a2dc8a6689369eb259a7a6409a6e02a1758c90323f2",
+  "topic": "The Wonderful World of Science — Part 3",
+  "subject": "Science",
+  "class_level": 6,
+  "chapter": "The Wonderful World of Science",
+  "page_start": 4,
+  "page_end": 4,
+  "source_chunk_ids": [
+    "f03c46cb-1a45-403b-89b1-7a56640e8b08",
+    "4a6a000d-ae81-4737-8121-f52375ed449c"
+  ],
+  "renderer_family": "everyday_objects",
+  "renderer_version": "0.2.0",
+  "status": "needs_review",
+  "quality_flags": [],
+  "active": false,
+  "reason": "Generated as a candidate from approved synthesis/source mapping; source text contains OCR contamination or visual needs teacher review.",
+  "database_written": false
+}

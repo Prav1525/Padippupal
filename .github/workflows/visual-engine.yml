@@ -1,0 +1,31 @@
+name: Topic-aware Visual Engine
+
+on:
+  pull_request:
+    paths:
+      - "tools/visual_engine/**"
+      - ".github/workflows/visual-engine.yml"
+  push:
+    branches: [main, "feat/topic-aware-visual-engine"]
+    paths:
+      - "tools/visual_engine/**"
+      - ".github/workflows/visual-engine.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax check
+        run: python -m py_compile tools/visual_engine/visual_engine.py tools/visual_engine/test_visual_engine.py
+      - name: Unit tests
+        working-directory: tools/visual_engine
+        run: python -m unittest -v
+      - name: CLI smoke test
+        run: |
+          python tools/visual_engine/visual_engine.py list
+          python tools/visual_engine/visual_engine.py render --subject Mathematics --chapter "Patterns in Mathematics" --topic "Repeating patterns" --medium English --source-id "fixture-source" --source-page 12 --evidence-status source_verified --out /tmp/padippupal-pattern.svg
+          test -s /tmp/padippupal-pattern.svg

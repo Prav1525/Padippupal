@@ -23,7 +23,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPExcepti
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
-from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
+from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload, decode_json_field, build_visual_generation_event)
 from lesson_visuals import build_visual_records
 from textbook_visual_refs import describe_pdf_visual_references
 
@@ -821,6 +821,175 @@ def _backfill_approved_lesson_visuals() -> None:
     except Exception:
         # Visuals are optional; database/asset issues must not prevent API startup.
         logger.exception("Approved lesson visual backfill failed; service startup will continue")
+
+
+
+def _generate_synthesis_visual_candidates(round_id: str) -> int:
+    """Generate source-linked, inactive visual candidates immediately after synthesis.
+
+    This uses the same deterministic vector renderer as the tutor runtime. Draft
+    synthesis can create candidates, but only the normal approval/backfill path
+    activates them for learners.
+    """
+    now = time.time()
+    generated = 0
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT t.id AS synthesis_id,t.topic,t.learning_objectives_json,
+                      t.explanation_json,t.examples_json,t.citation_refs_json,
+                      r.source_id,r.board,r.class_level,r.subject,r.chapter,s.medium
+               FROM syllabus_topic_syntheses t
+               JOIN syllabus_synthesis_rounds r ON r.id=t.round_id
+               JOIN sources s ON s.id=r.source_id
+               WHERE t.round_id=? ORDER BY t.created_at,t.topic""",
+            (round_id,),
+        ).fetchall()
+        for row in rows:
+            try:
+                citations = decode_json_field(row["citation_refs_json"], [])
+                if not isinstance(citations, list) or not citations:
+                    logger.warning("Visual candidate skipped: synthesis has no citation list synthesis_id=%s", row["synthesis_id"])
+                    continue
+                citation_ids = list(dict.fromkeys(str(value) for value in citations if str(value)))
+                placeholders = ",".join("?" for _ in citation_ids)
+                chunks = conn.execute(
+                    f"SELECT id,page_start,page_end,text FROM chunks WHERE source_id=? AND id IN ({placeholders})",
+                    (str(row["source_id"]), *citation_ids),
+                ).fetchall()
+                page_by_id = {str(chunk["id"]): chunk for chunk in chunks}
+                # Fail closed: do not draw from a partially unresolved citation set.
+                if set(citation_ids) != set(page_by_id):
+                    logger.warning("Visual candidate skipped: unresolved citations synthesis_id=%s", row["synthesis_id"])
+                    continue
+                explanation_value = decode_json_field(row["explanation_json"], {})
+                objectives = decode_json_field(row["learning_objectives_json"], [])
+                examples = decode_json_field(row["examples_json"], [])
+                try:
+                    event = build_visual_generation_event(
+                        str(row["synthesis_id"]), str(row["topic"] or ""), explanation_value,
+                        citation_ids, set(page_by_id), source_id=str(row["source_id"]),
+                        board=str(row["board"]), class_level=int(row["class_level"]),
+                        subject=str(row["subject"]), medium=str(row["medium"]),
+                        chapter=str(row["chapter"]),
+                    )
+                except (TypeError, ValueError) as event_error:
+                    logger.warning("Visual generation event rejected synthesis_id=%s reason=%s",
+                                   row["synthesis_id"], event_error)
+                    continue
+                # From this point onward the renderer consumes the validated event,
+                # not unverified topic labels or a partial citation set.
+                citation_ids = event["citation_refs"]
+                def flatten(value: Any, limit: int = 1000) -> str:
+                    if isinstance(value, str):
+                        return normalize(value)[:limit]
+                    if isinstance(value, list):
+                        return normalize(" ".join(flatten(v, 240) for v in value if v is not None))[:limit]
+                    if isinstance(value, dict):
+                        keys = ("teacher_says", "caption", "simple_explanation", "explanation", "summary", "main_idea", "description", "text", "content")
+                        chosen = [flatten(value[k], 300) for k in keys if k in value]
+                        if not chosen:
+                            chosen = [flatten(v, 240) for k,v in value.items() if k not in {"citation_refs","source_chunk_ids","page_numbers"}]
+                        return normalize(" ".join(v for v in chosen if v))[:limit]
+                    return normalize(str(value))[:limit] if value is not None else ""
+                topic = event["topic"]
+                caption = flatten(explanation_value)
+                if len(caption) < 12:
+                    caption = flatten(examples[0], 600) if isinstance(examples, list) and examples else ""
+                if not topic or len(caption) < 12:
+                    continue
+                stable_topic_id = hashlib.sha256(
+                    (str(row["synthesis_id"]) + ":" + topic.casefold()).encode("utf-8")
+                ).hexdigest()[:12]
+                step_id = f"syn-{stable_topic_id}-1"
+                profile = [
+                    normalize(str(row["board"])).casefold(), int(row["class_level"]),
+                    normalize(str(row["subject"])).casefold(), normalize(str(row["medium"])).casefold(),
+                    normalize(str(row["chapter"])).casefold(), topic.casefold(),
+                ]
+                profile_key = hashlib.sha256(json.dumps(profile, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+                cited_pages = []
+                for chunk_id in citation_ids:
+                    chunk = page_by_id[chunk_id]
+                    for field in ("page_start", "page_end"):
+                        page = chunk[field]
+                        if page is not None and int(page) > 0 and int(page) not in cited_pages:
+                            cited_pages.append(int(page))
+                objective = flatten(objectives[0], 120) if isinstance(objectives, list) and objectives else ""
+                source_evidence = "\\n".join(str(chunk["text"] or "") for chunk in chunks)
+                evidence_lower = source_evidence.casefold()
+                quality_flags = []
+                if any(token in evidence_lower for token in ("10/18/2024", "chapter 1.indd", "reprint 2026-27")):
+                    quality_flags.append("running_header_or_timestamp")
+                if "fi nd" in evidence_lower or "scientifi c" in evidence_lower:
+                    quality_flags.append("ocr_split_word")
+                if "daily lives" in evidence_lower:
+                    quality_flags.append("running_header_fragment")
+                if "or watched a flower" in evidence_lower:
+                    quality_flags.append("malformed_ocr_sentence")
+                # Let the shared visual engine select a precise topic renderer from the
+                # synthesis plus only its cited source text; avoid generic keyword cards.
+                evidence_status = "needs_review" if quality_flags else "source_cited_draft"
+                step = {
+                    "id": step_id, "title": topic, "caption": caption[:500],
+                    "teacher_says": caption[:500], "source_chunk_ids": citation_ids,
+                    "source_evidence": source_evidence[:5000],
+                    "visual": {"type": "none", "objects": [],
+                               "narration_sync": [topic[:80]], "reference_page_numbers": sorted(cited_pages)[:8],
+                               "evidence_status": evidence_status, "quality_flags": quality_flags,
+                               "visual_rationale": "Generated from this synthesis step and its verified cited source chunks."},
+                }
+                lesson = {"chapter_title": str(row["chapter"]), "topic": topic,
+                          "overview": objective or caption[:300], "teaching_sequence": [step]}
+                records = build_visual_records(profile_key, lesson)
+                if not records:
+                    # Every new synthesis gets a traceable visual-generation
+                    # result. Unsupported/ambiguous concepts become review tasks,
+                    # never invented generic learner-facing drawings.
+                    review_blueprint = {
+                        "step_id": step_id, "title": topic, "caption": caption[:500],
+                        "kind": "needs_review", "layout": "compact_2d",
+                        "svg_markup": "", "nodes": [],
+                        "source_chunk_ids": citation_ids,
+                        "reference_page_numbers": sorted(cited_pages)[:8],
+                        "evidence_status": "needs_review",
+                        "quality_flags": ["no_topic_specific_renderer"],
+                        "review_reason": "No evidence-matched scene renderer; add a reviewed topic-specific visual before activation.",
+                        "renderer_version": "topic-aware-visual-engine",
+                    }
+                    serialized_review = json.dumps(review_blueprint, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                    records = [{
+                        "id": hashlib.sha256(f"{profile_key}:{step_id}".encode()).hexdigest()[:32],
+                        "step_id": step_id, "summary_text": caption[:500],
+                        "visual_kind": "needs_review", "blueprint_json": serialized_review,
+                        "content_fingerprint": hashlib.sha256(serialized_review.encode("utf-8")).hexdigest(),
+                    }]
+                for record in records:
+                    # A candidate is never learner-visible until approval promotes it.
+                    conn.execute(
+                        """INSERT INTO tutor_topic_visual_assets
+                           (id,profile_key,board,class_level,subject,medium,chapter,topic,step_id,
+                            summary_text,visual_kind,blueprint_json,source_chunk_ids_json,
+                            content_fingerprint,active,created_at,updated_at)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?)
+                           ON CONFLICT(profile_key,step_id) DO UPDATE SET
+                             summary_text=excluded.summary_text,visual_kind=excluded.visual_kind,
+                             blueprint_json=excluded.blueprint_json,
+                             source_chunk_ids_json=excluded.source_chunk_ids_json,
+                             content_fingerprint=excluded.content_fingerprint,
+                             active=CASE WHEN tutor_topic_visual_assets.content_fingerprint=excluded.content_fingerprint
+                                          THEN tutor_topic_visual_assets.active ELSE 0 END,
+                             updated_at=excluded.updated_at""",
+                        (record["id"],profile_key,str(row["board"]),int(row["class_level"]),
+                         str(row["subject"]),str(row["medium"]),str(row["chapter"]),topic,
+                         record["step_id"],record["summary_text"],record["visual_kind"],
+                         record["blueprint_json"],json.dumps(citation_ids,ensure_ascii=False),
+                         record["content_fingerprint"],now,now),
+                    )
+                    generated += 1
+            except Exception:
+                logger.exception("Visual candidate generation failed for synthesis_id=%s", row["synthesis_id"])
+    logger.info("Synthesis visual candidates generated: round_id=%s assets=%s", round_id, generated)
+    return generated
 
 
 def _backfill_approved_topic_synthesis_visuals() -> None:
@@ -1860,6 +2029,8 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                     existing_lesson = candidate
                     break
             if existing_lesson:
+                # Repair/backfill visual candidates on idempotent retries as well.
+                visual_candidates = _generate_synthesis_visual_candidates(synthesis_round_id)
                 try:
                     stored_lesson = json.loads(existing_lesson.get("lesson_json") or "{}")
                     stored_refs = json.loads(existing_lesson.get("source_refs_json") or "[]")
@@ -1875,6 +2046,8 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                     "source_refs": stored_refs,
                     "lesson": stored_lesson,
                     "validation": stored_validation,
+                    "visual_candidates_generated": visual_candidates,
+                    "visual_candidates_active": 0 if str(existing_lesson.get("status") or "").lower() != "approved" else None,
                     "review_required": str(existing_lesson.get("status") or "").lower() != "approved",
                     "reused_existing": True,
                 }
@@ -1898,7 +2071,12 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
         "Return JSON keys chapter_title, overview, learning_objectives (strings), concept_map (objects with concept, prerequisite, source_chunk_ids), "
         "teaching_sequence (objects with id, title, teacher_says, caption, example, misconception, checkpoint, learning_objectives (a short list specific to THIS step), source_chunk_ids, visual). "
         "Each visual must include type (number_pattern, number_line, geometry, compare, process, table, diagram, fraction, cycle, none), visual_subtype (for example triangle, angle, rectangle, fraction_bar, flow, life_cycle, number_line, or other), objects (short strings for visible objects/labels), actions (ordered small motion/reveal actions), narration_sync (short phrases that trigger each reveal), spatial_relationships (array of relationships), teaching_order (array of visual stages), reference_page_numbers (only page numbers explicitly present in supplied visual-reference descriptions), and visual_rationale (short explanation of how the visual supports this step). "
-        "Create a meaningful visual only when source evidence supports one. Never invent quantities, labels, stages, or page numbers. If no source visual reference is available, derive a simple original diagram from the cited text and clearly keep it concept-level. "
+        "For EVERY teaching step, return a visual recipe specific to that step, not a chapter-wide generic card. Visuals are generated automatically immediately after synthesis, so the recipe must be usable by the deterministic visual engine rather than relying on prose-only instructions. "
+        "The output must be an explanatory DRAWING, not a decorative picture, stock image, photo, or image-only placeholder. Every supported drawing must visibly teach the concept: draw the actual objects/shapes or states, put short labels beside or inside them, and show their source-supported relationships with arrows, boundaries, equal parts, direction, sequence, or comparison marks. "
+        "A row of empty boxes or unlabeled shapes is NOT an acceptable final visual. If labels and relationships cannot fit legibly, simplify the scene or mark it needs_review; never replace it with a generic picture. The Android tutor renders native vector drawings inline with the sentence being explained, so each step must have a clear one-sentence teaching purpose and match its spoken caption. "
+        "Use source-specific visual cues only when explicitly supported by the cited chunks: pen stops writing -> possible explanation -> check/test refill; knowledge as a jigsaw -> known pieces/new discoveries/new questions; object-material comparisons -> show only the named objects; inquiry -> observe/ask/suggest/test/review evidence. For maths, preserve exact counts, equal-part constraints, labels, angle relationships and numeric values. "
+        "Do not invent labels, measurements, outcomes, objects, causal arrows or missing steps. If the cited source does not support a clear drawable relationship, set type to none and explain why in visual_rationale; the engine will create a review task instead of a misleading learner visual. Use short child-friendly labels, one concept per scene, max 6 objects, and keep all labels legible in a compact inline SVG. "
+        "Prefer a topic-family scene such as compare-objects, hypothesis-test, scientific-inquiry sequence, states-of-matter, water-cycle, fraction-bar, number-line, geometry, or process only when supported by the cited source chunks for that step. Use short labels present in cited text; do not invent quantities, materials, stages, outcomes, or source pages. If source text has OCR noise, running headers, timestamps, or an unclear claim, keep the recipe conservative and explain uncertainty in visual_rationale. Never reuse the same generic visual across unrelated topics. The deterministic visual engine renders from the persisted synthesis and exact cited chunks; unsupported topics must be flagged for review rather than guessed. "
         "Include warm opening, sequenced small steps, source-supported examples, checkpoint and recap. Each concept and step must cite exact supplied chunk_id values. Across the complete concept map and teaching sequence, cite EVERY supplied chunk_id at least once; do not omit a content-bearing chunk. No code; draft only.")
     body = json.dumps({"systemInstruction":{"parts":[{"text":prompt}]},
         "contents":[{"role":"user","parts":[{"text":"Profile: "+payload.board+", class "+str(payload.class_level)+", subject "+payload.subject+", medium "+payload.medium+", chapter "+payload.chapter+", topic "+(payload.topic or "whole chapter")+"\nALL STORED CHAPTER CHUNKS:\n"+"\n\n---\n\n".join(context)}]}],
@@ -2018,10 +2196,12 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                           + ([] if topic_objectives else ["No step-specific learning objectives returned; left empty rather than copying chapter-wide objectives"]),
                           ensure_ascii=False),
                      "draft", now, now))
+        visual_candidates = _generate_synthesis_visual_candidates(synthesis_round_id)
         return {"lesson_id":lesson_id,"synthesis_round_id":synthesis_round_id,
                 "evidence_fingerprint":evidence_fingerprint_value,"status":"draft",
                 "source_chunk_count":len(chunks),"source_refs":refs,"lesson":lesson,
-                "validation":validation,"review_required":True}
+                "validation":validation,"visual_candidates_generated":visual_candidates,
+                "visual_candidates_active":0,"review_required":True}
     except urllib.error.HTTPError as exc:
         logger.warning("Chapter synthesis rejected: status=%s model=%s",exc.code,model)
         raise HTTPException(status_code=503 if exc.code==429 else 502,detail="Chapter synthesis failed; no draft was published.") from exc
@@ -2632,9 +2812,11 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
                 )
     visual_count = 0
     if status == "approved":
-        # Build and persist visuals at approval time; retrieval remains a safe backfill for older approved lessons.
+        # Build lesson-step assets and promote topic-synthesis candidates through the same
+        # source-validated path used for existing approved topics.
         lesson_payload = json.loads(row["lesson_json"] or "{}")
         visual_count = len(get_or_create_lesson_visuals(lesson_id, lesson_payload))
+        _backfill_approved_topic_synthesis_visuals()
     return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback,"visual_count":visual_count}
 
 

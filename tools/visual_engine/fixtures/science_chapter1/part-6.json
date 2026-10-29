@@ -1,0 +1,24 @@
+{
+  "source_id": "28077c43-b7fe-4a40-85c8-663b8ac326a2",
+  "synthesis_id": "15f19c0f4077e3a277eab4a9de1b0d13e8a6b373014afdc411b03a0fe298cae5",
+  "topic": "The Wonderful World of Science — Part 5",
+  "subject": "Science",
+  "class_level": 6,
+  "chapter": "The Wonderful World of Science",
+  "page_start": 6,
+  "page_end": 6,
+  "source_chunk_ids": [
+    "35d81817-d498-4c4c-9d46-d826259ece45",
+    "d5075a26-dc9d-457b-aab7-de1059240635"
+  ],
+  "renderer_family": "scientific_method",
+  "renderer_version": "0.2.0",
+  "status": "needs_review",
+  "quality_flags": [
+    "timestamp_ocr_contamination",
+    "ocr_split_word"
+  ],
+  "active": false,
+  "reason": "Generated as a candidate from approved synthesis/source mapping; source text contains OCR contamination or visual needs teacher review.",
+  "database_written": false
+}

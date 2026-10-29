@@ -253,3 +253,75 @@ def make_run_id(source_id: str, chapter: str, curriculum_version: str, fingerpri
     """Deterministic ID supports safe retries without duplicate chapter runs."""
     raw = "|".join((source_id, chapter.strip(), curriculum_version, fingerprint))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+
+def decode_json_field(value: Any, default: Any) -> Any:
+    """Decode a JSON/JSONB database field consistently across SQLite and Postgres.
+
+    psycopg may return JSONB as native lists/dicts while SQLite returns strings.
+    The synthesis-to-visual pipeline must accept either representation without
+    silently losing citations or failing to generate a candidate.
+    """
+    if value is None or value == "":
+        return default
+    if isinstance(value, (dict, list, int, float, bool)):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        value = value.decode("utf-8", errors="replace")
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return default
+    return default
+
+
+def build_visual_generation_event(
+    synthesis_id: str,
+    topic: str,
+    explanation: Any,
+    citation_refs: Sequence[str],
+    allowed_chunk_ids: set[str],
+    *,
+    source_id: str,
+    board: str,
+    class_level: int,
+    subject: str,
+    medium: str,
+    chapter: str,
+) -> dict[str, Any]:
+    """Create a validated, idempotent event consumed by the visual engine.
+
+    No visual may be generated from a neighbouring topic or a citation outside
+    the exact source packet. This event is internal orchestration data, not a
+    learner-facing asset.
+    """
+    topic_text = re.sub(r"\\s+", " ", str(topic or "")).strip()
+    if not synthesis_id.strip() or not topic_text or not source_id.strip():
+        raise ValueError("Visual generation event requires synthesis, topic and source IDs")
+    citations = list(dict.fromkeys(str(value) for value in citation_refs if str(value)))
+    if not citations:
+        raise ValueError("Visual generation event requires at least one source citation")
+    unknown = sorted(set(citations) - allowed_chunk_ids)
+    if unknown:
+        raise ValueError("Visual generation event contains unresolved citations: " + ", ".join(unknown))
+    if not isinstance(explanation, (str, dict, list)) or not explanation:
+        raise ValueError("Visual generation event requires a non-empty synthesis explanation")
+    return {
+        "event_type": "synthesis.visuals.requested",
+        "synthesis_id": synthesis_id,
+        "topic": topic_text,
+        "source_id": source_id,
+        "board": board,
+        "class_level": int(class_level),
+        "subject": subject,
+        "medium": medium,
+        "chapter": chapter,
+        "citation_refs": citations,
+        "explanation": explanation,
+        "idempotency_key": hashlib.sha256(
+            (synthesis_id + "|" + "|".join(citations)).encode("utf-8")
+        ).hexdigest(),
+        "activation_policy": "inactive_until_review",
+    }

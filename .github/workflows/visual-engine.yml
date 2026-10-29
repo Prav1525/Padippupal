@@ -1,0 +1,44 @@
+name: Topic-aware Visual Engine
+
+on:
+  pull_request:
+    paths:
+      - "tools/visual_engine/**"
+      - "backend/app.py"
+      - "backend/lesson_visuals.py"
+      - "backend/syllabus_synthesis.py"
+      - "backend/test_lesson_visuals.py"
+      - ".github/workflows/visual-engine.yml"
+  push:
+    branches: [main, "feat/topic-aware-visual-engine"]
+    paths:
+      - "tools/visual_engine/**"
+      - "backend/app.py"
+      - "backend/lesson_visuals.py"
+      - "backend/syllabus_synthesis.py"
+      - "backend/test_lesson_visuals.py"
+      - ".github/workflows/visual-engine.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax check
+        run: python -m py_compile tools/visual_engine/visual_engine.py tools/visual_engine/test_visual_engine.py tools/visual_engine/generate_science_chapter1.py tools/visual_engine/test_chapter1_pipeline.py backend/app.py backend/lesson_visuals.py
+      - name: Unit tests
+        working-directory: tools/visual_engine
+        run: python -m unittest -v
+      - name: CLI smoke test
+        run: |
+          python tools/visual_engine/visual_engine.py list
+          python tools/visual_engine/visual_engine.py render --subject Mathematics --chapter "Patterns in Mathematics" --topic "Repeating patterns" --medium English --source-id "fixture-source" --source-page 12 --evidence-status source_verified --out /tmp/padippupal-pattern.svg
+          test -s /tmp/padippupal-pattern.svg
+      - name: Backend synthesis and visual regression tests
+        run: |
+          python -m pip install -r backend/requirements.txt pytest
+          cd backend
+          python -m pytest -q test_lesson_visuals.py test_syllabus_synthesis.py test_syllabus_synthesis_api.py

@@ -80,6 +80,69 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertIn('<rect x="', record["blueprint"]["svg_markup"])
         self.assertEqual(record["source_chunk_ids_json"], '["chunk-pattern-1"]')
 
+    def test_unsupported_synthesis_topic_is_not_replaced_with_generic_title_card(self):
+        lesson = {"teaching_sequence": [{
+            "id": "unknown-topic",
+            "title": "A newly synthesized unfamiliar concept",
+            "caption": "The textbook describes a topic that has no reviewed renderer yet.",
+            "source_chunk_ids": ["source-chunk-9"],
+            "visual": {"type": "none", "objects": [], "narration_sync": ["A newly synthesized unfamiliar concept"]},
+        }]}
+        # The renderer must fail closed. The orchestration layer converts this
+        # empty drawable result into an inactive needs_review asset.
+        self.assertEqual(build_visual_records("lesson-unknown", lesson), [])
+
+    def test_science_chapter_one_scenes_are_topic_specific(self):
+        cases = [
+            ("A pen stops writing", "When a pen stops writing, check the ink refill and test the explanation.", "process"),
+            ("Science as a jigsaw", "Knowledge grows like a jigsaw as new discoveries create new questions.", "diagram"),
+            ("Objects and materials", "Compare paper, a metal key, a plastic ruler and a rubber eraser by their materials.", "compare"),
+            ("Scientific inquiry", "Observe the problem, ask a question, test a possible explanation and review evidence.", "process"),
+        ]
+        for title, caption, expected_kind in cases:
+            with self.subTest(title=title):
+                records = build_visual_records("profile", {"teaching_sequence": [{
+                    "id": "topic-step", "title": title, "caption": caption,
+                    "source_chunk_ids": ["source-1"],
+                    "source_evidence": caption,
+                    "visual": {"type": "none", "objects": [], "narration_sync": [title]},
+                }]})
+                self.assertEqual(len(records), 1)
+                self.assertEqual(records[0]["visual_kind"], expected_kind)
+                self.assertEqual(records[0]["blueprint"]["source_chunk_ids"], ["source-1"])
+                self.assertIn("<svg", records[0]["blueprint"]["svg_markup"])
+
+
+    def test_jigsaw_visual_is_a_connected_concept_map(self):
+        record = build_visual_records("profile", {"teaching_sequence": [{
+            "id": "jigsaw-step",
+            "title": "Science as a jigsaw",
+            "caption": "Knowledge grows like a jigsaw as discoveries create new questions.",
+            "source_chunk_ids": ["source-jigsaw"],
+            "source_evidence": "Science is like a giant jigsaw puzzle; discoveries lead to new questions.",
+            "visual": {"type": "none", "objects": []},
+        }]})[0]
+        svg = record["blueprint"]["svg_markup"]
+        self.assertEqual(record["visual_kind"], "diagram")
+        self.assertIn("What we know", svg)
+        self.assertIn("New discovery", svg)
+        self.assertIn("New question", svg)
+
+    def test_pen_inquiry_visual_shows_testable_hypothesis_steps(self):
+        record = build_visual_records("profile", {"teaching_sequence": [{
+            "id": "pen-step",
+            "title": "A pen stops writing",
+            "caption": "A pen stops writing; a possible cause is the ink refill, so check it.",
+            "source_chunk_ids": ["source-pen"],
+            "source_evidence": "When a pen stops writing, check the ink refill and test the explanation.",
+            "visual": {"type": "none", "objects": []},
+        }]})[0]
+        svg = record["blueprint"]["svg_markup"]
+        self.assertEqual(record["visual_kind"], "process")
+        self.assertIn("Pen stops writing", svg)
+        self.assertIn("Possible explanation", svg)
+        self.assertIn("Check the refill", svg)
+
     def test_empty_or_missing_sequence_produces_no_unrelated_visual(self):
         self.assertEqual(build_visual_records("lesson-2", {}), [])
         self.assertEqual(build_visual_records("lesson-2", {"teaching_sequence": []}), [])
@@ -126,6 +189,38 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertIn("C &amp; D", svg)
         self.assertNotIn("< B", svg)
         self.assertEqual(json.loads(record["blueprint_json"])["svg_markup"], svg)
+
+
+    def test_new_synthesis_step_is_renderable_with_exact_source_mapping(self):
+        # Contract exercised by the synthesis-to-visual pipeline: one generated
+        # topic produces one stable visual tied only to its cited source chunks.
+        lesson = {
+            "chapter_title": "The Wonderful World of Science",
+            "topic": "Testing a possible explanation",
+            "overview": "A guess should be tested with evidence.",
+            "teaching_sequence": [{
+                "id": "syn-abc123def456-1",
+                "title": "Testing a possible explanation",
+                "caption": "When a pen stops writing, check whether the ink refill is empty.",
+                "teacher_says": "When a pen stops writing, check whether the ink refill is empty.",
+                "source_chunk_ids": ["chunk-pen-1", "chunk-pen-2"],
+                "visual": {
+                    "type": "process",
+                    "objects": ["Pen stops writing", "Possible guess", "Check refill"],
+                    "narration_sync": ["Possible guess"],
+                    "reference_page_numbers": [4, 5],
+                },
+            }],
+        }
+        records = build_visual_records("profile-key", lesson)
+        self.assertEqual(len(records), 1)
+        record = records[0]
+        self.assertEqual(record["step_id"], "syn-abc123def456-1")
+        self.assertEqual(json.loads(record["source_chunk_ids_json"]), ["chunk-pen-1", "chunk-pen-2"])
+        self.assertEqual(record["blueprint"]["reference_page_numbers"], [4, 5])
+        self.assertIn("svg_markup", record["blueprint"])
+        self.assertIn("Pen stops writing", record["blueprint"]["svg_markup"])
+        self.assertTrue(record["content_fingerprint"])
 
 
 if __name__ == "__main__":
@@ -281,3 +376,97 @@ def test_approved_topic_synthesis_visual_backfill_persists_only_source_cited_top
     assert all(row["source_chunk_ids_json"] == '["water-chunk-1"]' for row in rows)
     assert all(row["active"] == 1 for row in rows)
     assert all("svg_markup" in json.loads(row["blueprint_json"]) for row in rows)
+
+
+def test_topic_specific_visual_engine_uses_cited_evidence_not_generic_cards():
+    from lesson_visuals import build_visual_records
+
+    cases = [
+        ("The Wonderful World of Science — Part 2", "Knowledge is like a jigsaw puzzle; each discovery adds a piece.",
+         "Our knowledge is like a giant and unending jigsaw puzzle.", "diagram",
+         ["What we know", "New discovery", "New questions"]),
+        ("Pen investigation", "If a pen stops writing, guess that the ink is empty and check the refill.",
+         "A pen may stop writing; test whether the refill has ink.", "process",
+         ["Pen stops writing", "Possible explanation", "Check the refill"]),
+        ("Scientific inquiry", "Observe, ask, guess, test and analyse the results.",
+         "Scientific inquiry: observe, ask a question, test the guess and review evidence.", "process",
+         ["Observe", "Ask", "Guess", "Test", "Review results"]),
+        ("Everyday objects", "Compare paper, a metal key, a plastic ruler and a rubber eraser.",
+         "These objects are made of different materials: paper, a metal key, a plastic ruler and a rubber eraser.", "compare",
+         ["Paper", "Metal key", "Plastic ruler", "Rubber eraser"]),
+    ]
+    for topic, caption, evidence, expected_kind, expected_nodes in cases:
+        records = build_visual_records("profile-test", {
+            "teaching_sequence": [{
+                "id": "source-step-1", "title": topic, "caption": caption,
+                "source_chunk_ids": ["chunk-source-1"], "source_evidence": evidence,
+                "visual": {"type": "none", "objects": [], "evidence_status": "source_cited_draft"},
+            }]
+        })
+        assert len(records) == 1
+        blueprint = records[0]["blueprint"]
+        assert blueprint["kind"] == expected_kind
+        assert blueprint["nodes"] == expected_nodes
+        assert blueprint["source_chunk_ids"] == ["chunk-source-1"]
+        assert blueprint["evidence_status"] == "source_cited_draft"
+        assert "svg_markup" in blueprint["svg_markup"] or blueprint["svg_markup"].startswith("<svg")
+
+
+def test_visual_engine_preserves_quality_flags_and_never_activates_candidates():
+    from lesson_visuals import build_visual_records
+
+    records = build_visual_records("profile-test", {
+        "teaching_sequence": [{
+            "id": "ocr-step-1", "title": "Curiosity", "caption": "Notice something and ask why.",
+            "source_chunk_ids": ["chunk-ocr-1"], "source_evidence": "Or watched a flower bloom. Chapter 1.indd 1",
+            "visual": {"type": "none", "objects": [], "evidence_status": "needs_review",
+                       "quality_flags": ["running_header_or_timestamp", "malformed_ocr_sentence"]},
+        }]
+    })
+    assert len(records) == 1
+    blueprint = records[0]["blueprint"]
+    assert blueprint["evidence_status"] == "needs_review"
+    assert "running_header_or_timestamp" in blueprint["quality_flags"]
+    assert "malformed_ocr_sentence" in blueprint["quality_flags"]
+
+
+def test_science_chapter1_pen_inquiry_gets_topic_specific_scene():
+    lesson = {"chapter_title": "The Wonderful World of Science", "teaching_sequence": [{
+        "id": "pen-inquiry", "title": "A pen stops writing",
+        "caption": "When a pen stops writing, one possible explanation is that the ink refill is empty. Check the refill to test the guess.",
+        "source_chunk_ids": ["source-pen-page-4"],
+        "visual": {"type": "process", "objects": ["A pen stops writing", "Ink refill"]},
+    }]}
+    record = build_visual_records("science-ch1", lesson)[0]
+    assert record["visual_kind"] == "process"
+    assert record["blueprint"]["nodes"] == ["Pen stops writing", "Possible explanation", "Check the refill"]
+    assert "Check the refill" in record["blueprint"]["svg_markup"]
+    assert json.loads(record["source_chunk_ids_json"]) == ["source-pen-page-4"]
+
+
+def test_science_chapter1_jigsaw_gets_connected_concept_map():
+    lesson = {"chapter_title": "The Wonderful World of Science", "teaching_sequence": [{
+        "id": "knowledge-jigsaw", "title": "Science is a growing jigsaw",
+        "caption": "Knowledge is like a jigsaw puzzle: each new discovery adds a piece and leads to new questions.",
+        "source_chunk_ids": ["source-science-page-2"],
+        "visual": {"type": "diagram", "objects": ["Knowledge", "Discovery"]},
+    }]}
+    record = build_visual_records("science-ch1", lesson)[0]
+    assert record["visual_kind"] == "diagram"
+    svg = record["blueprint"]["svg_markup"]
+    assert "What we know" in svg
+    assert "New discovery" in svg
+    assert "New questions" in svg
+
+
+def test_science_chapter1_inquiry_process_gets_ordered_steps():
+    lesson = {"chapter_title": "The Wonderful World of Science", "teaching_sequence": [{
+        "id": "scientific-inquiry", "title": "Scientific inquiry",
+        "caption": "Observe a problem, ask a question, suggest a possible explanation, test it, and review the evidence.",
+        "source_chunk_ids": ["source-science-page-5"],
+        "visual": {"type": "process", "objects": ["Observe", "Test"]},
+    }]}
+    record = build_visual_records("science-ch1", lesson)[0]
+    assert record["visual_kind"] == "process"
+    assert record["blueprint"]["nodes"] == ["Observe", "Ask", "Guess", "Test", "Review results"]
+    assert json.loads(record["source_chunk_ids_json"]) == ["source-science-page-5"]

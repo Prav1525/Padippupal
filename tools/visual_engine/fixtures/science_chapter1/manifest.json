@@ -1,0 +1,122 @@
+{
+  "chapter": "The Wonderful World of Science",
+  "class_level": 6,
+  "subject": "Science",
+  "medium": "English",
+  "board": "CBSE",
+  "source": {
+    "id": "28077c43-b7fe-4a40-85c8-663b8ac326a2",
+    "title": "NCERT Curiosity Class 6 Science — Chapter PDF (fecu101.pdf)",
+    "edition": "Reprint 2026-27",
+    "page_count": 8
+  },
+  "generation": {
+    "engine": "PadippuPal Topic-Aware Visual Engine",
+    "version": "0.2.0",
+    "method": "topic-specific deterministic SVG; mapped to approved syllabus_topic_syntheses and cited chunks",
+    "database_writes": 0,
+    "learner_visible": false
+  },
+  "policy": "All SVGs are draft candidates. active=false. Human source/visual review is required before DB persistence or tutor integration.",
+  "assets": [
+    {
+      "topic_part": 1,
+      "page": 1,
+      "synthesis_id": "98c502390c68f17e1a94e3f8b376db8039c15ffa983b465233a3261d74368083",
+      "file": "part-1.svg",
+      "metadata": "part-1.json",
+      "chunks": [
+        "85e8fe7b-ba04-45e3-8e88-54770f76a11b",
+        "540d5b48-97fc-4a93-8251-1b3e177b4b61"
+      ],
+      "visual": "Curiosity: observe a flower/natural object and ask a question",
+      "review_flags": [
+        "malformed_ocr_sentence"
+      ]
+    },
+    {
+      "topic_part": 2,
+      "page": 2,
+      "synthesis_id": "a8d0b8714c2d726dc9d92f11751f74e5bc661f845b3b7cd8fd5ee9f41259af8f",
+      "file": "part-2.svg",
+      "metadata": "part-2.json",
+      "chunks": [
+        "c87f3be1-35c5-4b1e-b769-2e53850f6de5",
+        "51c5eeae-dcb2-4c04-a2ef-90e7fe5f6fc0"
+      ],
+      "visual": "Science knowledge as a growing jigsaw puzzle",
+      "review_flags": [
+        "running_header_fragment"
+      ]
+    },
+    {
+      "topic_part": 3,
+      "page": 4,
+      "synthesis_id": "bc8c23f4f2ffe8df3b621a2dc8a6689369eb259a7a6409a6e02a1758c90323f2",
+      "file": "part-4.svg",
+      "metadata": "part-4.json",
+      "chunks": [
+        "f03c46cb-1a45-403b-89b1-7a56640e8b08",
+        "4a6a000d-ae81-4737-8121-f52375ed449c"
+      ],
+      "visual": "Named everyday objects prompt a materials question",
+      "review_flags": []
+    },
+    {
+      "topic_part": 4,
+      "page": 5,
+      "synthesis_id": "30b3765025c95e342ae45174ff82a6e0247d457582b1cc2449766c28227b48c5",
+      "file": "part-5.svg",
+      "metadata": "part-5.json",
+      "chunks": [
+        "8caf1fd6-b2f3-436b-a7b9-f37c99e44e99",
+        "0988f81b-21f7-4e16-9f5b-8224f72a1767"
+      ],
+      "visual": "Pen stops writing → possible guess → test by checking refill",
+      "review_flags": [
+        "ocr_split_word"
+      ]
+    },
+    {
+      "topic_part": 5,
+      "page": 6,
+      "synthesis_id": "15f19c0f4077e3a277eab4a9de1b0d13e8a6b373014afdc411b03a0fe298cae5",
+      "file": "part-6.svg",
+      "metadata": "part-6.json",
+      "chunks": [
+        "35d81817-d498-4c4c-9d46-d826259ece45",
+        "d5075a26-dc9d-457b-aab7-de1059240635"
+      ],
+      "visual": "Scientific method: observe, ask, guess, test, analyse",
+      "review_flags": [
+        "timestamp_ocr_contamination",
+        "ocr_split_word"
+      ]
+    },
+    {
+      "topic_part": 6,
+      "page": 7,
+      "synthesis_id": "a5ab26dbc69d1f5a7b459d9c677def8d76cdc2757f33ab63fd6e82cd85793995",
+      "file": "part-7.svg",
+      "metadata": "part-7.json",
+      "chunks": [
+        "14256fbc-cb64-43bb-8051-56ad2b0a53fe",
+        "23e47207-f97d-475c-8654-93de2a43a73b"
+      ],
+      "visual": "Apply questioning and evidence to daily-life problems",
+      "review_flags": []
+    },
+    {
+      "topic_part": 7,
+      "page": 8,
+      "synthesis_id": "99cb9f298d8376e2c5a6bd86e8f85945397f0de6adbed83b8158f9a14bbce6ea",
+      "file": "part-8.svg",
+      "metadata": "part-8.json",
+      "chunks": [
+        "012dbf53-fad3-4312-96fd-1386c8535ba0"
+      ],
+      "visual": "Keep exploring and asking questions",
+      "review_flags": []
+    }
+  ]
+}

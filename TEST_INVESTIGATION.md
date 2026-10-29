@@ -524,3 +524,44 @@ Use this format:
 
 - **Scope extension:** Startup now also scans approved `syllabus_topic_syntheses`, verifies each cited chunk belongs to the same source, and persists a reusable topic-scoped visual for synthesis explanations/examples where a compact diagram or concept card can be grounded. Unsupported/uncited topics are skipped; existing lesson content and approval state are not modified. Exact-head regression checks must verify this backfill is safe and idempotent.
 - **Backfill regression test:** Added a temporary-SQLite test with one approved, cited water-cycle synthesis; it verifies topic/chapter binding, cited chunk provenance, active persistence, and stored SVG markup. The test also exercises startup backfill's source-scoped chunk filtering.
+
+
+### 2026-10-29 — Validate Grade 6 Science Chapter 1 visual source mapping
+- **Branch / commit:** `feat/topic-aware-visual-engine`; source-map regression test commit `42fe56457cdad52fcc5e3e84d7ba3982c82857ea`.
+- **Test command or workflow URL:** [Topic-aware Visual Engine workflow](https://github.com/Prav1525/Padippupal/actions/runs/40889446456) (the visual-engine workflow is separate from this guidance check).
+- **Result:** **PARTIAL / IN PROGRESS** — live Neon queries confirm all seven approved synthesis IDs and every cited chunk ID resolve within the expected source. The Part 2 fixture synthesis ID was corrected.
+- **Exact failure or assertion:** Investigation Guidance Gate failed because this ledger had not been updated for the code/config changes; no visual-engine test failure was reported by that gate.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Guidance gate run](https://github.com/Prav1525/Padippupal/actions/runs/40889446456); [visual-engine run](https://github.com/Prav1525/Padippupal/actions/runs/40889330256).
+- **Change made (files + rationale):** Corrected the Part 2 synthesis ID in the manifest and metadata; added a unit test asserting all seven fixture synthesis IDs and cited chunk IDs match verified live Neon records and that draft assets remain inactive.
+- **Root cause:** **CONFIRMED** — the previous Part 2 fixture ID had a typo; the live database record uses `a8d0b8714c2d726dc9d92f11751f74e5bc661f845b3b7cd8fd5ee9f41259af8f`.
+- **What this attempt proves:** All seven live synthesis records have the expected citation counts, and all cited chunk IDs resolve under the same source; the corrected fixture is protected by a regression test.
+- **What remains unverified:** Latest regression-test workflow result, visual comparison against source page images, inactive candidate persistence, Android inline rendering, Tanglish speech/captions, and production learner flow.
+- **Difference from previous attempt:** Adds a direct live-source citation audit and exact-ID regression coverage rather than relying only on manually prepared fixture metadata.
+- **Next action and why:** Wait for the exact-head CI checks, then review the SVGs against the original source pages and integrate only after the UI/persistence path is proven. Do not activate or publish unreviewed drawings.
+
+
+### 2026-10-29 — Connect synthesis persistence to automatic visual generation
+- **Branch / commit:** `feat/topic-aware-visual-engine`; integration checkpoint `20ba3fd4dbcce94bd833376e584dc6808e453755`.
+- **Test command or workflow URL:** [Topic-aware Visual Engine](https://github.com/Prav1525/Padippupal/actions/runs/40893502399); [Curriculum Engine Tests](https://github.com/Prav1525/Padippupal/actions/runs/40893514867).
+- **Result:** **PASS** for visual-engine and curriculum test suites at the integration checkpoint.
+- **Exact failure or assertion:** Earlier runs caught an uninitialized SVG renderer body, mismatched scene-label assertions, missing backend dependencies in CI, and an integration fixture that had not inserted the cited chunk into the database. These were corrected; latest two suites pass.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Visual-engine run](https://github.com/Prav1525/Padippupal/actions/runs/40893502399); [curriculum suite](https://github.com/Prav1525/Padippupal/actions/runs/40893514867).
+- **Change made (files + rationale):** Added a validated `synthesis.visuals.requested` event contract; added cross-driver JSON/JSONB decoding; connected the backend synthesis persistence hook to the visual engine; added a source-linked inactive `needs_review` candidate when no safe topic-specific renderer matches; improved Science Chapter 1 vector scenes; added synthesis API regression assertions and installed backend requirements in visual-engine CI. Regenerated assets deactivate stale active visuals when their content fingerprint changes.
+- **Root cause:** **CONFIRMED** — the synthesis and visual programs had separate rendering logic and the previous backend hook could silently produce zero candidates for unsupported generic topics; the standalone visual-engine renderer also had a branch initialization defect.
+- **What this attempt proves:** For a new synthesis round, the backend invokes visual generation after persistence; citations are resolved against the same source; valid assets are stored inactive and traceable; unsupported scenes are recorded for review rather than shown as fabricated generic visuals. The regression suite exercises this path.
+- **What remains unverified:** Latest Android APK/UI smoke result, live Render deployment, and learner-facing inline rendering after approval. The candidate-generation pipeline is not equivalent to production publication.
+- **Difference from previous attempt:** Moves from a standalone CLI and a partial callback to a validated, idempotent synthesis-to-visual event contract with automatic persistence, fail-closed review records, and CI coverage.
+- **Next action and why:** Confirm the exact-head Android build/UI checks, then perform a source-page review and verify the approved SVG inline in the tutor before activating any replacement asset or deploying.
+
+### 2026-10-29 — Connect synthesis generation to the topic-aware visual pipeline
+- **Branch / commit:** `feat/topic-aware-visual-engine`; current source-mapping and renderer changes are on the branch head after `20ba3fd4dbcce94bd833376e584dc6808e453755`.
+- **Test command or workflow URL:** [Topic-aware Visual Engine](https://github.com/Prav1525/Padippupal/actions/runs/40893514792); [Curriculum Engine Tests](https://github.com/Prav1525/Padippupal/actions/runs/40893514867).
+- **Result:** **PASS** — visual-engine workflow and backend curriculum engine tests passed on the same head.
+- **Exact failure or assertion:** Earlier runs caught a missing SVG-body initialization and overly strict scene assertions; those were corrected, and all automated tests now pass.
+- **Evidence links (logs/screenshots/XML/artifacts):** Visual Engine run above; [backend test run](https://github.com/Prav1525/Padippupal/actions/runs/40893514867).
+- **Change made (files + rationale):** Extended the deterministic CLI renderer with Science Chapter 1 topic families; strengthened the synthesis prompt for step-specific source-grounded visual recipes; connected post-persistence synthesis generation to `backend/lesson_visuals.py` using exact cited chunk text; added OCR/header/timestamp quality flags; persisted review-needed candidates when no safe renderer matches; added regression tests; and changed upserts so a changed fingerprint deactivates the prior asset pending review.
+- **Root cause:** **CONFIRMED** — the existing automatic hook generated only a limited keyword-derived recipe. It did not consistently select topic-specific scene families or preserve review metadata for uncertain topics.
+- **What this attempt proves:** Each synthesis run attempts visual generation automatically; candidates retain source-chunk mappings and content fingerprints; supported topics get deterministic SVG blueprints, unsupported topics get an inactive review-needed record, and changed visuals are not silently left active. Visual-engine and backend test suites pass.
+- **What remains unverified:** Android APK and UI smoke-test results for this exact branch head; real production tutor screen rendering; end-to-end Tanglish playback/caption sync; production learner availability. Live Neon candidate writes have not been run as part of this CI test.
+- **Difference from previous attempt:** Connects synthesis persistence to the topic-aware visual generator instead of requiring a separate manual visual-generation command.
+- **Next action and why:** Review the remaining Android build/smoke-test results and then test one approved chapter through the live tutor UI before any candidate is activated for learners.

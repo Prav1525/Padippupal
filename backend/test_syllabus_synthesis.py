@@ -8,6 +8,8 @@ from syllabus_synthesis import (
     make_run_id,
     validate_synthesis_payload,
     validate_chapter_lesson_payload,
+    decode_json_field,
+    build_visual_generation_event,
 )
 
 
@@ -146,6 +148,41 @@ class SyllabusSynthesisTests(unittest.TestCase):
         self.assertEqual(result["source_chunk_count"], 2)
         self.assertEqual(result["cited_chunk_count"], 1)
         self.assertEqual(result["uncited_chunk_count"], 1)
+
+
+    def test_json_field_decoder_supports_sqlite_strings_and_postgres_jsonb(self):
+        self.assertEqual(decode_json_field('["chunk-a"]', []), ["chunk-a"])
+        self.assertEqual(decode_json_field(["chunk-a"], []), ["chunk-a"])
+        self.assertEqual(decode_json_field({"teacher_says": "Hello"}, {}), {"teacher_says": "Hello"})
+        self.assertEqual(decode_json_field(None, []), [])
+
+    def test_visual_generation_event_is_source_bound_and_idempotent(self):
+        event = build_visual_generation_event(
+            "synthesis-1", "Testing a pen hypothesis",
+            {"teacher_says": "Check whether the ink refill is empty."},
+            ["chunk-a", "chunk-b"], {"chunk-a", "chunk-b"},
+            source_id="source-1", board="CBSE", class_level=6,
+            subject="Science", medium="English", chapter="The Wonderful World of Science",
+        )
+        self.assertEqual(event["event_type"], "synthesis.visuals.requested")
+        self.assertEqual(event["citation_refs"], ["chunk-a", "chunk-b"])
+        self.assertEqual(event["activation_policy"], "inactive_until_review")
+        again = build_visual_generation_event(
+            "synthesis-1", "Testing a pen hypothesis",
+            {"teacher_says": "Check whether the ink refill is empty."},
+            ["chunk-a", "chunk-b"], {"chunk-a", "chunk-b"},
+            source_id="source-1", board="CBSE", class_level=6,
+            subject="Science", medium="English", chapter="The Wonderful World of Science",
+        )
+        self.assertEqual(event["idempotency_key"], again["idempotency_key"])
+
+    def test_visual_generation_event_rejects_missing_or_foreign_citations(self):
+        with self.assertRaises(ValueError):
+            build_visual_generation_event(
+                "synthesis-1", "Topic", "Explanation", ["foreign"],
+                {"chunk-a"}, source_id="source-1", board="CBSE",
+                class_level=6, subject="Science", medium="English", chapter="Chapter",
+            )
 
 
 if __name__ == "__main__":

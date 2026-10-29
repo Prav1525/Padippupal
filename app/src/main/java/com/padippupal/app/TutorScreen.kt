@@ -18,6 +18,7 @@ import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -577,6 +578,501 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
     }
 }
 
+
+@Composable
+private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int, modifier: Modifier = Modifier) {
+    // Synthesized lessons store a separate, source-mapped visual blueprint per teaching
+    // step. Resolve that step first; otherwise the old renderer treated the whole lesson
+    // as one generic scene and silently drew the same fallback circles for every topic.
+    val steps = lesson.optJSONArray("steps")
+    val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
+    val stage = activeStep.coerceIn(0, stepCount - 1)
+    val step = steps?.optJSONObject(stage)
+    val topic = lesson.optString("topic", lesson.optString("title", "Concept"))
+    val isSynthesizedLesson = lesson.optString("scene_type") == "synthesis_static"
+    val rawSubtype = step?.optString("visual_subtype").orEmpty().lowercase()
+    val rawKind = step?.optString("visual_kind").orEmpty()
+        .ifBlank { lesson.optString("visual_kind", "diagram") }.lowercase()
+    val recognizedSubtypes = setOf(
+        "triangle", "angle", "rectangle", "fraction_bar", "flow", "life_cycle",
+        "number_line", "other", "water_cycle", "food_chain", "solar_system",
+        "photosynthesis", "particle_states", "day_night", "electric_circuit"
+    )
+    val rawScene = if (isSynthesizedLesson) {
+        if (rawSubtype in recognizedSubtypes && rawSubtype != "other") rawSubtype else rawKind
+    } else lesson.optString("scene_type", "diagram")
+    val scene = when (rawScene.lowercase()) {
+        "fraction", "fraction_bar" -> "fraction_builder"
+        "cycle", "life_cycle" -> if (topic.contains("water", true)) "water_cycle" else "life_cycle"
+        "flow" -> if (topic.contains("food chain", true) || topic.contains("food web", true)) "food_chain" else "process"
+        "triangle", "angle", "rectangle" -> "geometry"
+        "number_line" -> "number_line"
+        "process" -> "process"
+        else -> rawScene.lowercase()
+    }
+    val stepLabels = buildList {
+        val nodes = step?.optJSONArray("nodes")
+        if (nodes != null) for (i in 0 until nodes.length()) {
+            val label = nodes.optString(i).trim()
+            if (label.isNotBlank()) add(label.take(42))
+        }
+    }.take(6)
+    val isSynthesisStep = lesson.optString("scene_type") == "synthesis_static" && step != null
+    Column(
+        modifier.fillMaxWidth().padding(top = 4.dp, bottom = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // Keep the visual's identity and learning takeaway visible while the lesson is
+        // actively speaking. The previous renderer drew the diagram but omitted its
+        // synthesis title/caption, so learners (and the accessibility smoke test) saw
+        // an unlabeled sketch until the lesson had already completed.
+        val visualTitle = lesson.optString("title").ifBlank { topic }.ifBlank { "Concept drawing" }
+        val visualTakeaway = step?.optString("caption").orEmpty()
+            .ifBlank { lesson.optString("caption") }
+            .ifBlank { step?.optString("label").orEmpty() }
+        Text(
+            visualTitle,
+            color = TutorDeep,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        if (visualTakeaway.isNotBlank()) {
+            Text(
+                visualTakeaway,
+                color = Color(0xFF475569),
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "LET'S DRAW IT",
+                color = Color(0xFF64748B),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.1.sp
+            )
+            Text(
+                "Step ${stage + 1} of ${stepCount}",
+                color = Color(0xFF64748B),
+                fontSize = 10.sp
+            )
+        }
+        // Draw directly on the lesson canvas: no card, border, overlay, or inset panel.
+        Canvas(modifier.fillMaxWidth().height(112.dp)) {
+                val w = size.width
+                val h = size.height
+                val center = Offset(w * .5f, h * .5f)
+                val stroke = 1.6.dp.toPx()
+                val orbit = Color(0xFF94A3B8)
+                val ink = Color(0xFF334155)
+                when {
+                    scene == "number_line" -> {
+                        val left = w * .12f
+                        val right = w * .88f
+                        val y = h * .54f
+                        val isRepeatingOnes = topic.contains("all 1s", true) || topic.contains("all ones", true)
+                        if (isRepeatingOnes) {
+                            // Show all terms at once: a repeating pattern is not a number line.
+                            val spacing = (right - left) / 4f
+                            repeat(5) { i ->
+                                val x = left + spacing * i
+                                val boxSize = 25.dp.toPx()
+                                drawRoundRect(
+                                    if (i == stage.coerceIn(0, 4)) Color(0xFFDCE7FF) else Color(0xFFF1F5F9),
+                                    Offset(x - boxSize / 2f, y - boxSize / 2f),
+                                    androidx.compose.ui.geometry.Size(boxSize, boxSize),
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(5.dp.toPx())
+                                )
+                                drawRoundRect(
+                                    ink, Offset(x - boxSize / 2f, y - boxSize / 2f),
+                                    androidx.compose.ui.geometry.Size(boxSize, boxSize),
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(5.dp.toPx()),
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+                                )
+                                drawCircle(Color(0xFF3987C9), 3.dp.toPx(), Offset(x, y))
+                            }
+                        } else {
+                            drawLine(ink, Offset(left, y), Offset(right, y), stroke)
+                            repeat(5) { i ->
+                                val x = left + (right - left) * i / 4f
+                                drawLine(ink, Offset(x, y - 8.dp.toPx()), Offset(x, y + 8.dp.toPx()), stroke)
+                                drawCircle(if (i == stage.coerceIn(0, 4)) Color(0xFF3987C9) else ink, 4.dp.toPx(), Offset(x, y))
+                            }
+                            drawLine(ink, Offset(right - 8.dp.toPx(), y - 5.dp.toPx()), Offset(right, y), stroke)
+                            drawLine(ink, Offset(right - 8.dp.toPx(), y + 5.dp.toPx()), Offset(right, y), stroke)
+                        }
+                    }
+                    scene == "geometry" -> {
+                        val left = w * .25f
+                        val top = h * .22f
+                        val right = w * .75f
+                        val bottom = h * .78f
+                        when (rawSubtype) {
+                            "rectangle" -> {
+                                drawRect(Color(0xFFDCEFEB), Offset(left, top), androidx.compose.ui.geometry.Size(right - left, bottom - top))
+                                drawRect(ink, Offset(left, top), androidx.compose.ui.geometry.Size(right - left, bottom - top), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            }
+                            "angle" -> {
+                                drawLine(ink, Offset(w * .24f, h * .72f), Offset(w * .76f, h * .72f), stroke * 1.5f)
+                                drawLine(ink, Offset(w * .24f, h * .72f), Offset(w * .62f, h * .25f), stroke * 1.5f)
+                                drawArc(Color(0xFF3987C9), 0f, -52f, false, Offset(w * .24f, h * .35f), androidx.compose.ui.geometry.Size(w * .42f, h * .42f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            }
+                            else -> {
+                                val p1 = Offset(w * .50f, h * .18f)
+                                val p2 = Offset(w * .22f, h * .78f)
+                                val p3 = Offset(w * .78f, h * .78f)
+                                drawLine(ink, p1, p2, stroke * 1.5f)
+                                drawLine(ink, p2, p3, stroke * 1.5f)
+                                drawLine(ink, p3, p1, stroke * 1.5f)
+                                if (stage >= 1) drawCircle(Color(0xFF3987C9), 4.dp.toPx(), p1)
+                            }
+                        }
+                    }
+                    scene == "table" -> {
+                        val left = w * .18f
+                        val top = h * .22f
+                        val width = w * .64f
+                        val height = h * .56f
+                        drawRect(Color(0xFFDCEFEB), Offset(left, top), androidx.compose.ui.geometry.Size(width, height))
+                        drawRect(ink, Offset(left, top), androidx.compose.ui.geometry.Size(width, height), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        drawLine(ink, Offset(left + width / 2f, top), Offset(left + width / 2f, top + height), stroke)
+                        drawLine(ink, Offset(left, top + height / 2f), Offset(left + width, top + height / 2f), stroke)
+                    }
+                    scene == "compare" -> {
+                        drawCircle(Color(0xFFB9E3C7), h * .16f, Offset(w * .32f, h * .5f))
+                        drawCircle(Color(0xFFDCE7FF), h * .16f, Offset(w * .68f, h * .5f))
+                        drawLine(orbit, Offset(w * .43f, h * .5f), Offset(w * .57f, h * .5f), stroke)
+                    }
+                    scene == "process" -> {
+                        val points = listOf(w * .15f, w * .38f, w * .61f, w * .84f)
+                        points.forEachIndexed { i, x ->
+                            drawCircle(Color(0xFFB9E3C7), 10.dp.toPx(), Offset(x, h * .50f))
+                            drawCircle(Color(0xFF24734B), 10.dp.toPx(), Offset(x, h * .50f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            if (i < points.lastIndex && i < stage + 2) {
+                                drawLine(orbit, Offset(x + 11.dp.toPx(), h * .50f), Offset(points[i + 1] - 11.dp.toPx(), h * .50f), stroke)
+                                drawLine(ink, Offset(points[i + 1] - 16.dp.toPx(), h * .45f), Offset(points[i + 1] - 11.dp.toPx(), h * .50f), stroke)
+                                drawLine(ink, Offset(points[i + 1] - 16.dp.toPx(), h * .55f), Offset(points[i + 1] - 11.dp.toPx(), h * .50f), stroke)
+                            }
+                        }
+                    }
+                    scene in setOf("orbit_lab", "moon_phase") ||
+                        topic.contains("earth", true) && topic.contains("moon", true) -> {
+                        // A clear classroom sketch: the Earth follows the larger path around
+                        // the Sun; the Moon follows a smaller path around the Earth.
+                        val sun = Offset(w * .19f, h * .49f)
+                        val earth = Offset(w * .62f, h * .49f)
+                        val moonAngle = if (stage % 2 == 0) -0.72 else 0.72
+                        val moonRadius = h * .20f
+                        val moon = Offset(
+                            earth.x + kotlin.math.cos(moonAngle).toFloat() * moonRadius,
+                            earth.y + kotlin.math.sin(moonAngle).toFloat() * moonRadius
+                        )
+                        drawOval(
+                            orbit,
+                            topLeft = Offset(w * .13f, h * .10f),
+                            size = androidx.compose.ui.geometry.Size(w * .57f, h * .78f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+                        )
+                        drawCircle(Color(0xFFFFC857), h * .105f, sun)
+                        // Hand-drawn sun rays are short, clean strokes rather than a sprite.
+                        repeat(8) { i ->
+                            val angle = i * (Math.PI / 4.0)
+                            val inner = h * .13f
+                            val outer = h * .17f
+                            drawLine(
+                                Color(0xFFE8A928),
+                                Offset(sun.x + kotlin.math.cos(angle).toFloat() * inner, sun.y + kotlin.math.sin(angle).toFloat() * inner),
+                                Offset(sun.x + kotlin.math.cos(angle).toFloat() * outer, sun.y + kotlin.math.sin(angle).toFloat() * outer),
+                                stroke
+                            )
+                        }
+                        drawCircle(Color(0xFF3C91D6), h * .075f, earth)
+                        drawArc(
+                            orbit, 205f, 130f, false,
+                            Offset(earth.x - h * .20f, earth.y - h * .20f),
+                            androidx.compose.ui.geometry.Size(h * .40f, h * .40f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+                        )
+                        // Always show the Moon and its path in the static explanation too.
+                        // Previously stage 0 hid the Moon while the labels still said "Moon".
+                        drawCircle(orbit, moonRadius, earth, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        drawCircle(Color(0xFF94A3B8), h * .045f, moon)
+                        if (stage >= 2) {
+                            // Small arrowhead indicates direction without suggesting a 3D animation.
+                            drawLine(ink, Offset(w * .49f, h * .12f), Offset(w * .53f, h * .14f), stroke)
+                            drawLine(ink, Offset(w * .53f, h * .14f), Offset(w * .51f, h * .10f), stroke)
+                        }
+                    }
+                    scene in setOf("fraction_builder", "fractions") || topic.contains("fraction", true) -> {
+                        val left = w * .13f
+                        val top = h * .30f
+                        val cellW = w * .185f
+                        repeat(4) { i ->
+                            val rect = Offset(left + i * cellW, top)
+                            drawRect(
+                                if (i < (stage + 1).coerceAtMost(4)) Color(0xFFB9E3C7) else Color(0xFFFFFEFA),
+                                rect,
+                                androidx.compose.ui.geometry.Size(cellW - 4.dp.toPx(), h * .38f)
+                            )
+                            drawRect(
+                                Color(0xFF24734B), rect,
+                                androidx.compose.ui.geometry.Size(cellW - 4.dp.toPx(), h * .38f),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+                            )
+                        }
+                    }
+                    scene in setOf("particle_states", "phase_change", "evap_condense") -> {
+                        val spread = .07f + stage.coerceAtMost(2) * .06f
+                        repeat(18) { i ->
+                            val col = i % 6
+                            val row = i / 6
+                            val x = w * (.5f + (col - 2.5f) * spread)
+                            val y = h * (.5f + (row - 1f) * spread)
+                            drawCircle(Color(0xFF3987C9), 4.dp.toPx(), Offset(x, y))
+                        }
+                    }
+                    scene in setOf("number_pattern", "pattern_builder", "number_machine") || topic.contains("pattern", true) -> {
+                        val xs = (0..4).map { w * (.12f + it * .19f) }
+                        xs.zipWithNext().forEachIndexed { i, pair ->
+                            if (i < stage + 2) drawLine(orbit, Offset(pair.first + 12.dp.toPx(), h * .5f), Offset(pair.second - 12.dp.toPx(), h * .5f), stroke)
+                        }
+                        xs.forEachIndexed { i, x ->
+                            if (i <= stage + 2) {
+                                drawCircle(Color(0xFFB9E3C7), 12.dp.toPx(), Offset(x, h * .5f))
+                                drawCircle(Color(0xFF24734B), 12.dp.toPx(), Offset(x, h * .5f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            }
+                        }
+                    }
+                    scene in setOf("photosynthesis", "plant_food", "plant_parts") ||
+                        topic.contains("photosynthesis", true) || topic.contains("plant", true) -> {
+                        val leaf = Offset(w * .50f, h * .49f)
+                        drawLine(Color(0xFF43865B), Offset(w * .50f, h * .86f), Offset(w * .50f, h * .36f), 2.4.dp.toPx())
+                        drawOval(Color(0xFFB9E3C7), Offset(w * .30f, h * .36f), androidx.compose.ui.geometry.Size(w * .20f, h * .13f))
+                        drawOval(Color(0xFFB9E3C7), Offset(w * .50f, h * .36f), androidx.compose.ui.geometry.Size(w * .20f, h * .13f))
+                        drawLine(Color(0xFF43865B), Offset(w * .30f, h * .49f), leaf, stroke)
+                        drawLine(Color(0xFF43865B), Offset(w * .50f, h * .49f), Offset(w * .70f, h * .49f), stroke)
+                        drawLine(Color(0xFFE0A43A), Offset(w * .15f, h * .18f), Offset(w * .35f, h * .34f), stroke)
+                        drawLine(Color(0xFF3987C9), Offset(w * .77f, h * .16f), Offset(w * .60f, h * .34f), stroke)
+                        if (stage >= 1) drawLine(Color(0xFF43865B), Offset(w * .50f, h * .58f), Offset(w * .50f, h * .80f), stroke)
+                    }
+                    scene in setOf("water_cycle", "water_cycle_lab", "evap_condense") ||
+                        topic.contains("water cycle", true) -> {
+                        drawArc(Color(0xFF3987C9), 190f, 160f, false,
+                            Offset(w * .10f, h * .45f), androidx.compose.ui.geometry.Size(w * .80f, h * .65f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                        drawCircle(Color(0xFFFFC857), h * .09f, Offset(w * .18f, h * .22f))
+                        repeat(4) { i ->
+                            val x = w * (.37f + i * .10f)
+                            drawLine(Color(0xFF3987C9), Offset(x, h * .67f), Offset(x, h * .34f), stroke)
+                        }
+                        drawArc(Color(0xFF94A3B8), 180f, 180f, false,
+                            Offset(w * .42f, h * .12f), androidx.compose.ui.geometry.Size(w * .36f, h * .36f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        if (stage >= 1) drawLine(Color(0xFF3987C9), Offset(w * .78f, h * .35f), Offset(w * .78f, h * .65f), stroke)
+                    }
+                    scene in setOf("food_chain", "food_web") || topic.contains("food chain", true) -> {
+                        val points = listOf(w * .16f, w * .39f, w * .62f, w * .85f)
+                        points.forEachIndexed { i, x ->
+                            drawCircle(listOf(Color(0xFF72A879), Color(0xFFB9E3C7), Color(0xFFE0A43A), Color(0xFFDB8A76))[i], 10.dp.toPx(), Offset(x, h * .50f))
+                            if (i < points.lastIndex && i < stage + 2) {
+                                drawLine(orbit, Offset(x + 12.dp.toPx(), h * .50f), Offset(points[i+1] - 12.dp.toPx(), h * .50f), stroke)
+                                drawLine(ink, Offset(points[i+1] - 17.dp.toPx(), h * .45f), Offset(points[i+1] - 12.dp.toPx(), h * .50f), stroke)
+                                drawLine(ink, Offset(points[i+1] - 17.dp.toPx(), h * .55f), Offset(points[i+1] - 12.dp.toPx(), h * .50f), stroke)
+                            }
+                        }
+                    }
+                    scene in setOf("electric_circuit", "circuit_lab", "simple_circuit") ||
+                        topic.contains("electric circuit", true) -> {
+                        val left = w * .25f; val right = w * .75f; val top = h * .22f; val bottom = h * .76f
+                        drawLine(orbit, Offset(left, top), Offset(right, top), stroke)
+                        drawLine(orbit, Offset(right, top), Offset(right, bottom), stroke)
+                        drawLine(orbit, Offset(right, bottom), Offset(left, bottom), stroke)
+                        drawLine(orbit, Offset(left, bottom), Offset(left, top), stroke)
+                        drawLine(Color(0xFFE0A43A), Offset(left - 8.dp.toPx(), h * .42f), Offset(left + 8.dp.toPx(), h * .42f), 3.dp.toPx())
+                        drawLine(Color(0xFFE0A43A), Offset(left - 5.dp.toPx(), h * .52f), Offset(left + 5.dp.toPx(), h * .52f), 2.dp.toPx())
+                        drawCircle(if (stage >= 1) Color(0xFFFFC857) else orbit, 12.dp.toPx(), Offset(right, h * .49f))
+                    }
+                    scene in setOf("solar_system", "planet_orbits") || topic.contains("solar system", true) -> {
+                        drawCircle(Color(0xFFFFC857), h * .07f, center)
+                        repeat(3) { i ->
+                            val radius = h * (.18f + i * .10f)
+                            drawCircle(orbit, radius, center, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            val angle = (stage + i * 2) * .8
+                            drawCircle(listOf(Color(0xFF3987C9), Color(0xFF72A879), Color(0xFFDB8A76))[i], 4.dp.toPx(),
+                                Offset(center.x + kotlin.math.cos(angle).toFloat() * radius, center.y + kotlin.math.sin(angle).toFloat() * radius))
+                        }
+                    }
+                    scene in setOf("life_cycle", "life_cycle_lab") || topic.contains("life cycle", true) -> {
+                        val points = listOf(Offset(w*.20f,h*.50f),Offset(w*.40f,h*.28f),Offset(w*.64f,h*.28f),Offset(w*.82f,h*.50f))
+                        points.forEachIndexed { i, p ->
+                            drawCircle(listOf(Color(0xFFB9E3C7),Color(0xFF72A879),Color(0xFFE0A43A),Color(0xFFDB8A76))[i], 9.dp.toPx(), p)
+                            if (i < points.lastIndex) drawLine(orbit, p, points[i+1], stroke)
+                        }
+                    }
+                    scene == "day_night" -> {
+                        drawCircle(Color(0xFF3C91D6), h * .29f, center)
+                        drawArc(Color(0xFF23415F), 90f, 180f, true,
+                            Offset(center.x - h * .29f, center.y - h * .29f),
+                            androidx.compose.ui.geometry.Size(h * .58f, h * .58f))
+                        drawLine(ink, Offset(center.x, center.y - h * .29f), Offset(center.x, center.y + h * .29f), stroke)
+                    }
+                    else -> {
+                        // Topic-specific elementary science sketches. These are schematic teaching
+                        // drawings, not claims that a textbook figure was reproduced.
+                        when {
+                            topic.contains("magnet", true) && (topic.contains("pole", true) || topic.contains("attract", true) || topic.contains("repel", true)) -> {
+                                val y = h * .5f
+                                val left = w * .22f; val right = w * .78f
+                                drawRect(Color(0xFFE7A0A0), Offset(left - 24.dp.toPx(), y - 12.dp.toPx()), androidx.compose.ui.geometry.Size(48.dp.toPx(), 24.dp.toPx()))
+                                drawRect(Color(0xFF9BC7ED), Offset(left, y - 12.dp.toPx()), androidx.compose.ui.geometry.Size(48.dp.toPx(), 24.dp.toPx()))
+                                drawRect(Color(0xFFE7A0A0), Offset(right - 24.dp.toPx(), y - 12.dp.toPx()), androidx.compose.ui.geometry.Size(48.dp.toPx(), 24.dp.toPx()))
+                                drawRect(Color(0xFF9BC7ED), Offset(right, y - 12.dp.toPx()), androidx.compose.ui.geometry.Size(48.dp.toPx(), 24.dp.toPx()))
+                                drawLine(ink, Offset(w*.43f,y), Offset(w*.57f,y), stroke)
+                                if (stage % 2 == 0) {
+                                    drawLine(ink, Offset(w*.46f,y-5.dp.toPx()), Offset(w*.43f,y), stroke)
+                                    drawLine(ink, Offset(w*.46f,y+5.dp.toPx()), Offset(w*.43f,y), stroke)
+                                } else {
+                                    drawLine(ink, Offset(w*.54f,y-5.dp.toPx()), Offset(w*.57f,y), stroke)
+                                    drawLine(ink, Offset(w*.54f,y+5.dp.toPx()), Offset(w*.57f,y), stroke)
+                                }
+                            }
+                            topic.contains("thermometer", true) || topic.contains("temperature", true) -> {
+                                val x = w*.5f
+                                drawRoundRect(Color(0xFFDCE7FF), Offset(x-8.dp.toPx(), h*.12f), androidx.compose.ui.geometry.Size(16.dp.toPx(), h*.65f), androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()))
+                                drawRoundRect(Color(0xFF3C91D6), Offset(x-3.dp.toPx(), h*(.72f - .12f*stage)), androidx.compose.ui.geometry.Size(6.dp.toPx(), h*(.10f + .12f*stage)), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))
+                                drawCircle(Color(0xFF3C91D6), 12.dp.toPx(), Offset(x,h*.78f))
+                                repeat(5) { i -> drawLine(ink, Offset(x+10.dp.toPx(),h*(.18f+i*.11f)), Offset(x+if(i%2==0)24.dp.toPx() else 18.dp.toPx(),h*(.18f+i*.11f)), stroke) }
+                            }
+                            topic.contains("measure length", true) || topic.contains("standard unit", true) || topic.contains("ruler", true) -> {
+                                val left=w*.12f; val right=w*.88f; val y=h*.48f
+                                drawLine(Color(0xFFE0A43A),Offset(left,y),Offset(right,y),18.dp.toPx())
+                                drawLine(ink,Offset(left,y-13.dp.toPx()),Offset(left,y+13.dp.toPx()),stroke*1.5f)
+                                repeat(10) { i -> val x=left+(right-left)*i/9f; drawLine(ink,Offset(x,y- if(i%3==0)10.dp.toPx() else 5.dp.toPx()),Offset(x,y+8.dp.toPx()),stroke) }
+                                drawLine(Color(0xFF3987C9),Offset(left,h*.72f),Offset(right,h*.72f),stroke)
+                            }
+                            topic.contains("soluble", true) || topic.contains("insoluble", true) -> {
+                                listOf(w*.32f,w*.68f).forEachIndexed { i,x ->
+                                    drawLine(ink,Offset(x-22.dp.toPx(),h*.2f),Offset(x-16.dp.toPx(),h*.78f),stroke)
+                                    drawLine(ink,Offset(x+22.dp.toPx(),h*.2f),Offset(x+16.dp.toPx(),h*.78f),stroke)
+                                    drawLine(ink,Offset(x-22.dp.toPx(),h*.2f),Offset(x+22.dp.toPx(),h*.2f),stroke)
+                                    drawLine(ink,Offset(x-16.dp.toPx(),h*.78f),Offset(x+16.dp.toPx(),h*.78f),stroke)
+                                    repeat(8) { k -> drawCircle(if(i==0) Color(0xFF3987C9) else Color(0xFF94A3B8),2.dp.toPx(),Offset(x-10.dp.toPx()+(k%4)*7.dp.toPx(),h*(.48f+(k/4)*.12f))) }
+                                }
+                            }
+                            topic.contains("filtration", true) || topic.contains("sedimentation", true) || topic.contains("decantation", true) || topic.contains("sieving", true) || topic.contains("handpicking", true) -> {
+                                val x=w*.5f
+                                drawLine(ink,Offset(x-32.dp.toPx(),h*.2f),Offset(x,h*.55f),stroke*1.5f)
+                                drawLine(ink,Offset(x+32.dp.toPx(),h*.2f),Offset(x,h*.55f),stroke*1.5f)
+                                drawLine(ink,Offset(x-32.dp.toPx(),h*.2f),Offset(x+32.dp.toPx(),h*.2f),stroke*1.5f)
+                                drawLine(Color(0xFF3987C9),Offset(x,h*.55f),Offset(x,h*.78f),stroke*2)
+                                drawLine(ink,Offset(x-22.dp.toPx(),h*.79f),Offset(x+22.dp.toPx(),h*.79f),stroke*1.5f)
+                            }
+                            topic.contains("balanced meal", true) || topic.contains("nutrient", true) -> {
+                                drawCircle(Color(0xFFDCEFEB),h*.34f,center)
+                                drawLine(ink,Offset(center.x,center.y-h*.34f),Offset(center.x,center.y+h*.34f),stroke)
+                                drawLine(ink,Offset(center.x,center.y),Offset(center.x+h*.34f,center.y),stroke)
+                                drawArc(Color(0xFFE0A43A),0f,180f,true,Offset(center.x-h*.34f,center.y-h*.34f),androidx.compose.ui.geometry.Size(h*.68f,h*.68f))
+                            }
+                            topic.contains("recycle", true) || topic.contains("reuse", true) || topic.contains("conservation", true) -> {
+                                val p=listOf(Offset(w*.5f,h*.18f),Offset(w*.78f,h*.68f),Offset(w*.22f,h*.68f))
+                                drawLine(Color(0xFF43865B),p[0],p[1],stroke*2)
+                                drawLine(Color(0xFF43865B),p[1],p[2],stroke*2)
+                                drawLine(Color(0xFF43865B),p[2],p[0],stroke*2)
+                                p.forEach { drawCircle(Color(0xFFB9E3C7),5.dp.toPx(),it) }
+                            }
+                            topic.contains("living", true) || topic.contains("classifying", true) || topic.contains("plant diversity", true) || topic.contains("habitat", true) -> {
+                                val x=w*.5f
+                                drawLine(Color(0xFF43865B),Offset(x,h*.8f),Offset(x,h*.28f),stroke*2)
+                                drawOval(Color(0xFFB9E3C7),Offset(x-38.dp.toPx(),h*.34f),androidx.compose.ui.geometry.Size(40.dp.toPx(),18.dp.toPx()))
+                                drawOval(Color(0xFFB9E3C7),Offset(x,h*.44f),androidx.compose.ui.geometry.Size(40.dp.toPx(),18.dp.toPx()))
+                                drawLine(Color(0xFF43865B),Offset(x,h*.46f),Offset(x+36.dp.toPx(),h*.36f),stroke)
+                                drawLine(Color(0xFF43865B),Offset(x,h*.54f),Offset(x-36.dp.toPx(),h*.64f),stroke)
+                            }
+                            else -> {
+                                val xs = listOf(w * .2f, w * .5f, w * .8f)
+                                drawLine(orbit, Offset(xs[0], h * .5f), Offset(xs[2], h * .5f), stroke)
+                                xs.forEachIndexed { i, x ->
+                                    if (i <= stage.coerceAtMost(2)) drawCircle(listOf(Color(0xFFFFC857), Color(0xFF3C91D6), Color(0xFF72A879))[i], 10.dp.toPx(), Offset(x, h * .5f))
+                                }
+                            }
+                        }
+                    }
+                }
+        }
+        val labels = if (isSynthesisStep && stepLabels.isNotEmpty()) {
+            stepLabels
+        } else when {
+            scene in setOf("orbit_lab", "moon_phase") || topic.contains("earth", true) && topic.contains("moon", true) ->
+                listOf("Sun", "Earth", "Moon")
+            scene in setOf("fraction_builder", "fractions") || topic.contains("fraction", true) ->
+                listOf("4 equal parts", "Shaded parts show the fraction")
+            scene == "day_night" -> listOf("Day", "Night")
+            scene in setOf("photosynthesis", "plant_food", "plant_parts") || topic.contains("photosynthesis", true) || topic.contains("plant", true) ->
+                listOf("Sunlight + water", "Leaf makes food")
+            scene in setOf("water_cycle", "water_cycle_lab", "evap_condense") || topic.contains("water cycle", true) ->
+                listOf("Evaporation", "Condensation", "Rain")
+            scene in setOf("food_chain", "food_web") || topic.contains("food chain", true) ->
+                listOf("Plant", "Herbivore", "Carnivore", "Energy flow")
+            scene in setOf("electric_circuit", "circuit_lab", "simple_circuit") || topic.contains("electric circuit", true) ->
+                listOf("Cell", "Wire", "Bulb")
+            scene in setOf("solar_system", "planet_orbits") || topic.contains("solar system", true) ->
+                listOf("Sun", "Planet orbits")
+            scene in setOf("life_cycle", "life_cycle_lab") || topic.contains("life cycle", true) ->
+                listOf("Beginning", "Growth", "Adult", "Cycle repeats")
+            scene in setOf("particle_states", "phase_change") -> listOf("Particles", "Spacing changes with state")
+            else -> listOf(topic.ifBlank { "Notice the diagram" })
+        }
+        Text(
+            labels.joinToString("   •   "),
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFF475569),
+            fontSize = 11.sp,
+            lineHeight = 15.sp
+        )
+    }
+}
+
+@Composable
+private fun TeacherDrawnExplanation(content: String, lesson: JSONObject) {
+    val chunks = remember(content) {
+        val sentences = Regex("[^.!?]+[.!?]+|[^.!?]+$")
+            .findAll(content)
+            .map { it.value.trim() }
+            .filter { it.isNotBlank() }
+            .toList()
+            .ifEmpty { listOf(content.trim()).filter { it.isNotBlank() } }
+        // Keep each teaching beat short, with the matching sketch immediately after it.
+        // Three beats is enough to show a concept progressing without turning the chat
+        // into a stack of cards. Longer explanations are grouped evenly across those beats.
+        if (sentences.size <= 3) sentences.map { listOf(it) }
+        else {
+            val chunkCount = 3
+            val chunkSize = (sentences.size + chunkCount - 1) / chunkCount
+            sentences.chunked(chunkSize).take(chunkCount)
+        }
+    }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        chunks.forEachIndexed { index, chunk ->
+            Text(
+                chunk.joinToString(" "),
+                modifier = Modifier.fillMaxWidth(),
+                color = TutorDeep,
+                fontSize = 15.sp,
+                lineHeight = 24.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Start
+            )
+            // Draw inline after every explanation beat, changing the drawing stage so
+            // the child can connect the teacher's words to the next part of the sketch.
+            TeacherDrawnConceptVisual(lesson, activeStep = index.coerceAtMost(2))
+        }
+    }
+}
 
 @Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
@@ -2291,6 +2787,8 @@ internal fun TutorScreen(
                         Column(Modifier.padding(14.dp)) {
                             if (message.role == "assistant" && message.content == liveCaption && speechActive && !liveLessonActive) {
                                 WordByWordCaption(liveCaption, true, liveWordIndex)
+                            } else if (message.role == "assistant" && message.interactiveLesson != null) {
+                                TeacherDrawnExplanation(message.content, message.interactiveLesson)
                             } else {
                                 Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
                             }
@@ -2298,13 +2796,7 @@ internal fun TutorScreen(
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
                                 if (message.content == latestAssistant?.content) {
                                     when {
-                                        message.interactiveLesson != null -> DatabaseInteractiveLessonLab(
-                                            lesson = message.interactiveLesson,
-                                            sessionPrefs = sessionPrefs,
-                                            sessionKey = sessionKey,
-                                            todayKey = todayKey
-                                        )
-                                        message.visualLesson != null -> DatabaseLessonVisual(message.visualLesson)
+                                        message.interactiveLesson == null && message.visualLesson != null -> DatabaseLessonVisual(message.visualLesson)
                                     }
                                 }
                                 // Feedback is intentionally deferred until the complete lesson flow is implemented.
@@ -2380,13 +2872,10 @@ internal fun TutorScreen(
                             }
                         } else 0
                         when {
-                            liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(
+                            liveCaption.isNotBlank() && liveInteractiveLesson != null -> TeacherDrawnConceptVisual(
                                 lesson = liveInteractiveLesson!!,
-                                sessionPrefs = sessionPrefs,
-                                sessionKey = sessionKey,
-                                todayKey = todayKey,
-                                compact = true,
-                                activeStepOverride = liveVisualStep
+                                activeStep = liveVisualStep,
+                                modifier = Modifier
                             )
                             liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
                                 val topicKey = topic.lowercase(Locale.ROOT)

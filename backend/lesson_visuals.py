@@ -31,6 +31,11 @@ _VISUAL_KIND_MAP = {
     "parts": "fraction",
     "cycle": "cycle",
     "none": "concept_card",
+    "scientific_method": "scientific_method",
+    "curiosity": "curiosity",
+    "jigsaw": "jigsaw",
+    "material_examples": "material_examples",
+    "collaborative_exploration": "collaborative_exploration",
 }
 
 
@@ -53,7 +58,47 @@ def _render_svg(kind: str, title: str, nodes: list[str]) -> str:
         'aria-label="' + _svg_text(title or "Lesson visual") + '" preserveAspectRatio="xMidYMid meet">',
         '<rect x="1" y="1" width="318" height="154" rx="14" fill="#F5FAFC" stroke="#D7E5EC"/>',
     ]
-    if kind == "fraction":
+    if kind == "collaborative_exploration":
+        positions = [(74, 76), (160, 76), (246, 76)]
+        for i, (cx, cy) in enumerate(positions):
+            parts.append(f'<circle cx="{cx}" cy="{cy}" r="13" fill="#F1C46A" stroke="#A77720" stroke-width="1.2"/>')
+            parts.append(f'<path d="M{cx-19} {cy+25} q19 -20 38 0" fill="#7CA9E8" stroke="#287F79" stroke-width="1.5"/>')
+        parts.append('<path d="M95 73 Q117 57 139 73 M181 73 Q203 57 225 73" fill="none" stroke="#287F79" stroke-width="1.8" stroke-dasharray="3 3"/>')
+        for i, label in enumerate(labels[:3]):
+            parts.append(f'<text x="{positions[i][0]}" y="120" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">{label}</text>')
+    elif kind in {"scientific_method", "curiosity", "jigsaw"}:
+        count = min(5 if kind == "scientific_method" else 4, len(labels))
+        box_w = 50 if count >= 5 else 60
+        gap = 8
+        total = count * box_w + max(0, count - 1) * gap
+        left = (320 - total) / 2
+        for i, label in enumerate(labels[:count]):
+            x = left + i * (box_w + gap)
+            if i:
+                parts.append(f'<path d="M{x-7:.1f} 79 l4 -4 l0 8 z" fill="#287F79"/>')
+            parts.append(f'<rect x="{x:.1f}" y="52" width="{box_w:.1f}" height="52" rx="7" fill="#FFFFFF" stroke="#287F79" stroke-width="1.4"/>')
+            parts.append(f'<text x="{x+box_w/2:.1f}" y="73" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">{label}</text>')
+            if kind == "scientific_method" and i == 0:
+                parts.append(f'<circle cx="{x+box_w/2:.1f}" cy="87" r="5" fill="#F1C46A" stroke="#A77720"/>')
+            elif kind == "jigsaw":
+                parts.append(f'<path d="M{x+box_w/2-5:.1f} 88 l5 -5 l5 5 l-5 5 z" fill="#7CA9E8" stroke="#287F79"/>')
+            elif kind == "curiosity":
+                parts.append(f'<circle cx="{x+box_w/2:.1f}" cy="88" r="4" fill="#F1C46A"/>')
+    elif kind == "material_examples":
+        count = min(4, len(labels))
+        for i, label in enumerate(labels[:count]):
+            x = 24 + i * 70
+            parts.append(f'<rect x="{x}" y="51" width="60" height="56" rx="6" fill="#FFFFFF" stroke="#7C91A0"/>')
+            if i == 0:
+                parts.append(f'<path d="M{x+18} 62 h24 v28 h-24 z" fill="#F1E3C2" stroke="#A78B55"/>')
+            elif i == 1:
+                parts.append(f'<path d="M{x+18} 65 h24 v20 h-24 z" fill="#A8B4BE" stroke="#526675"/>')
+            elif i == 2:
+                parts.append(f'<path d="M{x+17} 62 h26 v27 h-26 z" fill="#7CA9E8" fill-opacity=".45" stroke="#287F79"/>')
+            else:
+                parts.append(f'<rect x="{x+18}" y="65" width="24" height="20" rx="5" fill="#D98B79" fill-opacity=".55" stroke="#9A5547"/>')
+            parts.append(f'<text x="{x+30}" y="99" text-anchor="middle" font-size="7" font-family="sans-serif" fill="#24445B">{label}</text>')
+    elif kind == "fraction":
         # Four equal parts is a safe visual default only when the synthesis itself
         # explicitly mentions four; otherwise use the number of labelled parts.
         count = 4 if any("four" in n.lower() or n.strip() == "4" for n in nodes) else max(2, min(6, len(labels)))
@@ -165,6 +210,22 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
             if "all 1s" in lowered or "all ones" in lowered:
                 found.sort(key=lambda row: 0 if row.startswith("All 1s|") else 1)
             return "table", found[:3]
+
+    if any(term in lowered for term in ("work together", "with friends", "scientists work", "joyful exploration", "share ideas", "learn together")):
+        return "collaborative_exploration", ["Ask together", "Share ideas", "Keep exploring"]
+
+    if any(term in lowered for term in ("scientific method", "test this guess", "pen stops writing", "observe something", "analyse the results", "analyze the results")):
+        return "scientific_method", ["Observe", "Ask", "Guess", "Test", "Check evidence"]
+
+    if "jigsaw puzzle" in lowered or ("new discovery" in lowered and "piece" in lowered):
+        return "jigsaw", ["Question", "Explore", "Discovery", "New question"]
+
+    if any(term in lowered for term in ("curiosity", "flower bloom", "stars shine", "wondered why", "never stop wondering", "keep wondering")):
+        return "curiosity", ["Notice", "Wonder", "Ask why"]
+
+    if any(term in lowered for term in ("plastic ruler", "rubber eraser", "metal key", "paper we write")):
+        # These are source-listed examples, not a claim that each object has only one material.
+        return "material_examples", ["Paper", "Metal key", "Plastic ruler", "Rubber eraser"]
 
     if re.search(r"\b(fraction|fractions|half|halves|quarter|quarters|\d+\s*/\s*\d+)\b", lowered):
         labels = []

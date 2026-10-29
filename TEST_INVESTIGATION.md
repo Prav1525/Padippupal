@@ -524,3 +524,27 @@ Use this format:
 
 - **Scope extension:** Startup now also scans approved `syllabus_topic_syntheses`, verifies each cited chunk belongs to the same source, and persists a reusable topic-scoped visual for synthesis explanations/examples where a compact diagram or concept card can be grounded. Unsupported/uncited topics are skipped; existing lesson content and approval state are not modified. Exact-head regression checks must verify this backfill is safe and idempotent.
 - **Backfill regression test:** Added a temporary-SQLite test with one approved, cited water-cycle synthesis; it verifies topic/chapter binding, cited chunk provenance, active persistence, and stored SVG markup. The test also exercises startup backfill's source-scoped chunk filtering.
+
+
+### 2026-10-29 — Tanglish live lesson and teacher-drawn inline visual repair
+- **Branch / pre-test commit:** `fix/teacher-drawn-inline-tanglish`; latest code commit before this ledger entry `972b7c768c72daa93bfb7e3b260f0b03b74a77b0`.
+- **User evidence:** Installed APK screenshot shows an English explanation followed by a large standalone “DATABASE INTERACTIVE LESSON” card for Earth, Moon and Sun. The user explicitly wants simple 2D teacher-drawn diagrams, no 3D/fancy animation, and drawing integrated with the explanation.
+- **Root cause — CONFIRMED:** `/tutor/lesson-plan` translated approved synthesized lessons, but its dynamic Gemini lesson path returned `attach_topic_visuals(...)` segments without applying the selected `app_language` translation helper. Android chat rendered `DatabaseInteractiveLessonLab` after the entire assistant message; the live renderer also used the interactive lesson card surface.
+- **Changes:** The dynamic lesson path now translates validated segments after topic/source checks while preserving segment IDs, source chunk IDs, and visual metadata. Android now uses a lightweight Compose Canvas renderer for simple 2D concept sketches, shows the sketch inline with explanation chunks in completed tutor messages, and follows the active speech step in the live lesson. The detached interactive card is no longer rendered for these tutor lesson messages. Updated UI contract assertions and added a Tanglish translation-path regression assertion.
+- **Rights / design:** New drawings are original app-rendered shapes; no textbook page images were copied. No 3D engine or fancy animation was added.
+- **Validation status:** **PENDING** — exact-head backend tests, Kotlin/JVM tests, APK build, smoke-helper checks, and API-35 emulator screenshot/flow must run after PR creation. No runtime acceptance is claimed yet; the screenshot must be checked for topic accuracy, readable labels, inline placement, and Tanglish speech/captions.
+- **Next action:** Open a draft PR to trigger exact-head CI, inspect every required check and available APK/emulator artifacts, fix failures based on logs, and only then request learner-device verification. Do not merge or deploy without explicit user approval.
+
+
+### 2026-10-29 — Extend language fix to safe source-excerpt fallbacks
+- **Branch / pre-test commit:** `fix/teacher-drawn-inline-tanglish`; implementation commit `73529301f9be8dc6e638017977aa2b072bc12be7`; regression test commit `1c7a7e61e4428ab25e49d2aab8aae40a1c3bab19`.
+- **Finding:** Two early-return source-excerpt fallback paths in `/tutor/lesson-plan` could bypass the new translation call if Gemini generation failed or produced off-topic content.
+- **Change:** Both safe, source-cited fallback paths now pass their segment through the selected-language translator after source/topic validation. Added a Tanglish regression expectation for the provider-outage fallback.
+- **Validation:** The earlier backend run passed before this follow-up change; all checks must be rerun on the newest PR head. No APK/runtime success is claimed.
+
+
+### 2026-10-29 — Broaden teacher-drawn visuals across synthesized topics
+- **Branch / commit:** `fix/teacher-drawn-inline-tanglish`, `e042b54405340fa5fc0a98ba6bebdace47912e99`.
+- **Re-review finding:** The previous UI refinement did not compile: the new sketch surface used `Modifier.border` without importing `androidx.compose.foundation.border`. The Android build failed at `TutorScreen.kt:612`. This was a real defect; the failed build is not being represented as a pass.
+- **Fix:** Added the missing import and expanded the original Canvas sketches to recognize more topic families: plant parts/photosynthesis, water cycle, food chain/web, electric circuits, solar system, and life cycles, in addition to Earth–Moon–Sun, fractions, particles, number patterns and day/night. Each uses simple flat 2D marks and inline labels rather than a 3D scene.
+- **Validation status:** **PENDING on this commit.** Re-run backend checks, Kotlin/APK compilation and API-35 emulator smoke test; inspect screenshot output for each supported scene family. This mapping is not proof that every curriculum synthesis topic has a correct visual. Unknown topics still need a topic-aware diagram or a safe text-only explanation rather than a misleading generic diagram.

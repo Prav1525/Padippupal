@@ -3164,17 +3164,18 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                     if fallback_segment:
                         break
                 if fallback_segment and fallback_source_ids:
+                    fallback_segments = _translate_approved_segments([{
+                        "id": "textbook-extract-1",
+                        "spoken_text": fallback_segment["spoken_text"],
+                        "caption_text": fallback_segment["caption_text"],
+                        "source_chunk_ids": fallback_source_ids,
+                        "visual_action": fallback_segment["visual_action"],
+                        "checkpoint": None,
+                        "interactive_lesson": matched_visual,
+                    }], payload.app_language)
                     return {
                         "lesson_id": str(uuid.uuid4()),
-                        "segments": [{
-                            "id": "textbook-extract-1",
-                            "spoken_text": fallback_segment["spoken_text"],
-                            "caption_text": fallback_segment["caption_text"],
-                            "source_chunk_ids": fallback_source_ids,
-                            "visual_action": fallback_segment["visual_action"],
-                            "checkpoint": None,
-                            "interactive_lesson": matched_visual,
-                        }],
+                        "segments": fallback_segments,
                         "grounded": True,
                         "sources": [source for source in sources if source.get("chunk_id") in fallback_source_ids],
                         "warning": "The generated lesson was off-topic; this segment is taken from the matched textbook passage.",
@@ -3235,17 +3236,18 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "Starting source-extract lesson fallback after Gemini failure status=%s topic=%s",
                         exc.code, payload.topic,
                     )
+                    fallback_segments = _translate_approved_segments([{
+                        "id": "textbook-extract-1",
+                        "spoken_text": spoken,
+                        "caption_text": spoken,
+                        "source_chunk_ids": source_ids[:5],
+                        "visual_action": {"type": "none", "target": "", "value": ""},
+                        "checkpoint": None,
+                        "interactive_lesson": matched_visual,
+                    }], payload.app_language)
                     return {
                         "lesson_id": str(uuid.uuid4()),
-                        "segments": [{
-                            "id": "textbook-extract-1",
-                            "spoken_text": spoken,
-                            "caption_text": spoken,
-                            "source_chunk_ids": source_ids[:5],
-                            "visual_action": {"type": "none", "target": "", "value": ""},
-                            "checkpoint": None,
-                            "interactive_lesson": matched_visual,
-                        }],
+                        "segments": fallback_segments,
                         "grounded": True,
                         "sources": sources,
                         "warning": "Gemini lesson generation was unavailable; this segment is quoted from the matched textbook passage.",
@@ -3288,6 +3290,10 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     # same segment the learner hears. This is the dynamic Gemini path; approved
     # chapter lessons use the dedicated lesson_visual_assets table above.
     lesson_segments = attach_topic_visuals(payload, validated["segments"], sources, matched_visual)
+    # The generated lesson prompt can still return English despite app_language.
+    # Translate after source/topic validation so translated wording cannot bypass
+    # the source-language safety gate; preserve IDs, citations and visual payloads.
+    lesson_segments = _translate_approved_segments(lesson_segments, payload.app_language)
     return {"lesson_id": str(uuid.uuid4()), "segments": lesson_segments, "grounded": True, "sources": sources,
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False,

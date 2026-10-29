@@ -3,11 +3,11 @@
 **Status:** In progress; do not publish from this audit.  
 **Board/class/subject:** CBSE / Grade 6 / Science  
 **Source row:** `ed0b5f40-e9e0-474d-82ac-9681b0f4c1cd`, NCERT Curiosity Class 6 Science — Chapter PDF (`fecu108.pdf`), database `page_count=20`.  
-**Important discrepancy:** An earlier chapter lesson JSON/reference summary described 24 pages, but the live `sources` row says 20 pages. Use the source row and actual PDF page images as canonical; investigate this discrepancy before asserting page references.
+**Page-count reconciliation:** The live source record and source chunks span 20 PDF pages. The textbook's printed page numbers run 143–162, so a prior 24-page reference was not the PDF page count and should not be used for source mapping. This is resolved at the metadata level; exact page-image review remains outstanding.
 
 ## Live DB findings
 
-A read-only query of `syllabus_topic_syntheses` for this exact source found approved page-part rows and broad draft topic rows. All queried rows reported `validation_status=passed`, which is not sufficient evidence of pedagogical correctness.
+A read-only query of `syllabus_topic_syntheses` for this exact source returned **16 rows: 8 approved page-part rows and 8 broad draft topic rows**. All queried rows reported `validation_status=passed`, which is not sufficient evidence of pedagogical correctness. All eight draft topics currently claim the broad page range 1–20 despite narrower citations; they overlap the approved part rows.
 
 ### Approved page-part synthesis defects
 
@@ -18,7 +18,7 @@ A read-only query of `syllabus_topic_syntheses` for this exact source found appr
 - **Part 5, page 10** (`3c3dc16a292650570da2d8b123a14fd7a2f2ddb3e9431192efc151b25d09933c`): activity steps about bottle cap/plate are joined with a later heating prompt; split into evaporation-rate experiment and state-change explanation.
 - **Part 6, page 14** (`3ddc9bbe8a6c235569b2ff49998c3c7aace065221905682546ddcbfb7bbeaf22`): text jumps from the earthen-pot story to a nested-pot construction instruction; needs staged explanation of evaporation and cooling, with no unsupported claims.
 - **Part 7, page 15** (`571e27f1fb242a908723d03fb0942a1bdd3946a6bc1e7d92e7eb2d91fe14c51a`): caption combines surahi, hail/snow and a broken “(clouds) above the water in the bottle” fragment. Split distinct concepts and verify their source context.
-- Other approved page-part rows exist (including Part 8 on page 19); complete full row-by-row review before calling the chapter covered.
+- **Part 8, page 19** (`9a579565bb9e34f6a97e774f09de0f8c574173a91f322db0106d810c143a1073`): caption starts with the running header/page number and then concatenates end-of-chapter multiple-choice questions. It is assessment material, not a coherent teaching explanation; keep practice questions separate from the teaching sequence.
 
 ### Broad draft synthesis topics
 
@@ -53,3 +53,13 @@ Use plain teacher-drawn 2D sketches directly in the tutor's continuous vertical 
 - Check all active visual rows for this lesson and flag any generic or mismatched assets.
 - Prepare a replacement synthesis/storyboard proposal only; do not write production rows or change approval states in this autonomous loop.
 - Add regression tests for OCR page headers/timestamps and specific visual mapping; run exact-SHA CI and inspect fresh tutor screenshots.
+
+
+## Follow-up evidence update (29 October 2026)
+
+- Read-only DB inspection enumerated all 16 rows for this source, including Part 8. The broad draft topics are: Introduction to Water States; Investigating Water's Disappearing Act; Properties of Solid, Liquid, and Gas; Melting and Freezing; Condensation and Water Droplets on Tumblers; Cooling Effect of Evaporation; Factors Affecting Evaporation Speed; Clouds, Rain, and the Water Cycle.
+- Source chunks are duplicated/overlapping across adjacent pages (e.g. page 2/3 and page 4/5) and include running headers, printed page numbers, activity instructions and timestamps. Preserve source chunk IDs but select only the minimum contiguous evidence needed per teaching beat.
+- Page 7 describes a weighing experiment: condensation adds mass to the outside of the cold tumbler; the textbook explicitly cautions that this activity alone is not conclusive and asks learners to mark the water level. The teaching synthesis must preserve that reasoning rather than presenting an unsupported conclusion too early.
+- Page 8 table content gives three distinct properties: solid ice retains shape; liquid water flows/takes container shape while volume remains constant; water vapour spreads to fill available space and is invisible. A structured comparison is more suitable than a flattened caption.
+- Chapter 8's approved page-part rows use generic teacher-says/checkpoint templates. This is a pedagogical defect independent of OCR cleanup.
+- **No production database writes were made.** This is an evidence audit and storyboard proposal only.

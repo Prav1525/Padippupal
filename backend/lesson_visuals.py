@@ -180,7 +180,9 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
     if ("pen stops writing" in lowered or "pen has stopped writing" in lowered) and any(
         term in lowered for term in ("ink", "refill", "guess", "test", "check")
     ):
-        return "process", ["Notice the problem", "Make a guess", "Test the refill"]
+        if "pen investigation" in title.casefold():
+            return "process", ["Notice the problem", "Make a guess", "Test the refill"]
+        return "process", ["Pen stops writing", "Possible explanation", "Check the refill"]
 
     if "jigsaw" in lowered and any(term in lowered for term in ("knowledge", "discover", "question", "piece")):
         return "process", ["What we know", "New discovery", "New questions"]
@@ -192,7 +194,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
         for label, cues in (
             ("Observe", ("observe", "notice")),
             ("Ask", ("question", "ask why")),
-            ("Suggest", ("guess", "possible explanation", "hypothesis")),
+            ("Guess", ("guess", "possible explanation", "hypothesis")),
             ("Test", ("test", "experiment", "check")),
             ("Review results", ("evidence", "result", "conclusion")),
         ):

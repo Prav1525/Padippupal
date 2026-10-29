@@ -579,6 +579,131 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
+private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
+    val scene = lesson.optString("scene_type", "diagram")
+    val topic = lesson.optString("topic", lesson.optString("title", "Concept"))
+    val stage = activeStep.coerceAtLeast(0)
+    Column(
+        Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Canvas(Modifier.fillMaxWidth().height(112.dp)) {
+            val w = size.width
+            val h = size.height
+            val center = Offset(w * .5f, h * .5f)
+            when {
+                scene in setOf("orbit_lab", "moon_phase") ||
+                    topic.contains("earth", true) && topic.contains("moon", true) -> {
+                    val sun = Offset(w * .18f, h * .5f)
+                    val earth = Offset(w * .58f, h * .5f)
+                    val moon = Offset(w * (.69f + if (stage % 2 == 0) .02f else -.02f), h * .5f)
+                    drawOval(
+                        Color(0xFF94A3B8),
+                        topLeft = Offset(w * .17f, h * .12f),
+                        size = androidx.compose.ui.geometry.Size(w * .48f, h * .76f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx())
+                    )
+                    drawCircle(Color(0xFFFFC857), h * .105f, sun)
+                    if (stage >= 0) drawCircle(Color(0xFF3C91D6), h * .075f, earth)
+                    if (stage >= 1) {
+                        drawCircle(Color(0xFFCBD5E1), h * .16f, earth, style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx()))
+                        drawCircle(Color(0xFF94A3B8), h * .045f, moon)
+                    }
+                    if (stage >= 2) {
+                        drawLine(Color(0xFF64748B), Offset(w * .35f, h * .18f), Offset(w * .43f, h * .18f), 1.5.dp.toPx())
+                        drawLine(Color(0xFF64748B), Offset(w * .43f, h * .18f), Offset(w * .405f, h * .15f), 1.5.dp.toPx())
+                        drawLine(Color(0xFF64748B), Offset(w * .43f, h * .18f), Offset(w * .405f, h * .21f), 1.5.dp.toPx())
+                    }
+                }
+                scene in setOf("fraction_builder", "fractions") || topic.contains("fraction", true) -> {
+                    val left = w * .16f
+                    val top = h * .32f
+                    val cellW = w * .17f
+                    repeat(4) { i ->
+                        val rect = Offset(left + i * cellW, top)
+                        drawRect(if (i <= stage.coerceAtMost(3)) Color(0xFFB9E3C7) else Color.White, rect,
+                            androidx.compose.ui.geometry.Size(cellW - 3.dp.toPx(), h * .36f))
+                        drawRect(Color(0xFF24734B), rect,
+                            androidx.compose.ui.geometry.Size(cellW - 3.dp.toPx(), h * .36f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx()))
+                    }
+                }
+                scene in setOf("particle_states", "phase_change", "evap_condense") -> {
+                    val spread = .09f + stage.coerceAtMost(3) * .07f
+                    repeat(18) { i ->
+                        val col = i % 6
+                        val row = i / 6
+                        val x = w * (.5f + (col - 2.5f) * spread)
+                        val y = h * (.5f + (row - 1f) * spread)
+                        drawCircle(Color(0xFF3987C9), 4.dp.toPx(), Offset(x, y))
+                    }
+                }
+                scene in setOf("number_pattern", "pattern_builder", "number_machine") || topic.contains("pattern", true) -> {
+                    val values = listOf("1", "2", "3", "4", "5")
+                    val xs = values.indices.map { w * (.12f + it * .19f) }
+                    xs.zipWithNext().forEachIndexed { i, pair ->
+                        if (i < stage + 2) drawLine(Color(0xFF64748B), Offset(pair.first + 12.dp.toPx(), h * .5f), Offset(pair.second - 12.dp.toPx(), h * .5f), 1.5.dp.toPx())
+                    }
+                    xs.forEachIndexed { i, x ->
+                        if (i <= stage + 2) drawCircle(Color(0xFFB9E3C7), 12.dp.toPx(), Offset(x, h * .5f))
+                    }
+                }
+                scene == "day_night" -> {
+                    drawCircle(Color(0xFF3C91D6), h * .29f, center)
+                    drawArc(Color(0xFF23415F), 90f, 180f, true,
+                        Offset(center.x - h * .29f, center.y - h * .29f),
+                        androidx.compose.ui.geometry.Size(h * .58f, h * .58f))
+                    drawLine(Color(0xFF64748B), Offset(center.x, center.y - h * .29f), Offset(center.x, center.y + h * .29f), 1.5.dp.toPx())
+                }
+                else -> {
+                    val xs = listOf(w * .2f, w * .5f, w * .8f)
+                    drawLine(Color(0xFF64748B), Offset(xs[0], h * .5f), Offset(xs[2], h * .5f), 1.5.dp.toPx())
+                    xs.forEachIndexed { i, x ->
+                        if (i <= stage.coerceAtMost(2)) drawCircle(listOf(Color(0xFFFFC857), Color(0xFF3C91D6), Color(0xFF72A879))[i], 10.dp.toPx(), Offset(x, h * .5f))
+                    }
+                }
+            }
+        }
+        val labels = when {
+            scene in setOf("orbit_lab", "moon_phase") || topic.contains("earth", true) && topic.contains("moon", true) ->
+                listOf("Sun", "Earth", "Moon")
+            scene in setOf("fraction_builder", "fractions") || topic.contains("fraction", true) ->
+                listOf("4 equal parts", "Shaded parts show the fraction")
+            scene == "day_night" -> listOf("Day", "Night")
+            scene in setOf("particle_states", "phase_change", "evap_condense") -> listOf("Particles", "Spacing changes with state")
+            else -> listOf(topic.ifBlank { "Notice the diagram" })
+        }
+        Text(labels.joinToString("  ·  "), color = TutorGrey, fontSize = 11.sp, lineHeight = 15.sp)
+    }
+}
+
+@Composable
+private fun TeacherDrawnExplanation(content: String, lesson: JSONObject) {
+    val stepCount = (lesson.optJSONArray("steps")?.length() ?: 1).coerceIn(1, 6)
+    val sentences = remember(content) {
+        Regex("[^.!?]+[.!?]+|[^.!?]+$")
+            .findAll(content)
+            .map { it.value.trim() }
+            .filter { it.isNotBlank() }
+            .toList()
+    }
+    val chunkSize = ((sentences.size + stepCount - 1) / stepCount).coerceAtLeast(1)
+    val chunks = sentences.chunked(chunkSize).ifEmpty { listOf(listOf(content)) }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        chunks.forEachIndexed { index, chunk ->
+            Text(
+                chunk.joinToString(" "),
+                color = TutorDeep,
+                fontSize = 15.sp,
+                lineHeight = 23.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Start
+            )
+            TeacherDrawnConceptVisual(lesson, index)
+        }
+    }
+}
+
+@Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
@@ -2291,6 +2416,8 @@ internal fun TutorScreen(
                         Column(Modifier.padding(14.dp)) {
                             if (message.role == "assistant" && message.content == liveCaption && speechActive && !liveLessonActive) {
                                 WordByWordCaption(liveCaption, true, liveWordIndex)
+                            } else if (message.role == "assistant" && message.interactiveLesson != null) {
+                                TeacherDrawnExplanation(message.content, message.interactiveLesson)
                             } else {
                                 Text(message.content, color = if (message.role == "user") Color.White else TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
                             }
@@ -2298,13 +2425,7 @@ internal fun TutorScreen(
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
                                 if (message.content == latestAssistant?.content) {
                                     when {
-                                        message.interactiveLesson != null -> DatabaseInteractiveLessonLab(
-                                            lesson = message.interactiveLesson,
-                                            sessionPrefs = sessionPrefs,
-                                            sessionKey = sessionKey,
-                                            todayKey = todayKey
-                                        )
-                                        message.visualLesson != null -> DatabaseLessonVisual(message.visualLesson)
+                                        message.interactiveLesson == null && message.visualLesson != null -> DatabaseLessonVisual(message.visualLesson)
                                     }
                                 }
                                 // Feedback is intentionally deferred until the complete lesson flow is implemented.
@@ -2380,13 +2501,9 @@ internal fun TutorScreen(
                             }
                         } else 0
                         when {
-                            liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(
+                            liveCaption.isNotBlank() && liveInteractiveLesson != null -> TeacherDrawnConceptVisual(
                                 lesson = liveInteractiveLesson!!,
-                                sessionPrefs = sessionPrefs,
-                                sessionKey = sessionKey,
-                                todayKey = todayKey,
-                                compact = true,
-                                activeStepOverride = liveVisualStep
+                                activeStep = liveVisualStep
                             )
                             liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
                                 val topicKey = topic.lowercase(Locale.ROOT)

@@ -107,11 +107,19 @@ def _render_svg(kind: str, title: str, nodes: list[str]) -> str:
             else:
                 parts.append(f'<path d="M{x+8} 84 H{x+74}" stroke="#D7E5EC"/>')
                 parts.append(f'<path d="M{x+8} 99 H{x+74}" stroke="#D7E5EC"/>')
+    elif kind == "diagram":
+        # A connected concept map is clearer than a single generic bubble.
+        positions = [(54, 76), (160, 76), (266, 76)]
+        for i, label in enumerate(labels[:3]):
+            x, y = positions[i]
+            if i:
+                parts.append(f'<path d="M{x-52} {y} H{x-36}" stroke="#287F79" stroke-width="2"/>')
+            parts.append(f'<rect x="{x-43}" y="{y-22}" width="86" height="44" rx="8" fill="#FFFFFF" stroke="#287F79" stroke-width="1.5"/>')
+            parts.append(f'<text x="{x}" y="{y+3}" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">{label}</text>')
+        parts.append('<text x="160" y="132" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#24445B">Ideas connect as understanding grows</text>')
     else:
-        parts.append('<circle cx="160" cy="76" r="42" fill="#DCEFEB" stroke="#287F79" stroke-width="1.5"/>')
-        parts.append('<text x="160" y="72" text-anchor="middle" font-size="9" font-family="sans-serif" fill="#24445B">' + labels[0] + '</text>')
-        if len(labels) > 1:
-            parts.append('<text x="160" y="86" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">' + labels[1] + '</text>')
+        # Do not silently fabricate a scene when evidence is too weak.
+        return ""
     parts.append("</svg>")
     return "".join(parts)
 
@@ -165,6 +173,48 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
             if "all 1s" in lowered or "all ones" in lowered:
                 found.sort(key=lambda row: 0 if row.startswith("All 1s|") else 1)
             return "table", found[:3]
+
+    # Topic-specific scene rules learned from Science Chapter 1 review. These
+    # are deterministic vector scenes, not keyword-only generic cards. They only
+    # activate when the synthesis text itself contains the complete concept cue.
+    if ("pen stops writing" in lowered or "pen has stopped writing" in lowered) and any(
+        term in lowered for term in ("ink", "refill", "guess", "test", "check")
+    ):
+        return "process", ["Pen stops writing", "Possible explanation", "Check the refill"]
+
+    if ("jigsaw" in lowered and any(term in lowered for term in ("knowledge", "science", "discover", "question"))):
+        return "diagram", ["What we know", "New discovery", "New question"]
+
+    if any(term in lowered for term in ("scientific method", "scientific inquiry", "investigation")) and any(
+        term in lowered for term in ("observe", "question", "test", "evidence")
+    ):
+        labels = []
+        for label, cues in (
+            ("Observe", ("observe", "notice")),
+            ("Ask", ("question", "ask why")),
+            ("Suggest", ("guess", "possible explanation", "hypothesis")),
+            ("Test", ("test", "experiment", "check")),
+            ("Learn", ("evidence", "result", "conclusion")),
+        ):
+            if any(cue in lowered for cue in cues):
+                labels.append(label)
+        if len(labels) >= 3:
+            return "process", labels[:5]
+
+    if any(term in lowered for term in ("paper", "metal key", "plastic ruler", "rubber eraser")) and any(
+        term in lowered for term in ("material", "made of", "object")
+    ):
+        labels = [label for label, cue in (
+            ("Paper", "paper"), ("Metal key", "metal key"),
+            ("Plastic ruler", "plastic ruler"), ("Rubber eraser", "rubber eraser")
+        ) if cue in lowered]
+        if len(labels) >= 2:
+            return "compare", labels[:3]
+
+    if any(term in lowered for term in ("curious", "curiosity", "flower bloom", "stars shine")) and any(
+        term in lowered for term in ("why", "question", "wonder", "explore")
+    ):
+        return "process", ["Notice", "Ask why", "Explore with evidence"]
 
     if re.search(r"\b(fraction|fractions|half|halves|quarter|quarters|\d+\s*/\s*\d+)\b", lowered):
         labels = []
@@ -326,7 +376,7 @@ def build_visual_records(lesson_id: str, lesson: Mapping[str, Any]) -> list[dict
         if not caption:
             continue
         blueprint = _step_visual(step, index)
-        if not blueprint["nodes"]:
+        if not blueprint["nodes"] or not blueprint.get("svg_markup"):
             continue
         serialized = json.dumps(blueprint, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         records.append({

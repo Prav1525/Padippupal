@@ -580,7 +580,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
-private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
+private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int, modifier: Modifier = Modifier, fillRemaining: Boolean = false) {
     // Synthesized lessons store a separate, source-mapped visual blueprint per teaching
     // step. Resolve that step first; otherwise the old renderer treated the whole lesson
     // as one generic scene and silently drew the same fallback circles for every topic.
@@ -619,8 +619,8 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
     }.take(6)
     val isSynthesisStep = lesson.optString("scene_type") == "synthesis_static" && step != null
     Column(
-        Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 3.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        modifier.fillMaxWidth().padding(top = 4.dp, bottom = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         // Keep the visual's identity and learning takeaway visible while the lesson is
         // actively speaking. The previous renderer drew the diagram but omitted its
@@ -664,7 +664,7 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
             )
         }
         // Draw directly on the lesson canvas: no card, border, overlay, or inset panel.
-        Canvas(Modifier.fillMaxWidth().height(104.dp)) {
+        Canvas(Modifier.fillMaxWidth().then(if (fillRemaining) Modifier.weight(1f) else Modifier.height(104.dp))) {
                 val w = size.width
                 val h = size.height
                 val center = Offset(w * .5f, h * .5f)
@@ -2851,7 +2851,9 @@ internal fun TutorScreen(
                         when {
                             liveCaption.isNotBlank() && liveInteractiveLesson != null -> TeacherDrawnConceptVisual(
                                 lesson = liveInteractiveLesson!!,
-                                activeStep = liveVisualStep
+                                activeStep = liveVisualStep,
+                                modifier = Modifier.weight(1f),
+                                fillRemaining = true
                             )
                             liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
                                 val topicKey = topic.lowercase(Locale.ROOT)

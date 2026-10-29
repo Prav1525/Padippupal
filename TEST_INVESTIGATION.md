@@ -541,3 +541,10 @@ Use this format:
 - **Finding:** Two early-return source-excerpt fallback paths in `/tutor/lesson-plan` could bypass the new translation call if Gemini generation failed or produced off-topic content.
 - **Change:** Both safe, source-cited fallback paths now pass their segment through the selected-language translator after source/topic validation. Added a Tanglish regression expectation for the provider-outage fallback.
 - **Validation:** The earlier backend run passed before this follow-up change; all checks must be rerun on the newest PR head. No APK/runtime success is claimed.
+
+
+### 2026-10-29 — Broaden teacher-drawn visuals across synthesized topics
+- **Branch / commit:** `fix/teacher-drawn-inline-tanglish`, `e042b54405340fa5fc0a98ba6bebdace47912e99`.
+- **Re-review finding:** The previous UI refinement did not compile: the new sketch surface used `Modifier.border` without importing `androidx.compose.foundation.border`. The Android build failed at `TutorScreen.kt:612`. This was a real defect; the failed build is not being represented as a pass.
+- **Fix:** Added the missing import and expanded the original Canvas sketches to recognize more topic families: plant parts/photosynthesis, water cycle, food chain/web, electric circuits, solar system, and life cycles, in addition to Earth–Moon–Sun, fractions, particles, number patterns and day/night. Each uses simple flat 2D marks and inline labels rather than a 3D scene.
+- **Validation status:** **PENDING on this commit.** Re-run backend checks, Kotlin/APK compilation and API-35 emulator smoke test; inspect screenshot output for each supported scene family. This mapping is not proof that every curriculum synthesis topic has a correct visual. Unknown topics still need a topic-aware diagram or a safe text-only explanation rather than a misleading generic diagram.

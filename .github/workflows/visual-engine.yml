@@ -39,6 +39,6 @@ jobs:
           test -s /tmp/padippupal-pattern.svg
       - name: Backend synthesis and visual regression tests
         run: |
-          python -m pip install pytest
+          python -m pip install -r backend/requirements.txt pytest
           cd backend
-          python -m pytest -q test_lesson_visuals.py test_syllabus_synthesis.py
+          python -m pytest -q test_lesson_visuals.py test_syllabus_synthesis.py test_syllabus_synthesis_api.py

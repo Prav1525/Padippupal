@@ -1,6 +1,6 @@
 {
   "source_id": "28077c43-b7fe-4a40-85c8-663b8ac326a2",
-  "synthesis_id": "a8d0b8714c2d726dc9d92f11751f74e5bc661f845b3b7cd8fd5ee9f412af8f",
+  "synthesis_id": "a8d0b8714c2d726dc9d92f11751f74e5bc661f845b3b7cd8fd5ee9f41259af8f",
   "topic": "The Wonderful World of Science — Part 2",
   "subject": "Science",
   "class_level": 6,
@@ -14,9 +14,7 @@
   "renderer_family": "jigsaw",
   "renderer_version": "0.2.0",
   "status": "needs_review",
-  "quality_flags": [
-    "running_header_fragment"
-  ],
+  "quality_flags": ["running_header_fragment"],
   "active": false,
   "reason": "Generated as a candidate from approved synthesis/source mapping; source text contains OCR contamination or visual needs teacher review.",
   "database_written": false

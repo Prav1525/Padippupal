@@ -18,7 +18,7 @@ def e(v): return html.escape(str(v), quote=True)
 def family(topic, explanation, evidence):
     t=(topic+" "+explanation).lower()
     # Prefer the exact approved synthesis stage ID/name over broad keyword matches.
-    stage = re.search(r"part\\s*(\\d+)", topic, re.I)
+    stage = re.search(r"part\s*(\d+)", topic, re.I)
     if stage:
         mapping = {1:"curiosity", 2:"jigsaw", 3:"everyday_objects", 4:"pen_inquiry",
                    5:"scientific_method", 6:"daily_life", 7:"curiosity"}

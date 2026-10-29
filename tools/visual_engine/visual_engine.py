@@ -75,6 +75,7 @@ def svg(a, family):
     elif family == "science_magnets":
         body = f'<text x="28" y="105" font-size="15" fill="{INK}">Test objects with a magnet</text><rect x="55" y="145" width="170" height="55" rx="9" fill="{PALE_BLUE}" stroke="{BLUE}" stroke-width="2"/><rect x="55" y="145" width="85" height="55" rx="8" fill="#C65353"/><text x="88" y="179" font-size="18" font-weight="700" fill="white">N</text><text x="174" y="179" font-size="18" font-weight="700" fill="{INK}">S</text><path d="M245 171 H300" stroke="{GREEN}" stroke-width="3"/><path d="M290 161 L302 171 L290 181" fill="none" stroke="{GREEN}" stroke-width="3"/><circle cx="355" cy="170" r="18" fill="#FFF0D9" stroke="{ORANGE}" stroke-width="2"/><rect x="410" y="154" width="42" height="32" rx="4" fill="#E4F5ED" stroke="{GREEN}" stroke-width="2"/><text x="310" y="220" font-size="12" fill="{INK}">Test one object at a time</text><text x="28" y="285" font-size="12" fill="{GREY}">Classify only after source-supported evidence.</text>'
     elif family in {"science_jigsaw", "science_curiosity", "science_pen_inquiry", "science_inquiry", "science_daily_life", "science_everyday_objects"}:
+        body = ""
         labels = {
             "science_jigsaw": ["What we know", "New discovery", "New questions"],
             "science_curiosity": ["Notice", "Ask why", "Explore"],

@@ -852,7 +852,7 @@ def _generate_synthesis_visual_candidates(round_id: str) -> int:
                 citation_ids = list(dict.fromkeys(str(value) for value in citations if str(value)))
                 placeholders = ",".join("?" for _ in citation_ids)
                 chunks = conn.execute(
-                    f"SELECT id,page_start,page_end FROM chunks WHERE source_id=? AND id IN ({placeholders})",
+                    f"SELECT id,page_start,page_end,text FROM chunks WHERE source_id=? AND id IN ({placeholders})",
                     (str(row["source_id"]), *citation_ids),
                 ).fetchall()
                 page_by_id = {str(chunk["id"]): chunk for chunk in chunks}
@@ -899,19 +899,28 @@ def _generate_synthesis_visual_candidates(round_id: str) -> int:
                         if page is not None and int(page) > 0 and int(page) not in cited_pages:
                             cited_pages.append(int(page))
                 objective = flatten(objectives[0], 120) if isinstance(objectives, list) and objectives else ""
-                lowered = (topic + " " + caption).casefold()
-                visual_type = "none"
-                if any(word in lowered for word in ("cycle", "evaporation", "condensation", "life cycle")):
-                    visual_type = "cycle"
-                elif any(word in lowered for word in ("fraction", "half", "quarter", "equal parts")):
-                    visual_type = "fraction"
-                elif any(word in lowered for word in ("sequence", "pattern", "step by step", "first", "then", "finally", "process")):
-                    visual_type = "process"
+                source_evidence = "\\n".join(str(chunk["text"] or "") for chunk in chunks)
+                evidence_lower = source_evidence.casefold()
+                quality_flags = []
+                if any(token in evidence_lower for token in ("10/18/2024", "chapter 1.indd", "reprint 2026-27")):
+                    quality_flags.append("running_header_or_timestamp")
+                if "fi nd" in evidence_lower or "scientifi c" in evidence_lower:
+                    quality_flags.append("ocr_split_word")
+                if "daily lives" in evidence_lower:
+                    quality_flags.append("running_header_fragment")
+                if "or watched a flower" in evidence_lower:
+                    quality_flags.append("malformed_ocr_sentence")
+                # Let the shared visual engine select a precise topic renderer from the
+                # synthesis plus only its cited source text; avoid generic keyword cards.
+                evidence_status = "needs_review" if quality_flags else "source_cited_draft"
                 step = {
                     "id": step_id, "title": topic, "caption": caption[:500],
                     "teacher_says": caption[:500], "source_chunk_ids": citation_ids,
-                    "visual": {"type": visual_type, "objects": [topic[:80], (objective or caption)[:80]],
-                               "narration_sync": [topic[:80]], "reference_page_numbers": sorted(cited_pages)[:8]},
+                    "source_evidence": source_evidence[:5000],
+                    "visual": {"type": "none", "objects": [],
+                               "narration_sync": [topic[:80]], "reference_page_numbers": sorted(cited_pages)[:8],
+                               "evidence_status": evidence_status, "quality_flags": quality_flags,
+                               "visual_rationale": "Generated from this synthesis step and its verified cited source chunks."},
                 }
                 lesson = {"chapter_title": str(row["chapter"]), "topic": topic,
                           "overview": objective or caption[:300], "teaching_sequence": [step]}

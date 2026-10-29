@@ -124,9 +124,9 @@ def _render_svg(kind: str, title: str, nodes: list[str]) -> str:
     return "".join(parts)
 
 
-def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple[str, list[str]]:
-    """Infer only simple diagram labels that are explicitly present in the synthesized caption."""
-    text = _clean(f"{title} {caption}", 5000)
+def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_evidence: str = "") -> tuple[str, list[str]]:
+    """Choose a topic-specific scene only from synthesis text and its cited source evidence."""
+    text = _clean(f"{title} {caption} {source_evidence}", 5000)
     lowered = text.casefold()
 
     # This textbook sequence is a stable, explicit concept: each term remains 1.
@@ -265,6 +265,37 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
         if labels:
             return "table", labels[:3]
 
+    # Topic-specific Science Chapter 1 scenes. Each label is a concept, not a copied textbook image.
+    if any(term in lowered for term in ("jigsaw", "knowledge grows", "new discovery", "pieces of knowledge")):
+        return "process", ["What we know", "New discovery", "New questions"]
+
+    if any(term in lowered for term in ("pen stops writing", "ink is empty", "check the refill")):
+        return "process", ["Notice the problem", "Make a guess", "Test the refill"]
+
+    if any(term in lowered for term in ("scientific method", "scientific inquiry", "analyse results", "analyze results")):
+        return "process", ["Observe", "Ask", "Guess", "Test", "Review results"]
+
+    if any(term in lowered for term in ("paper", "metal key", "plastic ruler", "rubber eraser")):
+        labels = [label for term, label in (("paper", "Paper"), ("metal key", "Metal key"), ("plastic ruler", "Plastic ruler"), ("rubber eraser", "Rubber eraser")) if term in lowered]
+        if len(labels) >= 2:
+            return "compare", labels[:4]
+
+    if any(term in lowered for term in ("solid", "liquid", "gas", "states of water", "water changes state")):
+        labels = [label for term, label in (("solid", "Solid"), ("liquid", "Liquid"), ("gas", "Gas")) if re.search(r"\\b" + term + r"\\b", lowered)]
+        if len(labels) >= 2:
+            return "process", labels[:3]
+
+    if any(term in lowered for term in ("magnet", "magnetic", "north pole", "south pole")):
+        labels = [label for term, label in (("north pole", "North pole"), ("south pole", "South pole"), ("attract", "Attract"), ("repel", "Repel")) if term in lowered]
+        return "diagram", labels[:4] or ["Magnet", "Test an object"]
+
+    if any(term in lowered for term in ("notice something", "ask why", "curiosity", "ask a question", "flower bloom", "stars shine")):
+        return "process", ["Notice", "Ask why", "Explore"]
+
+    if any(term in lowered for term in ("cooking", "bicycle tyre", "light bulb", "daily life", "everyday problem")):
+        labels = [label for term, label in (("cooking", "Cooking"), ("bicycle tyre", "Bicycle tyre"), ("light bulb", "Light bulb"), ("switch", "Switch")) if term in lowered]
+        return "compare", labels[:3] or ["Observe", "Suggest", "Test"]
+
     # If a synthesis supplied no structured recipe, do not fabricate a diagram from its title.
     return fallback_kind, []
 
@@ -285,7 +316,8 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         label = _clean(raw_label, 72)
         if label:
             labels.append(label)
-    inferred_kind, inferred_nodes = _infer_visual_content(title, source_caption, kind)
+    source_evidence = _clean(step.get("source_evidence") or "", 5000)
+    inferred_kind, inferred_nodes = _infer_visual_content(title, source_caption, kind, source_evidence)
     if inferred_nodes and kind in {"concept_card", "table"}:
         # A generic action label must not override a more specific diagram that
         # is directly supported by the selected topic's caption.
@@ -356,6 +388,8 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         "visual_rationale": visual_rationale,
         "source_chunk_ids": [str(value) for value in step.get("source_chunk_ids", []) if value][:8]
             if isinstance(step.get("source_chunk_ids", []), list) else [],
+        "evidence_status": _clean(visual.get("evidence_status") or "source_cited_draft", 40),
+        "quality_flags": visual.get("quality_flags", []) if isinstance(visual.get("quality_flags", []), list) else [],
     }
     # SVG is a compact vector asset stored in the same DB JSON field as its recipe.
     # It is deterministic for a given synthesis step and escapes all source labels.

@@ -534,3 +534,10 @@ Use this format:
 - **Rights / design:** New drawings are original app-rendered shapes; no textbook page images were copied. No 3D engine or fancy animation was added.
 - **Validation status:** **PENDING** — exact-head backend tests, Kotlin/JVM tests, APK build, smoke-helper checks, and API-35 emulator screenshot/flow must run after PR creation. No runtime acceptance is claimed yet; the screenshot must be checked for topic accuracy, readable labels, inline placement, and Tanglish speech/captions.
 - **Next action:** Open a draft PR to trigger exact-head CI, inspect every required check and available APK/emulator artifacts, fix failures based on logs, and only then request learner-device verification. Do not merge or deploy without explicit user approval.
+
+
+### 2026-10-29 — Extend language fix to safe source-excerpt fallbacks
+- **Branch / pre-test commit:** `fix/teacher-drawn-inline-tanglish`; implementation commit `73529301f9be8dc6e638017977aa2b072bc12be7`; regression test commit `1c7a7e61e4428ab25e49d2aab8aae40a1c3bab19`.
+- **Finding:** Two early-return source-excerpt fallback paths in `/tutor/lesson-plan` could bypass the new translation call if Gemini generation failed or produced off-topic content.
+- **Change:** Both safe, source-cited fallback paths now pass their segment through the selected-language translator after source/topic validation. Added a Tanglish regression expectation for the provider-outage fallback.
+- **Validation:** The earlier backend run passed before this follow-up change; all checks must be rerun on the newest PR head. No APK/runtime success is claimed.

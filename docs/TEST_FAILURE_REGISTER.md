@@ -10,6 +10,15 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Regression prevention:** Added `.github/scripts/test_diary_emulator_script.py`, which checks the ADB command shape and the dump/pull/parse order before emulator allocation. It also verifies the workflow preserves failure reports.
 - **Acceptance still required:** A fresh emulator run must select the fixture, crop it, rescan through the deterministic API, save both expected tasks, and verify the planner excludes tasks from other dates.
 
+
+## Incident: topic-level visual persistence used a helper from the wrong module
+
+- **Symptom:** Curriculum Engine Tests failed on the visual-assets branch with `NameError: name '_clean' is not defined` in `attach_topic_visuals`; one long-caption inference test also incorrectly expected the full caption to survive the deliberately bounded summary field.
+- **Root cause:** The new API helper called a private normalizer defined only in `lesson_visuals.py`, and the test asserted against a truncated summary rather than the visual blueprint inferred from the full source caption.
+- **Fix:** Commit `deeb5a412e8043a8c2c103b6e4a909dbaf501fc9` uses the backend's existing `normalize` helper and asserts bounded summary length while checking the inferred 2D sequence nodes.
+- **Regression prevention:** Added a topic-level persistence test proving that the selected topic, source chunk IDs, cited page number, inline visual payload and active database row stay connected. The Curriculum Engine Tests workflow passed on the fix commit.
+- **Acceptance still required:** Android APK and emulator UI smoke checks must pass on the latest PR head; inspect the actual live-lesson screenshot to confirm the generated visual is inline and synchronized before approval.
+
 ## Required incident-closing checklist
 
 - [ ] Capture the exact failing step, command, exit code, and relevant log excerpt.
@@ -252,3 +261,62 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `e50f358ffa26ce8df6af7c970de4c23b386eeefb` falls back to the emulator's already-installed Google TTS service when eSpeak voice data is missing, verifies that the service is registered, selects it as the default, and confirms the selected engine. It still fails closed if neither engine is available.
 - **Regression prevention:** Commit `8486068efd25f4322ed1629b91438f490d594b5f` updates static regression checks for the fallback and failure conditions. The full smoke test must still demonstrate that the tutor actually starts speaking (the live-lesson UI transitions to Pause); selecting a registered engine alone is not sufficient.
 - **Validation:** Awaiting fresh CI on the updated PR head. Do not merge until the full emulator smoke test passes.
+
+
+## Incident: UI redesign conflicts with obsolete paragraph-format regression
+- **Date:** 2026-10-28
+- **Affected PR:** [#48](https://github.com/Prav1525/Padippupal/pull/48), UI redesign branch `ui/modern-learner-layout`.
+- **Evidence:** [Android UI smoke run 40713993637](https://github.com/Prav1525/Padippupal/actions/runs/40713993637), smoke-script validation, commit under test `3db30454bd496ed4ac786afb1027d8166d79262d`.
+- **Observed failure:** `test_spoken_caption_groups_sentences_into_natural_paragraphs` expected the old implementation string `separate paragraphs only after every third sentence` and the forced-break offset logic. The new caption intentionally preserves the source text's whitespace and paragraph boundaries. JVM tests and APK build passed; emulator execution was skipped after script validation failed.
+- **Root cause:** **CONFIRMED** stale regression assertions encoded the superseded behavior, rather than the new requirement.
+- **Fix:** Commit `3dec9a073ba5622ad1853972aaf3a3468e6c6543` replaces that assertion with checks that the caption appends original source gaps and trailing text, and does not use the forced every-third-sentence rule. The duplicate paragraph-preservation test was removed to avoid redundant coverage.
+- **Validation:** Corrected test and full UI smoke workflow are **UNVERIFIED** pending CI on the updated head. Do not mark the UI verified or merge until script validation and API-35 emulator flow pass.
+
+
+## Incident: UI smoke still tapped the removed home CTA
+- **Date:** 2026-10-28
+- **Affected PR:** [#48](https://github.com/Prav1525/Padippupal/pull/48), branch `ui/modern-learner-layout`.
+- **Evidence:** [Android UI smoke run 40714616741](https://github.com/Prav1525/Padippupal/actions/runs/40714616741), failed emulator step log at the lesson-selection transition.
+- **Observed failure:** JVM tests, APK build, and smoke-script validation passed. Emulator confirmed the refreshed home labels, then failed because `.github/scripts/android-ui-smoke.sh` still tried to tap `Begin lesson`, which is no longer on the screen; the current primary CTA is `Start learning`.
+- **Root cause:** **CONFIRMED** stale UI automation selector after home redesign, not an app launch/build failure.
+- **Fix:** Commit `2e21c2fa49838825d13a6ba88c551c906d7e9db0` updates the smoke tap target to `Start learning`; commit `d2ada5de0225b18a0d998b98717bfb44b9ea648f` adds a regression test requiring the new selector and forbidding the removed label.
+- **Validation:** Latest-head UI smoke, JVM tests, APK build and guidance gate are **PENDING**. Do not merge until the emulator flow passes and its artifact is reviewed.
+
+
+## Incident: inline-visual regression test used an invalid source boundary
+- **Date:** 2026-10-28
+- **Affected PR:** [#48](https://github.com/Prav1525/Padippupal/pull/48), branch `ui/modern-learner-layout`.
+- **Evidence:** [Android UI smoke run 40716183030](https://github.com/Prav1525/Padippupal/actions/runs/40716183030), helper-test output in the smoke-script validation step.
+- **Observed failure:** JVM tests and APK build passed, but smoke-script validation failed in `test_curriculum_diagrams_and_source_page_references_render_inline` with `ValueError: substring not found` while locating the end of `_interactive_lesson_row`.
+- **Root cause:** **CONFIRMED** the test searched for a newline-escaped function boundary that did not match the source file's literal text. The application source was not the failing component.
+- **Fix:** Commit `43dd69b52760cb020e3c6545720bdcf875c84c51` changes the test to search directly for `def find_interactive_lesson(`.
+- **Validation:** Latest-head helper tests and API-35 emulator flow are **PENDING**. No merge or deployment performed.
+
+
+## Incident: visual persistence was not isolated in lesson-plan unit tests
+- **Date:** 2026-10-28
+- **Affected PR:** [#49](https://github.com/Prav1525/Padippupal/pull/49), branch `feat/synthesis-linked-2d-visuals`.
+- **Evidence:** [Curriculum Engine Tests run 40721266652](https://github.com/Prav1525/Padippupal/actions/runs/40721266652), exact head `b0bda67b7ce5e0a75da9cdf39942c341c5165364).
+- **Observed failure:** Two existing tests failed after the approved lesson path began persisting visual assets; the fake DB expected only the original SELECT and returned a lesson row for the new visual-assets query.
+- **Root cause:** **CONFIRMED** the tests mocked the database but not the newly introduced visual-persistence boundary.
+- **Fix:** Stubbed `get_or_create_lesson_visuals` in those tests so they continue to isolate lesson selection/topic validation; dedicated visual-builder tests cover the new mapping contract.
+- **Validation:** Exact-head backend, APK, and emulator checks are **PENDING** on the correction. No merge or deployment performed.
+
+
+### 2026-10-29 — Inline visual smoke check outlived the active lesson
+
+- **Branch / failure run:** `feat/synthesis-linked-2d-visuals`; Android UI smoke run [40767983190](https://github.com/Prav1525/Padippupal/actions/runs/40767983190), failing job 123101401167, head `bbb474ac7af1349488e87127a5ec9063bf163043`.
+- **Evidence:** The final emulator UI tree includes both the expected inline visual title `All 1s pattern visual` and its mapped summary `Each term stays 1. The pattern repeats without growing.` The same tree shows `Live lesson complete.` and the follow-up composer. The visual itself is present; the assertion was inspecting the screen after playback had completed.
+- **Root cause:** **CONFIRMED** the smoke script captured 40 frames over 70 seconds before running `assert-live`. The long deterministic narration could finish during that capture window, switching the screen from the active teaching canvas (Pause/Stop controls) to the completed chat view (composer), causing the active-state assertion to fail.
+- **Correction:** Commit `2bb869b6687370ba2bed7937f1b5b28e42909b52` reduces the live capture window to 12 frames and 12 seconds, preserving enough frames to verify word-highlight movement while checking the active lesson before playback finishes. Follow-up commit `78d1be12184fdb2f048f13b3356e7af0dc4920d3` also starts a background `/health` request when the app opens, so the Render API can wake while the learner chooses a lesson; this is a perceived-latency mitigation, not a substitute for keeping production compute always on.
+- **Verification:** Kotlin/JVM tests, debug APK build, script validation and curriculum tests passed on the previous head. The corrected emulator flow is **PENDING**; do not merge until a fresh exact-head run passes.
+- **Next action:** Confirm the latest Android UI smoke workflow runs on the corrected head. If it still fails, use the new active-screen XML and image evidence to distinguish a true rendering defect from a timing race. No merge or deployment performed.
+
+
+## Incident: Android live-tutor smoke capture outlasted fast emulator speech
+
+- **Symptom:** UI smoke run `40722951883` passed JVM tests, APK build, smoke-script validation, and deterministic tutor API setup, but the final live-screen assertion failed.
+- **Evidence / root cause:** The saved hierarchy at the failed assertion contained `Live lesson complete.` and the post-lesson `Ask your teacher…` composer, rather than the dedicated live-teaching controls. The smoke script then spent 25 seconds capturing 12 frames before taking the live-screen hierarchy; on the emulator's faster speech timing, playback could finish during that capture window. This is a test-timing failure, not evidence that the app crashed.
+- **Fix:** Commit `bab28a9060ae8e86db31b18141739df877d30377` shortens the capture window to 12 frames at 0.5-second intervals (about six seconds) so the highlight scan samples the active lesson sooner.
+- **Regression check:** Re-run `android-ui-smoke.sh`; it must capture the active tutor screen, find the inline visual, and detect a moving spoken-word highlight across at least two positions.
+- **Validation:** Pending fresh Android emulator run. Do not close this incident or merge until the emulator flow passes.

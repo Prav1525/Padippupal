@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import (assert_composer_question, concept_candidates, exact_color_mask,
+from ui_smoke import (assert_composer_question, assert_home, assert_live, concept_candidates, exact_color_mask,
                        exact_text_candidates, tap, tap_input)
 
 
@@ -58,6 +58,54 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertIn('description = node.attrib.get("content-desc", "").strip()', tap_body)
         self.assertIn('target.lower() in description.lower()', tap_body)
 
+    def test_live_lesson_polling_clears_stale_accessibility_trees(self):
+        script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
+        poll_start = script.index('log "Waiting for a complete lesson caption')
+        poll_end = script.index('log "Lesson UI detected;', poll_start)
+        poll = script[poll_start:poll_end]
+        self.assertIn("rm -f live-lesson.xml", poll)
+        self.assertIn('shell rm -f /data/local/tmp/live-lesson.xml', poll)
+        self.assertLess(poll.index('shell rm -f /data/local/tmp/live-lesson.xml'), poll.index('shell uiautomator dump /data/local/tmp/live-lesson.xml'))
+
+        completion_start = script.index('log "Waiting for playback to finish')
+        completion_end = script.index('assert-completed-lesson live-complete.xml | tee', completion_start)
+        completion_poll = script[completion_start:completion_end]
+        self.assertIn("rm -f live-complete.xml", completion_poll)
+        self.assertIn('shell rm -f /data/local/tmp/live-complete.xml', completion_poll)
+        self.assertLess(completion_poll.index('shell rm -f /data/local/tmp/live-complete.xml'), completion_poll.index('shell uiautomator dump /data/local/tmp/live-complete.xml'))
+
+    def test_live_lesson_assertion_reads_icon_only_pause_and_stop_labels(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="Live lesson · segment 1 of 1" bounds="[0,0][300,50]"/>
+          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,50][300,250]"/>
+          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
+          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
+          <node text="" content-desc="Pause playback" bounds="[0,350][100,400]"/>
+          <node text="" content-desc="Stop lesson" bounds="[100,350][200,400]"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-live-lesson-accessibility-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_live(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_live_assertion_accepts_a_short_first_segment_before_later_segments(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
+          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,50][300,250]"/>
+          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
+          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
+          <node text="" content-desc="Pause playback" bounds="[0,350][100,400]"/>
+          <node text="" content-desc="Stop lesson" bounds="[100,350][200,400]"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-live-short-segment-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_live(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
     def test_live_lesson_client_timeout_exceeds_two_backend_generation_attempts(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
@@ -71,6 +119,84 @@ class ExactSelectorTests(unittest.TestCase):
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
+
+
+class SynthesisInlineVisualContractTests(unittest.TestCase):
+    def test_smoke_api_supplies_a_source_mapped_original_2d_visual(self):
+        fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
+        self.assertIn('"scene_type": "synthesis_static"', fixture)
+        self.assertIn('"title": "All 1s pattern visual"', fixture)
+        self.assertIn('"nodes": ["1", "1", "1", "1", "1"]', fixture)
+        self.assertIn('"source_chunk_ids": ["smoke-source"]', fixture)
+        self.assertIn('"animation": "narration_synced_2d"', fixture)
+
+    def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        start = smoke.index("def assert_live(path):")
+        end = smoke.index("\ndef exact_color_mask", start)
+        live = smoke[start:end]
+        self.assertIn('"all 1s pattern visual" not in joined', live)
+        self.assertIn('"each term stays 1" not in joined', live)
+        self.assertNotIn('"watch the pattern"', live)
+        self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
+
+
+class HomeLayoutContractTests(unittest.TestCase):
+    def test_home_smoke_contract_matches_refreshed_primary_action(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="YOUR LEARNING SPACE" bounds="[0,0][300,50]"/>
+          <node text="YOUR PERSONAL TUTOR" bounds="[0,50][300,100]"/>
+          <node text="Start learning" bounds="[0,100][300,150]"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-home-layout-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_home(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_home_has_one_primary_tutor_action_and_compact_secondary_actions(self):
+        source = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                  "java" / "com" / "padippupal" / "app" / "MainActivity.kt").read_text()
+        home = source[source.index("private fun Home("):source.index("@Composable private fun Stat(")]
+        self.assertIn('Text(if (tamil) "பாடத்தைத் தொடங்கு" else "Start learning"', home)
+        self.assertIn('else "Scan homework"', home)
+        self.assertIn('else "Exam practice"', home)
+        self.assertIn('else "Connect your syllabus"', home)
+        self.assertNotIn('Tile("My subjects"', home)
+        self.assertNotIn('Tile("Study planner"', home)
+        self.assertNotIn('"01 / 04"', home)
+        smoke = (Path(__file__).resolve().parents[2] / ".github" / "scripts" / "android-ui-smoke.sh").read_text()
+        self.assertIn('tap home.xml "Start learning"', smoke)
+        self.assertNotIn('tap home.xml "Begin lesson"', smoke)
+
+
+class TutorInlineVisualContractTests(unittest.TestCase):
+    def test_curriculum_diagrams_and_source_page_references_render_inline(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        start = tutor.index("private fun DatabaseInteractiveLessonLab(")
+        end = tutor.index("private enum class LessonVisualKind", start)
+        lab = tutor[start:end]
+        self.assertIn('"fraction_builder" -> {', lab)
+        self.assertIn("drawArc(", lab)
+        self.assertIn('lesson.optJSONArray("source_refs")', lab)
+        self.assertIn('sourceRef.optInt("page_start", 0)', lab)
+        self.assertIn('sourceRef.optInt("page_end", pageStart)', lab)
+        backend = (Path(__file__).resolve().parents[2] / "backend/app.py").read_text()
+        row_start = backend.index("def _interactive_lesson_row(")
+        row_end = backend.index("def find_interactive_lesson(", row_start)
+        self.assertIn('"source_refs": payload.get("source_refs", [])', backend[row_start:row_end])
+        lesson_plan = backend[backend.index('def tutor_lesson_plan('):backend.index('@app.post("/tutor/chat")')]
+        self.assertIn('"interactive_lesson": matched_visual', lesson_plan)
+        self.assertNotIn("This product mode is text-only", lesson_plan)
+        self.assertIn("optional inline concept visuals", backend)
+        self.assertIn('response.optJSONObject("interactive_lesson")', tutor)
+        live_start = tutor.index('if (liveLessonActive) {')
+        live_end = tutor.index('Inline learner checkpoint', live_start)
+        live = tutor[live_start:live_end]
+        self.assertIn("liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(", live)
+        self.assertIn("compact = true", live)
+        self.assertIn("liveWordIndex", live)
 
 
 class TutorPromptContractTests(unittest.TestCase):
@@ -234,16 +360,18 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn("Per-segment checkpoint or animation UI reappeared", smoke)
         self.assertNotIn("missing its passive auto-playing concept animation", smoke)
 
-    def test_spoken_caption_groups_sentences_into_natural_paragraphs(self):
+    def test_spoken_caption_preserves_source_paragraphs(self):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertIn("separate paragraphs only after every third sentence", tutor)
-        self.assertIn(r'append(if (endsSentence && sentencesInParagraph % 3 == 0) "\n\n" else " ")', tutor)
-        self.assertIn("offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1", tutor)
+        caption = tutor[tutor.index("private fun WordByWordCaption("):tutor.index("private fun ChapterOneMathAnimation(")]
+        self.assertIn("text.substring(cursor, matchStart)", caption)
+        self.assertIn("if (cursor < text.length) append(text.substring(cursor))", caption)
+        self.assertNotIn("sentencesInParagraph", caption)
+        self.assertNotIn("separate paragraphs only after every third sentence", caption)
 
     def test_completed_lesson_is_kept_for_follow_up_chat(self):
         root = Path(__file__).resolve().parents[2]
         tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertIn('messages.add(TutorMessage("assistant", completedLesson))', tutor)
+        self.assertIn('messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))', tutor)
         self.assertIn('status = "Live lesson complete."', tutor)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
         self.assertIn("def assert_completed_lesson(path):", smoke)
@@ -254,9 +382,24 @@ class CompleteLessonRegressionTests(unittest.TestCase):
 
     def test_smoke_waits_for_full_caption_and_rejects_checkpoint_ui(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        self.assertIn("assert-live live-lesson.xml >/dev/null 2>&1", script)
+        self.assertIn("assert-live live-lesson.xml > live-assertion.log 2>&1", script)
+        self.assertIn("cp live-assertion.log live-assertion-last.log", script)
+        self.assertIn("Last active-lesson assertion:", script)
+        self.assertIn("Sampled active-lesson assertion history:", script)
+        self.assertIn("live-assertion-history.log", script)
+        self.assertIn("lesson_poll_count % 10", script)
         self.assertIn("live-complete.xml", script)
         self.assertNotIn("explicit understanding checkpoint", script)
+
+
+    def test_synthesized_visuals_follow_exact_spoken_segment_boundaries(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn('inlineVisual?.optString("scene_type") == "synthesis_static"', tutor)
+        self.assertIn('inlineVisual.put("step_word_boundaries", wordBoundaries)', tutor)
+        self.assertIn('val stepWordBoundaries = liveInteractiveLesson?.optJSONArray("step_word_boundaries")', tutor)
+        self.assertIn('spokenWordPosition <= stepWordBoundaries.optInt(it, Int.MAX_VALUE)', tutor)
+        self.assertIn('visualSteps.length() == lessonSegments.size', tutor)
 
 
 class PreviousScreenSelectionTests(unittest.TestCase):

@@ -19,6 +19,39 @@ LESSON = {
     "language": "English",
     "subject": "Mathematics",
     "sources": [{"chunk_id": "smoke-source", "title": "Smoke-test fixture", "page_start": 1, "page_end": 1}],
+    # Original compact 2D visual, mapped to this exact synthesized All 1s lesson.
+    # It deliberately models the learning relationship (repeated equal terms), not a copied textbook illustration.
+    "interactive_lesson": {
+        "id": "synth-smoke-all-ones",
+        "chapter": "Patterns in Mathematics",
+        "topic": "All 1s",
+        "title": "All 1s pattern visual",
+        "scene_type": "synthesis_static",
+        "caption": "Each term stays 1. The pattern repeats without growing.",
+        "visual_kind": "sequence",
+        "visual_subtype": "sequence",
+        "animation": "narration_synced_2d",
+        "objects": [
+            {"label": "1", "position": [0.06, 0.30]},
+            {"label": "1", "position": [0.25, 0.30]},
+            {"label": "1", "position": [0.44, 0.30]},
+            {"label": "1", "position": [0.63, 0.30]},
+            {"label": "1", "position": [0.82, 0.30]}
+        ],
+        "steps": [{
+            "id": "all-ones-rule",
+            "label": "Every term is 1",
+            "caption": "Each term stays 1. The pattern repeats without growing.",
+            "visual_kind": "sequence",
+            "visual_subtype": "sequence",
+            "nodes": ["1", "1", "1", "1", "1"],
+            "source_chunk_ids": ["smoke-source"],
+            "reference_page_numbers": [1],
+            "actions": ["Reveal the repeated 1s from left to right"],
+            "narration_sync": ["every term is the number 1", "repeats the same number"],
+            "animation_plan": {"mode": "staggered_reveal", "duration_ms": 850, "loop": False}
+        }]
+    },
     "segments": [
         {
             "id": "all-ones-definition",
@@ -54,6 +87,12 @@ LESSON = {
         },
     ],
 }
+
+# The live Android player reads the visual from the active segment. Keep the
+# deterministic fixture faithful to that contract instead of relying only on
+# the response-level visual, which chat mode uses.
+for _segment in LESSON["segments"]:
+    _segment["interactive_lesson"] = LESSON["interactive_lesson"]
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -166,12 +205,14 @@ def self_test() -> None:
     assert "All 1s" in LESSON["segments"][0]["spoken_text"]
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
-    assert all(segment["visual_action"]["type"] == "none" for segment in LESSON["segments"])
+    assert LESSON["interactive_lesson"]["scene_type"] == "synthesis_static"
+    assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["1", "1", "1", "1", "1"]
+    assert LESSON["interactive_lesson"]["steps"][0]["source_chunk_ids"] == ["smoke-source"]
     full_lesson = " ".join(segment["spoken_text"] for segment in LESSON["segments"])
     assert len(full_lesson) >= 220
     assert len(full_lesson.split()) >= 140
     assert "square" not in json.dumps(LESSON).casefold()
-    print("smoke API fixture self-test passed: complete topic-valid lesson, no checkpoints or visuals")
+    print("smoke API fixture self-test passed: topic-valid lesson with source-mapped inline 2D visual")
 
 
 def main() -> None:

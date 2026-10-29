@@ -17,7 +17,7 @@ def load(path):
 def assert_home(path):
     _, texts = load(path)
     joined = "\n".join(texts)
-    expected = ("YOUR LEARNING DESK", "A little wiser today", "YOUR PERSONAL TUTOR", "Begin lesson")
+    expected = ("YOUR LEARNING SPACE", "YOUR PERSONAL TUTOR", "Start learning")
     missing = [term for term in expected if term.lower() not in joined.lower()]
     print("HOME TEXT:", " | ".join(texts[:80]))
     if missing:
@@ -284,18 +284,29 @@ def assert_followup_answer(path):
 
 
 def assert_live(path):
-    _, texts = load(path)
-    joined = "\n".join(texts).lower()
+    nodes, texts = load(path)
+    # Icon-only Compose controls are exposed through content-desc, not text.
+    # Include those accessibility labels in state assertions or a valid live
+    # lesson is rejected even while Pause/Stop are visibly available.
+    descriptions = [n.attrib.get("content-desc", "").strip() for n in nodes]
+    descriptions = [value for value in descriptions if value]
+    joined = "\n".join(texts + descriptions).lower()
     print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
+    print("LIVE LESSON ACCESSIBILITY LABELS:", " | ".join(descriptions[:40]))
     # The app intentionally exposes progress as "Playing segment N of M" /
     # "Live lesson · segment N of M"; it never renders the obsolete literal
     # "teacher is speaking". Validate the real progress + inline lesson content.
     # Audio/highlight progression is checked independently below, so this
     # assertion must not mask those checks with a stale accessibility label.
-    teaching_texts = [value.strip() for value in texts if len(value.strip()) >= 220]
+    # A live caption is the current segment, not the whole lesson transcript.
+    # The deterministic smoke fixture intentionally has a short first segment;
+    # waiting for a 220-character caption skipped valid active playback until a
+    # later segment (or until the whole lesson had already completed).
+    teaching_texts = [value.strip() for value in texts if len(value.strip()) >= 120]
     if not teaching_texts:
-        raise SystemExit("Tutor screen does not expose one complete teaching explanation in its active caption")
-    forbidden_interruptions = ("quick check", "let's check your understanding", "does that make sense so far", "i understand", "explain again", "i have a question", "watch the pattern", "visual focus")
+        lengths = sorted((len(value.strip()) for value in texts), reverse=True)[:8]
+        raise SystemExit(f"Tutor screen has no readable active teaching segment (longest accessible text lengths={lengths})")
+    forbidden_interruptions = ("quick check", "let's check your understanding", "does that make sense so far", "i understand", "explain again", "i have a question", "visual focus")
     found_interruptions = [label for label in forbidden_interruptions if label in joined]
     if found_interruptions:
         raise SystemExit("Per-segment checkpoint or animation UI reappeared: " + ", ".join(found_interruptions))
@@ -320,6 +331,10 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
+    if "all 1s pattern visual" not in joined:
+        raise SystemExit("The source-mapped synthesized 2D visual is missing from the inline tutor flow")
+    if "each term stays 1" not in joined:
+        raise SystemExit("The inline visual is not mapped to the All 1s teaching summary")
     if "ask your teacher" in joined or "send question" in joined:
         raise SystemExit("Chat composer is still visible during the dedicated live teaching experience")
     forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")

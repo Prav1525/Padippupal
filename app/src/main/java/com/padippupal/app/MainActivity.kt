@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import java.util.UUID
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val Green=Color(0xFF0F766E)
 private val Deep=Color(0xFF0F2742)
@@ -61,6 +66,26 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,LESSON_SETUP,TU
  LaunchedEffect(name, grade, board, medium, language) {
    prefs.edit().putString("student_name", name).putString("grade", grade)
      .putString("board", board).putString("medium", medium).putString("language", language).apply()
+ }
+ // Wake the curriculum API while the learner is choosing what to study. Render's
+ // current Free web service can spin down after idle; this tiny health request runs
+ // off the UI thread and carries no learner data, so the first Teach tap is less likely
+ // to pay the full cold-start delay.
+ LaunchedEffect(Unit) {
+   withContext(Dispatchers.IO) {
+     val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+     if (base.startsWith("https://")) {
+       runCatching {
+         val connection = (URL("$base/health").openConnection() as HttpURLConnection).apply {
+           requestMethod = "GET"
+           connectTimeout = 3_000
+           readTimeout = 65_000
+           useCaches = false
+         }
+         try { connection.responseCode } finally { connection.disconnect() }
+       }
+     }
+   }
  }
  var lesson by remember{mutableStateOf("Crop Production and Management")}
  var done by remember{mutableStateOf(setOf<String>())}
@@ -148,103 +173,195 @@ private enum class Page{HOME,SUBJECTS,PLANNER,PROFILE,CURRICULUM,LESSON_SETUP,TU
 }
 
 @Composable private fun Logo(size:Int){Box(Modifier.size(size.dp).background(Deep,RoundedCornerShape((size/3).dp)),contentAlignment=Alignment.Center){Icon(Icons.Default.MenuBook,null,tint=Color(0xFFF8FAFC),modifier=Modifier.size((size*.62f).dp));Box(Modifier.align(Alignment.TopEnd).padding(3.dp).size((size*.25f).dp).background(Color(0xFF14B8A6),CircleShape),contentAlignment=Alignment.Center){Icon(Icons.Default.AutoAwesome,null,tint=Deep,modifier=Modifier.size((size*.15f).dp))}}}
-@Composable private fun Home(tamil:Boolean,name:String,done:Set<String>,go:(Page)->Unit,modifier:Modifier=Modifier){
- LazyColumn(
-   modifier.fillMaxSize().background(Paper).padding(horizontal=22.dp),
-   verticalArrangement=Arrangement.spacedBy(20.dp),
-   contentPadding=PaddingValues(top=18.dp,bottom=28.dp)
- ){
-   item {
-     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top,horizontalArrangement=Arrangement.SpaceBetween) {
-       Column(Modifier.weight(1f)) {
-         Text(if(tamil) "வணக்கம்" else "YOUR LEARNING DESK",fontSize=10.sp,fontWeight=FontWeight.Bold,color=Green,letterSpacing=2.sp)
-         Text(if(name.isNotBlank()) "Hello, $name." else if(tamil) "வணக்கம், நண்பா." else "A little wiser today.",fontSize=31.sp,lineHeight=36.sp,fontWeight=FontWeight.Normal,fontFamily=androidx.compose.ui.text.font.FontFamily.Serif,color=Deep,modifier=Modifier.padding(top=7.dp))
-         Text(if(tamil) "இன்றைய சிறு முயற்சி, நாளைய பெரிய வளர்ச்சி." else "A calmer way to learn, one idea at a time.",fontSize=13.sp,lineHeight=19.sp,color=Grey,modifier=Modifier.padding(top=7.dp))
-       }
-       Box(Modifier.padding(top=4.dp).size(44.dp).background(Mint,CircleShape),contentAlignment=Alignment.Center) {
-         Text(if(name.isNotBlank()) name.take(1).uppercase() else "P",fontSize=18.sp,fontWeight=FontWeight.SemiBold,color=Green)
-       }
-     }
-   }
-   item {
-     Card(
-       Modifier.fillMaxWidth().clickable { go(Page.LESSON_SETUP) },
-       shape=RoundedCornerShape(24.dp),
-       colors=CardDefaults.cardColors(containerColor=Deep),
-       elevation=CardDefaults.cardElevation(defaultElevation=0.dp)
-     ) {
-       Column(Modifier.fillMaxWidth().padding(21.dp),verticalArrangement=Arrangement.spacedBy(15.dp)) {
-         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-           Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-             Box(Modifier.size(31.dp).background(Color.White.copy(alpha=.12f),CircleShape),contentAlignment=Alignment.Center) {
-               Icon(Icons.Default.AutoAwesome,null,tint=Color(0xFF14B8A6),modifier=Modifier.size(17.dp))
-             }
-             Text(if(tamil) "உன் தனிப்பட்ட ஆசிரியர்" else "YOUR PERSONAL TUTOR",fontSize=10.sp,fontWeight=FontWeight.Bold,color=Color(0xFF14B8A6),letterSpacing=1.2.sp)
-           }
-           Icon(Icons.Default.ArrowOutward,null,tint=Color.White.copy(alpha=.75f),modifier=Modifier.size(19.dp))
-         }
-         Text(if(tamil) "புரியும் வரை கற்போம்." else "Let’s make it\nmake sense.",fontSize=29.sp,lineHeight=33.sp,fontWeight=FontWeight.Normal,fontFamily=androidx.compose.ui.text.font.FontFamily.Serif,color=Color.White)
-         Text(if(tamil) "கேள், பேசு, உன் வேகத்தில் கற்றுக்கொள்." else "Ask in English, Tamil or Tanglish. Learn at your own pace, with gentle explanations.",fontSize=13.sp,lineHeight=20.sp,color=Color.White.copy(alpha=.82f))
-         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-           Row(Modifier.background(Color(0xFF173B55),RoundedCornerShape(50)).padding(horizontal=11.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-             Icon(Icons.Default.GraphicEq,null,tint=Color(0xFF14B8A6),modifier=Modifier.size(16.dp))
-             Text(if(tamil) "குரல் அல்லது உரை" else "Voice or text",fontSize=11.sp,color=Color.White,fontWeight=FontWeight.Medium)
-           }
-           Text(if(tamil) "தொடங்கு  →" else "Begin lesson  →",fontSize=13.sp,color=Color(0xFFE0F7F4),fontWeight=FontWeight.SemiBold)
-         }
-       }
-     }
-   }
-   item {
-     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-       Column {
-         Text(if(tamil) "எங்கே தொடங்கலாம்?" else "A good place to start",fontSize=21.sp,fontWeight=FontWeight.Normal,fontFamily=androidx.compose.ui.text.font.FontFamily.Serif,color=Deep)
-         Text(if(tamil) "உனக்குத் தேவையானதைத் தேர்வு செய்" else "Choose what you need today.",fontSize=12.sp,color=Grey,modifier=Modifier.padding(top=3.dp))
-       }
-       Text("01 / 04",fontSize=10.sp,color=Grey,letterSpacing=1.sp)
-     }
-   }
-   item {
-     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(11.dp)) {
-       Tile("My subjects","Chapters & concepts",Icons.Default.MenuBook,Mint,Modifier.weight(1f)){go(Page.SUBJECTS)}
-       Tile("Study planner","A plan that fits",Icons.Default.CalendarMonth,Color(0xFFF1F5F9),Modifier.weight(1f)){go(Page.PLANNER)}
-     }
-   }
-   item {
-     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(11.dp)) {
-       Tile("Scan homework","Turn diary notes into a plan",Icons.Default.DocumentScanner,Color(0xFFFFF0E5),Modifier.weight(1f)){go(Page.SCAN)}
-       Tile("Exam practice","Build a question paper",Icons.Default.Quiz,Color(0xFFEAF0FF),Modifier.weight(1f)){go(Page.EXAM_MASTER)}
-     }
-   }
-   item {
-     Card(
-       Modifier.fillMaxWidth().clickable { go(Page.CURRICULUM) },
-       shape=RoundedCornerShape(19.dp),
-       colors=CardDefaults.cardColors(containerColor=Color(0xFFF1F5F9)),
-       elevation=CardDefaults.cardElevation(defaultElevation=0.dp)
-     ) {
-       Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=15.dp),verticalAlignment=Alignment.CenterVertically) {
-         Box(Modifier.size(42.dp).background(Color.White.copy(alpha=.8f),RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center) {
-           Icon(Icons.Default.MenuBook,null,tint=Green,modifier=Modifier.size(22.dp))
-         }
-         Column(Modifier.weight(1f).padding(start=12.dp,end=8.dp)) {
-           Text(if(tamil) "உன் பாடத்திட்டத்துடன் இணை" else "Learn from your syllabus",fontSize=14.sp,fontWeight=FontWeight.SemiBold,color=Deep)
-           Text(if(tamil) "வகுப்பு மற்றும் பாடநூல் விவரங்கள்" else "Find lessons matched to your class and textbook.",fontSize=11.sp,lineHeight=16.sp,color=Grey,modifier=Modifier.padding(top=3.dp))
-         }
-         Icon(Icons.Default.ChevronRight,null,tint=Green)
-       }
-     }
-   }
-   item {
-     Row(Modifier.fillMaxWidth().padding(top=1.dp),verticalAlignment=Alignment.CenterVertically) {
-       Box(Modifier.width(3.dp).height(37.dp).background(Color(0xFF14B8A6),RoundedCornerShape(2.dp)))
-       Column(Modifier.padding(start=12.dp)) {
-         Text("A note to remember",fontSize=15.sp,fontWeight=FontWeight.Normal,fontFamily=androidx.compose.ui.text.font.FontFamily.Serif,color=Deep)
-         Text("You don’t have to learn everything at once. Just the next thing.",fontSize=12.sp,lineHeight=18.sp,color=Grey,modifier=Modifier.padding(top=2.dp))
-       }
-     }
-   }
- }
+@Composable
+private fun Home(
+    tamil: Boolean,
+    name: String,
+    done: Set<String>,
+    go: (Page) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize().background(Paper).padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
+    ) {
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(
+                        if (tamil) "உன் கற்றல் இடம்" else "YOUR LEARNING SPACE",
+                        fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Green, letterSpacing = 1.6.sp
+                    )
+                    Text(
+                        if (name.isNotBlank()) (if (tamil) "வணக்கம், $name" else "Hello, $name")
+                        else if (tamil) "வணக்கம், நண்பா!" else "Ready to understand more?",
+                        fontSize = 27.sp, lineHeight = 33.sp, fontWeight = FontWeight.Bold, color = Deep
+                    )
+                    Text(
+                        if (tamil) "ஒரு நேரத்தில் ஒரு கருத்து. உன் வேகத்தில் கற்போம்."
+                        else "One idea at a time. Learn at your own pace.",
+                        fontSize = 13.sp, lineHeight = 19.sp, color = Grey
+                    )
+                }
+                Box(
+                    Modifier.padding(start = 12.dp).size(44.dp).background(Mint, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (name.isNotBlank()) name.take(1).uppercase() else "P",
+                        fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Green
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = Deep),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    Modifier.fillMaxWidth().padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(
+                            Modifier.size(32.dp).background(Color.White.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF5EEAD4), modifier = Modifier.size(18.dp))
+                        }
+                        Text(
+                            if (tamil) "உன் தனிப்பட்ட ஆசிரியர்" else "YOUR PERSONAL TUTOR",
+                            fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5EEAD4), letterSpacing = 1.1.sp
+                        )
+                    }
+                    Text(
+                        if (tamil) "புரியும் வரை கற்போம்." else "Let’s make it make sense.",
+                        fontSize = 29.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = Color.White
+                    )
+                    Text(
+                        if (tamil) "கேள், பேசு, உன் வேகத்தில் கற்றுக்கொள்."
+                        else "Ask in English, Tamil or Tanglish. Get a clear explanation, with voice and helpful visuals.",
+                        fontSize = 14.sp, lineHeight = 21.sp, color = Color.White.copy(alpha = 0.84f)
+                    )
+                    Button(
+                        onClick = { go(Page.LESSON_SETUP) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+                        shape = RoundedCornerShape(15.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5EEAD4), contentColor = Deep)
+                    ) {
+                        Text(if (tamil) "பாடத்தைத் தொடங்கு" else "Start learning", fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
+            }
+        }
+
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(if (tamil) "விரைவு செயல்கள்" else "Quick actions", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Deep)
+                Text(
+                    if (tamil) "உனக்குத் தேவையான கருவியைத் தேர்ந்தெடு" else "Pick the tool you need today.",
+                    fontSize = 12.sp, color = Grey
+                )
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(1.dp, Color(0xFFE5EAF0))
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    HomeActionRow(
+                        title = if (tamil) "வீட்டுப்பாடத்தை ஸ்கேன் செய்" else "Scan homework",
+                        subtitle = if (tamil) "டைரிக் குறிப்புகளைத் திட்டமாக மாற்று" else "Turn diary notes into a study plan",
+                        icon = Icons.Default.DocumentScanner,
+                        tint = Peach,
+                        onClick = { go(Page.SCAN) }
+                    )
+                    HorizontalDivider(color = Color(0xFFEEF2F6), thickness = 1.dp)
+                    HomeActionRow(
+                        title = if (tamil) "தேர்வுக்குப் பயிற்சி" else "Exam practice",
+                        subtitle = if (tamil) "கேள்விகளுடன் பயிற்சி செய்" else "Practise with a question paper",
+                        icon = Icons.Default.Quiz,
+                        tint = Lilac,
+                        onClick = { go(Page.EXAM_MASTER) }
+                    )
+                }
+            }
+        }
+
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable { go(Page.CURRICULUM) },
+                color = Color(0xFFEAF7F4),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier.size(42.dp).background(Color.White, RoundedCornerShape(13.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.MenuBook, contentDescription = null, tint = Green, modifier = Modifier.size(22.dp))
+                    }
+                    Column(Modifier.weight(1f).padding(start = 12.dp, end = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(if (tamil) "பாடத்திட்டத்துடன் இணை" else "Connect your syllabus", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Deep)
+                        Text(
+                            if (tamil) "வகுப்பு மற்றும் பாடநூலுக்கு ஏற்ற பாடங்கள்" else "Match lessons to your class and textbook.",
+                            fontSize = 12.sp, lineHeight = 17.sp, color = Grey
+                        )
+                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = "Open syllabus connection", tint = Green)
+                }
+            }
+        }
+
+        item {
+            Text(
+                if (tamil) "சிறு முன்னேற்றமும் முன்னேற்றமே." else "Small steps count. You don’t have to learn everything at once.",
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                fontSize = 12.sp, lineHeight = 18.sp, color = Grey
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeActionRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    tint: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 15.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(44.dp).background(tint, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = Green, modifier = Modifier.size(22.dp))
+        }
+        Column(Modifier.weight(1f).padding(start = 12.dp, end = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Deep)
+            Text(subtitle, fontSize = 12.sp, lineHeight = 17.sp, color = Grey)
+        }
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Grey)
+    }
 }
 @Composable private fun Stat(label:String,value:String,icon:ImageVector,tint:Color,modifier:Modifier){Card(modifier,colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(20.dp)){Row(Modifier.padding(13.dp),verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(tint,CircleShape),contentAlignment=Alignment.Center){Icon(icon,null,tint=Green)};Column(Modifier.padding(start=9.dp)){Text(value,fontSize=18.sp,fontWeight=FontWeight.ExtraBold);Text(label,fontSize=11.sp,color=Grey)}}}}
 @Composable private fun Heading(title:String,sub:String){Column{Text(title,fontSize=19.sp,fontWeight=FontWeight.Bold,color=Deep);Text(sub,fontSize=12.sp,color=Grey)}}

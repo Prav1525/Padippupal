@@ -207,7 +207,7 @@ def validate_chapter_lesson_payload(payload: Mapping[str, Any], allowed_chunk_id
     if not isinstance(steps, list) or not steps:
         errors.append("teaching_sequence must be a non-empty list")
         steps = []
-    allowed_visuals = {"number_pattern", "number_line", "geometry", "compare", "process", "table", "diagram", "none"}
+    allowed_visuals = {"number_pattern", "number_line", "geometry", "compare", "process", "table", "diagram", "fraction", "cycle", "none"}
     for index, step in enumerate(steps):
         if not isinstance(step, Mapping):
             errors.append(f"teaching_sequence[{index}] must be an object")

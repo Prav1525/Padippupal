@@ -28,6 +28,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.alpha
@@ -123,51 +124,43 @@ private fun WordByWordCaption(
     modifier: Modifier = Modifier,
     expandToAvailableHeight: Boolean = false
 ) {
-    val words = remember(text) { Regex("\\S+").findAll(text).map { it.value }.toList() }
-    val wordStarts = remember(text) {
-        buildList {
-            var offset = 0
-            var sentencesInParagraph = 0
-            words.forEachIndexed { index, word ->
-                add(offset)
-                offset += word.length
-                if (index < words.lastIndex) {
-                    val endsSentence = word.endsWith(".") || word.endsWith("?") || word.endsWith("!")
-                    if (endsSentence) sentencesInParagraph += 1
-                    offset += if (endsSentence && sentencesInParagraph % 3 == 0) 2 else 1
-                }
-            }
-        }
-    }
+    // Keep the source's spaces and paragraph breaks. Word highlighting must not rewrite
+    // the lesson into a new paragraph structure while speech is playing.
+    val words = remember(text) { Regex("\\S+").findAll(text).toList() }
+    val wordStarts = remember(text) { words.map { it.range.first } }
     val scrollState = rememberScrollState()
     var layoutResult by remember(text) { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     val density = LocalDensity.current
     val caption = remember(text, active, currentWordIndex) {
         buildAnnotatedString {
-            var sentencesInParagraph = 0
-            words.forEachIndexed { index, pair ->
-                val word = pair
-                if (index > 0) {
-                    val previous = words[index - 1]
-                    val endsSentence = previous.endsWith(".") || previous.endsWith("?") || previous.endsWith("!")
-                    if (endsSentence) sentencesInParagraph += 1
-                    // Keep several sentences together like a natural tutor explanation;
-                    // separate paragraphs only after every third sentence.
-                    append(if (endsSentence && sentencesInParagraph % 3 == 0) "\n\n" else " ")
-                }
-                val start = length
-                append(word)
-                val end = length
+            var cursor = 0
+            words.forEachIndexed { index, match ->
+                val matchStart = match.range.first
+                if (matchStart > cursor) append(text.substring(cursor, matchStart))
+                val startOffset = length
+                append(match.value)
+                val endOffset = length
                 if (active && index == currentWordIndex.coerceIn(0, (words.size - 1).coerceAtLeast(0))) {
-                    addStyle(SpanStyle(background = Color(0xFFDCE7FF), fontWeight = FontWeight.ExtraBold), start, end)
+                    addStyle(
+                        SpanStyle(background = Color(0xFFDCE7FF), fontWeight = FontWeight.ExtraBold),
+                        startOffset,
+                        endOffset
+                    )
                 }
-                addStringAnnotation("word", word.trimEnd(',', '.', ';', ':', '?', '!'), start, end)
+                addStringAnnotation(
+                    "word",
+                    match.value.trimEnd(',', '.', ';', ':', '?', '!'),
+                    startOffset,
+                    endOffset
+                )
+                cursor = match.range.last + 1
             }
+            if (cursor < text.length) append(text.substring(cursor))
         }
     }
     LaunchedEffect(currentWordIndex, layoutResult, active, text) {
         val layout = layoutResult
-        if (active && layout != null && words.isNotEmpty()) {
+        if (active && layout != null && words.isNotEmpty() && caption.isNotEmpty()) {
             val index = currentWordIndex.coerceIn(0, words.lastIndex)
             val displayOffset = wordStarts.getOrElse(index) { 0 }.coerceAtMost(caption.length - 1).coerceAtLeast(0)
             val line = layout.getLineForOffset(displayOffset)
@@ -178,7 +171,7 @@ private fun WordByWordCaption(
     val captionModifier = if (expandToAvailableHeight) {
         modifier.fillMaxWidth().verticalScroll(scrollState)
     } else {
-        modifier.fillMaxWidth().heightIn(max = 150.dp).verticalScroll(scrollState)
+        modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scrollState)
     }
     Box(captionModifier) {
         Text(
@@ -187,141 +180,15 @@ private fun WordByWordCaption(
             style = androidx.compose.ui.text.TextStyle(
                 color = TutorDeep,
                 fontSize = 16.sp,
-                lineHeight = 25.sp,
-                fontWeight = FontWeight.Medium
+                lineHeight = 26.sp,
+                letterSpacing = 0.1.sp,
+                fontWeight = FontWeight.Normal,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Start
             ),
             onTextLayout = { layoutResult = it }
         )
     }
 }
-
-@Composable
-private fun InteractiveLessonLab(
-    chapter: String,
-    topic: String,
-    explanation: String,
-    visualActionType: String = "none",
-    visualTarget: String = "",
-    segmentIndex: Int = 0
-) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
-    val key = "$chapter $topic $explanation".lowercase()
-    val title: String
-    val hint: String
-    val items: List<MoveItem>
-    when {
-        listOf("fraction", "numerator", "denominator", "half", "quarter").any { it in key } -> {
-            title = "Build a fraction"; hint = "Drag equal pieces together to make one whole."
-            items = listOf(MoveItem("🟩","1/4",.08f,.25f),MoveItem("🟩","1/4",.30f,.25f),MoveItem("🟩","1/4",.52f,.25f),MoveItem("⬜","1/4",.74f,.25f))
-        }
-        listOf("magnet","magnetic","attract","repel").any { it in key } -> {
-            title = "Explore magnets"; hint = "Move the magnet near the metal objects and compare."
-            items = listOf(MoveItem("🧲","Magnet",.08f,.28f),MoveItem("📎","Metal",.70f,.18f),MoveItem("📎","Metal",.70f,.56f),MoveItem("🪵","Wood",.38f,.58f))
-        }
-        listOf("water cycle","evaporation","condensation","precipitation","states of water").any { it in key } -> {
-            title = "Move water through the cycle"; hint = "Drag water, vapour, clouds and rain through the stages."
-            items = listOf(MoveItem("🌊","Water",.04f,.56f),MoveItem("💧","Vapour",.28f,.18f),MoveItem("☁️","Cloud",.52f,.18f),MoveItem("🌧️","Rain",.76f,.56f))
-        }
-        listOf("number line","negative","integer","zero","other side of zero").any { it in key } -> {
-            title = "Explore the number line"; hint = "Drag the point left or right of zero."
-            items = listOf(MoveItem("🔵","−3",.08f,.32f),MoveItem("🟢","0",.44f,.32f),MoveItem("🟠","+3",.76f,.32f))
-        }
-        listOf("solar system","planet","orbit","beyond earth").any { it in key } -> {
-            title = "Explore planetary motion"; hint = "Drag a planet around the Sun to explore its position."
-            items = listOf(MoveItem("☀️","Sun",.40f,.30f),MoveItem("🌍","Earth",.70f,.12f),MoveItem("🪐","Planet",.12f,.56f))
-        }
-        listOf("photosynthesis","plant","living creature","diversity in the living").any { it in key } -> {
-            title = "Explore a plant"; hint = "Move sunlight, water and the leaf to explore the process."
-            items = listOf(MoveItem("☀️","Sunlight",.06f,.12f),MoveItem("💧","Water",.30f,.55f),MoveItem("🌱","Plant",.50f,.30f),MoveItem("🍃","Leaf",.76f,.12f))
-        }
-        listOf("angle","lines and angles","ray").any { it in key } -> {
-            title = "Explore angles"; hint = "Drag the ray markers to change their positions."
-            items = listOf(MoveItem("📍","Vertex",.42f,.42f),MoveItem("➡️","Ray 1",.72f,.42f),MoveItem("↗️","Ray 2",.60f,.10f))
-        }
-        listOf("perimeter","area","symmetry","shape","square","rectangle").any { it in key } -> {
-            title = "Explore shapes"; hint = "Drag the corners and compare the shape you make."
-            items = listOf(MoveItem("🔹","Corner",.12f,.16f),MoveItem("🔹","Corner",.72f,.16f),MoveItem("🔹","Corner",.72f,.56f),MoveItem("🔹","Corner",.12f,.56f))
-        }
-        else -> {
-            title = "Interactive concept lab"; hint = "Drag the objects around while the tutor explains this idea."
-            items = listOf(MoveItem("🔵","Explore",.10f,.20f),MoveItem("🟢","Observe",.40f,.46f),MoveItem("🟠","Try it",.72f,.18f))
-        }
-    }
-    val actionType = visualActionType.lowercase()
-    val targetKey = visualTarget.lowercase().replace("_", " ").replace("-", " ").trim()
-    val matchedTarget = items.indexOfFirst { item ->
-        val itemKey = item.name.lowercase()
-        targetKey.isNotBlank() && (targetKey == itemKey || targetKey.contains(itemKey) || itemKey.contains(targetKey))
-    }
-    val captionTarget = items.indexOfFirst { item ->
-        val itemKey = item.name.lowercase()
-        itemKey.length > 1 && explanation.lowercase().contains(itemKey)
-    }
-    val activeVisualIndexes = when {
-        actionType == "none" || actionType.isBlank() -> emptySet()
-        actionType == "compare" || actionType == "draw-line" -> items.indices.toList().takeLast(2).toSet()
-        actionType == "show-result" -> setOf(items.lastIndex)
-        matchedTarget >= 0 -> setOf(matchedTarget)
-        captionTarget >= 0 -> setOf(captionTarget)
-        actionType in setOf("highlight", "reveal", "move", "label") -> setOf(Math.floorMod(segmentIndex, items.size))
-        else -> emptySet()
-    }
-    var positions by remember(key) { mutableStateOf(items.map { Offset(it.x,it.y) }) }
-    val motion = rememberInfiniteTransition(label = "lab-motion")
-    val moving by motion.animateFloat(0f,1f,infiniteRepeatable(tween(2200),RepeatMode.Reverse),label="moving-particle")
-    Column(Modifier.fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("TOUCH & EXPLORE",color=TutorGreen,fontSize=10.sp,fontWeight=FontWeight.Bold)
-                    Text(title,color=TutorDeep,fontSize=14.sp,fontWeight=FontWeight.SemiBold)
-                }
-                TextButton(onClick={positions=items.map{Offset(it.x,it.y)}}){Text("Reset",color=TutorGreen)}
-            }
-            BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White,RoundedCornerShape(14.dp))) {
-                val w=maxWidth; val h=maxHeight
-                Canvas(Modifier.fillMaxSize()) {
-                    drawLine(Color(0xFFCBD5E1),Offset(size.width*.05f,size.height*.84f),Offset(size.width*.95f,size.height*.84f),2.dp.toPx())
-                    drawCircle(Color(0xFF4169E1),7.dp.toPx(),Offset(size.width*(.10f+.78f*moving),size.height*.84f))
-                }
-                items.forEachIndexed { index, item ->
-                    val p=positions[index]
-                    Column(
-                        Modifier.offset { IntOffset((p.x*(w-68.dp).toPx()).roundToInt(),(p.y*(h-64.dp).toPx()).roundToInt()) }
-                            .width(68.dp)
-                            .pointerInput(key,index,w,h) {
-                                detectDragGestures { change, drag ->
-                                    change.consume()
-                                    val maxX=(w-68.dp).toPx().coerceAtLeast(1f)
-                                    val maxY=(h-64.dp).toPx().coerceAtLeast(1f)
-                                    positions=positions.toMutableList().also { list ->
-                                        val old=list[index]
-                                        list[index]=Offset((old.x+drag.x/maxX).coerceIn(0f,1f),(old.y+drag.y/maxY).coerceIn(0f,1f))
-                                    }
-                                }
-                            },
-                        horizontalAlignment=Alignment.CenterHorizontally
-                    ) {
-                        Surface(
-                            color = if (index in activeVisualIndexes) Color(0xFFDCE7FF) else Color(0xFFF8FAFC),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(
-                                if (index in activeVisualIndexes) 2.dp else 1.dp,
-                                if (index in activeVisualIndexes) TutorGreen else Color(0xFFDCE3ED)
-                            )
-                        ) {
-                            Text(item.icon,Modifier.padding(horizontal=10.dp,vertical=5.dp),fontSize=25.sp)
-                        }
-                        Text(item.name,color=TutorDeep,fontSize=10.sp,maxLines=1)
-                    }
-                }
-            }
-            Text(hint,color=TutorGrey,fontSize=12.sp,lineHeight=16.sp)
-            Text("Touch and hold an object, then drag it. Use Reset to start again.",color=TutorGreen,fontSize=10.sp)
-        }
-}
-
 
 @Composable
 private fun ChapterOneMathAnimation(
@@ -331,9 +198,6 @@ private fun ChapterOneMathAnimation(
     caption: String,
     compact: Boolean = false
 ) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
     var stage by remember(scene, title) { mutableIntStateOf(0) }
     LaunchedEffect(scene, title) {
         stage = 0
@@ -453,15 +317,278 @@ private fun ChapterOneMathAnimation(
 }
 
 @Composable
-private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
+private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?) {
+    val title = lesson.optString("title", "Lesson visual")
+    val caption = lesson.optString("caption", "")
+    val objects = lesson.optJSONArray("objects")
+    val labels = buildList {
+        if (objects != null) for (index in 0 until objects.length()) {
+            val item = objects.optJSONObject(index) ?: continue
+            val label = item.optString("label").trim()
+            if (label.isNotBlank()) add(label.take(72))
+        }
+    }.take(6)
+    val steps = lesson.optJSONArray("steps")
+    val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
+    val active = (activeStepOverride ?: 0).coerceIn(0, stepCount - 1)
+    val activeStep = steps?.optJSONObject(active)
+    val activeCaption = activeStep?.optString("caption").orEmpty().ifBlank { caption }
+    val activeKind = activeStep?.optString("visual_kind").orEmpty()
+        .ifBlank { lesson.optString("visual_kind", "concept_card") }
+    val activeSubtype = activeStep?.optString("visual_subtype").orEmpty()
+        .ifBlank { lesson.optString("visual_subtype", activeKind) }.lowercase()
+    val activeLabels = buildList {
+        val stepNodes = activeStep?.optJSONArray("nodes")
+        if (stepNodes != null) {
+            for (index in 0 until stepNodes.length()) {
+                val label = stepNodes.optString(index).trim()
+                if (label.isNotBlank()) add(label.take(42))
+            }
+        }
+        if (isEmpty()) addAll(labels)
+    }.take(6)
+    // Restart a short, one-shot reveal whenever speech progress moves to a new synthesis step.
+    var revealStarted by remember(active) { mutableStateOf(false) }
+    LaunchedEffect(active) {
+        delay(40)
+        revealStarted = true
+    }
+    val revealProgress by animateFloatAsState(
+        targetValue = if (revealStarted) 1f else 0f,
+        animationSpec = tween(durationMillis = 850),
+        label = "synthesizedVisualReveal"
+    )
+    val revealCount = if (activeLabels.isEmpty()) 0 else
+        (activeLabels.size * revealProgress).toInt().coerceAtLeast(1).coerceAtMost(activeLabels.size)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = if (compact) 2.dp else 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(title, color = Color(0xFF17324D), fontSize = if (compact) 13.sp else 15.sp, fontWeight = FontWeight.Bold)
+        // Keep the visual's teaching summary visible in the compact live-tutor layout too.
+        // Hiding it in compact mode broke the caption-to-visual mapping during narration,
+        // even though the diagram itself rendered correctly.
+        if (activeCaption.isNotBlank()) {
+            Text(
+                activeCaption,
+                color = Color(0xFF526477),
+                fontSize = if (compact) 10.sp else 12.sp,
+                lineHeight = if (compact) 13.sp else 17.sp,
+                maxLines = if (compact) 2 else Int.MAX_VALUE
+            )
+        }
+        Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {
+            Canvas(Modifier.fillMaxSize()) {
+            val stroke = 1.6.dp.toPx()
+            val centerY = size.height * 0.52f
+            when (activeKind) {
+                "fraction" -> {
+                    val count = when { activeLabels.any { it.contains("six", true) || it == "6" } -> 6; activeLabels.any { it.contains("five", true) || it == "5" } -> 5; activeLabels.any { it.contains("four", true) || it == "4" } -> 4; activeLabels.any { it.contains("three", true) || it == "3" } -> 3; activeLabels.any { it.contains("two", true) || it == "2" } -> 2; else -> activeLabels.size.coerceIn(2, 6) }
+                    val gap = 5.dp.toPx()
+                    val totalWidth = size.width * 0.78f
+                    val cellWidth = (totalWidth - gap * (count - 1)) / count
+                    val left = (size.width - totalWidth) / 2f
+                    val top = size.height * 0.22f
+                    val height = size.height * 0.56f
+                    repeat(count) { index ->
+                        drawRoundRect(
+                            color = if (index == 0 && revealCount > 0) Color(0xFF5BB7A5) else Color(0xFFF3F8FA),
+                            topLeft = Offset(left + index * (cellWidth + gap), top),
+                            size = androidx.compose.ui.geometry.Size(cellWidth, height),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Fill
+                        )
+                        drawRoundRect(
+                            color = Color(0xFF287F79),
+                            topLeft = Offset(left + index * (cellWidth + gap), top),
+                            size = androidx.compose.ui.geometry.Size(cellWidth, height),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+                        )
+                    }
+                }
+                "sequence", "process" -> {
+                    val count = activeLabels.size.coerceIn(1, 5)
+                    val gap = 7.dp.toPx()
+                    val boxWidth = (size.width * 0.86f - gap * (count - 1)) / count
+                    val left = size.width * 0.07f
+                    val top = size.height * 0.28f
+                    activeLabels.take(count).forEachIndexed { index, _ ->
+                        if (index < revealCount) {
+                            val x = left + index * (boxWidth + gap)
+                            if (index > 0) drawLine(Color(0xFF7C91A0), Offset(x - gap, centerY), Offset(x - 2.dp.toPx(), centerY), stroke)
+                            drawRoundRect(Color(0xFFDCEFEB), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()))
+                            drawRoundRect(Color(0xFF287F79), Offset(x, top), androidx.compose.ui.geometry.Size(boxWidth, size.height * 0.44f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                    }
+                }
+                "cycle" -> {
+                    val points = listOf(
+                        Offset(size.width * 0.50f, size.height * 0.18f),
+                        Offset(size.width * 0.78f, size.height * 0.52f),
+                        Offset(size.width * 0.50f, size.height * 0.84f),
+                        Offset(size.width * 0.22f, size.height * 0.52f)
+                    )
+                    val count = activeLabels.size.coerceIn(2, 4)
+                    repeat(count) { index ->
+                        if (index < revealCount) {
+                            drawLine(Color(0xFF7C91A0), points[index], points[(index + 1) % count], stroke)
+                            drawCircle(Color(0xFFDCEFEB), 8.dp.toPx(), points[index])
+                            drawCircle(Color(0xFF287F79), 8.dp.toPx(), points[index], style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                    }
+                }
+                "compare" -> {
+                    val count = activeLabels.size.coerceIn(1, 3)
+                    val gap = 7.dp.toPx()
+                    val panelWidth = (size.width * 0.82f - gap * (count - 1)) / count
+                    val left = size.width * 0.09f
+                    val top = size.height * 0.20f
+                    repeat(count) { index ->
+                        if (index < revealCount) {
+                            val x = left + index * (panelWidth + gap)
+                            drawRoundRect(Color(0xFFDCEFEB), Offset(x, top), androidx.compose.ui.geometry.Size(panelWidth, size.height * 0.58f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()))
+                            drawRoundRect(Color(0xFF7C91A0), Offset(x, top), androidx.compose.ui.geometry.Size(panelWidth, size.height * 0.58f), androidx.compose.ui.geometry.CornerRadius(7.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                    }
+                }
+                "number_line" -> {
+                    val left = size.width * 0.12f
+                    val right = size.width * 0.88f
+                    drawLine(Color(0xFF287F79), Offset(left, centerY), Offset(right, centerY), stroke)
+                    val count = activeLabels.size.coerceIn(2, 5)
+                    repeat(count) { index ->
+                        val x = left + (right - left) * index / (count - 1)
+                        if (index < revealCount) drawCircle(Color(0xFF5BB7A5), 5.dp.toPx(), Offset(x, centerY))
+                    }
+                    if (activeKind == "geometry" && revealCount >= 3) {
+                        val p1 = Offset(size.width * 0.32f, size.height * 0.82f)
+                        val p2 = Offset(size.width * 0.50f, size.height * 0.18f)
+                        val p3 = Offset(size.width * 0.68f, size.height * 0.82f)
+                        drawLine(Color(0xFF7CA9E8), p1, p2, stroke * 1.5f)
+                        drawLine(Color(0xFF7CA9E8), p2, p3, stroke * 1.5f)
+                        drawLine(Color(0xFF7CA9E8), p3, p1, stroke * 1.5f)
+                    }
+                }
+                "geometry" -> {
+                    val left = size.width * 0.22f
+                    val right = size.width * 0.78f
+                    val top = size.height * 0.18f
+                    val bottom = size.height * 0.82f
+                    when {
+                        activeSubtype.contains("rectangle") -> {
+                            drawRoundRect(Color(0xFFDCEFEB), Offset(left, top), androidx.compose.ui.geometry.Size(right - left, bottom - top), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))
+                            drawRoundRect(Color(0xFF287F79), Offset(left, top), androidx.compose.ui.geometry.Size(right - left, bottom - top), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                        activeSubtype.contains("circle") -> {
+                            drawCircle(Color(0xFFDCEFEB), size.minDimension * 0.30f, Offset(size.width / 2f, centerY))
+                            drawCircle(Color(0xFF287F79), size.minDimension * 0.30f, Offset(size.width / 2f, centerY), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                        activeSubtype.contains("angle") -> {
+                            val origin = Offset(left, bottom)
+                            drawLine(Color(0xFF287F79), origin, Offset(right, bottom), stroke * 1.5f)
+                            if (revealCount >= 2) drawLine(Color(0xFF287F79), origin, Offset(size.width * 0.60f, top), stroke * 1.5f)
+                        }
+                        else -> {
+                            val p1 = Offset(left, bottom)
+                            val p2 = Offset(size.width * 0.50f, top)
+                            val p3 = Offset(right, bottom)
+                            drawLine(Color(0xFF7CA9E8), p1, p2, stroke * 1.5f)
+                            if (revealCount >= 2) drawLine(Color(0xFF7CA9E8), p2, p3, stroke * 1.5f)
+                            if (revealCount >= 3) drawLine(Color(0xFF7CA9E8), p3, p1, stroke * 1.5f)
+                        }
+                    }
+                }
+                "table" -> {
+                    val count = activeLabels.size.coerceIn(1, 3)
+                    val colWidth = size.width * 0.78f / count
+                    val left = size.width * 0.11f
+                    val top = size.height * 0.20f
+                    repeat(count) { index ->
+                        if (index < revealCount) {
+                            drawRect(Color(0xFFDCEFEB), Offset(left + index * colWidth, top), androidx.compose.ui.geometry.Size(colWidth - 2.dp.toPx(), size.height * 0.58f))
+                            drawRect(Color(0xFF7C91A0), Offset(left + index * colWidth, top), androidx.compose.ui.geometry.Size(colWidth - 2.dp.toPx(), size.height * 0.58f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                    }
+                }
+                else -> {
+                    drawCircle(Color(0xFFDCEFEB), size.minDimension * 0.30f, Offset(size.width / 2f, centerY))
+                    drawCircle(Color(0xFF287F79), size.minDimension * 0.30f, Offset(size.width / 2f, centerY), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    if (activeLabels.size > 1) drawLine(Color(0xFF7CA9E8), Offset(size.width * 0.38f, centerY), Offset(size.width * 0.62f, centerY), stroke)
+                }
+            }
+        }
+            if (activeKind == "sequence" || activeKind == "process") {
+                Row(
+                    Modifier.fillMaxWidth().align(Alignment.Center).padding(horizontal = 22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    activeLabels.take(5).forEachIndexed { index, label ->
+                        Box(
+                            Modifier.weight(1f).height(if (compact) 36.dp else 44.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (index < revealCount) {
+                                Text(
+                                    label,
+                                    color = Color(0xFF17324D),
+                                    fontSize = if (compact) 10.sp else 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (activeKind != "sequence" && activeKind != "process") {
+            activeLabels.take(revealCount).chunked(3).forEach { group ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                group.forEach { label ->
+                    Text(
+                        label,
+                        modifier = Modifier.weight(1f).padding(vertical = if (compact) 3.dp else 5.dp),
+                        color = Color(0xFF17324D),
+                        fontSize = if (compact) 10.sp else 12.sp,
+                        lineHeight = if (compact) 13.sp else 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                repeat((3 - group.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+        }
+        if (stepCount > 1) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                repeat(stepCount.coerceAtMost(8)) { index ->
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(3.dp)
+                            .background(if (index == active) Color(0xFF0F766E) else Color(0xFFD5E1E8), RoundedCornerShape(3.dp))
+                    )
+                }
+            }
+        }
+    }
+}
 
+
+@Composable
+private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
+    if (scene == "synthesis_static") {
+        SynthesizedVisualCard(lesson, compact, activeStepOverride)
+        return
+    }
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {
         val topicKey = lesson.optString("topic").lowercase()
         val mappedScene = when {
@@ -469,7 +596,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             scene == "pattern_builder" || topicKey.contains("shape") -> "shape_pattern"
             else -> scene
         }
-        ChapterOneMathAnimation(mappedScene, title, lesson.optString("topic"), caption)
+        ChapterOneMathAnimation(mappedScene, title, lesson.optString("topic"), caption, compact = compact)
         return
     }
     val items = remember(key) {
@@ -527,6 +654,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val stepDateKey = "${stepPreferenceKey}_date"
     val savedStep = if (sessionPrefs.getString(stepDateKey, "") == todayKey) sessionPrefs.getInt(stepPreferenceKey, 0) else 0
     var activeStep by remember(key) { mutableIntStateOf(savedStep.coerceIn(0, stepCount - 1)) }
+    val displayStep = activeStepOverride?.coerceIn(0, stepCount - 1) ?: activeStep
     val setActiveStep: (Int) -> Unit = { nextStep ->
         activeStep = nextStep.coerceIn(0, stepCount - 1)
         sessionPrefs.edit().putInt(stepPreferenceKey, activeStep).putString(stepDateKey, todayKey).apply()
@@ -553,12 +681,12 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
         Column(Modifier.padding(12.dp), verticalArrangement=Arrangement.spacedBy(7.dp)) {
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("DATABASE INTERACTIVE LESSON", color=TutorGreen, fontSize=10.sp, fontWeight=FontWeight.Bold)
+                    Text(if (compact) "CONCEPT VISUAL" else "DATABASE INTERACTIVE LESSON", color=TutorGreen, fontSize=10.sp, fontWeight=FontWeight.Bold)
                     Text(title, color=TutorDeep, fontSize=14.sp, fontWeight=FontWeight.SemiBold)
                 }
-                TextButton(onClick={ positions=items.map { Offset(it.x,it.y) }; feedback="Reset. Try another arrangement."; setActiveStep(0) }) { Text("Reset", color=TutorGreen) }
+                if (!compact) TextButton(onClick={ positions=items.map { Offset(it.x,it.y) }; feedback="Reset. Try another arrangement."; setActiveStep(0) }) { Text("Reset", color=TutorGreen) }
             }
-            BoxWithConstraints(Modifier.fillMaxWidth().height(190.dp).background(Color.White, RoundedCornerShape(14.dp))) {
+            BoxWithConstraints(Modifier.fillMaxWidth().height(if (compact) 104.dp else 190.dp).background(Color.White, RoundedCornerShape(14.dp))) {
                 val w=maxWidth; val h=maxHeight
                 Canvas(Modifier.fillMaxSize()) {
                     when (scene) {
@@ -600,6 +728,27 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         "factor_tree" -> if (positions.size >= 3) {
                             val root=positions[0]
                             positions.drop(1).forEach { p -> drawLine(Color(0xFF24734B),Offset(root.x*size.width,root.y*size.height),Offset(p.x*size.width,p.y*size.height),2.dp.toPx()) }
+                        }
+                        "fraction_builder" -> {
+                            // A simple, original four-part fraction diagram; this is not a copied textbook image.
+                            val left = size.width * .12f
+                            val top = size.height * .58f
+                            val cellWidth = size.width * .19f
+                            val cellHeight = size.height * .22f
+                            repeat(4) { index ->
+                                val cell = Offset(left + index * cellWidth, top)
+                                drawRect(
+                                    color = if (index < 3) Color(0xFFB9E3C7) else Color(0xFFF8FAFC),
+                                    topLeft = cell,
+                                    size = androidx.compose.ui.geometry.Size(cellWidth - 3.dp.toPx(), cellHeight)
+                                )
+                                drawRect(
+                                    color = Color(0xFF24734B),
+                                    topLeft = cell,
+                                    size = androidx.compose.ui.geometry.Size(cellWidth - 3.dp.toPx(), cellHeight),
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(1.5.dp.toPx())
+                                )
+                            }
                         }
                         "pattern_builder", "number_pattern" -> if (positions.size >= 2) {
                             positions.zipWithNext().forEach { (a,b) -> drawLine(Color(0xFF83B695),Offset(a.x*size.width,a.y*size.height),Offset(b.x*size.width,b.y*size.height),2.dp.toPx()) }
@@ -667,7 +816,28 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         }
                         "angle_builder", "angle_classifier" -> if (positions.size >= 3) {
                             val v=positions[0]
+                            val a=positions[1]
+                            val b=positions[2]
                             positions.drop(1).take(2).forEach { p -> drawLine(Color(0xFF24734B), Offset(v.x*size.width,v.y*size.height), Offset(p.x*size.width,p.y*size.height), 3.dp.toPx()) }
+                            val dxA = a.x - v.x
+                            val dyA = a.y - v.y
+                            val dxB = b.x - v.x
+                            val dyB = b.y - v.y
+                            val angleA = Math.toDegrees(kotlin.math.atan2(dyA.toDouble(), dxA.toDouble())).toFloat()
+                            val angleB = Math.toDegrees(kotlin.math.atan2(dyB.toDouble(), dxB.toDouble())).toFloat()
+                            var sweep = angleB - angleA
+                            if (sweep > 180f) sweep -= 360f
+                            if (sweep < -180f) sweep += 360f
+                            val arcRadius = 24.dp.toPx()
+                            drawArc(
+                                color = Color(0xFF6B8DE3),
+                                startAngle = angleA,
+                                sweepAngle = sweep,
+                                useCenter = false,
+                                topLeft = Offset(v.x*size.width - arcRadius, v.y*size.height - arcRadius),
+                                size = androidx.compose.ui.geometry.Size(arcRadius*2, arcRadius*2),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx())
+                            )
                             drawCircle(Color(0xFF24734B), 5.dp.toPx(), Offset(v.x*size.width,v.y*size.height))
                         }
                         "symmetry_mirror" -> drawLine(Color(0xFF7F9BFF), Offset(size.width*.5f,0f), Offset(size.width*.5f,size.height), 2.dp.toPx())
@@ -681,7 +851,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                         }
                     }
                 }
-                items.forEachIndexed { index, item ->
+                if (!compact) items.forEachIndexed { index, item ->
                     val p=positions[index]
                     Column(
                         Modifier.offset { IntOffset((p.x*(w-68.dp).toPx()).roundToInt(),(p.y*(h-62.dp).toPx()).roundToInt()) }
@@ -720,6 +890,23 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
                     }
                 }
             }
+            if (compact) {
+                val currentStep = steps?.optJSONObject(displayStep)
+                Text(
+                    currentStep?.optString("text").orEmpty().ifBlank { caption },
+                    color = TutorDeep,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp,
+                    maxLines = 2
+                )
+                val sourceRef = lesson.optJSONArray("source_refs")?.optJSONObject(0)
+                if (sourceRef != null) {
+                    val pageStart = sourceRef.optInt("page_start", 0)
+                    val pageEnd = sourceRef.optInt("page_end", pageStart)
+                    val pageLabel = if (pageStart > 0 && pageEnd > pageStart) "Textbook pp. $pageStart–$pageEnd" else if (pageStart > 0) "Textbook p. $pageStart" else "Textbook reference"
+                    Text(pageLabel, color = TutorGreen, fontSize = 9.sp, maxLines = 1)
+                }
+            } else {
             if (scene in listOf("angle_builder", "angle_classifier")) Text("Current angle: $angle°", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
             if (scene=="measure_length" && positions.size>=2) Text("Measured length: ${(kotlin.math.abs(positions[1].x-positions[0].x)*100).toInt()} model units", color=TutorGreen, fontSize=12.sp, fontWeight=FontWeight.Bold)
             if (scene=="motion_track") Text("Watch the toy move along the measured track. Drag the toy to compare positions.", color=TutorGreen, fontSize=11.sp)
@@ -740,6 +927,37 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             }
             Text(feedback, color=TutorDeep, fontSize=12.sp, lineHeight=16.sp)
             Text(caption, color=TutorGrey, fontSize=11.sp, lineHeight=15.sp)
+            val sourceRefs = lesson.optJSONArray("source_refs")
+            val sourceRef = sourceRefs?.optJSONObject(0)
+            if (sourceRef != null) {
+                val pageStart = sourceRef.optInt("page_start", 0)
+                val pageEnd = sourceRef.optInt("page_end", pageStart)
+                val edition = sourceRef.optString("edition", "")
+                val bookTitle = when (lesson.optString("subject")) {
+                    "Mathematics" -> "NCERT Ganita Prakash"
+                    "Science" -> "NCERT Curiosity"
+                    else -> "NCERT textbook"
+                }
+                Text(
+                    "$bookTitle · textbook reference",
+                    color = TutorGreen,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                val pageLabel = if (pageStart > 0 && pageEnd > 0 && pageEnd != pageStart) {
+                    "Pages $pageStart–$pageEnd"
+                } else if (pageStart > 0) {
+                    "Page $pageStart"
+                } else {
+                    "Chapter reference"
+                }
+                Text(
+                    listOf(pageLabel, edition).filter { it.isNotBlank() }.joinToString(" · "),
+                    color = TutorGrey,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
             if (steps != null && steps.length()>0) {
                 val current=steps.optJSONObject(activeStep.coerceIn(0,steps.length()-1))
                 Text("Step ${activeStep+1}/$stepCount · ${current?.optString("title","Try")}: ${current?.optString("text","Explore the objects.")}", color=TutorGreen, fontSize=11.sp)
@@ -750,6 +968,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
             }
             val challenge=lesson.optJSONObject("challenge")
             if(challenge!=null && challenge.optString("question").isNotBlank()) Text("Try this: ${challenge.optString("question")}", color=TutorDeep, fontSize=12.sp, fontWeight=FontWeight.SemiBold)
+            }
         }
     }
 }
@@ -770,9 +989,6 @@ private fun chooseLessonVisual(text: String): LessonVisualKind {
 
 @Composable
 private fun DatabaseLessonVisual(lesson: JSONObject) {
-    // Chat-first teaching mode: keep visuals inline as text examples; no animation/lab overlays.
-    return
-
     val array = lesson.optJSONArray("steps")
     val steps = remember(lesson) {
         if (array == null) emptyList() else (0 until array.length()).mapNotNull { array.optJSONObject(it) }
@@ -993,6 +1209,7 @@ internal fun TutorScreen(
     var speechStartCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
     var speechCompletion by remember { mutableStateOf<(() -> Unit)?>(null) }
     var liveSegments by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+    var liveInteractiveLesson by remember { mutableStateOf<JSONObject?>(null) }
     var liveCaption by remember { mutableStateOf("") }
     var liveWordIndex by remember { mutableIntStateOf(0) }
     var speechWordStarts by remember { mutableStateOf<List<Int>>(emptyList()) }
@@ -1605,16 +1822,18 @@ internal fun TutorScreen(
             // and follow up after playback; otherwise it vanishes when the full-screen player closes.
             val completedLesson = liveCaption.trim()
             if (completedLesson.isNotBlank() && messages.none { it.role == "assistant" && it.content == completedLesson }) {
-                messages.add(TutorMessage("assistant", completedLesson))
+                messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))
             }
             liveLessonActive = false
             livePaused = false
             awaitingUnderstanding = false
             currentCheckpoint = ""
             status = "Live lesson complete."
+            liveInteractiveLesson = null
             return
         }
         val segment = liveSegments[index]
+        liveInteractiveLesson = segment.optJSONObject("interactive_lesson")
         awaitingUnderstanding = false
         // Normalize nullable API data before it enters UI state; optString may yield literal "null".
         // Complete-lesson mode never interrupts playback with per-segment feedback.
@@ -1671,7 +1890,7 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Do not request animations, visual actions, or interactive labs. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
+                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Use an inline concept visual only when the selected chapter and topic have an exact matching blueprint; do not invent images or switch topics. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
                     .put("message", lessonPrompt).put("max_segments", 6)
@@ -1715,11 +1934,29 @@ internal fun TutorScreen(
                     if (completeText.length < 220) {
                         throw IllegalStateException("The lesson was too short to explain the selected topic completely. Please try again.")
                     }
+                    // Preserve exact synthesis-step timing for inline visuals. For approved
+                    // synthesized lessons, the backend visual steps mirror the ordered speech
+                    // segments, so each visual changes when its own spoken segment begins.
+                    val inlineVisual = response.optJSONObject("interactive_lesson")
+                    if (inlineVisual?.optString("scene_type") == "synthesis_static") {
+                        val visualSteps = inlineVisual.optJSONArray("steps")
+                        if (visualSteps != null && visualSteps.length() == lessonSegments.size) {
+                            val wordBoundaries = JSONArray()
+                            var cumulativeWords = 0
+                            lessonSegments.forEach { segment ->
+                                cumulativeWords += segment.optString("spoken_text").trim()
+                                    .split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
+                                wordBoundaries.put(cumulativeWords)
+                            }
+                            inlineVisual.put("step_word_boundaries", wordBoundaries)
+                        }
+                    }
                     val completeLesson = JSONObject()
                         .put("id", "complete-lesson")
                         .put("spoken_text", completeText)
                         .put("caption_text", completeText)
                         .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+                        .put("interactive_lesson", inlineVisual ?: JSONObject.NULL)
                         .put("checkpoint", JSONObject.NULL)
                     listOf(completeLesson)
                 } finally { connection.disconnect() }
@@ -1733,7 +1970,7 @@ internal fun TutorScreen(
     }
 
     fun stopLiveLesson() {
-        liveLessonActive = false; livePaused = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveCaption = ""; liveVisualAction = ""
+        liveLessonActive = false; livePaused = false; awaitingUnderstanding = false; currentCheckpoint = ""; liveSegments = emptyList(); liveInteractiveLesson = null; liveCaption = ""; liveVisualAction = ""
         liveVisualActionType = "none"; liveVisualTarget = ""; liveSegmentIndex = 0
         speechStartCallback = null
         audioPlayer.value?.let { player -> runCatching { player.stop() }; runCatching { player.release() } }
@@ -2038,47 +2275,6 @@ internal fun TutorScreen(
             verticalArrangement = Arrangement.spacedBy(9.dp),
             contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp)
         ) {
-            if (liveLessonActive && (liveCaption.isNotBlank() || liveLessonActive)) {
-                item(key = "live-teaching-passage") {
-                    Surface(
-                        Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 390.dp),
-                        color = Color(0xFFF8FAFC), shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color(0xFFDCE3ED))
-                    ) {
-                        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(17.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text(if (liveLessonActive) "TEACHER IS SPEAKING" else "LESSON EXPLANATION", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.weight(1f))
-                                if (liveLessonActive && liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
-                            }
-                            if (liveCaption.isNotBlank()) {
-                                WordByWordCaption(
-                                    liveCaption, speechActive, liveWordIndex,
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp, max = 170.dp),
-                                    expandToAvailableHeight = false
-                                )
-                            }
-                            if (liveVisualAction.isNotBlank()) Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                            if (liveCaption.isNotBlank() && liveLessonActive && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
-                                val topicKey = topic.lowercase(Locale.ROOT)
-                                val scene = when {
-                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
-                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
-                                    else -> "number_pattern"
-                                }
-                                ChapterOneMathAnimation(
-                                    scene = scene,
-                                    title = topic.ifBlank { "Patterns in Mathematics" },
-                                    topic = topic,
-                                    caption = "Watch the pattern change automatically as your teacher explains."
-                                )
-                            }
-                        }
-                    }
-                }
-            }
             if (!liveLessonActive) items(messages) { message ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (message.role == "user") Arrangement.End else Arrangement.Start) {
                     Surface(
@@ -2100,8 +2296,16 @@ internal fun TutorScreen(
                             }
                             if (message.role == "assistant") {
                                 val latestAssistant = messages.lastOrNull { it.role == "assistant" }
-                                if (message.content == latestAssistant?.content && message.visualLesson != null) {
-                                    DatabaseLessonVisual(message.visualLesson)
+                                if (message.content == latestAssistant?.content) {
+                                    when {
+                                        message.interactiveLesson != null -> DatabaseInteractiveLessonLab(
+                                            lesson = message.interactiveLesson,
+                                            sessionPrefs = sessionPrefs,
+                                            sessionKey = sessionKey,
+                                            todayKey = todayKey
+                                        )
+                                        message.visualLesson != null -> DatabaseLessonVisual(message.visualLesson)
+                                    }
                                 }
                                 // Feedback is intentionally deferred until the complete lesson flow is implemented.
 
@@ -2149,34 +2353,56 @@ internal fun TutorScreen(
                                 modifier = if (awaitingUnderstanding) {
                                     Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
                                 } else {
-                                    Modifier.weight(1f).fillMaxWidth()
+                                    Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 190.dp)
                                 },
-                                expandToAvailableHeight = !awaitingUnderstanding
+                                // Keep the narration caption bounded so the mapped 2D visual stays visible inline.
+                                // Word highlighting scrolls inside the caption rather than pushing the visual off-screen.
+                                expandToAvailableHeight = false
                             )
                         } else {
                             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator(color = TutorGreen)
                             }
                         }
-                        if (liveVisualAction.isNotBlank()) {
-                            Text("Visual focus · $liveVisualAction", color = TutorGrey, fontSize = 10.sp)
-                        }
                         // Keep the concept animation mounted during the checkpoint; compact it so
                         // the student can see both the pattern and the response choices together.
-                        if (liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true)) {
-                            val topicKey = topic.lowercase(Locale.ROOT)
-                            val scene = when {
-                                topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
-                                topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
-                                else -> "number_pattern"
+                        val liveVisualSteps = liveInteractiveLesson?.optJSONArray("steps")
+                        val totalLiveWords = liveCaption.trim().split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
+                        val stepWordBoundaries = liveInteractiveLesson?.optJSONArray("step_word_boundaries")
+                        val liveVisualStep = if (liveVisualSteps != null && liveVisualSteps.length() > 0) {
+                            if (stepWordBoundaries != null && stepWordBoundaries.length() == liveVisualSteps.length()) {
+                                val spokenWordPosition = liveWordIndex + 1
+                                (0 until stepWordBoundaries.length()).firstOrNull { spokenWordPosition <= stepWordBoundaries.optInt(it, Int.MAX_VALUE) }
+                                    ?: (liveVisualSteps.length() - 1)
+                            } else {
+                                ((liveWordIndex.toFloat() / totalLiveWords.toFloat()) * liveVisualSteps.length())
+                                    .toInt().coerceIn(0, liveVisualSteps.length() - 1)
                             }
-                            ChapterOneMathAnimation(
-                                scene = scene,
-                                title = topic.ifBlank { "Patterns in Mathematics" },
-                                topic = topic,
-                                caption = "Watch the pattern change automatically as your teacher explains.",
-                                compact = awaitingUnderstanding
+                        } else 0
+                        when {
+                            liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(
+                                lesson = liveInteractiveLesson!!,
+                                sessionPrefs = sessionPrefs,
+                                sessionKey = sessionKey,
+                                todayKey = todayKey,
+                                compact = true,
+                                activeStepOverride = liveVisualStep
                             )
+                            liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
+                                val topicKey = topic.lowercase(Locale.ROOT)
+                                val scene = when {
+                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                                    else -> "number_pattern"
+                                }
+                                ChapterOneMathAnimation(
+                                    scene = scene,
+                                    title = topic.ifBlank { "Patterns in Mathematics" },
+                                    topic = topic,
+                                    caption = "Watch the pattern change automatically as your teacher explains.",
+                                    compact = awaitingUnderstanding
+                                )
+                            }
                         }
                     }
             }

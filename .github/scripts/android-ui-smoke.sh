@@ -115,7 +115,7 @@ python3 .github/scripts/ui_smoke.py assert-home home.xml | tee -a "$REPORT"
 FAILURE_CLASS="APP_FAILURE"
 
 log "Opening lesson selection before entering the tutor"
-python3 .github/scripts/ui_smoke.py tap home.xml "Begin lesson"
+python3 .github/scripts/ui_smoke.py tap home.xml "Start learning"
 sleep 8
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/settings.png
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings.xml
@@ -166,15 +166,40 @@ python3 .github/scripts/ui_smoke.py assert-tutor ready-to-teach.xml | tee -a "$R
 python3 .github/scripts/ui_smoke.py tap-exact ready-to-teach.xml "▶ Teach"
 
 log "Waiting for a complete lesson caption (hard deadline 150s; each ADB call is separately bounded)"
+# Never let a failed UIAutomator dump leave a previous accessibility tree looking current.
+rm -f live-lesson.xml
 lesson_started=0
+lesson_started_at=$SECONDS
+lesson_poll_count=0
+: > live-assertion-history.log
 lesson_deadline=$((SECONDS + 150))
 while [ "$SECONDS" -lt "$lesson_deadline" ]; do
+  lesson_poll_count=$((lesson_poll_count + 1))
+  # Remove both copies first: otherwise a failed dump/pull can leave stale XML
+  # from an earlier state and make the smoke test pass or fail on old content.
+  rm -f live-lesson.xml
+  if ! timeout 8s "${ADB[@]}" shell rm -f /data/local/tmp/live-lesson.xml >/dev/null 2>&1; then
+    log "Could not clear remote live-lesson.xml; refusing to read a potentially stale tree"
+    sleep 2
+    continue
+  fi
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml >/dev/null 2>&1 || true
   if [ -s live-lesson.xml ]; then
-    if python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml >/dev/null 2>&1; then
+    if python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml > live-assertion.log 2>&1; then
       lesson_started=1
       break
+    else
+      # Keep the last concrete reason visible; previously every failed assertion
+      # was discarded, hiding whether this was caption length, controls, or API state.
+      cp live-assertion.log live-assertion-last.log
+      # Preserve the actual failure reason across the whole playback window.
+      # The final sample may be the completed screen, which has different labels
+      # from the active player and otherwise masks the first live-state failure.
+      if [ "$lesson_poll_count" -le 5 ] || [ $((lesson_poll_count % 10)) -eq 0 ]; then
+        printf 'poll=%s elapsed=%ss reason=' "$lesson_poll_count" "$((SECONDS - lesson_started_at))" >> live-assertion-history.log
+        tail -n 1 live-assertion.log >> live-assertion-history.log
+      fi
     fi
     if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s|too short to explain the selected topic|No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-lesson.xml; then
       FAILURE_CLASS="APP_FAILURE"
@@ -187,14 +212,16 @@ while [ "$SECONDS" -lt "$lesson_deadline" ]; do
 done
 if [ "$lesson_started" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"
-  log "FAIL: tutor did not leave lesson preparation within 150 seconds"
+  log "FAIL: tutor did not expose a recognised active lesson within 150 seconds"
+  [ ! -s live-assertion-history.log ] || { log "Sampled active-lesson assertion history:"; cat live-assertion-history.log | tee -a "$REPORT"; }
+  [ ! -s live-assertion-last.log ] || { log "Last active-lesson assertion:"; cat live-assertion-last.log | tee -a "$REPORT"; }
   [ ! -s live-lesson.xml ] || cat live-lesson.xml | tee -a "$REPORT"
   exit 1
 fi
-log "Lesson UI detected; capturing the active caption and moving word highlight"
+log "Lesson UI detected; capturing a short active-caption window so the spoken-word highlight can be verified before playback finishes"
 timeout 10s "${ADB[@]}" shell rm -rf /data/local/tmp/padippupal-live-frames
 timeout 10s "${ADB[@]}" shell mkdir -p /data/local/tmp/padippupal-live-frames
-(timeout 70s "${ADB[@]}" shell 'i=0; while [ "$i" -lt 40 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 1; done' > ui-screenshots/frame-capture.log 2>&1) &
+(timeout 12s "${ADB[@]}" shell 'i=0; while [ "$i" -lt 12 ]; do screencap -p "/data/local/tmp/padippupal-live-frames/frame-$i.png"; i=$((i+1)); sleep 0.5; done' > ui-screenshots/frame-capture.log 2>&1) &
 FRAME_CAPTURE_PID=$!
 wait "$FRAME_CAPTURE_PID"
 timeout 20s "${ADB[@]}" pull /data/local/tmp/padippupal-live-frames ui-screenshots/live-frames
@@ -219,7 +246,14 @@ python3 .github/scripts/ui_smoke.py assert-playback-state live-resumed.xml playi
 
 log "Waiting for playback to finish; verify the complete explanation remains in chat"
 lesson_finished=0
+rm -f live-complete.xml
 for attempt in $(seq 1 90); do
+  rm -f live-complete.xml
+  if ! timeout 8s "${ADB[@]}" shell rm -f /data/local/tmp/live-complete.xml >/dev/null 2>&1; then
+    log "Could not clear remote live-complete.xml; refusing to read a potentially stale tree"
+    sleep 2
+    continue
+  fi
   timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
   if [ -s live-complete.xml ] && python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml >/dev/null 2>&1; then

@@ -97,7 +97,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest="cmd",required=True)
     sub.add_parser("list")
     r=sub.add_parser("render")
-    for name in ("subject","chapter","topic","medium","source-id","evidence-status","out"): r.add_argument("--"+name,required=True)
+    for name in ("subject","chapter","topic","medium","source-id","out"): r.add_argument("--"+name,required=True)
     r.add_argument("--source-page",type=int,required=True)
     r.add_argument("--evidence-status",choices=["source_verified","concept_source_verified","needs_review","text_only_inference"],required=True)
     r.add_argument("--format",choices=["svg","excalidraw","manim"],default="svg")

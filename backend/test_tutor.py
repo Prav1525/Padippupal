@@ -956,9 +956,14 @@ def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):
                    "subject": "Mathematics", "medium": "English", "page_start": 1, "page_end": 1},
     }]})
 
+    monkeypatch.setattr(curriculum, "_translate_approved_segments", lambda segments, language: [
+        {**segments[0], "spoken_text": "All 1s pattern-la number 1 thaan repeat aagum.",
+         "caption_text": "Number 1 repeat aagum."} if language == "Tanglish" else segments
+    ])
+
     response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
         "board": "CBSE", "class_level": 6, "subject": "Mathematics",
-        "medium": "English", "app_language": "English",
+        "medium": "English", "app_language": "Tanglish",
         "chapter": "Patterns in Mathematics", "topic": "All 1s",
         "message": "Teach me All 1s",
     })
@@ -968,7 +973,7 @@ def test_lesson_plan_uses_exact_textbook_excerpt_when_gemini_fails(monkeypatch):
     assert body["provider"] == "textbook_extract_fallback"
     assert body["grounded"] is True
     assert len(body["segments"]) == 1
-    assert body["segments"][0]["spoken_text"] == passage
+    assert body["segments"][0]["spoken_text"] == "All 1s pattern-la number 1 thaan repeat aagum."
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
     assert body["segments"][0]["visual_action"]["type"] == "none"
 

@@ -65,6 +65,11 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
              "Test official textbook", "", "Approved test fixture", "synthesis-test-sha",
              "ready", 1, time.time()),
         )
+        conn.execute(
+            """INSERT INTO chunks (id,source_id,chunk_no,chapter,page_start,page_end,text)
+               VALUES (?,?,?,?,?,?,?)""",
+            ("chunk-test", source_id, 0, "Test chapter", 1, 1, "Textbook evidence for the key idea."),
+        )
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     captured = {}

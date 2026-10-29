@@ -1981,6 +1981,8 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                     existing_lesson = candidate
                     break
             if existing_lesson:
+                # Repair/backfill visual candidates on idempotent retries as well.
+                visual_candidates = _generate_synthesis_visual_candidates(synthesis_round_id)
                 try:
                     stored_lesson = json.loads(existing_lesson.get("lesson_json") or "{}")
                     stored_refs = json.loads(existing_lesson.get("source_refs_json") or "[]")
@@ -1996,6 +1998,8 @@ def generate_chapter_lesson(payload: ChapterLessonGenerateRequest) -> dict[str, 
                     "source_refs": stored_refs,
                     "lesson": stored_lesson,
                     "validation": stored_validation,
+                    "visual_candidates_generated": visual_candidates,
+                    "visual_candidates_active": 0 if str(existing_lesson.get("status") or "").lower() != "approved" else None,
                     "review_required": str(existing_lesson.get("status") or "").lower() != "approved",
                     "reused_existing": True,
                 }
@@ -2755,9 +2759,11 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
                 )
     visual_count = 0
     if status == "approved":
-        # Build and persist visuals at approval time; retrieval remains a safe backfill for older approved lessons.
+        # Build lesson-step assets and promote topic-synthesis candidates through the same
+        # source-validated path used for existing approved topics.
         lesson_payload = json.loads(row["lesson_json"] or "{}")
         visual_count = len(get_or_create_lesson_visuals(lesson_id, lesson_payload))
+        _backfill_approved_topic_synthesis_visuals()
     return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback,"visual_count":visual_count}
 
 

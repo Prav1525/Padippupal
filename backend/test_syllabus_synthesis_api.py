@@ -132,6 +132,15 @@ def test_chapter_generation_persists_traceable_synthesis_round(monkeypatch):
     assert len(generated_assets) >= 1
     assert all(row["active"] == 0 for row in generated_assets)
     assert all(json.loads(row["source_chunk_ids_json"]) == ["chunk-test"] for row in generated_assets)
+    # Even when a topic has no matching specialist renderer, the pipeline stores
+    # a traceable review candidate instead of silently inventing a learner visual.
+    for row in generated_assets:
+        blueprint = json.loads(row["blueprint_json"])
+        assert blueprint.get("source_chunk_ids") == ["chunk-test"]
+        assert blueprint.get("evidence_status") in {"source_cited_draft", "needs_review"}
+        if blueprint.get("evidence_status") == "needs_review":
+            assert not blueprint.get("svg_markup")
+            assert "no_topic_specific_renderer" in blueprint.get("quality_flags", [])
     assert topics[0]["page_start"] == 1
     assert topics[0]["page_end"] == 1
     # Do not copy chapter-wide objectives into every topic when the model omitted step-level objectives.

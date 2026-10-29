@@ -265,33 +265,6 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
         if labels:
             return "table", labels[:3]
 
-    # Topic-specific Science Chapter 1 scenes. Each label is a concept, not a copied textbook image.
-    if any(term in lowered for term in ("jigsaw", "knowledge grows", "new discovery", "pieces of knowledge")):
-        return "process", ["What we know", "New discovery", "New questions"]
-
-    if any(term in lowered for term in ("pen stops writing", "ink is empty", "check the refill")):
-        return "process", ["Notice the problem", "Make a guess", "Test the refill"]
-
-    if any(term in lowered for term in ("scientific method", "scientific inquiry", "analyse results", "analyze results")):
-        return "process", ["Observe", "Ask", "Guess", "Test", "Review results"]
-
-    if any(term in lowered for term in ("paper", "metal key", "plastic ruler", "rubber eraser")):
-        labels = [label for term, label in (("paper", "Paper"), ("metal key", "Metal key"), ("plastic ruler", "Plastic ruler"), ("rubber eraser", "Rubber eraser")) if term in lowered]
-        if len(labels) >= 2:
-            return "compare", labels[:4]
-
-    if any(term in lowered for term in ("solid", "liquid", "gas", "states of water", "water changes state")):
-        labels = [label for term, label in (("solid", "Solid"), ("liquid", "Liquid"), ("gas", "Gas")) if re.search(r"\b" + term + r"\b", lowered)]
-        if len(labels) >= 2:
-            return "process", labels[:3]
-
-    if any(term in lowered for term in ("magnet", "magnetic", "north pole", "south pole")):
-        labels = [label for term, label in (("north pole", "North pole"), ("south pole", "South pole"), ("attract", "Attract"), ("repel", "Repel")) if term in lowered]
-        return "diagram", labels[:4] or ["Magnet", "Test an object"]
-
-    if any(term in lowered for term in ("notice something", "ask why", "curiosity", "ask a question", "flower bloom", "stars shine")):
-        return "process", ["Notice", "Ask why", "Explore"]
-
     if any(term in lowered for term in ("cooking", "bicycle tyre", "light bulb", "daily life", "everyday problem")):
         labels = [label for term, label in (("cooking", "Cooking"), ("bicycle tyre", "Bicycle tyre"), ("light bulb", "Light bulb"), ("switch", "Switch")) if term in lowered]
         return "compare", labels[:3] or ["Observe", "Suggest", "Test"]
@@ -324,7 +297,7 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
         "curiosity", "flower bloom", "stars shine",
     )
     if inferred_nodes and (
-        kind in {"concept_card", "table"} or source_evidence.strip()
+        kind in {"concept_card", "table"} or not labels
         or any(cue in (title + " " + source_caption).casefold() for cue in topic_specific_cues)
     ):
         # Source-grounded scene rules outrank broad model-provided labels only

@@ -1,0 +1,21 @@
+{
+  "source_id": "28077c43-b7fe-4a40-85c8-663b8ac326a2",
+  "synthesis_id": "a5ab26dbc69d1f5a7b459d9c677def8d76cdc2757f33ab63fd6e82cd85793995",
+  "topic": "The Wonderful World of Science — Part 6",
+  "subject": "Science",
+  "class_level": 6,
+  "chapter": "The Wonderful World of Science",
+  "page_start": 7,
+  "page_end": 7,
+  "source_chunk_ids": [
+    "14256fbc-cb64-43bb-8051-56ad2b0a53fe",
+    "23e47207-f97d-475c-8654-93de2a43a73b"
+  ],
+  "renderer_family": "daily_life",
+  "renderer_version": "0.2.0",
+  "status": "needs_review",
+  "quality_flags": [],
+  "active": false,
+  "reason": "Generated as a candidate from approved synthesis/source mapping; source text contains OCR contamination or visual needs teacher review.",
+  "database_written": false
+}

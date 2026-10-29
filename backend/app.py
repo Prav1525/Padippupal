@@ -783,10 +783,51 @@ def worker_loop() -> None:
             _stop.wait(POLL_SECONDS)
 
 
+def _backfill_approved_lesson_visuals() -> None:
+    """Materialize source-linked visual assets for approved lessons at startup.
+
+    Previously these assets were created only after a learner opened each lesson,
+    leaving the production asset table empty until first use. This idempotent
+    backfill reads approved lessons only and never changes lesson approval/content.
+    """
+    try:
+        with db() as conn:
+            rows = conn.execute(
+                "SELECT id, lesson_json, source_refs_json FROM chapter_lessons WHERE status='approved'"
+            ).fetchall()
+        visual_steps = 0
+        for row in rows:
+            try:
+                lesson = json.loads(row["lesson_json"] or "{}")
+                refs = json.loads(row["source_refs_json"] or "[]")
+                allowed_ids = {
+                    str(ref.get("chunk_id", "")) for ref in refs
+                    if isinstance(ref, dict) and ref.get("chunk_id")
+                }
+                visual_lesson = dict(lesson)
+                visual_lesson["teaching_sequence"] = []
+                for step in lesson.get("teaching_sequence", []):
+                    if not isinstance(step, dict):
+                        continue
+                    cited = step.get("source_chunk_ids")
+                    if not isinstance(cited, list) or not cited:
+                        continue
+                    if {str(value) for value in cited}.issubset(allowed_ids):
+                        visual_lesson["teaching_sequence"].append(step)
+                visual_steps += len(get_or_create_lesson_visuals(str(row["id"]), visual_lesson))
+            except Exception:
+                logger.exception("Approved lesson visual backfill skipped one lesson")
+        logger.info("Approved lesson visual backfill complete: lessons=%s visual_steps=%s", len(rows), visual_steps)
+    except Exception:
+        # Visuals are optional; database/asset issues must not prevent API startup.
+        logger.exception("Approved lesson visual backfill failed; service startup will continue")
+
+
 @app.on_event("startup")
 def startup() -> None:
     global _worker
     init_db()
+    _backfill_approved_lesson_visuals()
     _stop.clear()
     if _worker is None or not _worker.is_alive():
         _worker = threading.Thread(target=worker_loop, name="curriculum-indexer", daemon=True)

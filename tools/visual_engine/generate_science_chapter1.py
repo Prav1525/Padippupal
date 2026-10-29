@@ -17,14 +17,18 @@ INK, BLUE, PALE, PALE_BLUE, GREEN, ORANGE, RED, GREY = "#25364A", "#4C83D6", "#F
 def e(v): return html.escape(str(v), quote=True)
 def family(topic, explanation, evidence):
     t=(topic+" "+explanation).lower()
-    # Use synthesis title and its actual source text to select a specific scene.
-    if "part 1" in topic.lower() or "curious" in t or "flower bloom" in t or "stars shine" in t: return "curiosity"
-    if "part 2" in topic.lower() or "jigsaw" in t: return "jigsaw"
-    if "part 3" in topic.lower() or ("paper" in evidence.lower() and "plastic ruler" in evidence.lower()): return "everyday_objects"
-    if "part 4" in topic.lower() or ("pen stops writing" in t) or ("ink" in evidence.lower() and "guess" in evidence.lower()): return "pen_inquiry"
-    if "part 5" in topic.lower() or "scientific method" in t or "scientific method" in evidence.lower(): return "scientific_method"
-    if "part 6" in topic.lower() or "daily life" in t: return "daily_life"
-    if "part 7" in topic.lower() or "journey" in t or "questions" in t: return "curiosity"
+    # Prefer the exact approved synthesis stage ID/name over broad keyword matches.
+    stage = re.search(r"part\\s*(\\d+)", topic, re.I)
+    if stage:
+        mapping = {1:"curiosity", 2:"jigsaw", 3:"everyday_objects", 4:"pen_inquiry",
+                   5:"scientific_method", 6:"daily_life", 7:"curiosity"}
+        if int(stage.group(1)) in mapping: return mapping[int(stage.group(1))]
+    if "jigsaw" in t: return "jigsaw"
+    if ("paper" in evidence.lower() and "plastic ruler" in evidence.lower()): return "everyday_objects"
+    if "pen stops writing" in t or ("ink" in evidence.lower() and "guess" in evidence.lower()): return "pen_inquiry"
+    if "scientific method" in t or "scientific method" in evidence.lower(): return "scientific_method"
+    if "daily life" in t: return "daily_life"
+    if "curious" in t or "flower bloom" in t or "stars shine" in t or "questions" in t: return "curiosity"
     raise ValueError("No reviewed topic-specific scene rule for synthesis: "+topic)
 
 def svg_scene(topic, family_name, source_excerpt):

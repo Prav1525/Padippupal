@@ -198,7 +198,10 @@ class TutorInlineVisualContractTests(unittest.TestCase):
         self.assertIn("activeStep = liveVisualStep", live)
         self.assertIn("liveWordIndex", live)
         self.assertIn("private fun TeacherDrawnExplanation(", tutor)
-        self.assertIn("TeacherDrawnConceptVisual(lesson, index)", tutor)
+        self.assertIn("TeacherDrawnConceptVisual(lesson, activeStep = 0)", tutor)
+        self.assertIn('"LET\'S DRAW IT"', tutor)
+        self.assertIn("Color(0xFFFFFEFA)", tutor)
+        self.assertIn("One message should feel like a teacher's explanation", tutor)
         self.assertNotIn("message.interactiveLesson != null -> DatabaseInteractiveLessonLab(", tutor)
 
 

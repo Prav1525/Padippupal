@@ -524,3 +524,17 @@ Use this format:
 
 - **Scope extension:** Startup now also scans approved `syllabus_topic_syntheses`, verifies each cited chunk belongs to the same source, and persists a reusable topic-scoped visual for synthesis explanations/examples where a compact diagram or concept card can be grounded. Unsupported/uncited topics are skipped; existing lesson content and approval state are not modified. Exact-head regression checks must verify this backfill is safe and idempotent.
 - **Backfill regression test:** Added a temporary-SQLite test with one approved, cited water-cycle synthesis; it verifies topic/chapter binding, cited chunk provenance, active persistence, and stored SVG markup. The test also exercises startup backfill's source-scoped chunk filtering.
+
+
+### 2026-10-29 — Validate Grade 6 Science Chapter 1 visual source mapping
+- **Branch / commit:** `feat/topic-aware-visual-engine`; source-map regression test commit `42fe56457cdad52fcc5e3e84d7ba3982c82857ea`.
+- **Test command or workflow URL:** [Topic-aware Visual Engine workflow](https://github.com/Prav1525/Padippupal/actions/runs/40889446456) (the visual-engine workflow is separate from this guidance check).
+- **Result:** **PARTIAL / IN PROGRESS** — live Neon queries confirm all seven approved synthesis IDs and every cited chunk ID resolve within the expected source. The Part 2 fixture synthesis ID was corrected.
+- **Exact failure or assertion:** Investigation Guidance Gate failed because this ledger had not been updated for the code/config changes; no visual-engine test failure was reported by that gate.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Guidance gate run](https://github.com/Prav1525/Padippupal/actions/runs/40889446456); [visual-engine run](https://github.com/Prav1525/Padippupal/actions/runs/40889330256).
+- **Change made (files + rationale):** Corrected the Part 2 synthesis ID in the manifest and metadata; added a unit test asserting all seven fixture synthesis IDs and cited chunk IDs match verified live Neon records and that draft assets remain inactive.
+- **Root cause:** **CONFIRMED** — the previous Part 2 fixture ID had a typo; the live database record uses `a8d0b8714c2d726dc9d92f11751f74e5bc661f845b3b7cd8fd5ee9f41259af8f`.
+- **What this attempt proves:** All seven live synthesis records have the expected citation counts, and all cited chunk IDs resolve under the same source; the corrected fixture is protected by a regression test.
+- **What remains unverified:** Latest regression-test workflow result, visual comparison against source page images, inactive candidate persistence, Android inline rendering, Tanglish speech/captions, and production learner flow.
+- **Difference from previous attempt:** Adds a direct live-source citation audit and exact-ID regression coverage rather than relying only on manually prepared fixture metadata.
+- **Next action and why:** Wait for the exact-head CI checks, then review the SVGs against the original source pages and integrate only after the UI/persistence path is proven. Do not activate or publish unreviewed drawings.

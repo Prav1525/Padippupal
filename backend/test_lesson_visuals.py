@@ -330,7 +330,7 @@ def test_topic_specific_visual_engine_uses_cited_evidence_not_generic_cards():
          ["Observe", "Ask", "Guess", "Test", "Review results"]),
         ("Everyday objects", "Compare paper, a metal key, a plastic ruler and a rubber eraser.",
          "These objects are made of different materials: paper, a metal key, a plastic ruler and a rubber eraser.", "compare",
-         ["Paper", "Metal key", "Plastic ruler"]),
+         ["Paper", "Metal key", "Plastic ruler", "Rubber eraser"]),
     ]
     for topic, caption, evidence, expected_kind, expected_nodes in cases:
         records = build_visual_records("profile-test", {

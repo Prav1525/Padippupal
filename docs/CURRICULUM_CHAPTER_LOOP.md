@@ -26,11 +26,12 @@
 - [x] Re-query live DB: 11 synthesis rows (7 approved page-part rows, 4 broad drafts); findings in [Chapter 1 live synthesis audit](CHAPTER_1_LIVE_SYNTHESIS_AUDIT.md).
 - [ ] Review sequence against exact textbook page images where accessible.
 - [ ] Reconcile broad draft rows with seven part rows using version-safe supersession; do not silently delete or approve rows.
-- [x] Fix the observed Chapter 1 closing-step inference bug: “never stop wondering” was incorrectly classified as collaborative exploration; removed that phrase from the collaboration trigger so the dedicated curiosity rule can handle it. CI exposed a second edge in the same regression (Step 7 then had no inferred visual). Added explicit `never stop wondering` / `keep wondering` phrases to the curiosity trigger. Latest code commit `1be01c43`; exact-SHA CI is pending.
+- [x] Fix the observed Chapter 1 closing-step inference bug: “never stop wondering” was incorrectly classified as collaborative exploration; removed that phrase from the collaboration trigger so the dedicated curiosity rule can handle it. CI exposed a second edge in the same regression (Step 7 then had no inferred visual). Added explicit `never stop wondering` / `keep wondering` phrases to the curiosity trigger. Later exact-head CI passed on `c9197923`.
 - [ ] Persist visuals only through a reviewed, supported write path; no production DB mutation in this loop.
 - [ ] Verify visual rows by DB read-back in approved test/staging path.
-- [ ] Run curriculum tests, Android build and UI smoke on latest commit.
-- [ ] Inspect fresh screenshots for inline flow, no overlay/card, no large blank gaps, readable labels.
+- [x] Run curriculum tests, Android build and UI smoke on `c9197923`; all three workflows passed.
+- [x] Inspect fresh emulator screenshot artifact from run `40875190509`: no separate card/overlay and spoken-word highlight moves, but the Canvas expands to a large blank band and the All 1s scene shows only one point. This is a confirmed UI defect; fixed the live Canvas to use content-sized height and made repeated-ones show all five terms in commit `5be1b49e`.
+- [ ] Re-run exact-head CI and inspect a fresh screenshot after `5be1b49e`; visual acceptance remains pending.
 - [ ] Mark status only as evidence supports.
 
 ### In progress — A Journey through States of Water (Grade 6 Science)
@@ -60,4 +61,4 @@ Every topic reviewed against source evidence; visuals mapped to exact topic/step
 ## Run log
 | Date (IST) | Result | Next item |
 |---|---|---|
-| 2026-10-29 | Stored workflow and Chapter 1 sequence; live read-only queries confirm OCR contamination and overlapping synthesis rows. Added full 16-row States of Water audit. Fixed a failing visual-inference regression where “never stop wondering” was misclassified as collaboration. Commit `74135882` fixed the collaboration misclassification but CI then caught Step 7 missing a visual; follow-up commit `1be01c43` adds the missing curiosity trigger and must be re-tested. Previous Android APK passed; UI smoke failed in unrelated diary-picker automation (`UiTestAutomationBridge` returned null root node). No production DB writes, approvals, merge or deployment. | Wait for exact-SHA CI; review screenshot artifact; continue Chapter 1 source-image review and safe visual inference regression work. |
+| 2026-10-29 | Exact-head checks passed on `c9197923` (curriculum tests, APK build, guidance gate, API-35 emulator UI smoke). Screenshot review exposed the remaining large blank band caused by `Modifier.weight(1f)` and a one-point All 1s sketch. Fixed content-sized Canvas and repeated-ones sketch in `5be1b49e`; this fix is not yet validated by CI/screenshot. No production DB writes, approvals, merge or deployment. | Check CI on `5be1b49e`, inspect fresh screenshot, then continue Chapter 1 source-page review and synthesis reconciliation. |

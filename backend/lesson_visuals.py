@@ -281,7 +281,7 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str, source_e
             return "compare", labels[:4]
 
     if any(term in lowered for term in ("solid", "liquid", "gas", "states of water", "water changes state")):
-        labels = [label for term, label in (("solid", "Solid"), ("liquid", "Liquid"), ("gas", "Gas")) if re.search(r"\\b" + term + r"\\b", lowered)]
+        labels = [label for term, label in (("solid", "Solid"), ("liquid", "Liquid"), ("gas", "Gas")) if re.search(r"\b" + term + r"\b", lowered)]
         if len(labels) >= 2:
             return "process", labels[:3]
 

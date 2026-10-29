@@ -128,6 +128,39 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertEqual(json.loads(record["blueprint_json"])["svg_markup"], svg)
 
 
+    def test_chapter_one_science_uses_source_specific_visuals_not_ocr_fraction_or_magnet_fallback(self):
+        lesson = {"chapter_title": "The Wonderful World of Science", "teaching_sequence": [
+            {"id": "step_1", "title": "The Wonderful World of Science — Part 1",
+             "caption": "We have always been curious. Have you watched a flower bloom and wondered how it knows when to open?",
+             "source_chunk_ids": ["ncert-page-1"], "visual": {"type": "table", "objects": []}},
+            {"id": "step_2", "title": "Science as a jigsaw puzzle",
+             "caption": "Science is like a giant and unending jigsaw puzzle. Every new discovery adds another piece.",
+             "source_chunk_ids": ["ncert-page-2"], "visual": {"type": "table", "objects": []}},
+            {"id": "step_3", "title": "Things around us",
+             "caption": "Paper, metal key, plastic ruler and rubber eraser are things around us. Are they made of different materials?",
+             "source_chunk_ids": ["ncert-page-4"], "visual": {"type": "table", "objects": []}},
+            {"id": "step_4", "title": "Test a guess",
+             "caption": "Your pen stops writing. You ask why, guess the ink is finished, and test this guess.",
+             "source_chunk_ids": ["ncert-page-5"], "visual": {"type": "table", "objects": []}},
+            {"id": "step_5", "title": "Scientific method",
+             "caption": "The scientific method starts with observation and a question, then we test the guess and analyse the results. Reprint 2026-27.",
+             "source_chunk_ids": ["ncert-page-6"], "visual": {"type": "table", "objects": []}},
+        ]}
+        records = build_visual_records("chapter-1", lesson)
+        by_step = {row["step_id"]: row for row in records}
+        self.assertEqual(by_step["step_1"]["visual_kind"], "curiosity")
+        self.assertEqual(by_step["step_1"]["blueprint"]["nodes"], ["Notice", "Wonder", "Ask why"])
+        self.assertEqual(by_step["step_2"]["visual_kind"], "jigsaw")
+        self.assertEqual(by_step["step_3"]["visual_kind"], "material_examples")
+        self.assertEqual(by_step["step_3"]["blueprint"]["nodes"], ["Paper", "Metal key", "Plastic ruler", "Rubber eraser"])
+        self.assertEqual(by_step["step_4"]["visual_kind"], "scientific_method")
+        self.assertEqual(by_step["step_5"]["visual_kind"], "scientific_method")
+        self.assertNotEqual(by_step["step_5"]["visual_kind"], "fraction")
+        for row in records:
+            self.assertIn("<svg", row["blueprint"]["svg_markup"])
+            self.assertTrue(row["source_chunk_ids_json"].startswith('["ncert-page-'))
+
+
 if __name__ == "__main__":
     unittest.main()
 

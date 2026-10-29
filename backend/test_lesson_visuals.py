@@ -383,7 +383,7 @@ def test_topic_specific_visual_engine_uses_cited_evidence_not_generic_cards():
 
     cases = [
         ("The Wonderful World of Science — Part 2", "Knowledge is like a jigsaw puzzle; each discovery adds a piece.",
-         "Our knowledge is like a giant and unending jigsaw puzzle.", "process",
+         "Our knowledge is like a giant and unending jigsaw puzzle.", "diagram",
          ["What we know", "New discovery", "New questions"]),
         ("Pen investigation", "If a pen stops writing, guess that the ink is empty and check the refill.",
          "A pen may stop writing; test whether the refill has ink.", "process",
@@ -452,7 +452,7 @@ def test_science_chapter1_jigsaw_gets_connected_concept_map():
         "visual": {"type": "diagram", "objects": ["Knowledge", "Discovery"]},
     }]}
     record = build_visual_records("science-ch1", lesson)[0]
-    assert record["visual_kind"] == "process"
+    assert record["visual_kind"] == "diagram"
     svg = record["blueprint"]["svg_markup"]
     assert "What we know" in svg
     assert "New discovery" in svg

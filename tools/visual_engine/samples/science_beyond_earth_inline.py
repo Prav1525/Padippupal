@@ -123,10 +123,10 @@ def render_svg(module: dict) -> str:
 <circle cx="200" cy="119" r="15" fill="#E8EAF0" stroke="{BLUE}" stroke-width="2.5"/>
 <path d="M200 104 A15 15 0 0 1 200 134 Z" fill="#303D55"/>
 <text x="200" y="99" text-anchor="middle" font-size="12" fill="{INK}">Quarter</text>
-<circle cx="337" cy="210" r="15" fill="#303D55" stroke="{BLUE}" stroke-width="2.5"/>
-<text x="337" y="244" text-anchor="middle" font-size="12" fill="{INK}">New</text>
-<circle cx="200" cy="301" r="15" fill="#E8EAF0" stroke="{BLUE}" stroke-width="2.5"/>
-<text x="200" y="331" text-anchor="middle" font-size="12" fill="{INK}">Full</text>
+<circle cx="63" cy="210" r="15" fill="#303D55" stroke="{BLUE}" stroke-width="2.5"/>
+<text x="63" y="244" text-anchor="middle" font-size="12" fill="{INK}">New</text>
+<circle cx="337" cy="210" r="15" fill="#E8EAF0" stroke="{BLUE}" stroke-width="2.5"/>
+<text x="337" y="244" text-anchor="middle" font-size="12" fill="{INK}">Full</text>
 <rect x="400" y="128" width="310" height="142" rx="18" fill="{LAVENDER}" stroke="#9B8CE0" stroke-width="2"/>
 <text x="555" y="158" text-anchor="middle" font-size="16" font-weight="700" fill="{INK}">Why does it change?</text>
 <text x="422" y="188" font-size="14" fill="{INK}">• The Moon reflects sunlight.</text>
@@ -195,10 +195,10 @@ def render_excalidraw(module: dict) -> dict:
             element("ellipse", 105, 105, 290, 250, strokeColor=GREY),
             element("ellipse", 238, 98, 30, 30, strokeColor=BLUE, backgroundColor=WHITE),
             text_element("Quarter", 270, 95, 15),
-            element("ellipse", 382, 220, 30, 30, strokeColor=BLUE, backgroundColor=DARK),
-            text_element("New", 415, 225, 15),
-            element("ellipse", 238, 370, 30, 30, strokeColor=BLUE, backgroundColor=WHITE),
-            text_element("Full", 270, 375, 15),
+            element("ellipse", 90, 220, 30, 30, strokeColor=BLUE, backgroundColor=DARK),
+            text_element("New", 70, 255, 15),
+            element("ellipse", 382, 220, 30, 30, strokeColor=BLUE, backgroundColor=WHITE),
+            text_element("Full", 415, 225, 15),
             text_element("Different positions show different portions of the lit half", 430, 150, 16, BLUE),
             text_element("Sunlight illuminates half the Moon", 430, 205, 16, GREEN),
         ]

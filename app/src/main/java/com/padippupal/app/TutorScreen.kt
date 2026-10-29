@@ -379,9 +379,8 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 maxLines = if (compact) 2 else Int.MAX_VALUE
             )
         }
-        Canvas(
-            Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)
-        ) {
+        Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {
+            Canvas(Modifier.fillMaxSize()) {
             val stroke = 1.6.dp.toPx()
             val centerY = size.height * 0.52f
             when (activeKind) {
@@ -411,7 +410,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                     }
                 }
                 "sequence", "process" -> {
-                    val count = activeLabels.size.coerceIn(1, 4)
+                    val count = activeLabels.size.coerceIn(1, 5)
                     val gap = 7.dp.toPx()
                     val boxWidth = (size.width * 0.86f - gap * (count - 1)) / count
                     val left = size.width * 0.07f
@@ -521,7 +520,33 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 }
             }
         }
-        activeLabels.take(revealCount).chunked(3).forEach { group ->
+            if (activeKind == "sequence" || activeKind == "process") {
+                Row(
+                    Modifier.fillMaxWidth().align(Alignment.Center).padding(horizontal = 22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    activeLabels.take(5).forEachIndexed { index, label ->
+                        Box(
+                            Modifier.weight(1f).height(if (compact) 36.dp else 44.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (index < revealCount) {
+                                Text(
+                                    label,
+                                    color = Color(0xFF17324D),
+                                    fontSize = if (compact) 10.sp else 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (activeKind != "sequence" && activeKind != "process") {
+            activeLabels.take(revealCount).chunked(3).forEach { group ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.forEach { label ->
                     Text(
@@ -535,6 +560,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 }
                 repeat((3 - group.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
             }
+        }
         }
         if (stepCount > 1) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {

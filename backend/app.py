@@ -2629,6 +2629,48 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
     return has_relevant_speech
 
 
+def _lesson_segments_are_substantive(segments: list[dict[str, Any]]) -> bool:
+    """Reject repeated lesson-template filler even when it mentions the selected chapter.
+
+    Topic-name matching alone is insufficient: a sequence can repeat a generic
+    instruction and pass the topicality gate without teaching the actual concept.
+    """
+    if not segments:
+        return False
+
+    placeholder_patterns = (
+        r"\buse the cited passage to identify the main idea\b",
+        r"\bexplain it in your own words\b",
+        r"\bidentify the main idea\b",
+        r"\blet'?s explore .{0,100}\bpart\s+\d+\b",
+    )
+    placeholder_hits = 0
+    normalized_segments: list[str] = []
+    for segment in segments:
+        if not isinstance(segment, dict):
+            return False
+        spoken = re.sub(r"\s+", " ", str(segment.get("spoken_text") or "")).strip().casefold()
+        caption = re.sub(r"\s+", " ", str(segment.get("caption_text") or "")).strip().casefold()
+        combined = spoken or caption
+        if not combined:
+            return False
+        placeholder_hits += sum(1 for pattern in placeholder_patterns if re.search(pattern, combined))
+        # Ignore transport labels such as "Part 1" when checking whether the
+        # teaching itself is just a repeated template.
+        normalized_segments.append(re.sub(r"\bpart\s+\d+\b", "part", combined))
+    if placeholder_hits >= 2:
+        return False
+
+    # Repeated long speech chunks are a strong signal of templated filler.
+    for index, current in enumerate(normalized_segments):
+        if len(current) < 70:
+            continue
+        for previous in normalized_segments[:index]:
+            if current == previous:
+                return False
+    return True
+
+
 @app.post("/tutor/lesson-plan")
 def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     """Create short source-grounded lesson segments for synchronized playback."""
@@ -2877,7 +2919,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 result = json.loads(response.read().decode("utf-8"))
             raw = " ".join(part.get("text", "") for part in result["candidates"][0]["content"]["parts"] if isinstance(part, dict))
             candidate = _validate_lesson_plan(raw, allowed_ids, payload.max_segments)
-            if not _lesson_segments_match_topic(payload.topic, candidate["segments"]):
+            if (not _lesson_segments_match_topic(payload.topic, candidate["segments"])
+                    or not _lesson_segments_are_substantive(candidate["segments"])):
                 if attempt == 0:
                     logger.warning("Gemini lesson planner drifted from selected topic=%s; retrying once", payload.topic)
                     retry_instruction += (
@@ -3026,7 +3069,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             raise HTTPException(status_code=502, detail="The lesson planner returned an invalid response.") from exc
     if validated is None:
         raise HTTPException(status_code=502, detail="The lesson planner could not produce a valid grounded lesson.")
-    if not _lesson_segments_match_topic(payload.topic, validated["segments"]):
+    if (not _lesson_segments_match_topic(payload.topic, validated["segments"])
+            or not _lesson_segments_are_substantive(validated["segments"])):
         logger.warning("Tutor lesson rejected: generated segments do not match selected topic=%s", payload.topic)
         return {
             "lesson_id": str(uuid.uuid4()), "segments": [], "grounded": False, "sources": [],

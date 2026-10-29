@@ -2629,6 +2629,77 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
     return has_relevant_speech
 
 
+def _translate_approved_segments(segments: list[dict[str, Any]], language: str) -> list[dict[str, Any]]:
+    """Translate stored approved lesson narration at playback time without changing its evidence.
+
+    Synthesized lessons are persisted in their reviewed source language. The selected
+    app language must still apply when a learner replays one of those lessons.
+    """
+    target = normalize(language or "English")
+    if not target or target.casefold() in {"english", "en"}:
+        return segments
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="Language translation is not configured on the backend.")
+    compact = [{
+        "id": str(item.get("id") or ""),
+        "spoken_text": str(item.get("spoken_text") or ""),
+        "caption_text": str(item.get("caption_text") or ""),
+    } for item in segments]
+    prompt = (
+        "Translate the following approved school lesson into " + target + ". "
+        "Keep every segment id unchanged and return JSON only as {segments:[{id,spoken_text,caption_text}]}. "
+        "Preserve all scientific/mathematical facts, examples, numbers, names, and meaning exactly; "
+        "do not add, omit, or simplify away a teaching point. Keep captions concise and child-friendly. "
+        "For Tanglish, write natural spoken Tamil-English using Tamil words in Latin letters, as a kind patient "
+        "Tamil teacher would speak; do not return formal English or Tamil script. For Tamil, use natural Tamil script. "
+        "Do not translate source IDs because they are not included. Input JSON:\\n"
+        + json.dumps({"segments": compact}, ensure_ascii=False)
+    )
+    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
+    body = json.dumps({
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0, "maxOutputTokens": 1800},
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+        data=body,
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=25) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        raw = " ".join(
+            part.get("text", "") for part in result["candidates"][0]["content"]["parts"]
+            if isinstance(part, dict)
+        )
+        translated = json.loads(re.sub(r"^\\s*\\x60{3}(?:json)?\\s*|\\s*\\x60{3}\\s*$", "", raw, flags=re.IGNORECASE))
+        items = translated.get("segments") if isinstance(translated, dict) else None
+        if not isinstance(items, list):
+            raise ValueError("translation response has no segments list")
+        by_id = {str(item.get("id") or ""): item for item in items if isinstance(item, dict)}
+        result_segments = []
+        for original in segments:
+            item = by_id.get(str(original.get("id") or ""))
+            spoken = str(item.get("spoken_text") or "").strip() if item else ""
+            caption = str(item.get("caption_text") or "").strip() if item else ""
+            if not spoken or not caption:
+                raise ValueError("translation omitted a lesson segment")
+            translated_segment = dict(original)
+            translated_segment["spoken_text"] = spoken[:500]
+            translated_segment["caption_text"] = caption[:500]
+            result_segments.append(translated_segment)
+        if len(result_segments) != len(segments):
+            raise ValueError("translation changed the lesson segment count")
+        return result_segments
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("Approved lesson translation failed: language=%s error=%s", target, type(exc).__name__)
+        raise HTTPException(status_code=502, detail="This lesson could not be translated into the selected language. Please retry.") from exc
+
+
 def _lesson_segments_are_substantive(segments: list[dict[str, Any]]) -> bool:
     """Reject repeated lesson-template filler even when it mentions the selected chapter.
 
@@ -2829,11 +2900,22 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                     "interactive_lesson": inline_visual,
                     "checkpoint": str(step.get("checkpoint"))[:240] if step.get("checkpoint") else None,
                 })
+            # Persist topic-scoped visuals for this exact selected topic, including
+            # simple original 2D diagrams inferred from source-cited synthesis captions.
+            # The renderer consumes each segment's visual inline beside that narration.
+            try:
+                segments = attach_topic_visuals(payload, segments, refs, fallback_visual=matched_visual)
+            except Exception:
+                logger.exception("Topic visual persistence failed; preserving any exact-match visual fallback")
+                for segment in segments:
+                    if not segment.get("interactive_lesson"):
+                        segment["interactive_lesson"] = matched_visual
             # Approval verifies source provenance, not that every step still matches
-            # the learner's selected topic. Treat stored lessons like generated lessons:
-            # validate the actual playable segments before returning them.
+            # the learner's selected topic. Validate source-language text before translating,
+            # because topic gates are deliberately tied to the approved source vocabulary.
             if (segments and _lesson_segments_match_topic(payload.topic, segments)
                     and _lesson_segments_are_substantive(segments)):
+                segments = _translate_approved_segments(segments, payload.app_language)
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",

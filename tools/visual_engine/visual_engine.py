@@ -51,7 +51,7 @@ def svg(a, family):
     elif family == "math_fractions":
         body = f'<text x="28" y="105" font-size="15" fill="{INK}">One whole split into four equal parts</text>'
         for i in range(4):
-            body += f'<rect x="{70+i*140}" y="135" width="140" height="72" fill="{BLUE if i==0 else "#F7F9FC"}" stroke="{INK}" stroke-width="2"/>'
+            body += f'<rect x="{70+i*140}" y="135" width="140" height="72" fill="{BLUE if i==0 else PALE_BLUE}" stroke="{INK}" stroke-width="2"/>'
         body += f'<text x="70" y="245" font-size="21" font-weight="700" fill="{INK}">1 / 4</text><text x="150" y="245" font-size="14" fill="{GREY}">One shaded part out of four equal parts</text>'
     elif family == "math_angles":
         body = f'<text x="28" y="105" font-size="15" fill="{INK}">Two rays share a common endpoint.</text><circle cx="250" cy="230" r="5" fill="#C65353"/><path d="M250 230 L490 230 M250 230 L420 125" stroke="{INK}" stroke-width="4" stroke-linecap="round"/><path d="M320 230 A70 70 0 0 0 308 190" fill="none" stroke="{BLUE}" stroke-width="4"/><text x="260" y="255" font-size="13" fill="#C65353">Common endpoint</text><text x="360" y="165" font-size="13" fill="{BLUE}">Angle</text><text x="28" y="300" font-size="12" fill="{GREY}">Schematic only; do not infer a numerical measure.</text>'

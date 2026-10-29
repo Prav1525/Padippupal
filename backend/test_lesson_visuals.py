@@ -365,3 +365,45 @@ def test_visual_engine_preserves_quality_flags_and_never_activates_candidates():
     assert blueprint["evidence_status"] == "needs_review"
     assert "running_header_or_timestamp" in blueprint["quality_flags"]
     assert "malformed_ocr_sentence" in blueprint["quality_flags"]
+
+
+def test_science_chapter1_pen_inquiry_gets_topic_specific_scene():
+    lesson = {"chapter_title": "The Wonderful World of Science", "teaching_sequence": [{
+        "id": "pen-inquiry", "title": "A pen stops writing",
+        "caption": "When a pen stops writing, one possible explanation is that the ink refill is empty. Check the refill to test the guess.",
+        "source_chunk_ids": ["source-pen-page-4"],
+        "visual": {"type": "process", "objects": ["A pen stops writing", "Ink refill"]},
+    }]}
+    record = build_visual_records("science-ch1", lesson)[0]
+    assert record["visual_kind"] == "process"
+    assert record["blueprint"]["nodes"] == ["Pen stops writing", "Possible explanation", "Check the refill"]
+    assert "Check the refill" in record["blueprint"]["svg_markup"]
+    assert json.loads(record["source_chunk_ids_json"]) == ["source-pen-page-4"]
+
+
+def test_science_chapter1_jigsaw_gets_connected_concept_map():
+    lesson = {"chapter_title": "The Wonderful World of Science", "teaching_sequence": [{
+        "id": "knowledge-jigsaw", "title": "Science is a growing jigsaw",
+        "caption": "Knowledge is like a jigsaw puzzle: each new discovery adds a piece and leads to new questions.",
+        "source_chunk_ids": ["source-science-page-2"],
+        "visual": {"type": "diagram", "objects": ["Knowledge", "Discovery"]},
+    }]}
+    record = build_visual_records("science-ch1", lesson)[0]
+    assert record["visual_kind"] == "diagram"
+    svg = record["blueprint"]["svg_markup"]
+    assert "What we know" in svg
+    assert "New discovery" in svg
+    assert "New question" in svg
+
+
+def test_science_chapter1_inquiry_process_gets_ordered_steps():
+    lesson = {"chapter_title": "The Wonderful World of Science", "teaching_sequence": [{
+        "id": "scientific-inquiry", "title": "Scientific inquiry",
+        "caption": "Observe a problem, ask a question, suggest a possible explanation, test it, and review the evidence.",
+        "source_chunk_ids": ["source-science-page-5"],
+        "visual": {"type": "process", "objects": ["Observe", "Test"]},
+    }]}
+    record = build_visual_records("science-ch1", lesson)[0]
+    assert record["visual_kind"] == "process"
+    assert record["blueprint"]["nodes"] == ["Observe", "Ask", "Suggest", "Test", "Learn"]
+    assert json.loads(record["source_chunk_ids_json"]) == ["source-science-page-5"]

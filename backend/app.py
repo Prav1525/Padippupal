@@ -3288,6 +3288,10 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     # same segment the learner hears. This is the dynamic Gemini path; approved
     # chapter lessons use the dedicated lesson_visual_assets table above.
     lesson_segments = attach_topic_visuals(payload, validated["segments"], sources, matched_visual)
+    # The generated lesson prompt can still return English despite app_language.
+    # Translate after source/topic validation so translated wording cannot bypass
+    # the source-language safety gate; preserve IDs, citations and visual payloads.
+    lesson_segments = _translate_approved_segments(lesson_segments, payload.app_language)
     return {"lesson_id": str(uuid.uuid4()), "segments": lesson_segments, "grounded": True, "sources": sources,
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False,

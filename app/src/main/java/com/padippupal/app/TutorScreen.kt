@@ -379,7 +379,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 maxLines = if (compact) 2 else Int.MAX_VALUE
             )
         }
-        Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {
+        Box(Modifier.fillMaxWidth().height(if (compact) 112.dp else 144.dp)) {
             Canvas(Modifier.fillMaxSize()) {
             val stroke = 1.6.dp.toPx()
             val centerY = size.height * 0.52f
@@ -437,6 +437,31 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                             drawLine(Color(0xFF7C91A0), points[index], points[(index + 1) % count], stroke)
                             drawCircle(Color(0xFFDCEFEB), 8.dp.toPx(), points[index])
                             drawCircle(Color(0xFF287F79), 8.dp.toPx(), points[index], style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        }
+                    }
+                }
+                "diagram" -> {
+                    // Explanatory concept map: labelled nodes connected in reading order.
+                    // This is native vector drawing, not a downloaded/generated bitmap.
+                    val count = activeLabels.size.coerceIn(2, 4)
+                    val gap = 8.dp.toPx()
+                    val left = size.width * 0.04f
+                    val totalWidth = size.width * 0.92f
+                    val nodeWidth = (totalWidth - gap * (count - 1)) / count
+                    val top = size.height * 0.24f
+                    val nodeHeight = size.height * 0.48f
+                    repeat(count) { index ->
+                        val x = left + index * (nodeWidth + gap)
+                        if (index < revealCount) {
+                            if (index > 0) {
+                                val startX = x - gap + 1.dp.toPx()
+                                drawLine(Color(0xFF287F79), Offset(startX - 5.dp.toPx(), top + nodeHeight / 2f), Offset(x - 1.dp.toPx(), top + nodeHeight / 2f), stroke)
+                                val tip = Offset(x - 1.dp.toPx(), top + nodeHeight / 2f)
+                                drawLine(Color(0xFF287F79), tip, Offset(tip.x - 4.dp.toPx(), tip.y - 3.dp.toPx()), stroke)
+                                drawLine(Color(0xFF287F79), tip, Offset(tip.x - 4.dp.toPx(), tip.y + 3.dp.toPx()), stroke)
+                            }
+                            drawRoundRect(Color(0xFFEAF5F3), Offset(x, top), androidx.compose.ui.geometry.Size(nodeWidth, nodeHeight), androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()))
+                            drawRoundRect(Color(0xFF287F79), Offset(x, top), androidx.compose.ui.geometry.Size(nodeWidth, nodeHeight), androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
                         }
                     }
                 }

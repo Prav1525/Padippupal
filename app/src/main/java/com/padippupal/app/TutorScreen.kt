@@ -545,7 +545,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 }
             }
         }
-            if (activeKind == "sequence" || activeKind == "process") {
+            if (activeKind == "sequence" || activeKind == "process" || activeKind == "diagram") {
                 Row(
                     Modifier.fillMaxWidth().align(Alignment.Center).padding(horizontal = 22.dp),
                     horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -570,7 +570,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 }
             }
         }
-        if (activeKind != "sequence" && activeKind != "process") {
+        if (activeKind != "sequence" && activeKind != "process" && activeKind != "diagram") {
             activeLabels.take(revealCount).chunked(3).forEach { group ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.forEach { label ->

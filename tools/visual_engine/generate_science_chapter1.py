@@ -54,7 +54,7 @@ def svg_scene(topic, family_name, source_excerpt):
 def clean_text(text):
     # Flag obvious extraction contamination, do not silently claim to repair it.
     flags=[]
-    if re.search(r"\\b(?:10/18/2024|Chapter 1\\.indd|Reprint 2026-27)\\b", text, re.I): flags.append("running_header_or_timestamp")
+    if any(token.lower() in text.lower() for token in ("10/18/2024", "Chapter 1.indd", "Reprint 2026-27")): flags.append("running_header_or_timestamp")
     if "fi nd" in text.lower() or "scientifi c" in text.lower(): flags.append("ocr_split_word")
     if "daily lives" in text.lower(): flags.append("running_header_fragment")
     if "Or watched a flower" in text: flags.append("malformed_ocr_sentence")

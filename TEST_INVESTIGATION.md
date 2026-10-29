@@ -494,3 +494,11 @@ Use this format:
 - **Root cause:** The approved-lesson playback path materialized visual assets lazily when a learner opened a lesson. Existing approved lessons had not been backfilled after deployment.
 - **Fix:** Startup now idempotently scans approved lessons, retains only steps whose cited chunk IDs are present in that lesson's source references, and materializes visuals with the existing builder. It does not change lesson content or approval state; failures are logged without preventing startup.
 - **Validation:** Curriculum Engine Tests passed on the exact head. Investigation guidance initially failed because this ledger entry was missing; this entry addresses that gate. Android APK and emulator smoke checks were still running at the time of this update. No merge or deployment performed.
+
+
+### 2026-10-29 — Reuse approved chapter visuals for matching selected topics
+- **Result:** **BLOCKED** pending exact-head CI and review.
+- **Root cause:** Production has 22 approved synthesized lessons, all with an empty topic field; tutor selection rejected chapter-wide lessons whenever a subtopic was selected. This bypassed stored visuals and fell through to dynamic generation.
+- **Evidence:** Read-only Neon query on main branch returned 22 approved lessons, 22 chapter-wide lessons, 0 topic-specific lessons; `lesson_visual_assets` contains 66 active assets across 19 lessons. The existing selection code continued whenever a selected topic differed from the stored topic, including when the stored topic was empty.
+- **Change:** Topic playback now filters a chapter-wide lesson to source-cited teaching steps that match the selected topic before creating narration segments and inline visuals. Exact topic-specific lessons remain preferred; if no matching step exists, the existing safe fallback remains.
+- **Next action:** Run the exact-head curriculum tests, Android build and UI smoke; fix any failures, then merge only if all required checks pass and verify the Render deployment and live playback.

@@ -2663,9 +2663,35 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 if normalize(str(row["chapter"])).casefold() != requested_chapter:
                     continue
                 stored_topic = normalize(str(row["topic"] or "")).casefold()
-                # A topic-specific request must never inherit a chapter-wide lesson.
+                # Prefer an exact topic lesson. Older approved lessons may be chapter-wide
+                # (stored topic is empty); reuse one only when it contains source-cited steps
+                # that actually mention the learner's selected topic.
                 if requested_topic and stored_topic != requested_topic:
-                    continue
+                    if stored_topic:
+                        continue
+                    try:
+                        candidate_lesson = json.loads(row["lesson_json"] or "{}")
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        continue
+                    candidate_steps = candidate_lesson.get("teaching_sequence", [])
+                    if not isinstance(candidate_steps, list):
+                        continue
+                    topic_steps = [
+                        step for step in candidate_steps
+                        if isinstance(step, dict)
+                        and _topic_passage_matches(
+                            requested_topic,
+                            " ".join(str(step.get(key) or "") for key in
+                                     ("title", "teacher_says", "caption", "example", "checkpoint"))
+                        )
+                        and isinstance(step.get("source_chunk_ids"), list)
+                        and bool(step.get("source_chunk_ids"))
+                    ]
+                    if not topic_steps:
+                        continue
+                    approved = dict(row)
+                    approved["_selected_topic_steps"] = topic_steps
+                    break
                 approved = dict(row)
                 break
         except Exception:
@@ -2673,6 +2699,12 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             approved = None
         if approved:
             lesson = json.loads(approved["lesson_json"])
+            # For a chapter-wide approved lesson, expose only topic-matched steps.
+            # The same filtered sequence drives inline visuals and narration, so the
+            # learner never sees a neighbouring topic's diagram during this lesson.
+            if approved.get("_selected_topic_steps") is not None:
+                lesson = dict(lesson)
+                lesson["teaching_sequence"] = approved["_selected_topic_steps"]
             refs = json.loads(approved["source_refs_json"])
             allowed_ids = {str(ref.get("chunk_id", "")) for ref in refs if ref.get("chunk_id")}
             # Persist only visuals whose exact synthesis step cites approved source chunks.

@@ -589,15 +589,23 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
     val stage = activeStep.coerceIn(0, stepCount - 1)
     val step = steps?.optJSONObject(stage)
     val topic = lesson.optString("topic", lesson.optString("title", "Concept"))
-    val rawScene = if (lesson.optString("scene_type") == "synthesis_static") {
-        step?.optString("visual_subtype").orEmpty()
-            .ifBlank { step?.optString("visual_kind").orEmpty() }
-            .ifBlank { lesson.optString("visual_kind", "diagram") }
+    val isSynthesizedLesson = lesson.optString("scene_type") == "synthesis_static"
+    val rawSubtype = step?.optString("visual_subtype").orEmpty().lowercase()
+    val rawKind = step?.optString("visual_kind").orEmpty()
+        .ifBlank { lesson.optString("visual_kind", "diagram") }.lowercase()
+    val recognizedSubtypes = setOf(
+        "triangle", "angle", "rectangle", "fraction_bar", "flow", "life_cycle",
+        "number_line", "other", "water_cycle", "food_chain", "solar_system",
+        "photosynthesis", "particle_states", "day_night", "electric_circuit"
+    )
+    val rawScene = if (isSynthesizedLesson) {
+        if (rawSubtype in recognizedSubtypes && rawSubtype != "other") rawSubtype else rawKind
     } else lesson.optString("scene_type", "diagram")
     val scene = when (rawScene.lowercase()) {
         "fraction", "fraction_bar" -> "fraction_builder"
-        "cycle" -> if (topic.contains("water", true)) "water_cycle" else "life_cycle"
-        "flow" -> "food_chain"
+        "cycle", "life_cycle" -> if (topic.contains("water", true)) "water_cycle" else "life_cycle"
+        "flow" -> if (topic.contains("food chain", true) || topic.contains("food web", true)) "food_chain" else "process"
+        "triangle", "angle", "rectangle" -> "geometry"
         "number_line" -> "number_line"
         "process" -> "process"
         else -> rawScene.lowercase()
@@ -659,6 +667,47 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                         }
                         drawLine(ink, Offset(right - 8.dp.toPx(), y - 5.dp.toPx()), Offset(right, y), stroke)
                         drawLine(ink, Offset(right - 8.dp.toPx(), y + 5.dp.toPx()), Offset(right, y), stroke)
+                    }
+                    scene == "geometry" -> {
+                        val left = w * .25f
+                        val top = h * .22f
+                        val right = w * .75f
+                        val bottom = h * .78f
+                        when (rawSubtype) {
+                            "rectangle" -> {
+                                drawRect(Color(0xFFDCEFEB), Offset(left, top), androidx.compose.ui.geometry.Size(right - left, bottom - top))
+                                drawRect(ink, Offset(left, top), androidx.compose.ui.geometry.Size(right - left, bottom - top), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            }
+                            "angle" -> {
+                                drawLine(ink, Offset(w * .24f, h * .72f), Offset(w * .76f, h * .72f), stroke * 1.5f)
+                                drawLine(ink, Offset(w * .24f, h * .72f), Offset(w * .62f, h * .25f), stroke * 1.5f)
+                                drawArc(Color(0xFF3987C9), 0f, -52f, false, Offset(w * .24f, h * .35f), androidx.compose.ui.geometry.Size(w * .42f, h * .42f), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            }
+                            else -> {
+                                val p1 = Offset(w * .50f, h * .18f)
+                                val p2 = Offset(w * .22f, h * .78f)
+                                val p3 = Offset(w * .78f, h * .78f)
+                                drawLine(ink, p1, p2, stroke * 1.5f)
+                                drawLine(ink, p2, p3, stroke * 1.5f)
+                                drawLine(ink, p3, p1, stroke * 1.5f)
+                                if (stage >= 1) drawCircle(Color(0xFF3987C9), 4.dp.toPx(), p1)
+                            }
+                        }
+                    }
+                    scene == "table" -> {
+                        val left = w * .18f
+                        val top = h * .22f
+                        val width = w * .64f
+                        val height = h * .56f
+                        drawRect(Color(0xFFDCEFEB), Offset(left, top), androidx.compose.ui.geometry.Size(width, height))
+                        drawRect(ink, Offset(left, top), androidx.compose.ui.geometry.Size(width, height), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        drawLine(ink, Offset(left + width / 2f, top), Offset(left + width / 2f, top + height), stroke)
+                        drawLine(ink, Offset(left, top + height / 2f), Offset(left + width, top + height / 2f), stroke)
+                    }
+                    scene == "compare" -> {
+                        drawCircle(Color(0xFFB9E3C7), h * .16f, Offset(w * .32f, h * .5f))
+                        drawCircle(Color(0xFFDCE7FF), h * .16f, Offset(w * .68f, h * .5f))
+                        drawLine(orbit, Offset(w * .43f, h * .5f), Offset(w * .57f, h * .5f), stroke)
                     }
                     scene == "process" -> {
                         val points = listOf(w * .15f, w * .38f, w * .61f, w * .84f)

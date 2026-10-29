@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Syntax check
-        run: python -m py_compile tools/visual_engine/visual_engine.py tools/visual_engine/test_visual_engine.py
+        run: python -m py_compile tools/visual_engine/visual_engine.py tools/visual_engine/test_visual_engine.py tools/visual_engine/generate_science_chapter1.py tools/visual_engine/test_chapter1_pipeline.py
       - name: Unit tests
         working-directory: tools/visual_engine
         run: python -m unittest -v

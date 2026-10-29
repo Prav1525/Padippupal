@@ -339,7 +339,11 @@ def _step_visual(step: Mapping[str, Any], index: int) -> dict[str, Any]:
             continue
     visual_rationale = _clean(visual.get("visual_rationale"), 180)
     visual_subtype = _clean(visual.get("visual_subtype") or kind, 32).lower()
-    nodes = labels[:6] or sync_labels[:4]
+    # A synthesis step with visual.type="none" is an explicit request for
+    # evidence-based inference, not permission to turn the topic title into a
+    # generic label card. If no specialist renderer matched, emit no drawable
+    # nodes so the caller records a review task instead.
+    nodes = labels[:6] or (sync_labels[:4] if raw_kind != "none" else [])
     blueprint = {
         "step_id": _clean(step.get("id") or f"step-{index + 1}", 48),
         "title": title,

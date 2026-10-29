@@ -128,6 +128,38 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
         self.assertEqual(json.loads(record["blueprint_json"])["svg_markup"], svg)
 
 
+    def test_new_synthesis_step_is_renderable_with_exact_source_mapping(self):
+        # Contract exercised by the synthesis-to-visual pipeline: one generated
+        # topic produces one stable visual tied only to its cited source chunks.
+        lesson = {
+            "chapter_title": "The Wonderful World of Science",
+            "topic": "Testing a possible explanation",
+            "overview": "A guess should be tested with evidence.",
+            "teaching_sequence": [{
+                "id": "syn-abc123def456-1",
+                "title": "Testing a possible explanation",
+                "caption": "When a pen stops writing, check whether the ink refill is empty.",
+                "teacher_says": "When a pen stops writing, check whether the ink refill is empty.",
+                "source_chunk_ids": ["chunk-pen-1", "chunk-pen-2"],
+                "visual": {
+                    "type": "process",
+                    "objects": ["Pen stops writing", "Possible guess", "Check refill"],
+                    "narration_sync": ["Possible guess"],
+                    "reference_page_numbers": [4, 5],
+                },
+            }],
+        }
+        records = build_visual_records("profile-key", lesson)
+        self.assertEqual(len(records), 1)
+        record = records[0]
+        self.assertEqual(record["step_id"], "syn-abc123def456-1")
+        self.assertEqual(json.loads(record["source_chunk_ids_json"]), ["chunk-pen-1", "chunk-pen-2"])
+        self.assertEqual(record["blueprint"]["reference_page_numbers"], [4, 5])
+        self.assertIn("svg_markup", record["blueprint"])
+        self.assertIn("Pen stops writing", record["blueprint"]["svg_markup"])
+        self.assertTrue(record["content_fingerprint"])
+
+
 if __name__ == "__main__":
     unittest.main()
 

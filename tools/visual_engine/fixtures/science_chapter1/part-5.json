@@ -1,0 +1,23 @@
+{
+  "source_id": "28077c43-b7fe-4a40-85c8-663b8ac326a2",
+  "synthesis_id": "30b3765025c95e342ae45174ff82a6e0247d457582b1cc2449766c28227b48c5",
+  "topic": "The Wonderful World of Science — Part 4",
+  "subject": "Science",
+  "class_level": 6,
+  "chapter": "The Wonderful World of Science",
+  "page_start": 5,
+  "page_end": 5,
+  "source_chunk_ids": [
+    "8caf1fd6-b2f3-436b-a7b9-f37c99e44e99",
+    "0988f81b-21f7-4e16-9f5b-8224f72a1767"
+  ],
+  "renderer_family": "pen_inquiry",
+  "renderer_version": "0.2.0",
+  "status": "needs_review",
+  "quality_flags": [
+    "ocr_split_word"
+  ],
+  "active": false,
+  "reason": "Generated as a candidate from approved synthesis/source mapping; source text contains OCR contamination or visual needs teacher review.",
+  "database_written": false
+}

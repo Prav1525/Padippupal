@@ -7,50 +7,45 @@
 **Safety boundaries:** Database reads are allowed for evidence. Do not mutate production curriculum rows, approve content, merge, deploy, or publish to learners autonomously.
 
 ## How the loop resumes
-
-At the start of each run:
 1. Read this queue and the workflow standard.
-2. Check the branch/PR head and latest CI results.
-3. Read the next topic/chapter from the database and cited source chunks; never rely on a previous summary when live evidence is available.
-4. Do one coherent, reviewable slice of work; commit docs/code/tests on the working branch.
-5. Update this queue with evidence, exact commit SHA, tests, unresolved blockers and next item.
-6. Continue to the next safe topic if a blocker requires owner action. Never wait for ordinary confirmation.
-7. Report only verified work and do not describe a draft as deployed.
+2. Check branch/PR head and latest CI.
+3. Read live DB records and cited source chunks.
+4. Make one coherent, reviewable slice on the working branch.
+5. Update this queue with exact commit SHA, tests, blockers and next item.
+6. If blocked, record why and move to the next safe item.
+7. Report only verified work; never describe a draft as deployed.
 
 ## Queue and current progress
 
 ### In progress — Chapter 1: The Wonderful World of Science (Grade 6, NCERT Curiosity 2026–27)
 - [x] Store cross-chapter quality workflow.
-- [x] Inspect canonical chapter lesson and topic synthesis rows in database.
-- [x] Inspect cited source chunks for pages 1–8.
-- [x] Record known defects: OCR/header/footer contamination, duplicated source fragments, weak source-topic alignment, and a fraction visual incorrectly triggered by page timestamp `10/18`.
-- [x] Draft a source-grounded seven-beat English/Tanglish tutor sequence and topic-specific inline storyboard.
-- [ ] Review the proposed sequence against exact textbook page images where accessible; record provenance and any limitations.
-- [ ] Reconcile all 11 synthesis rows (7 approved, 4 draft) with the seven lesson stages; identify duplicates/stale versions and recommend version-safe changes.
-- [ ] Fix and test concept-to-visual inference and all seven stage mappings.
-- [ ] Persist visuals through the application’s supported write path only after a safe migration/upsert design is reviewed; do not mutate production DB in this autonomous loop.
-- [ ] Verify active visual rows by DB read-back in an approved test/staging path.
+- [x] Inspect canonical chapter lesson and topic synthesis rows.
+- [x] Inspect stored source chunk references for pages 1–8; exact textbook page-image review remains outstanding.
+- [x] Record OCR/header/footer contamination, overlapping topic spans and the previously observed timestamp-triggered fraction visual.
+- [x] Draft source-grounded seven-beat English/Tanglish sequence and inline storyboard.
+- [x] Re-query live DB: 11 synthesis rows (7 approved page-part rows, 4 broad drafts); specific findings in [Chapter 1 live synthesis audit](CHAPTER_1_LIVE_SYNTHESIS_AUDIT.md).
+- [ ] Review sequence against exact textbook page images where accessible.
+- [ ] Reconcile broad draft rows with the seven part rows using version-safe supersession; do not silently delete or approve rows.
+- [ ] Fix/test concept-to-visual inference and all seven stage mappings, including timestamp/header false-positive regression.
+- [ ] Persist visuals only through a reviewed, supported write path; this loop must not mutate production curriculum rows.
+- [ ] Verify visual rows by DB read-back in an approved test/staging path.
 - [ ] Run curriculum tests, Android build and UI smoke on latest commit.
-- [ ] Inspect fresh tutor-screen screenshot(s): inline flow, no overlay/card, no large blank gaps, readable labels.
-- [ ] Close audit and mark status only as evidence supports.
+- [ ] Inspect fresh screenshots for inline flow, no overlay/card, no large blank gaps, readable labels.
+- [ ] Mark status only as evidence supports.
 
-### Next chapters
-- Discover canonical chapter inventory and source/lesson/topic counts from the database.
-- Process chapters in stable curriculum order, then topics in source order.
-- Create `docs/CHAPTER_<n>_<slug>_AUDIT.md` and a source-grounded storyboard/revision artifact for each chapter.
-- Do not copy Chapter 1's drawings into other chapters; reuse the quality gates and choose visuals specific to each concept.
+### Next candidate — A Journey through States of Water
+Live DB contains both draft and approved lesson rows for this Grade 6 Science chapter, sourced from `fecu108.pdf` (24 pages). Reconcile row status, lesson JSON, source chunks and synthesis rows before editing. Then process remaining Grade 6 Science chapters in canonical source order, followed by Mathematics. Each chapter gets an audit and storyboard; never reuse drawings just because another chapter has similar keywords.
 
 ## Definition of done (per chapter)
+Every topic reviewed against source evidence; visuals mapped to exact topic/step; asset persistence read back from DB; relevant automated tests pass; actual tutor screen visually inspected. Otherwise label **in progress**, **blocked**, or **source gap**.
 
-A chapter is not complete until every topic has been reviewed against source evidence; every required visual is mapped to the exact topic/step; asset persistence is read back from the database; relevant automated tests pass; and the actual tutor screen has been visually inspected. Otherwise use **in progress**, **blocked**, or **source gap**.
-
-## Latest recorded repository artifacts
+## Artifacts
 - `docs/CHAPTER_QUALITY_AND_INLINE_VISUAL_WORKFLOW.md`
 - `docs/CHAPTER_1_REVISED_TEACHING_SEQUENCE.md`
 - `docs/CHAPTER_1_SCIENCE_DB_VISUAL_AUDIT.md`
+- `docs/CHAPTER_1_LIVE_SYNTHESIS_AUDIT.md`
 
 ## Run log
-
 | Date (IST) | Result | Next item |
 |---|---|---|
-| 2026-10-29 | Workflow stored; Chapter 1 source-grounded teaching-sequence draft stored; live DB remains read-only; PR #55 remains draft. | Verify textbook page imagery and reconcile Chapter 1 synthesis rows. |
+| 2026-10-29 | Workflow and Chapter 1 teaching-sequence draft exist. Live read-only query confirms 11 synthesis rows (7 approved part rows, 4 broad drafts), OCR contamination and overlapping spans. No production DB writes, approvals, merge or deployment. | Verify textbook page images; reconcile Chapter 1 synthesis and visual inference; then audit States of Water. |

@@ -35,6 +35,7 @@ _VISUAL_KIND_MAP = {
     "curiosity": "curiosity",
     "jigsaw": "jigsaw",
     "material_examples": "material_examples",
+    "collaborative_exploration": "collaborative_exploration",
 }
 
 
@@ -57,7 +58,15 @@ def _render_svg(kind: str, title: str, nodes: list[str]) -> str:
         'aria-label="' + _svg_text(title or "Lesson visual") + '" preserveAspectRatio="xMidYMid meet">',
         '<rect x="1" y="1" width="318" height="154" rx="14" fill="#F5FAFC" stroke="#D7E5EC"/>',
     ]
-    if kind in {"scientific_method", "curiosity", "jigsaw"}:
+    if kind == "collaborative_exploration":
+        positions = [(74, 76), (160, 76), (246, 76)]
+        for i, (cx, cy) in enumerate(positions):
+            parts.append(f'<circle cx="{cx}" cy="{cy}" r="13" fill="#F1C46A" stroke="#A77720" stroke-width="1.2"/>')
+            parts.append(f'<path d="M{cx-19} {cy+25} q19 -20 38 0" fill="#7CA9E8" stroke="#287F79" stroke-width="1.5"/>')
+        parts.append('<path d="M95 73 Q117 57 139 73 M181 73 Q203 57 225 73" fill="none" stroke="#287F79" stroke-width="1.8" stroke-dasharray="3 3"/>')
+        for i, label in enumerate(labels[:3]):
+            parts.append(f'<text x="{positions[i][0]}" y="120" text-anchor="middle" font-size="8" font-family="sans-serif" fill="#24445B">{label}</text>')
+    elif kind in {"scientific_method", "curiosity", "jigsaw"}:
         count = min(5 if kind == "scientific_method" else 4, len(labels))
         box_w = 50 if count >= 5 else 60
         gap = 8
@@ -201,6 +210,9 @@ def _infer_visual_content(title: str, caption: str, fallback_kind: str) -> tuple
             if "all 1s" in lowered or "all ones" in lowered:
                 found.sort(key=lambda row: 0 if row.startswith("All 1s|") else 1)
             return "table", found[:3]
+
+    if any(term in lowered for term in ("work together", "with friends", "scientists work", "joyful exploration", "journey ahead", "never stop wondering")):
+        return "collaborative_exploration", ["Ask together", "Share ideas", "Keep exploring"]
 
     if any(term in lowered for term in ("scientific method", "test this guess", "pen stops writing", "observe something", "analyse the results", "analyze the results")):
         return "scientific_method", ["Observe", "Ask", "Guess", "Test", "Check evidence"]

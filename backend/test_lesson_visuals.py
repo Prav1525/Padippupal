@@ -95,7 +95,7 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
     def test_science_chapter_one_scenes_are_topic_specific(self):
         cases = [
             ("A pen stops writing", "When a pen stops writing, check the ink refill and test the explanation.", "process"),
-            ("Science as a jigsaw", "Knowledge grows like a jigsaw as new discoveries create new questions.", "process"),
+            ("Science as a jigsaw", "Knowledge grows like a jigsaw as new discoveries create new questions.", "diagram"),
             ("Objects and materials", "Compare paper, a metal key, a plastic ruler and a rubber eraser by their materials.", "compare"),
             ("Scientific inquiry", "Observe the problem, ask a question, test a possible explanation and review evidence.", "process"),
         ]
@@ -111,6 +111,37 @@ class SynthesizedLessonVisualTests(unittest.TestCase):
                 self.assertEqual(records[0]["visual_kind"], expected_kind)
                 self.assertEqual(records[0]["blueprint"]["source_chunk_ids"], ["source-1"])
                 self.assertIn("<svg", records[0]["blueprint"]["svg_markup"])
+
+
+    def test_jigsaw_visual_is_a_connected_concept_map(self):
+        record = build_visual_records("profile", {"teaching_sequence": [{
+            "id": "jigsaw-step",
+            "title": "Science as a jigsaw",
+            "caption": "Knowledge grows like a jigsaw as discoveries create new questions.",
+            "source_chunk_ids": ["source-jigsaw"],
+            "source_evidence": "Science is like a giant jigsaw puzzle; discoveries lead to new questions.",
+            "visual": {"type": "none", "objects": []},
+        }]})[0]
+        svg = record["blueprint"]["svg_markup"]
+        self.assertEqual(record["visual_kind"], "diagram")
+        self.assertIn("What we know", svg)
+        self.assertIn("New discovery", svg)
+        self.assertIn("New question", svg)
+
+    def test_pen_inquiry_visual_shows_testable_hypothesis_steps(self):
+        record = build_visual_records("profile", {"teaching_sequence": [{
+            "id": "pen-step",
+            "title": "A pen stops writing",
+            "caption": "A pen stops writing; a possible cause is the ink refill, so check it.",
+            "source_chunk_ids": ["source-pen"],
+            "source_evidence": "When a pen stops writing, check the ink refill and test the explanation.",
+            "visual": {"type": "none", "objects": []},
+        }]})[0]
+        svg = record["blueprint"]["svg_markup"]
+        self.assertEqual(record["visual_kind"], "process")
+        self.assertIn("Pen stops writing", svg)
+        self.assertIn("Possible explanation", svg)
+        self.assertIn("Check the refill", svg)
 
     def test_empty_or_missing_sequence_produces_no_unrelated_visual(self):
         self.assertEqual(build_visual_records("lesson-2", {}), [])

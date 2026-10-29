@@ -2799,7 +2799,7 @@ def _translate_approved_segments(segments: list[dict[str, Any]], language: str) 
             part.get("text", "") for part in result["candidates"][0]["content"]["parts"]
             if isinstance(part, dict)
         )
-        translated = json.loads(re.sub(r"^\\s*\\x60{3}(?:json)?\\s*|\\s*\\x60{3}\\s*$", "", raw, flags=re.IGNORECASE))
+        translated = json.loads(re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", raw, flags=re.IGNORECASE))
         items = translated.get("segments") if isinstance(translated, dict) else None
         if not isinstance(items, list):
             raise ValueError("translation response has no segments list")

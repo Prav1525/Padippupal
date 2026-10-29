@@ -663,14 +663,8 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                 fontSize = 10.sp
             )
         }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .background(Color(0xFFFFFEFA), RoundedCornerShape(14.dp))
-                .border(BorderStroke(1.dp, Color(0xFFE8E3D8)), RoundedCornerShape(14.dp))
-                .padding(horizontal = 10.dp, vertical = 8.dp)
-        ) {
-            Canvas(Modifier.fillMaxWidth().height(126.dp)) {
+        // Draw directly on the lesson canvas: no card, border, overlay, or inset panel.
+        Canvas(Modifier.fillMaxWidth().height(104.dp)) {
                 val w = size.width
                 val h = size.height
                 val center = Offset(w * .5f, h * .5f)
@@ -906,16 +900,87 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                         drawLine(ink, Offset(center.x, center.y - h * .29f), Offset(center.x, center.y + h * .29f), stroke)
                     }
                     else -> {
-                        val xs = listOf(w * .2f, w * .5f, w * .8f)
-                        drawLine(orbit, Offset(xs[0], h * .5f), Offset(xs[2], h * .5f), stroke)
-                        xs.forEachIndexed { i, x ->
-                            if (i <= stage.coerceAtMost(2)) {
-                                drawCircle(listOf(Color(0xFFFFC857), Color(0xFF3C91D6), Color(0xFF72A879))[i], 10.dp.toPx(), Offset(x, h * .5f))
+                        // Topic-specific elementary science sketches. These are schematic teaching
+                        // drawings, not claims that a textbook figure was reproduced.
+                        when {
+                            topic.contains("magnet", true) && (topic.contains("pole", true) || topic.contains("attract", true) || topic.contains("repel", true)) -> {
+                                val y = h * .5f
+                                val left = w * .22f; val right = w * .78f
+                                drawRect(Color(0xFFE7A0A0), Offset(left - 24.dp.toPx(), y - 12.dp.toPx()), androidx.compose.ui.geometry.Size(48.dp.toPx(), 24.dp.toPx()))
+                                drawRect(Color(0xFF9BC7ED), Offset(left, y - 12.dp.toPx()), androidx.compose.ui.geometry.Size(48.dp.toPx(), 24.dp.toPx()))
+                                drawRect(Color(0xFFE7A0A0), Offset(right - 24.dp.toPx(), y - 12.dp.toPx()), androidx.compose.ui.geometry.Size(48.dp.toPx(), 24.dp.toPx()))
+                                drawRect(Color(0xFF9BC7ED), Offset(right, y - 12.dp.toPx()), androidx.compose.ui.geometry.Size(48.dp.toPx(), 24.dp.toPx()))
+                                drawLine(ink, Offset(w*.43f,y), Offset(w*.57f,y), stroke)
+                                if (stage % 2 == 0) {
+                                    drawLine(ink, Offset(w*.46f,y-5.dp.toPx()), Offset(w*.43f,y), stroke)
+                                    drawLine(ink, Offset(w*.46f,y+5.dp.toPx()), Offset(w*.43f,y), stroke)
+                                } else {
+                                    drawLine(ink, Offset(w*.54f,y-5.dp.toPx()), Offset(w*.57f,y), stroke)
+                                    drawLine(ink, Offset(w*.54f,y+5.dp.toPx()), Offset(w*.57f,y), stroke)
+                                }
+                            }
+                            topic.contains("thermometer", true) || topic.contains("temperature", true) -> {
+                                val x = w*.5f
+                                drawRoundRect(Color(0xFFDCE7FF), Offset(x-8.dp.toPx(), h*.12f), androidx.compose.ui.geometry.Size(16.dp.toPx(), h*.65f), androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()))
+                                drawRoundRect(Color(0xFF3C91D6), Offset(x-3.dp.toPx(), h*(.72f - .12f*stage)), androidx.compose.ui.geometry.Size(6.dp.toPx(), h*(.10f + .12f*stage)), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))
+                                drawCircle(Color(0xFF3C91D6), 12.dp.toPx(), Offset(x,h*.78f))
+                                repeat(5) { i -> drawLine(ink, Offset(x+10.dp.toPx(),h*(.18f+i*.11f)), Offset(x+if(i%2==0)24.dp.toPx() else 18.dp.toPx(),h*(.18f+i*.11f)), stroke) }
+                            }
+                            topic.contains("measure length", true) || topic.contains("standard unit", true) || topic.contains("ruler", true) -> {
+                                val left=w*.12f; val right=w*.88f; val y=h*.48f
+                                drawLine(Color(0xFFE0A43A),Offset(left,y),Offset(right,y),18.dp.toPx())
+                                drawLine(ink,Offset(left,y-13.dp.toPx()),Offset(left,y+13.dp.toPx()),stroke*1.5f)
+                                repeat(10) { i -> val x=left+(right-left)*i/9f; drawLine(ink,Offset(x,y- if(i%3==0)10.dp.toPx() else 5.dp.toPx()),Offset(x,y+8.dp.toPx()),stroke) }
+                                drawLine(Color(0xFF3987C9),Offset(left,h*.72f),Offset(right,h*.72f),stroke)
+                            }
+                            topic.contains("soluble", true) || topic.contains("insoluble", true) -> {
+                                listOf(w*.32f,w*.68f).forEachIndexed { i,x ->
+                                    drawLine(ink,Offset(x-22.dp.toPx(),h*.2f),Offset(x-16.dp.toPx(),h*.78f),stroke)
+                                    drawLine(ink,Offset(x+22.dp.toPx(),h*.2f),Offset(x+16.dp.toPx(),h*.78f),stroke)
+                                    drawLine(ink,Offset(x-22.dp.toPx(),h*.2f),Offset(x+22.dp.toPx(),h*.2f),stroke)
+                                    drawLine(ink,Offset(x-16.dp.toPx(),h*.78f),Offset(x+16.dp.toPx(),h*.78f),stroke)
+                                    repeat(8) { k -> drawCircle(if(i==0) Color(0xFF3987C9) else Color(0xFF94A3B8),2.dp.toPx(),Offset(x-10.dp.toPx()+(k%4)*7.dp.toPx(),h*(.48f+(k/4)*.12f))) }
+                                }
+                            }
+                            topic.contains("filtration", true) || topic.contains("sedimentation", true) || topic.contains("decantation", true) || topic.contains("sieving", true) || topic.contains("handpicking", true) -> {
+                                val x=w*.5f
+                                drawLine(ink,Offset(x-32.dp.toPx(),h*.2f),Offset(x,h*.55f),stroke*1.5f)
+                                drawLine(ink,Offset(x+32.dp.toPx(),h*.2f),Offset(x,h*.55f),stroke*1.5f)
+                                drawLine(ink,Offset(x-32.dp.toPx(),h*.2f),Offset(x+32.dp.toPx(),h*.2f),stroke*1.5f)
+                                drawLine(Color(0xFF3987C9),Offset(x,h*.55f),Offset(x,h*.78f),stroke*2)
+                                drawLine(ink,Offset(x-22.dp.toPx(),h*.79f),Offset(x+22.dp.toPx(),h*.79f),stroke*1.5f)
+                            }
+                            topic.contains("balanced meal", true) || topic.contains("nutrient", true) -> {
+                                drawCircle(Color(0xFFDCEFEB),h*.34f,center)
+                                drawLine(ink,Offset(center.x,center.y-h*.34f),Offset(center.x,center.y+h*.34f),stroke)
+                                drawLine(ink,Offset(center.x,center.y),Offset(center.x+h*.34f,center.y),stroke)
+                                drawArc(Color(0xFFE0A43A),0f,180f,true,Offset(center.x-h*.34f,center.y-h*.34f),androidx.compose.ui.geometry.Size(h*.68f,h*.68f))
+                            }
+                            topic.contains("recycle", true) || topic.contains("reuse", true) || topic.contains("conservation", true) -> {
+                                val p=listOf(Offset(w*.5f,h*.18f),Offset(w*.78f,h*.68f),Offset(w*.22f,h*.68f))
+                                drawLine(Color(0xFF43865B),p[0],p[1],stroke*2)
+                                drawLine(Color(0xFF43865B),p[1],p[2],stroke*2)
+                                drawLine(Color(0xFF43865B),p[2],p[0],stroke*2)
+                                p.forEach { drawCircle(Color(0xFFB9E3C7),5.dp.toPx(),it) }
+                            }
+                            topic.contains("living", true) || topic.contains("classifying", true) || topic.contains("plant diversity", true) || topic.contains("habitat", true) -> {
+                                val x=w*.5f
+                                drawLine(Color(0xFF43865B),Offset(x,h*.8f),Offset(x,h*.28f),stroke*2)
+                                drawOval(Color(0xFFB9E3C7),Offset(x-38.dp.toPx(),h*.34f),androidx.compose.ui.geometry.Size(40.dp.toPx(),18.dp.toPx()))
+                                drawOval(Color(0xFFB9E3C7),Offset(x,h*.44f),androidx.compose.ui.geometry.Size(40.dp.toPx(),18.dp.toPx()))
+                                drawLine(Color(0xFF43865B),Offset(x,h*.46f),Offset(x+36.dp.toPx(),h*.36f),stroke)
+                                drawLine(Color(0xFF43865B),Offset(x,h*.54f),Offset(x-36.dp.toPx(),h*.64f),stroke)
+                            }
+                            else -> {
+                                val xs = listOf(w * .2f, w * .5f, w * .8f)
+                                drawLine(orbit, Offset(xs[0], h * .5f), Offset(xs[2], h * .5f), stroke)
+                                xs.forEachIndexed { i, x ->
+                                    if (i <= stage.coerceAtMost(2)) drawCircle(listOf(Color(0xFFFFC857), Color(0xFF3C91D6), Color(0xFF72A879))[i], 10.dp.toPx(), Offset(x, h * .5f))
+                                }
                             }
                         }
                     }
                 }
-            }
         }
         val labels = if (isSynthesisStep && stepLabels.isNotEmpty()) {
             stepLabels

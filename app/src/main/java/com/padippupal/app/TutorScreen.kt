@@ -18,6 +18,7 @@ import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -703,6 +704,72 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
                             }
                         }
                     }
+                    scene in setOf("photosynthesis", "plant_food", "plant_parts") ||
+                        topic.contains("photosynthesis", true) || topic.contains("plant", true) -> {
+                        val leaf = Offset(w * .50f, h * .49f)
+                        drawLine(Color(0xFF43865B), Offset(w * .50f, h * .86f), Offset(w * .50f, h * .36f), 2.4.dp.toPx())
+                        drawOval(Color(0xFFB9E3C7), Offset(w * .30f, h * .36f), androidx.compose.ui.geometry.Size(w * .20f, h * .13f))
+                        drawOval(Color(0xFFB9E3C7), Offset(w * .50f, h * .36f), androidx.compose.ui.geometry.Size(w * .20f, h * .13f))
+                        drawLine(Color(0xFF43865B), Offset(w * .30f, h * .49f), leaf, stroke)
+                        drawLine(Color(0xFF43865B), Offset(w * .50f, h * .49f), Offset(w * .70f, h * .49f), stroke)
+                        drawLine(Color(0xFFE0A43A), Offset(w * .15f, h * .18f), Offset(w * .35f, h * .34f), stroke)
+                        drawLine(Color(0xFF3987C9), Offset(w * .77f, h * .16f), Offset(w * .60f, h * .34f), stroke)
+                        if (stage >= 1) drawLine(Color(0xFF43865B), Offset(w * .50f, h * .58f), Offset(w * .50f, h * .80f), stroke)
+                    }
+                    scene in setOf("water_cycle", "water_cycle_lab", "evap_condense") ||
+                        topic.contains("water cycle", true) -> {
+                        drawArc(Color(0xFF3987C9), 190f, 160f, false,
+                            Offset(w * .10f, h * .45f), androidx.compose.ui.geometry.Size(w * .80f, h * .65f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                        drawCircle(Color(0xFFFFC857), h * .09f, Offset(w * .18f, h * .22f))
+                        repeat(4) { i ->
+                            val x = w * (.37f + i * .10f)
+                            drawLine(Color(0xFF3987C9), Offset(x, h * .67f), Offset(x, h * .34f), stroke)
+                        }
+                        drawArc(Color(0xFF94A3B8), 180f, 180f, false,
+                            Offset(w * .42f, h * .12f), androidx.compose.ui.geometry.Size(w * .36f, h * .36f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        if (stage >= 1) drawLine(Color(0xFF3987C9), Offset(w * .78f, h * .35f), Offset(w * .78f, h * .65f), stroke)
+                    }
+                    scene in setOf("food_chain", "food_web") || topic.contains("food chain", true) -> {
+                        val points = listOf(w * .16f, w * .39f, w * .62f, w * .85f)
+                        points.forEachIndexed { i, x ->
+                            drawCircle(listOf(Color(0xFF72A879), Color(0xFFB9E3C7), Color(0xFFE0A43A), Color(0xFFDB8A76))[i], 10.dp.toPx(), Offset(x, h * .50f))
+                            if (i < points.lastIndex && i < stage + 2) {
+                                drawLine(orbit, Offset(x + 12.dp.toPx(), h * .50f), Offset(points[i+1] - 12.dp.toPx(), h * .50f), stroke)
+                                drawLine(ink, Offset(points[i+1] - 17.dp.toPx(), h * .45f), Offset(points[i+1] - 12.dp.toPx(), h * .50f), stroke)
+                                drawLine(ink, Offset(points[i+1] - 17.dp.toPx(), h * .55f), Offset(points[i+1] - 12.dp.toPx(), h * .50f), stroke)
+                            }
+                        }
+                    }
+                    scene in setOf("electric_circuit", "circuit_lab", "simple_circuit") ||
+                        topic.contains("electric circuit", true) -> {
+                        val left = w * .25f; val right = w * .75f; val top = h * .22f; val bottom = h * .76f
+                        drawLine(orbit, Offset(left, top), Offset(right, top), stroke)
+                        drawLine(orbit, Offset(right, top), Offset(right, bottom), stroke)
+                        drawLine(orbit, Offset(right, bottom), Offset(left, bottom), stroke)
+                        drawLine(orbit, Offset(left, bottom), Offset(left, top), stroke)
+                        drawLine(Color(0xFFE0A43A), Offset(left - 8.dp.toPx(), h * .42f), Offset(left + 8.dp.toPx(), h * .42f), 3.dp.toPx())
+                        drawLine(Color(0xFFE0A43A), Offset(left - 5.dp.toPx(), h * .52f), Offset(left + 5.dp.toPx(), h * .52f), 2.dp.toPx())
+                        drawCircle(if (stage >= 1) Color(0xFFFFC857) else orbit, 12.dp.toPx(), Offset(right, h * .49f))
+                    }
+                    scene in setOf("solar_system", "planet_orbits") || topic.contains("solar system", true) -> {
+                        drawCircle(Color(0xFFFFC857), h * .07f, center)
+                        repeat(3) { i ->
+                            val radius = h * (.18f + i * .10f)
+                            drawCircle(orbit, radius, center, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            val angle = (stage + i * 2) * .8
+                            drawCircle(listOf(Color(0xFF3987C9), Color(0xFF72A879), Color(0xFFDB8A76))[i], 4.dp.toPx(),
+                                Offset(center.x + kotlin.math.cos(angle).toFloat() * radius, center.y + kotlin.math.sin(angle).toFloat() * radius))
+                        }
+                    }
+                    scene in setOf("life_cycle", "life_cycle_lab") || topic.contains("life cycle", true) -> {
+                        val points = listOf(Offset(w*.20f,h*.50f),Offset(w*.40f,h*.28f),Offset(w*.64f,h*.28f),Offset(w*.82f,h*.50f))
+                        points.forEachIndexed { i, p ->
+                            drawCircle(listOf(Color(0xFFB9E3C7),Color(0xFF72A879),Color(0xFFE0A43A),Color(0xFFDB8A76))[i], 9.dp.toPx(), p)
+                            if (i < points.lastIndex) drawLine(orbit, p, points[i+1], stroke)
+                        }
+                    }
                     scene == "day_night" -> {
                         drawCircle(Color(0xFF3C91D6), h * .29f, center)
                         drawArc(Color(0xFF23415F), 90f, 180f, true,
@@ -728,7 +795,19 @@ private fun TeacherDrawnConceptVisual(lesson: JSONObject, activeStep: Int) {
             scene in setOf("fraction_builder", "fractions") || topic.contains("fraction", true) ->
                 listOf("4 equal parts", "Shaded parts show the fraction")
             scene == "day_night" -> listOf("Day", "Night")
-            scene in setOf("particle_states", "phase_change", "evap_condense") -> listOf("Particles", "Spacing changes with state")
+            scene in setOf("photosynthesis", "plant_food", "plant_parts") || topic.contains("photosynthesis", true) || topic.contains("plant", true) ->
+                listOf("Sunlight + water", "Leaf makes food")
+            scene in setOf("water_cycle", "water_cycle_lab", "evap_condense") || topic.contains("water cycle", true) ->
+                listOf("Evaporation", "Condensation", "Rain")
+            scene in setOf("food_chain", "food_web") || topic.contains("food chain", true) ->
+                listOf("Plant", "Herbivore", "Carnivore", "Energy flow")
+            scene in setOf("electric_circuit", "circuit_lab", "simple_circuit") || topic.contains("electric circuit", true) ->
+                listOf("Cell", "Wire", "Bulb")
+            scene in setOf("solar_system", "planet_orbits") || topic.contains("solar system", true) ->
+                listOf("Sun", "Planet orbits")
+            scene in setOf("life_cycle", "life_cycle_lab") || topic.contains("life cycle", true) ->
+                listOf("Beginning", "Growth", "Adult", "Cycle repeats")
+            scene in setOf("particle_states", "phase_change") -> listOf("Particles", "Spacing changes with state")
             else -> listOf(topic.ifBlank { "Notice the diagram" })
         }
         Text(

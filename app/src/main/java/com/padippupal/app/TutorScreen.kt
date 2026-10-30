@@ -418,6 +418,9 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 BeyondEarthNativeCanvas(
                     step = active,
                     compact = compact,
+                    narrationText = narrationText,
+                    narrationWordIndex = narrationWordIndex,
+                    narrationActive = narrationActive,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
@@ -735,7 +738,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
-private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
+private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null, narrationText: String = "", narrationWordIndex: Int = 0, narrationActive: Boolean = false) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
@@ -2542,7 +2545,10 @@ internal fun TutorScreen(
                                 sessionKey = sessionKey,
                                 todayKey = todayKey,
                                 compact = true,
-                                activeStepOverride = liveVisualStep
+                                activeStepOverride = liveVisualStep,
+                                narrationText = liveCaption,
+                                narrationWordIndex = liveWordIndex,
+                                narrationActive = speechActive
                             )
                             liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
                                 val topicKey = topic.lowercase(Locale.ROOT)

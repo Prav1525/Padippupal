@@ -71,7 +71,7 @@ fi
 # The first-pass interactive chapter blueprints currently cover CBSE Class 6.
 # The normal app default is Tamil Nadu State Board, which has no matching CBSE-only
 # lesson records. Use an isolated CBSE profile so this test checks the supported
-# Patterns in Mathematics lesson rather than silently testing the wrong curriculum.
+# Patterns in Science lesson rather than silently testing the wrong curriculum.
 log "Resetting smoke-test profile and saved tutor session so every retry starts from a deterministic clean state"
 "${ADB[@]}" shell "run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml"
 # TutorScreen restores the selected subject/chapter/topic from a separate
@@ -135,8 +135,8 @@ sleep 1
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/settings-top.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/settings-top.xml settings-top.xml
 
-log "Loading the real Mathematics chapter list"
-python3 .github/scripts/ui_smoke.py tap settings.xml "Mathematics"
+log "Loading the real Science chapter list"
+python3 .github/scripts/ui_smoke.py tap settings.xml "Science"
 sleep 10
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-options.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/chapter-options.xml chapter-options.xml
@@ -145,7 +145,7 @@ python3 .github/scripts/ui_smoke.py tap chapter-options.xml "Choose chapter"
 sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-menu.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/chapter-menu.xml chapter-menu.xml
-python3 .github/scripts/ui_smoke.py tap-numbered chapter-menu.xml 1
+python3 .github/scripts/ui_smoke.py tap chapter-menu.xml "Beyond Earth"
 sleep 3
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/chapter-selected.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/chapter-selected.xml chapter-selected.xml
@@ -201,7 +201,7 @@ while [ "$SECONDS" -lt "$lesson_deadline" ]; do
         tail -n 1 live-assertion.log >> live-assertion-history.log
       fi
     fi
-    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on All 1s|too short to explain the selected topic|No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-lesson.xml; then
+    if grep -Eqi "could not answer right now|No matching textbook passage|not configured on the backend|connection failed|invalid response|no safe textbook fallback|lesson content did not stay on Constellations|too short to explain the selected topic|No compatible English voice|This selected voice engine has no Tamil voice|Voice playback failed|Voice engine could not initialize|speech engine did not finish starting" live-lesson.xml; then
       FAILURE_CLASS="APP_FAILURE"
       log "FAIL: tutor API returned an explicit lesson-start error"
       cat live-lesson.xml | tee -a "$REPORT"
@@ -276,7 +276,7 @@ log "Testing a follow-up question after lesson playback"
 timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-input.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-input.xml follow-up-input.xml
 python3 .github/scripts/ui_smoke.py tap-input follow-up-input.xml
-"${ADB[@]}" shell input text 'Why%sdoes%sAll%s1s%srepeat'
+"${ADB[@]}" shell input text 'Why%sis%sUrsa%sMajor%sa%sconstellation'
 sleep 1
 timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-typed.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-typed.xml follow-up-typed.xml

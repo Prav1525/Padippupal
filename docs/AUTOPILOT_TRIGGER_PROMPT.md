@@ -1,6 +1,6 @@
-# PadippuPal — Single AutoPilot Trigger Prompt
+# PadippuPal — Unified Engineering Operating System Trigger
 
-Copy this entire prompt into the PadippuPal engineering session whenever you want to start one complete AutoPilot cycle. This is the single entry point for all non-Codex engineering automation.
+Copy this prompt into the PadippuPal engineering session. This is the one entry point for the whole product and engineering system—not merely CI AutoPilot. When the founder says “Proceed”, recover context, choose the next approved/highest-priority action, and execute it end-to-end.
 
 ---
 
@@ -98,3 +98,65 @@ Report:
 - **Next action:** one concrete step.
 
 Start now. Inspect the live repository state and proceed through the sequence without asking the founder to repeat information already recorded in the repository. Ask only when a genuine approval or safety decision is required.
+
+
+## Meaning of the single command: “Proceed”
+
+Treat “Proceed”, “continue”, or “do it” as an instruction to continue the current approved PadippuPal roadmap—not as a request to work on AutoPilot only and not as permission to perform restricted production actions.
+
+At every invocation, independently determine the next useful action from live repository evidence. Do not ask the founder to select a subsystem when the repository and prior decisions make the next step clear. Do not repeat completed work. If an active task is already underway, resume it from its exact branch, PR, commit and remaining acceptance criteria.
+
+### Whole-project context recovery
+
+Recover and reconcile these domains before selecting work. Read the canonical repository records and relevant source code; use previous conversation context only as a pointer, never as proof of current implementation state.
+
+- **Product and learner experience:** product charter, target learners, supported boards/classes/subjects/languages, tutor interaction, accessibility, learning outcomes and release constraints.
+- **Curriculum and content pipeline:** source ingestion, syllabus/topic mapping, content identity, synthesis generation, validation, versioning, localization and database persistence.
+- **Visual teaching system:** visual-engine contracts, textbook/reference analysis, diagrams/2D scenes, synthesis-to-visual mapping, inline placement, rendering, progressive explanation and visual QA.
+- **Tutor experience:** lesson orchestration, explanation sequencing, inline visuals, paragraph/word typography, navigation, learner interaction, progress and mastery.
+- **Voice and language:** TTS provider/configuration, natural teacher voice, fallback behavior, Tamil/Tanglish/English generation and pronunciation quality.
+- **Backend and data:** APIs, services, schemas, migrations, content availability, caching, observability, security and production/staging boundaries.
+- **Android client:** Compose screens, rendering, networking, offline/error states, performance, accessibility, APK build and emulator/device validation.
+- **Quality and release:** unit/integration/regression/curriculum tests, visual review, API smoke, CI, PR checks, deployment readiness, release gates and learner activation.
+- **Engineering system:** architecture, dependency map, decisions, known issues, acceptance criteria, investigation history, active work, roadmap approvals, open PRs and CI incidents.
+
+Use the existing source-of-truth files where present: `AGENTS.md`, `PROJECT_CHARTER.md`, `PROJECT_STATUS.md`, `.engineering/ARCHITECTURE.md`, `.engineering/SYSTEM_MAP.md`, `.engineering/DECISIONS.md`, `.engineering/KNOWN_ISSUES.md`, `.engineering/ACCEPTANCE_CRITERIA.md`, `.engineering/tasks/active-work.md`, the existing testing guidance/registers, and the existing curriculum/synthesis/visual/tutor design records. If a canonical file is absent from the checked-out branch, locate its existing PR/branch or record the gap; do not silently create a competing document or pretend it was read.
+
+### Work selection and routing
+
+Build a current work queue from:
+1. User-approved active tasks and their acceptance criteria.
+2. Open PRs and exact-head check states.
+3. Confirmed blockers/regressions affecting an approved task.
+4. Incomplete dependencies required by an approved task.
+5. Remaining approved roadmap items, ordered by learner impact, dependency order and risk.
+
+Choose the highest-priority executable item. Route it to the existing subsystem and specialists/tools available in this session. For example:
+- New or corrected synthesized lesson → validate content identity and curriculum mapping, run synthesis checks, invoke the existing visual engine for relevant concepts, persist the mapped visuals, and verify the Android tutor renders them inline.
+- Tutor UI issue → trace API/content payload through Compose rendering, fix typography/layout/inline visual behavior, then run relevant Android and backend regressions.
+- Voice issue → inspect current provider configuration and fallback path, fix only approved scope, and verify actual generated audio/config evidence.
+- CI failure → use the existing AutoPilot observer and investigation flow as one quality subsystem, not as the whole project mission.
+- Release request → perform readiness checks and prepare the release proposal; production deployment/public release still requires explicit approval.
+
+Do not assume an engine, integration, feature, deployment, or content batch exists because a prior conversation said it was requested. Verify code, data, build output, API response or live status.
+
+### Dependency-aware execution
+
+Before editing, identify upstream/downstream effects and the smallest end-to-end slice. Prefer completing a vertical learner-visible path over producing disconnected components. Keep synthesis, visual generation, persistence, API delivery and tutor rendering contract-compatible. Add/update regression tests at the boundary where a failure occurred. When a task spans multiple subsystems, coordinate the work in one plan and one coherent PR series; do not create parallel agents or duplicate sources of truth.
+
+### Definition of done
+
+A task is not “done” merely because code was committed or a PR opened. It is done only when:
+- Its approved acceptance criteria are met.
+- Required tests pass on the exact candidate SHA.
+- Relevant learner-facing behavior is verified at the appropriate layer (API/data plus Android/emulator or visual review when applicable).
+- Existing engineering records and handoff are updated.
+- Remaining limitations, unrun checks and deployment/release status are explicit.
+
+If a required test cannot run, label it BLOCKED or NOT RUN—not PASS. If the work is ready for review, open/update a PR and leave it unmerged. Never deploy or publish merely because the PR is green.
+
+### Interaction contract
+
+Do not ask “which part should I work on?” when the repository state identifies the next approved action. Ask one concise question only when a genuine product ambiguity, missing approval, irreversible action or safety boundary prevents progress. Otherwise make a reasoned choice, state it briefly, and proceed.
+
+“Proceed” authorizes work within the already-approved roadmap and explicit current request. It does not authorize PR merges, production deployments, production database writes, destructive migrations, public releases, paid API spend, or changes to security/approval policy.

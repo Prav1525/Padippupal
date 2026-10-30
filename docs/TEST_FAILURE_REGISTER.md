@@ -320,3 +320,15 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `bab28a9060ae8e86db31b18141739df877d30377` shortens the capture window to 12 frames at 0.5-second intervals (about six seconds) so the highlight scan samples the active lesson sooner.
 - **Regression check:** Re-run `android-ui-smoke.sh`; it must capture the active tutor screen, find the inline visual, and detect a moving spoken-word highlight across at least two positions.
 - **Validation:** Pending fresh Android emulator run. Do not close this incident or merge until the emulator flow passes.
+
+
+## Incident: Beyond Earth whiteboard Compose import blocked Android compilation
+
+- **Date:** 2026-10-30
+- **Affected PR:** [#69](https://github.com/Prav1525/Padippupal/pull/69)
+- **Exact failing workflow:** Android APK run [41000383046](https://github.com/Prav1525/Padippupal/actions/runs/41000383046), job 123883172514; Android UI smoke run [41000382877](https://github.com/Prav1525/Padippupal/actions/runs/41000382877), job 123883172152.
+- **Exact failure:** Kotlin compilation failed in `BeyondEarthWhiteboard.kt:16:43`: inaccessible internal `RowColumnParentData?.weight` import.
+- **Root cause:** **CONFIRMED** — the file imported `androidx.compose.foundation.layout.weight` directly, although `weight` is a RowScope/ColumnScope member extension and should be resolved from the layout scope.
+- **Fix:** Commit `44d4f14dd711115250721ce64965029d9a30be79` removes the invalid import. No assertion or test was weakened.
+- **Regression check:** Re-run Android APK build, JVM tests and full API-35 emulator smoke on the corrected exact PR head; inspect Beyond Earth screenshots and UI hierarchy.
+- **Status:** Fix committed; corrected-head verification pending. Do not merge or deploy until all required checks pass.

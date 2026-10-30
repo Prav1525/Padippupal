@@ -80,7 +80,7 @@ defs.beyond_earth_sky_watching={
 
 const order=Object.keys(defs);let active=order[0],step=0;
 function render(){world.removeChildren();world.scale.set(1);const w=root.clientWidth,h=root.clientHeight,scale=Math.min(w/390,h/330);world.scale.set(scale);world.position.set((w-390*scale)/2,(h-330*scale)/2);const d=defs[active]||defs[order[Math.min(step,7)]];text(d.title,195,25,12,C.teal);d.draw();caption.textContent=d.caption;count.textContent=String(step+1).padStart(2,'0')+' / 08';bar.style.width=((step+1)/8*100)+'%'}
-function setStep(n,subtype){step=Math.max(0,Math.min(7,Number(n)||0));if(subtype&&defs[subtype])active=subtype;else active=order[step];render()}
+function setStep(n,subtype){step=Math.max(0,Math.min(7,Number(n)||0));if(subtype==='beyond_earth_day_night')active='beyond_earth_sky_watching';else if(subtype&&defs[subtype])active=subtype;else active=order[step];render()}
 window.PadippuPalVisual={setStep,getStep:()=>step,setSubtype:s=>{if(defs[s]){active=s;render()}}};
 window.addEventListener('resize',render);render();
 </script></body></html>

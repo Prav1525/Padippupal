@@ -1,6 +1,6 @@
 package com.padippupal.app
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -39,16 +39,22 @@ import kotlin.math.sin
 internal fun BeyondEarthNativeCanvas(
     step: Int,
     compact: Boolean,
+    narrationText: String,
+    narrationWordIndex: Int,
+    narrationActive: Boolean,
     modifier: Modifier = Modifier
 ) {
     val rotation = rememberInfiniteTransition(label = "earth-rotation")
     val angle by rotation.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(18000, easing = FastOutSlowInEasing)),
+        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing)),
         label = "earth-angle"
     )
-    val reveal = step.coerceIn(0, 7)
+    val narrationWords = narrationText.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    val wordProgress = if (narrationWords.isEmpty()) 1f else ((narrationWordIndex + if (narrationActive) 1 else narrationWords.size).toFloat() / narrationWords.size).coerceIn(0f, 1f)
+    // Progressive reveal follows the live spoken sentence; no manual stage control.
+    val reveal = when { narrationWords.isEmpty() -> step.coerceIn(0, 3); wordProgress < .18f -> 0; wordProgress < .43f -> 1; wordProgress < .70f -> 2; else -> 3 }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Canvas(
             Modifier.fillMaxWidth().height(if (compact) 178.dp else 245.dp)
@@ -126,6 +132,8 @@ internal fun BeyondEarthNativeCanvas(
                 }
                 clipPath(dayClip) {
                     drawCircle(Color(0xFF57B7D7), earthR, Offset(earthX, earthY))
+                    // Rotate the surface details beneath the fixed sunlight boundary.
+                    rotate(angle, pivot = Offset(earthX, earthY)) {
                     // Simplified continent silhouettes with organic curves.
                     val land = Path().apply {
                         moveTo(earthX-earthR*.65f, earthY-earthR*.55f)
@@ -136,14 +144,14 @@ internal fun BeyondEarthNativeCanvas(
                     }
                     drawPath(land, Color(0xFF78C78B))
                     drawPath(land, Color(0xFF398B68), style = Stroke(1.5.dp.toPx()))
+                    for (i in 0 until 12) {
+                        val sx = earthX + earthR*.2f + (i%3)*earthR*.22f
+                        val sy = earthY - earthR*.72f + i*earthR*.12f
+                        drawCircle(Color(0xFFEAF4FF), 1.4.dp.toPx(), Offset(sx, sy))
+                    }
+                    }
                 }
                 drawCircle(Color(0xFF153C68), earthR, Offset(earthX, earthY), style = Stroke(2.4.dp.toPx()))
-                // Night-side stars.
-                for (i in 0 until 12) {
-                    val sx = earthX + earthR*.2f + (i%3)*earthR*.22f
-                    val sy = earthY - earthR*.72f + i*earthR*.12f
-                    drawCircle(Color(0xFFEAF4FF), 1.4.dp.toPx(), Offset(sx, sy))
-                }
                 drawContext.canvas.nativeCanvas.apply {
                     val p = android.graphics.Paint(3).apply { color = android.graphics.Color.rgb(23,61,112); textSize = h*.05f; typeface = android.graphics.Typeface.create("cursive", 0) }
                     drawText("Day", earthX-earthR*1.45f, earthY+earthR*1.28f, p)

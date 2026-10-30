@@ -571,3 +571,16 @@ Use this format:
 - **Scope boundary:** Stage 1 records CI evidence and validates the approval/retry policy. It does not yet run an AI code repair worker; Stage 2 must reconcile PR #15's repair proposal into this same workflow. Paid API activation requires explicit cost approval.
 - **Safety:** Android public APK release remains owner-dispatch gated. No PR merge, deployment, production DB write, or public release was performed.
 - **Verification:** Pending exact-head GitHub Actions checks; no end-to-end failure event has been simulated on this branch.
+
+
+### 2026-10-30 — Unified Proceed orchestration contract (PR #63)
+- **Branch / candidate:** `engineering/unified-proceed-orchestration` / `4d529fa9374da73f23b8aff862e50760ae2ab9f0` at first validation.
+- **Requirement:** Make Engineering OS and AutoPilot participate in one coordinated cycle for a single founder “Proceed” command, and prevent the contract from regressing.
+- **Changes:** Clarified the same-invocation responsibilities in `docs/AUTOPILOT_TRIGGER_PROMPT.md` and `docs/ENGINEERING_AUTOPILOT.md`; added deterministic validator checks and a unit test for required orchestration markers.
+- **First CI result:** Investigation Guidance Gate FAIL — run https://github.com/Prav1525/Padippupal/actions/runs/40994271349.
+- **Exact failure:** `code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Root cause:** **CONFIRMED** — PR #63 changes Python policy validation/tests, so the repository requires an investigation record. The first candidate omitted that record.
+- **Repair:** Add this evidence entry before rerunning checks. No assertions were weakened and no checks were bypassed.
+- **Other checks at record time:** AutoPilot policy validation PASS (run https://github.com/Prav1525/Padippupal/actions/runs/40994271344); Android build and emulator smoke were still running.
+- **Capability boundary:** This contract coordinates the ChatGPT engineering session with repository CI AutoPilot. GitHub AutoPilot remains a CI evidence recorder/policy validator, not an unattended AI code-writing worker or durable cross-run repair counter.
+- **Safety:** No merge, production deployment, production DB write, destructive migration or public release.

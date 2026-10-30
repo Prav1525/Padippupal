@@ -44,17 +44,24 @@ internal fun BeyondEarthNativeCanvas(
     narrationActive: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val narrationWords = narrationText.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    val wordProgress = if (narrationWords.isEmpty()) 1f else
+        ((narrationWordIndex + if (narrationActive) 1 else narrationWords.size).toFloat() / narrationWords.size).coerceIn(0f, 1f)
+    // Reveal each part in sync with the live spoken sentence; no manual stage control.
+    val reveal = when {
+        narrationWords.isEmpty() -> step.coerceIn(0, 3)
+        wordProgress < .18f -> 0
+        wordProgress < .43f -> 1
+        wordProgress < .70f -> 2
+        else -> 3
+    }
     val rotation = rememberInfiniteTransition(label = "earth-rotation")
     val angle by rotation.animateFloat(
         initialValue = 0f,
-        targetValue = 360f,
+        targetValue = if (reveal >= 3) 360f else 0f,
         animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing)),
         label = "earth-angle"
     )
-    val narrationWords = narrationText.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
-    val wordProgress = if (narrationWords.isEmpty()) 1f else ((narrationWordIndex + if (narrationActive) 1 else narrationWords.size).toFloat() / narrationWords.size).coerceIn(0f, 1f)
-    // Progressive reveal follows the live spoken sentence; no manual stage control.
-    val reveal = when { narrationWords.isEmpty() -> step.coerceIn(0, 3); wordProgress < .18f -> 0; wordProgress < .43f -> 1; wordProgress < .70f -> 2; else -> 3 }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Canvas(
             Modifier.fillMaxWidth().height(if (compact) 178.dp else 245.dp)

@@ -571,3 +571,13 @@ Use this format:
 - **Scope boundary:** Stage 1 records CI evidence and validates the approval/retry policy. It does not yet run an AI code repair worker; Stage 2 must reconcile PR #15's repair proposal into this same workflow. Paid API activation requires explicit cost approval.
 - **Safety:** Android public APK release remains owner-dispatch gated. No PR merge, deployment, production DB write, or public release was performed.
 - **Verification:** Pending exact-head GitHub Actions checks; no end-to-end failure event has been simulated on this branch.
+
+
+### 2026-10-30 — Beyond Earth Excalidraw-style teaching board release
+- **Founder-approved task:** `SCIENCE-BEYOND-EARTH-EXCALIDRAW-BOARD` (see `docs/approved-work.json`).
+- **Branch:** `feature/beyond-earth-excalidraw-board`.
+- **Objective:** Finish the chapter-scoped native Compose hand-drawn board for all eight Beyond Earth visual subtypes, synchronized with narrated lesson steps and learner tap-to-reveal.
+- **Implementation inspected:** `BeyondEarthWhiteboard.kt` supplies a paper-like board, pencil/double-stroke paths, rough shapes, chapter-specific diagrams, progressive stages and tap-to-sketch interaction; `TutorScreen.kt` selects it only for Beyond Earth and retains the existing renderer for other lessons.
+- **Constraints:** Native Compose only; no SVG; no other chapter changes; no production database writes.
+- **Verification status at entry:** UNVERIFIED — exact-head Android build, unit/static checks, UI smoke, backend/curriculum checks and rendered chapter review still required.
+- **Release gate:** Merge/deploy only after required checks pass on the exact candidate SHA; verify the production APK artifact before reporting availability.

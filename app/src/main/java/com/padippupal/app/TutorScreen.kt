@@ -317,10 +317,27 @@ private fun ChapterOneMathAnimation(
 }
 
 private fun activeSubtypeForChapter(lesson: JSONObject, activeStep: JSONObject?): String {
+    val chapter = lesson.optString("chapter").ifBlank { lesson.optString("chapter_title") }
+    if (chapter.equals("Beyond Earth", ignoreCase = true)) {
+        // Stored chapter assets use the shared "handwritten_whiteboard" style
+        // subtype. Their stable step IDs carry the actual science concept.
+        val sceneByStep = mapOf(
+            "step_1" to "beyond_earth_constellation",
+            "step_2" to "beyond_earth_sky_watching",
+            "step_3" to "beyond_earth_sun_star",
+            "step_4" to "beyond_earth_solar_system",
+            "step_5" to "beyond_earth_planet_star",
+            "step_6" to "beyond_earth_earth_moon",
+            "step_7" to "beyond_earth_asteroid_comet",
+            "step_8" to "beyond_earth_galaxy"
+        )
+        val stepId = activeStep?.optString("id").orEmpty()
+        sceneByStep[stepId]?.let { return it }
+    }
     val stepSubtype = activeStep?.optString("visual_subtype").orEmpty()
     val lessonSubtype = lesson.optString("visual_subtype").orEmpty()
     val raw = if (stepSubtype.isNotBlank()) stepSubtype else lessonSubtype
-    if (lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true) && raw.isNotBlank()) {
+    if (chapter.equals("Beyond Earth", ignoreCase = true) && raw.isNotBlank()) {
         return if (raw.startsWith("beyond_earth_")) raw else "beyond_earth_$raw"
     }
     return raw

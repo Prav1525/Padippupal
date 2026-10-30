@@ -560,3 +560,14 @@ Use this format:
 - **What this proves:** The repository governance gate caught a missing process record on the initial candidate. It does not validate workflow runtime behavior.
 - **Next action:** Rerun the guidance gate and complete Android build/UI smoke checks on the updated exact head. A controlled failed-workflow test and owner-dispatched release test remain required after merge; do not publish a release as part of PR validation.
 - **Safety:** No merge, deployment, production database write, public release, or AI-generated code repair was performed.
+
+
+### 2026-10-30 — Integrated AutoPilot architecture correction
+- **Objective:** Extend the existing PadippuPal AutoPilot structure rather than create a second observer/agent.
+- **Branch:** `automation/engineering-autopilot-stage1`.
+- **Prior design issue:** An initial implementation added a separate `.github/workflows/autopilot-failure-observer.yml` alongside the repository's existing AutoPilot design in PR #18.
+- **Confirmed cause:** The earlier implementation did not reuse the established `.github/workflows/autopilot.yml`, `tools/padippupal_autopilot.py`, helper tests, and existing engineering records.
+- **Correction:** Consolidated failure recording into the existing `.github/workflows/autopilot.yml` path, removed the separate observer, added the shared policy helper/tests and approved-work ledger, and aligned the engineering documentation.
+- **Scope boundary:** Stage 1 records CI evidence and validates the approval/retry policy. It does not yet run an AI code repair worker; Stage 2 must reconcile PR #15's repair proposal into this same workflow. Paid API activation requires explicit cost approval.
+- **Safety:** Android public APK release remains owner-dispatch gated. No PR merge, deployment, production DB write, or public release was performed.
+- **Verification:** Pending exact-head GitHub Actions checks; no end-to-end failure event has been simulated on this branch.

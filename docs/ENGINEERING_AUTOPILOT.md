@@ -1,96 +1,94 @@
 # PadippuPal Engineering Autopilot
 
-**Policy owner:** Founder  
-**Autonomy mode:** Approved roadmap only  
-**Maximum repair generations:** 5 per originating failure  
-**Release boundary:** Explicit founder approval required
+**Integration model:** Existing PadippuPal engineering workflows and records  
+**Autonomy:** Approved roadmap only  
+**Repair cap:** Five distinct generations per originating failure  
+**Release authority:** Founder approval required
 
-## Objective
+## One engineering system
 
-Keep an approved engineering task moving through evidence collection, root-cause investigation, focused repair, retest, and review without requiring the founder to prompt every ordinary next step.
+The AutoPilot is not a separate agent, service, dashboard, or task queue. It extends the repository's existing engineering structure:
 
-The Autopilot is a bounded workflow, not an unrestricted agent. It may act only on an explicit approved roadmap item with acceptance criteria. A failing check does not itself authorize a new product feature or a change in product direction.
+- `.github/workflows/autopilot.yml` is the single CI result and policy-validation entry point.
+- `tools/padippupal_autopilot.py` contains shared deterministic policy checks.
+- `tools/test_padippupal_autopilot.py` protects those rules with unit tests.
+- `docs/approved-work.json` is the explicit approved-roadmap allowlist.
+- `TEST_INVESTIGATION.md`, `docs/TESTING_ERRORS.md`, `docs/TEST_FAILURE_REGISTER.md`, and `PROJECT_STATUS.md` (when present) remain the engineering record. Do not create a competing task database.
+- Existing Android, curriculum, emulator and API workflows remain the source of test evidence.
 
-## Architecture
+There must be one source of truth for tasks and approvals. The Autopilot consumes existing records; it does not create a parallel product roadmap.
 
-1. **GitHub Actions observer (implemented in Stage 1):** listens for completion of the named CI workflows, records failed jobs and exact tested SHA, and creates/updates a deduplicated GitHub issue. It does not check out or execute the failed branch.
-2. **Evidence and task ledger:** the failure issue links to the originating workflow run and lists the required investigation steps. The engineering handbook and task ledger remain the source of scope and approval.
-3. **Reasoning/repair worker (Stage 2, not yet enabled):** a separately configured coding agent receives only the approved task, relevant source files, failure logs and required project guidance. It works in an isolated branch/worktree, proposes one root-cause patch per generation, and cannot merge or deploy.
-4. **Verification worker (Stage 2):** runs the narrow diagnostic, regression suite and applicable build/integration/UI checks against the proposed exact commit. It must not weaken assertions or skip a failing acceptance criterion.
-5. **Review and release gate:** a repair PR is the handoff to the founder. Merge, production deployment, production database writes, destructive actions and public releases remain human-approved.
+## Current Stage 1 behavior
 
-## Approved-roadmap-only rule
+The existing AutoPilot workflow:
+1. Validates required project guidance and the approved-work ledger on its own PR/manual validation path.
+2. Receives completion events from the configured CI workflows.
+3. Captures workflow name, result, exact tested SHA, branch and job outcomes.
+4. Creates or updates one durable issue for each failed run attempt.
+5. Writes a concise Actions summary without changing the commit that was tested.
 
-A task is eligible for autonomous implementation only when the repository contains an explicit approved roadmap entry with:
-- stable task ID and status `APPROVED`;
-- bounded scope and non-goals;
-- acceptance criteria and required verification;
-- dependencies and risk classification;
-- approval provenance/date.
+The failure observer does not check out or execute the failed branch. Fork-originated workflow runs are ignored.
 
-The worker must not infer approval from a conversation summary, a failing test, a draft PR, a roadmap suggestion, or a previously discussed idea. If no matching approved entry exists, it may investigate and report but must not implement a feature.
+## Approved roadmap policy
 
-## Bounded repair policy
+A task is eligible only when its exact ID appears in `docs/approved-work.json` with status `APPROVED`, bounded scope, non-goals, acceptance criteria and approval provenance.
 
-- Maximum **5 distinct repair generations** for one originating failure.
-- Each generation must state what evidence changed and why the proposed fix addresses the diagnosed cause.
-- Never rerun an unchanged failed approach merely to consume a retry.
-- A generation counts when a distinct patch is proposed; a transient infrastructure retry without a code change is recorded separately.
-- After generation 5 still fails, stop automatic patching and escalate with the original symptom, all attempts, logs, exact SHAs, test outcomes, unresolved hypotheses and the next recommended diagnostic.
-- A new originating workflow run does not silently reset the history; correlate it with the existing failure/task record.
+- A failure is not permission to invent a feature.
+- A task marked `PROPOSED`, `BLOCKED`, or absent from the ledger is not executable.
+- The currently recorded approval is limited to CI/test failure investigation and repairs required by already-approved roadmap acceptance criteria.
+- Scope expansion, curriculum changes, new product features or changes to user-visible behavior require a separate founder approval recorded in the ledger.
 
-## Permissions and security
+## Five-generation repair policy
 
-- The Stage 1 observer has only `actions: read` and `issues: write`. It does not have contents, pull-request, deployment or release write access.
-- The reasoning worker must not receive a GitHub write token or production credentials. A separate, narrow publisher job may open a PR after independent checks.
-- Never use `pull_request_target` to execute untrusted PR code.
-- Do not expose secrets to PR-controlled code or echo secrets in logs.
-- Treat logs, issue bodies, model output and generated patches as untrusted data. Validate paths, diff scope and patch format.
-- Do not permit the worker to edit its own policy, permissions, branch protection, required checks or release gates.
-- No automatic merge, auto-merge, production deploy, production DB write, destructive migration, or public release.
+- At most five distinct repair generations may be attempted for one originating failure.
+- A generation is a distinct proposed patch, not a blind retry of unchanged code.
+- Every generation must link to the original run, exact source SHA, diagnosis, patch diff, regression coverage and retest result.
+- Transient runner retries without a code change are tracked separately and do not create a new patch generation.
+- After the fifth unsuccessful generation, stop patching and escalate with the complete evidence, attempted fixes, exact SHAs, remaining hypotheses and next recommended diagnostic.
+- A repeated failure on an AutoPilot repair branch must continue the same generation history; it must not reset the counter.
 
-## Public APK release approval
+The Python helper currently validates the five-generation cap and exact approved-task lookup. Durable cross-run generation accounting and the repair worker are not activated in Stage 1.
 
-The Android build workflow must build and upload an artifact without publishing it. A public GitHub release is a separate workflow job that runs only when the repository owner manually dispatches the workflow with `publish_release=true`. The publishing job alone receives `contents: write`. This is an explicit founder action and uses the artifact produced by that same workflow run.
+## Security and approval boundaries
 
-## Stage status
+- No workflow may merge a PR or enable auto-merge.
+- No workflow may deploy production, write production database data, run destructive migrations, or publish a public release.
+- The Android APK workflow builds and uploads artifacts normally. Public release requires a separate owner-triggered manual dispatch with `publish_release=true`.
+- The failure recorder has only `actions: read` and `issues: write` at its job level.
+- Model-generated text, logs, issues and PR comments are untrusted data, never executable instructions.
+- Do not expose secrets to fork-controlled code or model prompts.
+- Do not allow a repair worker to modify its own policy, workflow permissions, approval ledger, branch protection or release gates.
+- A repair may be submitted as a reviewable PR only after independent checks pass. Founder approval is still required for merge.
 
-### Stage 1 — deterministic failure observer
-- **Implemented on this branch:** `.github/workflows/autopilot-failure-observer.yml`.
-- Records failed workflow name, exact SHA, job outcomes and links.
-- Creates or updates a deduplicated issue.
-- Does not modify source code or attempt an AI-generated fix.
-- **Not operational on main until this branch is reviewed and merged.**
+## Stage 2 — bounded repair in the same workflow
 
-### Stage 1 safety hardening
-- **Implemented on this branch:** Android public APK publishing is removed from automatic main-branch pushes.
-- Public release now requires a manual workflow dispatch with `publish_release=true` by the repository owner.
-- Build job has read-only contents permission; only the manually gated release job has contents write.
-- **Not active on main until reviewed and merged.**
+Stage 2 will extend `.github/workflows/autopilot.yml` and the same helper/records. It must not introduce another agent or task service.
 
-### Stage 2 — bounded repair worker
-- **Not implemented/activated yet.**
-- Existing proposals PR #15 (Codex-based repair) and PR #18 (free-first deterministic triage) must be reconciled before adding another overlapping system.
-- PR #15 currently documents a two-generation limit; it does not satisfy the founder's five-generation policy as-is.
-- A model/API credential or an available coding-agent integration and explicit cost approval may be required. Do not assume a secret exists or silently incur API charges.
-- Before activation, inspect the complete workflow, action pinning, token scopes, path/diff allowlists, fork protections, retry accounting and controlled failure-test results.
-- Stage 2 must use the approved roadmap manifest, stop after five distinct generations and create review PRs only.
+Before enabling model-assisted code repair:
+1. Reconcile the existing Codex repair proposal in PR #15 with the free-first AutoPilot proposal in PR #18.
+2. Port only the repair capability into the single existing AutoPilot workflow; do not merge either historical PR wholesale.
+3. Use an isolated worktree/branch and an approved task ID from the ledger.
+4. Keep model credentials away from untrusted PR code and give the model no GitHub write token.
+5. Apply patches in a separate least-privilege job, validate allowed paths and workflow/policy-file exclusions, then run required tests on the exact patch.
+6. Maintain a durable per-origin failure generation counter with a hard cap of five and escalation after generation five fails.
+7. Create a review PR only; never merge, deploy, write production data or publish.
+8. Obtain explicit approval before enabling any paid API credential or incurring model API charges.
 
-## Acceptance criteria
+**Stage 2 is not yet enabled.** No paid model credential or coding worker has been configured by this change. The repository is not yet an unattended self-repairing engineer.
 
-- [ ] Observer YAML parses and GitHub accepts the workflow.
-- [ ] A controlled same-repository failed workflow creates one issue with exact SHA, run URL and failed-job links.
-- [ ] Repeated delivery for the same run attempt updates the same issue rather than creating duplicates.
-- [ ] Fork-originated runs are ignored.
-- [ ] Observer has no repository contents, pull-request, deployment or release write permission.
-- [ ] Android build still uploads the APK on ordinary pushes/PRs.
-- [ ] No public release is created by an ordinary push or pull-request run.
-- [ ] Public release can run only after owner dispatch with `publish_release=true`, and publishes the artifact built in that run.
-- [ ] Stage 2 controlled test proves approved-task scope, five-generation stop, independent retests, and no merge/deploy/production-write capability before activation.
+## Acceptance evidence
 
-## Related work to reconcile
+- [ ] AutoPilot workflow YAML is accepted by GitHub Actions.
+- [ ] Helper syntax and unit tests pass on the exact PR head.
+- [ ] A controlled failed same-repository workflow creates a deduplicated issue with exact SHA and job links.
+- [ ] Fork-originated failures are ignored.
+- [ ] Five-generation cap and approval-ledger tests pass.
+- [ ] No automatic merge, deployment, production write or public release occurs.
+- [ ] Stage 2 controlled tests prove approved-task enforcement, five-generation persistence, retesting and least privilege before activation.
 
-- [PR #15 — automated CI failure triage reports](https://github.com/Prav1525/Padippupal/pull/15): Codex auto-repair proposal, two generations, requires a configured API key and cost acceptance.
-- [PR #18 — free-first AutoPilot triage](https://github.com/Prav1525/Padippupal/pull/18): deterministic observer and optional local advisory model; no autonomous code patching.
-- [PR #61 — Persistent Engineering Operating System](https://github.com/Prav1525/Padippupal/pull/61): project memory and acceptance rules.
-- These PRs remain separate and unmerged. This document does not authorize merging any of them.
+## Existing work to reconcile
+
+- [PR #15](https://github.com/Prav1525/Padippupal/pull/15): Codex repair workflow proposal; originally capped at two generations and requires an API key.
+- [PR #18](https://github.com/Prav1525/Padippupal/pull/18): existing free-first AutoPilot workflow and helper. Its branch is based on a divergent tutor feature line and must not be merged wholesale into main.
+- [PR #61](https://github.com/Prav1525/Padippupal/pull/61): Persistent Engineering Operating System.
+- This implementation reuses the existing file structure and policy concepts; it does not authorize merging those PRs.

@@ -559,3 +559,17 @@ Use this format:
 - **Validation state:** Android APK workflow and investigation guidance gate are running on PR #59. The first guidance-gate attempt failed because this file was not updated; this entry addresses that specific requirement. Phone-size screenshot review for all eight astronomy scenes remains required before production promotion.
 - **Known limitation:** The native scenes are schematic and the structured visual assets are label/step data, not externally rendered PNGs. This pilot intentionally draws them with Compose Canvas, as requested; visual fidelity and label legibility still require emulator review.
 - **Release rule:** Do not merge or write the pilot data to production until the exact PR head has passing required checks and the Android artifact is verified. The existing production chapter remains unchanged.
+
+
+### 2026-10-30 — Fix stale Beyond Earth smoke contract assertion
+- **Branch / commit:** `feature/beyond-earth-whiteboard-native`; fix commit `e24f782e5e22be72f371a5001b66fff61ccf51f2`; investigation record commit follows.
+- **Test command or workflow URL:** [Android UI smoke run 40989118437](https://github.com/Prav1525/Padippupal/actions/runs/40989118437), job 123846977986; failed in the pre-emulator helper test suite.
+- **Result:** **FAIL** on original head `0383b1fe9690ff3c97dcc901c64710be04ddba14`; correction committed, retest **PENDING**.
+- **Exact failure:** `test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay` asserted that `ui_smoke.py` contained the obsolete literal `"pattern of stars" in joined`; the actual live assertion checks the full summary and accepted explanation tuple.
+- **Evidence:** Workflow log [job 123846977986](https://github.com/Prav1525/Padippupal/actions/runs/40989118437/job/123846977986). The log shows JVM tests and APK build passed, helper validation failed, and emulator end-to-end was skipped. It also prints the fixture's inline title and constellation summary, but that is fixture/unit-test evidence—not a real-device screenshot.
+- **Change made:** Updated `.github/scripts/test_ui_smoke_helpers.py` to assert the actual runtime contract: the constellation summary guard, accepted explanatory phrases, and rejection of Mathematics content. App rendering code and runtime assertions were not relaxed. Appended the incident to `docs/TEST_FAILURE_REGISTER.md`.
+- **Root cause:** **CONFIRMED** — stale source-text assertion in the helper test; no evidence yet of an app rendering defect.
+- **What this attempt proves:** The failure is isolated to a brittle unit test expectation. It does not prove the Beyond Earth drawing renders correctly on an emulator.
+- **What remains unverified:** Updated helper suite, exact-head Android build/emulator flow, screenshot/UI-tree review for the selected Beyond Earth scene and all eight teaching stages, and phone-size label legibility.
+- **Difference from previous attempt:** Replaces a stale exact-source substring check with assertions aligned to the actual runtime contract, without weakening the live UI acceptance checks.
+- **Next action and why:** Run the updated PR checks; if helper validation passes, inspect the uploaded emulator artifact and verify that the actual inline visual appears in the lesson flow. No merge or deployment until all acceptance checks pass and the user approves.

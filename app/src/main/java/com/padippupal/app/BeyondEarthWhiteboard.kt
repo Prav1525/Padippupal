@@ -56,9 +56,10 @@ internal fun BeyondEarthWhiteboard(
     subtype: String,
     labels: List<String>,
     revealCount: Int,
+    stepKey: Int,
     compact: Boolean
 ) {
-    var manualReveal by remember(subtype) { mutableIntStateOf(0) }
+    var manualReveal by remember(subtype, stepKey) { mutableIntStateOf(0) }
     val stage = maxOf(revealCount, manualReveal).coerceIn(0, 8)
     val heading = when (subtype) {
         "beyond_earth_constellation" -> "A PATTERN IN THE NIGHT SKY"

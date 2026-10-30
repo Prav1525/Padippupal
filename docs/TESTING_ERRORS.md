@@ -371,3 +371,12 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Tests assert a single tap, thumbnail fallback for non-clickable filename/row, and no tap when the target filename is absent. The full emulator flow must verify picker return, crop, rescan, selected-date review, and planner save.
 - **Evidence:** Failing run [40184576935](https://github.com/Prav1525/Padippupal/actions/runs/40184576935); fix commit `5e26cf81f9f366aebae7f176e6138dc6be4e72fa`; current CI run [40189078614](https://github.com/Prav1525/Padippupal/actions/runs/40189078614).
 - **Status:** Fix committed; exact-head verification pending. Do not merge until all required checks pass.
+
+
+### 2026-10-30 — AutoPilot architecture duplication corrected
+- **Symptom:** The first Stage 1 proposal introduced a standalone failure-observer workflow instead of extending PadippuPal's existing AutoPilot files.
+- **Root cause:** The initial implementation treated the feature as a new component rather than inspecting and reusing the established PR #18 workflow/helper structure.
+- **Correction:** Removed the standalone observer and consolidated failure recording into `.github/workflows/autopilot.yml`; added policy helpers/tests and an approved-work ledger in the existing repository structure.
+- **Regression protection:** The engineering documentation now explicitly requires one AutoPilot workflow, one approved-work ledger, and the existing project records as the single source of truth.
+- **Verification:** Pending exact-head workflow and helper test results. The repair worker is not yet active; PR #15's Codex proposal still requires cost approval and integration into the same workflow.
+- **Status:** Architecture correction implemented; runtime verification pending.

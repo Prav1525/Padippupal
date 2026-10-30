@@ -351,3 +351,15 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Map the stable chapter step IDs to the eight distinct scene types in `activeSubtypeForChapter`; add regression assertions for every step-to-scene mapping. No production data was modified.
 - **Regression check:** Re-run Android compile, JVM/helper tests and full API-35 UI smoke on the corrected PR head; inspect the actual Beyond Earth screenshot.
 - **Status:** Fix committed; exact-head verification pending. Do not merge or deploy until checks and screenshot review pass.
+
+
+## Incident: Beyond Earth emulator smoke used a stale Mathematics chapter assertion
+
+- **Date:** 2026-10-30
+- **Affected PR:** [#69](https://github.com/Prav1525/Padippupal/pull/69)
+- **Evidence:** Android UI smoke run [41000868407](https://github.com/Prav1525/Padippupal/actions/runs/41000868407), emulator artifact ID 12952969688, and the captured chapter-selected.xml accessibility tree.
+- **Observed failure:** APK installation, home navigation, lesson setup, Science selection, and the Beyond Earth chapter picker all worked. The selected accessibility tree contained Beyond Earth · Constellations, but the test failed with a message claiming it had not selected Beyond Earth.
+- **Root cause:** CONFIRMED — assert_chapter_selected incorrectly required the unrelated phrase "patterns in mathematics". This stale assertion belonged to an older Mathematics lesson and did not match the real Beyond Earth chapter picker.
+- **Fix:** Update the chapter assertion to require both Beyond Earth and its default topic Constellations; add a fixture test using the exact labels observed in the failed emulator tree.
+- **Regression prevention:** The helper test also asserts the obsolete Mathematics phrase is absent. The next exact-head API-35 emulator run must pass chapter selection, enter the lesson, capture the active teaching screen, and provide the Beyond Earth whiteboard screenshot.
+- **Status:** Fix committed; fresh CI and screenshot review pending. Do not merge or deploy until the actual chapter board is visible and verified.

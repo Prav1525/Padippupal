@@ -60,21 +60,13 @@ The Python helper currently validates the five-generation cap and exact approved
 - Do not allow a repair worker to modify its own policy, workflow permissions, approval ledger, branch protection or release gates.
 - A repair may be submitted as a reviewable PR only after independent checks pass. Founder approval is still required for merge.
 
-## Stage 2 — bounded repair in the same workflow
+## Single trigger prompt — non-Codex execution
 
-Stage 2 will extend `.github/workflows/autopilot.yml` and the same helper/records. It must not introduce another agent or task service.
+Use [docs/AUTOPILOT_TRIGGER_PROMPT.md](AUTOPILOT_TRIGGER_PROMPT.md) as the one reusable trigger for a complete engineering cycle. It combines startup context recovery, CI observation, evidence collection, root-cause investigation, approved-scope checks, bounded repair, retesting, engineering-ledger updates, PR preparation and escalation.
 
-Before enabling model-assisted code repair:
-1. Reconcile the existing Codex repair proposal in PR #15 with the free-first AutoPilot proposal in PR #18.
-2. Port only the repair capability into the single existing AutoPilot workflow; do not merge either historical PR wholesale.
-3. Use an isolated worktree/branch and an approved task ID from the ledger.
-4. Keep model credentials away from untrusted PR code and give the model no GitHub write token.
-5. Apply patches in a separate least-privilege job, validate allowed paths and workflow/policy-file exclusions, then run required tests on the exact patch.
-6. Maintain a durable per-origin failure generation counter with a hard cap of five and escalation after generation five fails.
-7. Create a review PR only; never merge, deploy, write production data or publish.
-8. Obtain explicit approval before enabling any paid API credential or incurring model API charges.
+Codex is explicitly excluded. Do not add Codex workflows, APIs, CLI tooling, credentials or paid model calls. Use existing deterministic tools and the connected engineering capabilities available in the session. If a required repair capability is unavailable, report the limitation rather than claiming autonomous repair.
 
-**Stage 2 is not yet enabled.** No paid model credential or coding worker has been configured by this change. The repository is not yet an unattended self-repairing engineer.
+The GitHub workflow remains the CI event recorder and policy validator. The single trigger prompt coordinates the broader engineering procedure; it does not magically make a non-existent repair worker or durable cross-run counter operational.
 
 ## Acceptance evidence
 
@@ -88,7 +80,7 @@ Before enabling model-assisted code repair:
 
 ## Existing work to reconcile
 
-- [PR #15](https://github.com/Prav1525/Padippupal/pull/15): Codex repair workflow proposal; originally capped at two generations and requires an API key.
+- [PR #15](https://github.com/Prav1525/Padippupal/pull/15) is intentionally excluded from this implementation; do not integrate or activate its Codex-based worker.
 - [PR #18](https://github.com/Prav1525/Padippupal/pull/18): existing free-first AutoPilot workflow and helper. Its branch is based on a divergent tutor feature line and must not be merged wholesale into main.
 - [PR #61](https://github.com/Prav1525/Padippupal/pull/61): Persistent Engineering Operating System.
 - This implementation reuses the existing file structure and policy concepts; it does not authorize merging those PRs.

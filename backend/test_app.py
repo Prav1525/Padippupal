@@ -244,3 +244,29 @@ def test_patterns_in_mathematics_covers_shape_and_sequence_topics():
         assert all(ref["source_id"] == "6cd135e7-63e4-4350-9b7c-02fe1f566ec3" for ref in refs)
         assert all(ref["page_start"] <= ref["page_end"] for ref in refs)
 
+
+
+
+def test_beyond_earth_solar_system_inline_visual_keeps_all_nine_labels():
+    labels = [
+        "Sun", "Mercury", "Venus", "Earth", "Mars",
+        "Jupiter", "Saturn", "Uranus", "Neptune",
+    ]
+    visual = {
+        "step_id": "step_4",
+        "summary_text": "Solar System: eight planets in order",
+        "visual_kind": "orbit",
+        "source_chunk_ids": [],
+        "blueprint": {
+            "title": "Solar System: eight planets in order",
+            "visual_subtype": "handwritten_whiteboard",
+            "objects": [{"id": f"n{i}", "label": label} for i, label in enumerate(labels)],
+        },
+    }
+    lesson = {"chapter_title": "Beyond Earth"}
+    inline = curriculum.build_inline_synthesized_visual(
+        "beyond-earth-test", lesson, [visual], topic="Solar System"
+    )
+    assert inline is not None
+    assert inline["steps"][0]["nodes"] == labels
+    assert len(inline["steps"][0]["nodes"]) == 9

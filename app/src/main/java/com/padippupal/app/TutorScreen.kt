@@ -347,6 +347,7 @@ private fun activeSubtypeForChapter(lesson: JSONObject, activeStep: JSONObject?)
 private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?) {
     val title = lesson.optString("title", "Lesson visual")
     val caption = lesson.optString("caption", "")
+    val maxVisualLabels = if (lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)) 9 else 6
     val objects = lesson.optJSONArray("objects")
     val labels = buildList {
         if (objects != null) for (index in 0 until objects.length()) {
@@ -354,7 +355,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             val label = item.optString("label").trim()
             if (label.isNotBlank()) add(label.take(72))
         }
-    }.take(6)
+    }.take(maxVisualLabels)
     val steps = lesson.optJSONArray("steps")
     val stepCount = (steps?.length() ?: 0).coerceAtLeast(1)
     val active = (activeStepOverride ?: 0).coerceIn(0, stepCount - 1)
@@ -374,7 +375,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             }
         }
         if (isEmpty()) addAll(labels)
-    }.take(6)
+    }.take(maxVisualLabels)
     // Restart a short, one-shot reveal whenever speech progress moves to a new synthesis step.
     var revealStarted by remember(active) { mutableStateOf(false) }
     LaunchedEffect(active) {
@@ -430,7 +431,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                             drawCircle(gold,22.dp.toPx(),Offset(.27f*size.width,cy)); repeat(8) { k -> val a=k*Math.PI/4; drawLine(gold,Offset(.27f*size.width+kotlin.math.cos(a).toFloat()*26.dp.toPx(),cy+kotlin.math.sin(a).toFloat()*26.dp.toPx()),Offset(.27f*size.width+kotlin.math.cos(a).toFloat()*34.dp.toPx(),cy+kotlin.math.sin(a).toFloat()*34.dp.toPx()),stroke) }; drawCircle(blue,5.dp.toPx(),Offset(.76f*size.width,cy)); drawCircle(blue,3.dp.toPx(),Offset(.87f*size.width,.28f*size.height))
                         }
                         "beyond_earth_solar_system" -> {
-                            drawCircle(gold,15.dp.toPx(),Offset(.12f*size.width,cy)); val xs=listOf(.27f,.37f,.47f,.57f,.68f,.78f,.87f); xs.forEachIndexed { i,x -> drawCircle(if(i==2) teal else blue,(if(i<4) 5 else 8).dp.toPx(),Offset(x*size.width,cy+(if(i%2==0) -8 else 8).dp.toPx())) }; drawLine(ink,Offset(.20f*size.width,cy+25.dp.toPx()),Offset(.91f*size.width,cy+25.dp.toPx()),stroke)
+                            drawCircle(gold,15.dp.toPx(),Offset(.12f*size.width,cy)); val xs=listOf(.24f,.33f,.42f,.51f,.60f,.69f,.78f,.87f); xs.forEachIndexed { i,x -> drawCircle(if(i==2) teal else blue,(if(i<4) 4.5f else 7f).dp.toPx(),Offset(x*size.width,cy+(if(i%2==0) -8 else 8).dp.toPx())) }; drawLine(ink,Offset(.20f*size.width,cy+25.dp.toPx()),Offset(.91f*size.width,cy+25.dp.toPx()),stroke)
                         }
                         "beyond_earth_planet_star" -> { drawCircle(gold,17.dp.toPx(),Offset(.28f*size.width,cy)); drawCircle(blue,14.dp.toPx(),Offset(.72f*size.width,cy)); drawLine(gold,Offset(.40f*size.width,cy-8.dp.toPx()),Offset(.57f*size.width,cy-8.dp.toPx()),stroke*1.5f) }
                         "beyond_earth_earth_moon" -> { drawOval(teal,Offset(cx-18.dp.toPx(),cy-14.dp.toPx()),androidx.compose.ui.geometry.Size(36.dp.toPx(),28.dp.toPx())); drawOval(ink,Offset(cx-18.dp.toPx(),cy-14.dp.toPx()),androidx.compose.ui.geometry.Size(36.dp.toPx(),28.dp.toPx()),style=androidx.compose.ui.graphics.drawscope.Stroke(stroke)); drawOval(blue,Offset(cx-78.dp.toPx(),cy-38.dp.toPx()),androidx.compose.ui.geometry.Size(156.dp.toPx(),76.dp.toPx()),style=androidx.compose.ui.graphics.drawscope.Stroke(stroke)); drawCircle(Color(0xFFE5E7EB),7.dp.toPx(),Offset(cx+76.dp.toPx(),cy)) }

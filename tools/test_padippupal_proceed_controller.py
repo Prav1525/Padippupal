@@ -43,7 +43,38 @@ class FakeGitHubActionsAPI:
         raise AssertionError(f"Unexpected API call: {method} {path}")
 
 
+class DelayedFakeGitHubActionsAPI(FakeGitHubActionsAPI):
+    def __init__(self):
+        super().__init__()
+        self.status_polls = {}
+
+    def request(self, method, path, payload=None):
+        if method == "GET" and path.startswith("/actions/runs/"):
+            run_id = int(path.rsplit("/", 1)[1])
+            self.status_polls[run_id] = self.status_polls.get(run_id, 0) + 1
+            run = dict(self.runs[run_id])
+            if self.status_polls[run_id] == 1:
+                run["status"] = "in_progress"
+                run["conclusion"] = None
+            return run
+        return super().request(method, path, payload)
+
+
 class ProceedControllerTests(unittest.TestCase):
+    def test_controller_sleeps_one_minute_between_status_checks(self):
+        api = DelayedFakeGitHubActionsAPI()
+        waits = []
+        results = run_pipeline(
+            api,
+            "feature/controller-test",
+            "abc123",
+            stages=(PIPELINE_STAGES[0],),
+            sleep=waits.append,
+            emit=lambda _message: None,
+        )
+        self.assertEqual(waits, [60])
+        self.assertEqual(results[0]["status"], "success")
+
     def test_pipeline_contains_one_ordered_entry_for_each_existing_check(self):
         workflows = [stage["workflow"] for stage in PIPELINE_STAGES]
         self.assertEqual(len(workflows), len(set(workflows)))

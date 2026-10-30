@@ -155,7 +155,7 @@ def self_test() -> None:
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
     assert LESSON["interactive_lesson"]["scene_type"] == "synthesis_static"
     assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["North Star", "Star pattern", "Ursa Major"]
-    assert LESSON["interactive_lesson"]["steps"][0]["source_chunk_ids"] == ["smoke-source"]
+    assert LESSON["interactive_lesson"]["steps"][0]["source_chunk_ids"] == ["smoke-beyond-earth-source"]
     full_lesson = " ".join(segment["spoken_text"] for segment in LESSON["segments"])
     assert len(full_lesson) >= 220
     assert len(full_lesson.split()) >= 140

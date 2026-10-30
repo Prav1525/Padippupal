@@ -135,8 +135,9 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('"all 1s pattern" in joined', live)
-        self.assertIn('"pattern of stars" in joined', live)
+        self.assertIn('if "a constellation is a pattern of stars" not in joined:', live)
+        self.assertIn('("pattern of stars", "stars in the night sky", "ursa major")', live)
+        self.assertIn('if "all 1s pattern" in joined', live)
         self.assertNotIn('"watch the pattern"', live)
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
 

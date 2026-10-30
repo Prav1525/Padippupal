@@ -418,6 +418,9 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 BeyondEarthNativeCanvas(
                     step = active,
                     compact = compact,
+                    narrationText = narrationText,
+                    narrationWordIndex = narrationWordIndex,
+                    narrationActive = narrationActive,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {

@@ -48,7 +48,7 @@ class ApprovalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             for rel in ("TESTING_GUIDANCE.md", "TEST_INVESTIGATION.md",
-                        "docs/TESTING_ERRORS.md", "docs/TEST_FAILURE_REGISTER.md",
+                        "docs/TESTING_ERRORS.md", "docs/TEST_FAILURE_REGISTER.md", "docs/AUTOPILOT_TRIGGER_PROMPT.md",
                         ".github/testing-regression-checklist.md"):
                 path = root / rel
                 path.parent.mkdir(parents=True, exist_ok=True)

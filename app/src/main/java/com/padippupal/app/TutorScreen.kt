@@ -316,6 +316,16 @@ private fun ChapterOneMathAnimation(
         }
 }
 
+private fun activeSubtypeForChapter(lesson: JSONObject, activeStep: JSONObject?): String {
+    val stepSubtype = activeStep?.optString("visual_subtype").orEmpty()
+    val lessonSubtype = lesson.optString("visual_subtype").orEmpty()
+    val raw = if (stepSubtype.isNotBlank()) stepSubtype else lessonSubtype
+    if (lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true) && raw.isNotBlank()) {
+        return if (raw.startsWith("beyond_earth_")) raw else "beyond_earth_$raw"
+    }
+    return raw
+}
+
 @Composable
 private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?) {
     val title = lesson.optString("title", "Lesson visual")
@@ -333,8 +343,9 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
     val active = (activeStepOverride ?: 0).coerceIn(0, stepCount - 1)
     val activeStep = steps?.optJSONObject(active)
     val activeCaption = activeStep?.optString("caption").orEmpty().ifBlank { caption }
-    val activeKind = activeStep?.optString("visual_kind").orEmpty()
-        .ifBlank { lesson.optString("visual_kind", "concept_card") }
+    val activeKind = if (activeSubtypeForChapter(lesson, activeStep).startsWith("beyond_earth_")) "beyond_earth" else
+        activeStep?.optString("visual_kind").orEmpty()
+            .ifBlank { lesson.optString("visual_kind", "concept_card") }
     val activeSubtype = activeStep?.optString("visual_subtype").orEmpty()
         .ifBlank { lesson.optString("visual_subtype", activeKind) }.lowercase()
     val activeLabels = buildList {
@@ -386,6 +397,30 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             val stroke = 1.6.dp.toPx()
             val centerY = size.height * 0.52f
             when (activeKind) {
+                "beyond_earth" -> {
+                    val ink = Color(0xFF334155); val teal = Color(0xFF0F766E); val blue = Color(0xFF60A5FA); val gold = Color(0xFFF4C95D)
+                    val cx = size.width * .50f; val cy = centerY
+                    when (activeSubtype) {
+                        "beyond_earth_constellation" -> {
+                            val pts = listOf(Offset(.18f*size.width,.32f*size.height),Offset(.34f*size.width,.18f*size.height),Offset(.48f*size.width,.42f*size.height),Offset(.68f*size.width,.22f*size.height),Offset(.82f*size.width,.48f*size.height))
+                            pts.forEachIndexed { i,p -> drawCircle(gold,5.dp.toPx(),p); if(i>0) drawLine(ink,pts[i-1],p,stroke) }
+                        }
+                        "beyond_earth_sky_watching" -> {
+                            val pts=listOf(Offset(.20f*size.width,.58f*size.height),Offset(.31f*size.width,.42f*size.height),Offset(.48f*size.width,.44f*size.height),Offset(.50f*size.width,.63f*size.height),Offset(.34f*size.width,.68f*size.height))
+                            pts.forEachIndexed { i,p -> drawCircle(gold,5.dp.toPx(),p); if(i>0) drawLine(ink,pts[i-1],p,stroke) }; drawLine(teal,Offset(.49f*size.width,.44f*size.height),Offset(.78f*size.width,.18f*size.height),stroke*1.5f); drawCircle(gold,6.dp.toPx(),Offset(.80f*size.width,.16f*size.height))
+                        }
+                        "beyond_earth_sun_star" -> {
+                            drawCircle(gold,22.dp.toPx(),Offset(.27f*size.width,cy)); repeat(8) { k -> val a=k*Math.PI/4; drawLine(gold,Offset(.27f*size.width+kotlin.math.cos(a).toFloat()*26.dp.toPx(),cy+kotlin.math.sin(a).toFloat()*26.dp.toPx()),Offset(.27f*size.width+kotlin.math.cos(a).toFloat()*34.dp.toPx(),cy+kotlin.math.sin(a).toFloat()*34.dp.toPx()),stroke) }; drawCircle(blue,5.dp.toPx(),Offset(.76f*size.width,cy)); drawCircle(blue,3.dp.toPx(),Offset(.87f*size.width,.28f*size.height))
+                        }
+                        "beyond_earth_solar_system" -> {
+                            drawCircle(gold,15.dp.toPx(),Offset(.12f*size.width,cy)); val xs=listOf(.27f,.37f,.47f,.57f,.68f,.78f,.87f); xs.forEachIndexed { i,x -> drawCircle(if(i==2) teal else blue,(if(i<4) 5 else 8).dp.toPx(),Offset(x*size.width,cy+(if(i%2==0) -8 else 8).dp.toPx())) }; drawLine(ink,Offset(.20f*size.width,cy+25.dp.toPx()),Offset(.91f*size.width,cy+25.dp.toPx()),stroke)
+                        }
+                        "beyond_earth_planet_star" -> { drawCircle(gold,17.dp.toPx(),Offset(.28f*size.width,cy)); drawCircle(blue,14.dp.toPx(),Offset(.72f*size.width,cy)); drawLine(gold,Offset(.40f*size.width,cy-8.dp.toPx()),Offset(.57f*size.width,cy-8.dp.toPx()),stroke*1.5f) }
+                        "beyond_earth_earth_moon" -> { drawOval(teal,Offset(cx-18.dp.toPx(),cy-14.dp.toPx()),androidx.compose.ui.geometry.Size(36.dp.toPx(),28.dp.toPx())); drawOval(ink,Offset(cx-18.dp.toPx(),cy-14.dp.toPx()),androidx.compose.ui.geometry.Size(36.dp.toPx(),28.dp.toPx()),style=androidx.compose.ui.graphics.drawscope.Stroke(stroke)); drawOval(blue,Offset(cx-78.dp.toPx(),cy-38.dp.toPx()),androidx.compose.ui.geometry.Size(156.dp.toPx(),76.dp.toPx()),style=androidx.compose.ui.graphics.drawscope.Stroke(stroke)); drawCircle(Color(0xFFE5E7EB),7.dp.toPx(),Offset(cx+76.dp.toPx(),cy)) }
+                        "beyond_earth_asteroid_comet" -> { repeat(7) { i -> drawCircle(ink,(3+i%3).dp.toPx(),Offset((.20f+i*.08f)*size.width,(.30f+(i%3)*.13f)*size.height)) }; drawCircle(gold,13.dp.toPx(),Offset(.70f*size.width,cy)); drawLine(blue,Offset(.66f*size.width,cy),Offset(.48f*size.width,cy-16.dp.toPx()),stroke*2); drawLine(blue,Offset(.66f*size.width,cy),Offset(.48f*size.width,cy+16.dp.toPx()),stroke*2) }
+                        else -> { val rings=listOf(.16f,.29f,.42f); rings.forEach { r -> drawOval(Color(0xFF94A3B8),Offset(cx-size.width*r,cy-size.height*r*.45f),androidx.compose.ui.geometry.Size(size.width*r*2,size.height*r*.9f),style=androidx.compose.ui.graphics.drawscope.Stroke(stroke)) }; drawCircle(teal,7.dp.toPx(),Offset(cx,cy)); drawCircle(gold,5.dp.toPx(),Offset(cx+size.width*.27f,cy-size.height*.10f)) }
+                    }
+                }
                 "orbit" -> {
                     val sun = Offset(size.width * 0.16f, centerY)
                     val earth = Offset(size.width * 0.58f, centerY)

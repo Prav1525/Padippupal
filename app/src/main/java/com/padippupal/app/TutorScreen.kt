@@ -671,7 +671,8 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 }
             }
         }
-        }\n        if (activeKind != "sequence" && activeKind != "process" && activeKind != "beyond_earth") {
+        }
+        if (activeKind != "sequence" && activeKind != "process" && activeKind != "beyond_earth") {
             activeLabels.take(revealCount).chunked(3).forEach { group ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.forEach { label ->

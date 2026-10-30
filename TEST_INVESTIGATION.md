@@ -581,3 +581,12 @@ Use this format:
 - **Constraints:** Native Compose only; no SVG; no other chapter changes; no production database writes.
 - **Verification status at entry:** UNVERIFIED — exact-head Android build, unit/static checks, UI smoke, backend/curriculum checks and rendered chapter review still required.
 - **Release gate:** Merge/deploy only after required checks pass on the exact candidate SHA; verify the production APK artifact before reporting availability.
+
+### 2026-10-30 — Android APK build attempt 1 for Beyond Earth board
+- **Exact candidate:** `bbd6d819e248ad56e66eaed20d7f71ac14e1bd2f` (PR #69).
+- **Workflow:** Android APK run `41000383046`, job `build`.
+- **Command:** `gradle --no-daemon assembleDebug` (JDK 17, Gradle 8.9).
+- **Outcome:** FAIL — Kotlin compilation rejected `import androidx.compose.foundation.layout.weight` in `BeyondEarthWhiteboard.kt:16`: `Cannot access 'val RowColumnParentData?.weight: Float': it is internal in file.`
+- **Root cause:** CONFIRMED — the file imported the internal implementation-facing `weight` symbol instead of relying on the RowScope extension provided by the layout receiver.
+- **Repair:** Removed the invalid explicit import; no API, tests, or assertions were changed.
+- **Next verification:** Rerun Android APK build and full UI smoke on the new exact head SHA; treat all prior checks as stale for the changed commit.

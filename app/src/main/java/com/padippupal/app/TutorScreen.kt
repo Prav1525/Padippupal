@@ -392,6 +392,14 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 maxLines = if (compact) 2 else Int.MAX_VALUE
             )
         }
+        if (activeKind == "beyond_earth") {
+            BeyondEarthWhiteboard(
+                subtype = activeSubtypeForChapter(lesson, activeStep),
+                labels = activeLabels,
+                revealCount = revealCount,
+                compact = compact
+            )
+        } else {
         Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {
             Canvas(Modifier.fillMaxSize()) {
             val stroke = 1.6.dp.toPx()
@@ -663,7 +671,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 }
             }
         }
-        if (activeKind != "sequence" && activeKind != "process") {
+        }\n        if (activeKind != "sequence" && activeKind != "process" && activeKind != "beyond_earth") {
             activeLabels.take(revealCount).chunked(3).forEach { group ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.forEach { label ->

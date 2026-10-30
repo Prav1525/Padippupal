@@ -28,6 +28,14 @@ The AutoPilot is not a separate agent, service, dashboard, or task queue. It ext
 
 There must be one source of truth for tasks and approvals. The Autopilot consumes existing records; it does not create a parallel product roadmap.
 
+## Coordinated sleep-wake controller
+
+The existing `.github/workflows/autopilot.yml` is also the single deterministic cycle controller. Its manual `workflow_dispatch` defaults to `full-cycle` (or `validate` for policy-only checks). The full cycle runs these existing checks in order: Investigation Guidance Gate, Curriculum Engine Tests, Android APK, deployed API smoke (read-only GET checks), and Android UI smoke. For each check it dispatches the workflow on the selected branch, sleeps for 60 seconds between status checks, matches the created run by workflow, branch and exact SHA, then waits until completion or a bounded timeout.
+
+A failed, timed-out or undiscoverable check is recorded, but does not cancel later independent checks. The controller returns a failed overall result if any stage is not successful. The existing `workflow_run` observer records each run and failure evidence. The APK dispatch explicitly sets `publish_release=false`. No blind retry is performed.
+
+This controller coordinates CI only. It does not write source-code repairs, persist repair generations, merge PRs, deploy, write production data or publish releases. Complex failures still require evidence-led investigation through the approved engineering session. The ChatGPT GitHub connector currently has no workflow-dispatch action; until one is available, a founder starts `full-cycle` from the GitHub Actions UI. A ChatGPT message saying “Proceed” must not be represented as a confirmed background dispatch without a returned run ID.
+
 ## Current Stage 1 behavior
 
 The existing AutoPilot workflow:

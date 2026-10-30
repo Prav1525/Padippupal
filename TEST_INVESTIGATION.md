@@ -598,3 +598,11 @@ Use this format:
 - **Confirmed root cause:** Direct import of Compose `Modifier.weight` is inaccessible; it is supplied by the enclosing RowScope/ColumnScope.
 - **Correction:** Removed the invalid import in commit `44d4f14dd711115250721ce64965029d9a30be79`.
 - **Retest:** Corrected-head Android build, JVM tests, and emulator screenshot review pending. Initial failure remains recorded; no merge/deploy.
+
+
+### 2026-10-30 — Beyond Earth generic subtype routing correction
+- **Evidence:** Read-only test-branch database inspection found all eight chapter visual blueprints use `handwritten_whiteboard`; stable asset IDs are `step_1` through `step_8`, with concept-specific summaries and visual kinds.
+- **Confirmed risk:** Prefixing the generic subtype would route all eight records to the same fallback drawing.
+- **Correction:** Map each stable step ID to its chapter-specific scene (constellation, sky watching, Sun/star, solar system, planets/stars, Earth/Moon, asteroid/comet, galaxy) and assert all eight mappings in the smoke-helper contract tests.
+- **Data safety:** Test branch read only; production database remains unchanged.
+- **Retest:** Exact-head Android build, JVM tests, emulator smoke and screenshot review pending.

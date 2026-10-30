@@ -550,24 +550,26 @@ Use this format:
 - **Release status:** Not yet merged or deployed. No production database writes or learner activation were performed.
 
 
-### 2026-10-30 — Engineering Autopilot Stage 1 validation
-- **Branch / exact tested commit:** `automation/engineering-autopilot-stage1` / `ac81cb0de8391e80446a107394c382d8e1676575`.
-- **Scope:** Add a read-only CI failure observer, define approved-roadmap-only autonomy with a five-generation cap, and gate public APK release behind an explicit owner-triggered workflow dispatch.
-- **First CI result:** Investigation Guidance Gate FAIL — run https://github.com/Prav1525/Padippupal/actions/runs/40991292370.
-- **Exact failure:** `validate_investigation_ledger.py` reported: `code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
-- **Root cause:** **CONFIRMED** — repository policy requires an investigation ledger entry for workflow/configuration changes; the initial PR did not include one.
-- **Change made:** Added this record before any retry. No test assertion or acceptance criterion was weakened.
-- **What this proves:** The repository governance gate caught a missing process record on the initial candidate. It does not validate workflow runtime behavior.
-- **Next action:** Rerun the guidance gate and complete Android build/UI smoke checks on the updated exact head. A controlled failed-workflow test and owner-dispatched release test remain required after merge; do not publish a release as part of PR validation.
-- **Safety:** No merge, deployment, production database write, public release, or AI-generated code repair was performed.
+
+### 2026-10-30 — Chapter-only Beyond Earth handwritten whiteboard pilot (native, no SVG)
+- **Branch / commit:** `feature/beyond-earth-whiteboard-native`; Android renderer commit `4fcd9ecc9609f9a9bc909f22567cde31a648df3d`.
+- **Scope:** CBSE Class 6 Science, `Beyond Earth` only. No other chapter or subject is changed.
+- **Database test evidence:** Neon test branch `br-muddy-wave-az5r8igq`; chapter lesson contains 8 teaching stages and 8 active labelled structured-drawing records. Read-back confirmed all 8 records carry `no_svg=true`. Production DB read-back before promotion returned 0 matching pilot records.
+- **Rendering change:** `TutorScreen.kt` routes Beyond Earth visual subtypes through native Jetpack Compose Canvas scenes. Existing progressive reveal and inline caption/label flow are reused. No SVG markup or SVG renderer is introduced by this PR.
+- **Validation state:** Android APK workflow and investigation guidance gate are running on PR #59. The first guidance-gate attempt failed because this file was not updated; this entry addresses that specific requirement. Phone-size screenshot review for all eight astronomy scenes remains required before production promotion.
+- **Known limitation:** The native scenes are schematic and the structured visual assets are label/step data, not externally rendered PNGs. This pilot intentionally draws them with Compose Canvas, as requested; visual fidelity and label legibility still require emulator review.
+- **Release rule:** Do not merge or write the pilot data to production until the exact PR head has passing required checks and the Android artifact is verified. The existing production chapter remains unchanged.
 
 
-### 2026-10-30 — Integrated AutoPilot architecture correction
-- **Objective:** Extend the existing PadippuPal AutoPilot structure rather than create a second observer/agent.
-- **Branch:** `automation/engineering-autopilot-stage1`.
-- **Prior design issue:** An initial implementation added a separate `.github/workflows/autopilot-failure-observer.yml` alongside the repository's existing AutoPilot design in PR #18.
-- **Confirmed cause:** The earlier implementation did not reuse the established `.github/workflows/autopilot.yml`, `tools/padippupal_autopilot.py`, helper tests, and existing engineering records.
-- **Correction:** Consolidated failure recording into the existing `.github/workflows/autopilot.yml` path, removed the separate observer, added the shared policy helper/tests and approved-work ledger, and aligned the engineering documentation.
-- **Scope boundary:** Stage 1 records CI evidence and validates the approval/retry policy. It does not yet run an AI code repair worker; Stage 2 must reconcile PR #15's repair proposal into this same workflow. Paid API activation requires explicit cost approval.
-- **Safety:** Android public APK release remains owner-dispatch gated. No PR merge, deployment, production DB write, or public release was performed.
-- **Verification:** Pending exact-head GitHub Actions checks; no end-to-end failure event has been simulated on this branch.
+### 2026-10-30 — Fix stale Beyond Earth smoke contract assertion
+- **Branch / commit:** `feature/beyond-earth-whiteboard-native`; fix commit `e24f782e5e22be72f371a5001b66fff61ccf51f2`; investigation record commit follows.
+- **Test command or workflow URL:** [Android UI smoke run 40989118437](https://github.com/Prav1525/Padippupal/actions/runs/40989118437), job 123846977986; failed in the pre-emulator helper test suite.
+- **Result:** **FAIL** on original head `0383b1fe9690ff3c97dcc901c64710be04ddba14`; correction committed, retest **PENDING**.
+- **Exact failure:** `test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay` asserted that `ui_smoke.py` contained the obsolete literal `"pattern of stars" in joined`; the actual live assertion checks the full summary and accepted explanation tuple.
+- **Evidence:** Workflow log [job 123846977986](https://github.com/Prav1525/Padippupal/actions/runs/40989118437/job/123846977986). The log shows JVM tests and APK build passed, helper validation failed, and emulator end-to-end was skipped. It also prints the fixture's inline title and constellation summary, but that is fixture/unit-test evidence—not a real-device screenshot.
+- **Change made:** Updated `.github/scripts/test_ui_smoke_helpers.py` to assert the actual runtime contract: the constellation summary guard, accepted explanatory phrases, and rejection of Mathematics content. App rendering code and runtime assertions were not relaxed. Appended the incident to `docs/TEST_FAILURE_REGISTER.md`.
+- **Root cause:** **CONFIRMED** — stale source-text assertion in the helper test; no evidence yet of an app rendering defect.
+- **What this attempt proves:** The failure is isolated to a brittle unit test expectation. It does not prove the Beyond Earth drawing renders correctly on an emulator.
+- **What remains unverified:** Updated helper suite, exact-head Android build/emulator flow, screenshot/UI-tree review for the selected Beyond Earth scene and all eight teaching stages, and phone-size label legibility.
+- **Difference from previous attempt:** Replaces a stale exact-source substring check with assertions aligned to the actual runtime contract, without weakening the live UI acceptance checks.
+- **Next action and why:** Run the updated PR checks; if helper validation passes, inspect the uploaded emulator artifact and verify that the actual inline visual appears in the lesson flow. No merge or deployment until all acceptance checks pass and the user approves.

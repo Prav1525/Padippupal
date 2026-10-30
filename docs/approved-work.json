@@ -25,6 +25,33 @@
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "SCIENCE-BEYOND-EARTH-EXCALIDRAW-BOARD",
+      "status": "APPROVED",
+      "approved_by": "Founder approval in ChatGPT conversation on 2026-10-30: finish Beyond Earth Excalidraw-style teaching board and push to production for inspection",
+      "scope": [
+        "Finish the chapter-scoped native Compose hand-drawn interactive whiteboard for Class 6 Science: Beyond Earth.",
+        "Synchronize progressive drawing reveal with the existing narration/lesson step flow and allow learner tap-to-reveal interaction.",
+        "Use native Jetpack Compose drawing primitives only; do not use SVG and do not alter other chapters.",
+        "Run relevant Android build, unit, UI smoke, backend/curriculum and chapter-specific acceptance checks; merge and deploy this change only after all required checks pass."
+      ],
+      "non_goals": [
+        "Change unrelated chapters, curriculum content or voice providers.",
+        "Write or migrate production database content.",
+        "Merge unrelated PRs or publish a public APK without the explicit release workflow approval."
+      ],
+      "acceptance_criteria": [
+        "All eight Beyond Earth visual subtypes render in the native hand-drawn whiteboard.",
+        "Drawing stages reveal progressively in sync with the active narrated lesson step.",
+        "Tap-to-reveal works without breaking narration-synchronized progress.",
+        "Labels remain readable on compact and full layouts.",
+        "No SVG assets or renderer are introduced.",
+        "Android build, required unit/static checks, UI smoke and relevant curriculum/API checks pass on the exact release commit.",
+        "The production APK artifact is built from the verified commit and can be installed/opened for founder inspection."
+      ],
+      "risk": "high",
+      "approval_expires": "Until revoked by founder"
     }
   ]
 }

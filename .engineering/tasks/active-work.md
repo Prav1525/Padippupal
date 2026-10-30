@@ -6,12 +6,12 @@
 ## Active objective: One coordinated “Proceed” operating cycle
 - **Task ID:** `UNIFIED-PROCEED-OPERATING-CYCLE`
 - **Approval:** Founder explicitly approved implementing the unified Engineering OS + AutoPilot operating behavior in the ChatGPT conversation on 2026-10-30.
-- **Scope:** Align repository instructions, canonical trigger, AutoPilot capability documentation, approval ledger and handoff so one “Proceed” invocation runs context recovery, task selection, policy/evidence checks, permitted execution, retest, acceptance review and record updates as one shared cycle.
+- **Scope:** Implement one deterministic sleep-wake controller in the existing AutoPilot workflow. It runs the existing policy, curriculum, APK, deployed read-only API and emulator checks in order; sleeps 60 seconds between status checks; matches each run to the selected branch and exact SHA; continues after failures; and produces one consolidated result. Keep the Engineering OS and AutoPilot on one task identity and handoff.
 - **Non-goals:** no second agent/service/workflow/task database; no Codex; no paid model integration; no autonomous GitHub code-writing worker; no changes to learner-facing app behavior; no production writes/deployments/releases; no automatic PR merge.
 - **Base:** `main@dcd1b98c2d269fad97af933ed6ff4df5dca18033`.
 - **Branch:** `engineering/unified-proceed-operating-cycle`.
-- **Status:** Implementation in progress; PR and exact-head verification pending.
-- **Acceptance:** `AGENTS.md` and the one canonical trigger define the same invocation; Engineering OS and AutoPilot share one task identity and handoff; AutoPilot's actual capability limits are explicit; exact approval and five-generation policy remain enforced; no competing queue or worker is introduced; policy validation and unit tests pass.
+- **Status:** Controller and regression tests implemented on this branch; PR #65 updated. Exact-head Actions verification pending.
+- **Acceptance:** One existing AutoPilot workflow dispatch starts the full cycle; the controller checks each exact-SHA run after 60-second waits, has bounded discovery/stage timeouts, continues to later checks after failures, never requests public APK release, and returns failure if any stage is not successful. Controller tests cover order, continuation-after-failure and no-release input. The docs accurately state that code repair and ChatGPT-to-GitHub dispatch remain unavailable.
 - **Next action:** open a focused PR, run required checks on its exact head, inspect results and update this handoff with SHAs and links.
 
 ## Operating sequence for every “Proceed”

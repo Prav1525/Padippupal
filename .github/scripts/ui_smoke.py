@@ -264,7 +264,14 @@ def assert_completed_lesson(path):
         raise SystemExit("Playback did not reach the explicit lesson-complete state")
     if "ask your teacher" not in joined:
         raise SystemExit("Question composer is missing after lesson playback completes")
-    if not any(len(value.strip()) >= 220 and "constellations" in value.lower() for value in texts):
+    # The chapter picker uses the plural, while the rendered card and narration
+    # use the singular. Match either wording in the retained lesson transcript.
+    retained_lesson = any(
+        len(value.strip()) >= 220
+        and ("constellation" in value.lower() or "ursa major" in value.lower())
+        for value in texts
+    )
+    if not retained_lesson:
         raise SystemExit("Completed lesson disappeared instead of remaining available in chat history")
     if any(term in joined for term in ("how did that explanation feel", "i understand", "explain again")):
         raise SystemExit("Per-reply feedback prompt reappeared after the lesson")

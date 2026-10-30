@@ -380,3 +380,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** The engineering documentation now explicitly requires one AutoPilot workflow, one approved-work ledger, and the existing project records as the single source of truth.
 - **Verification:** Pending exact-head workflow and helper test results. The repair worker is not yet active; PR #15's Codex proposal still requires cost approval and integration into the same workflow.
 - **Status:** Architecture correction implemented; runtime verification pending.
+
+
+### TE-040 — Approved-work ledger update wrote a literal newline escape
+- **Date discovered:** 2026-10-30
+- **Area:** AutoPilot approval-ledger JSON / coordinated Proceed controller PR validation.
+- **Symptom/failure:** AutoPilot validation run [40998240697](https://github.com/Prav1525/Padippupal/actions/runs/40998240697) failed immediately with `invalid approved-work ledger: Extra data: line 86 column 2`.
+- **Root cause:** **CONFIRMED** — the programmatic file update appended the two literal characters `\\n` instead of an actual newline after the JSON document.
+- **Why it escaped:** The ledger was not parsed locally immediately after the content update; the PR validation workflow was the first JSON parser to exercise the exact committed file.
+- **Corrective action:** Rewrote the trailing literal escape as a real newline without changing any approved task content.
+- **Regression protection:** The mandatory AutoPilot policy validation calls `json.loads` on the ledger; the next exact-head run must pass that validation before controller tests can run.
+- **Evidence:** Failing run [40998240697](https://github.com/Prav1525/Padippupal/actions/runs/40998240697), job [validate](https://github.com/Prav1525/Padippupal/actions/runs/40998240697/job/123876325395), tested SHA `fa802ee815ad851fdcb6c50e2584a70036b4bd51`; correction commit `a70b17e1efe99a6756129d9edfc8bff848afb147`.
+- **Status:** **Corrected; exact-head verification pending.**

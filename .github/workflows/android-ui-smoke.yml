@@ -2,7 +2,7 @@ name: Android UI smoke test
 
 on:
   push:
-    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan", "fix/diary-image-picker-reliability"]
+    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan", "fix/diary-image-picker-reliability", "feature/native-live-science-canvas"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:

@@ -54,6 +54,17 @@ The policy helper permits at most five distinct repair generations. A sixth gene
 - No automatic merge, deployment, production database write, destructive migration, or public release.
 - Public APK publishing is gated by owner-triggered `workflow_dispatch` with `publish_release=true`.
 
+## Single “Proceed” trigger — Engineering OS + AutoPilot
+
+The founder uses one command: **“Proceed”**. The canonical session trigger is `docs/AUTOPILOT_TRIGGER_PROMPT.md`. It coordinates the Engineering Operating System and AutoPilot on the same task:
+
+1. Engineering OS recovers the full project context and selects the next approved, highest-priority task.
+2. AutoPilot applies approval, CI evidence, diagnosis, repair-cap and retest controls.
+3. Connected tools execute permitted work in the active session.
+4. Engineering OS verifies acceptance and updates the shared active-work/investigation handoff before continuing.
+
+There is no separate AutoPilot command, parallel task ledger or second workflow family. The GitHub workflow itself remains a CI recorder/policy validator, not an autonomous code-writing worker.
+
 ## Single trigger prompt
 
 The complete non-Codex engineering procedure lives in [AUTOPILOT_TRIGGER_PROMPT.md](AUTOPILOT_TRIGGER_PROMPT.md). Use that one prompt to coordinate context recovery, CI evidence, failure investigation, approved-scope validation, bounded repair, retesting, engineering records, PR preparation and escalation.

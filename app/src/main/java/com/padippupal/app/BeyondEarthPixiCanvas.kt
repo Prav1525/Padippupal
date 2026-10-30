@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.json.JSONObject
 
 /**
  * Chapter-only PixiJS canvas. The scene changes with the active tutor synthesis
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun BeyondEarthPixiCanvas(
     step: Int,
+    subtype: String,
     compact: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -45,7 +47,7 @@ internal fun BeyondEarthPixiCanvas(
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
                         view.evaluateJavascript(
-                            "window.PadippuPalVisual && window.PadippuPalVisual.setStep($safeStep)",
+                            "window.PadippuPalVisual && window.PadippuPalVisual.setStep($safeStep, ${JSONObject.quote(subtype)})",
                             null
                         )
                     }

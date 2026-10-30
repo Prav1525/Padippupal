@@ -426,3 +426,36 @@ class PreviousScreenSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BeyondEarthWhiteboardContractTests(unittest.TestCase):
+    def test_all_eight_chapter_scenes_use_the_native_hand_drawn_board(self):
+        root = Path(__file__).resolve().parents[2]
+        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
+        tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        scenes = (
+            "beyond_earth_constellation",
+            "beyond_earth_sky_watching",
+            "beyond_earth_sun_star",
+            "beyond_earth_solar_system",
+            "beyond_earth_planet_star",
+            "beyond_earth_earth_moon",
+            "beyond_earth_asteroid_comet",
+        )
+        for scene in scenes:
+            self.assertIn(f'"{scene}"', board)
+        self.assertIn('else -> drawGalaxy(stage, sw, unit)', board)
+        self.assertIn("BeyondEarthWhiteboard(", tutor)
+        self.assertIn('lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)', tutor)
+
+    def test_board_is_native_compose_and_manual_reveal_resets_per_narrated_step(self):
+        root = Path(__file__).resolve().parents[2]
+        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
+        tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn("Canvas(Modifier.fillMaxSize())", board)
+        self.assertIn("pointerInput(subtype)", board)
+        self.assertIn("detectTapGestures", board)
+        self.assertIn("remember(subtype, stepKey)", board)
+        self.assertIn("stepKey = active", tutor)
+        self.assertNotIn(".svg", board.lower())
+        self.assertNotIn("androidx.compose.ui.graphics.vector", board)

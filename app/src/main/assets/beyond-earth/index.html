@@ -26,6 +26,58 @@ beyond_earth_earth_moon:{title:'EARTH AND ITS MOON',caption:'The Moon is Earth�
 beyond_earth_asteroid_comet:{title:'ASTEROIDS AND COMETS',caption:'Asteroids are rocky objects. Comets contain ice and dust and can develop glowing tails near the Sun.',draw(){const pts=[];for(let i=0;i<18;i++){const a=i*2.4,r=38+(i%5)*10;pts.push([112+Math.cos(a)*r,177+Math.sin(a)*r*.7])}pts.forEach(([x,y],i)=>circle(x,y,3+(i%3),C.muted));circle(270,170,15,C.moon);path([[254,162],[216,143],[185,125]],C.blue,5,.8);path([[254,178],[213,192],[185,212]],C.coral,2,.8);text('ASTEROID BELT',112,270,11);text('COMET',270,235,11)}},
 beyond_earth_milky_way:{title:'OUR HOME GALAXY · THE MILKY WAY',caption:'The Milky Way is a vast galaxy containing our Sun and billions of other stars.',draw(){for(let i=0;i<220;i++){const a=i*.37,r=8+i*.34,x=195+Math.cos(a)*r,y=178+Math.sin(a)*r*.38;circle(x,y,i%13===0?2.3:1.1,i%7===0?C.gold:0x8293a6,0x8293a6)}const g=new PIXI.Graphics();g.ellipse(195,178,132,49).stroke({color:C.coral,width:2,alpha:.45});world.addChild(g);text('MILKY WAY',195,275,14,C.teal)}}
 };
+
+/* Excalidraw-compatible source scene. PixiJS is the playback renderer;
+   these are scene elements, not a second independently-authored drawing. */
+const dayNightExcalidrawScene={
+  type:'excalidraw',version:2,
+  elements:[
+    {id:'sun',type:'ellipse',x:36,y:144,width:58,height:58,strokeColor:'#35465b',backgroundColor:'#e7b85d',revealAt:0},
+    {id:'sun-rays',type:'line',x:65,y:132,width:0,height:-18,strokeColor:'#e7b85d',revealAt:0},
+    {id:'sun-rays-left',type:'line',x:27,y:172,width:-14,height:0,strokeColor:'#e7b85d',revealAt:0},
+    {id:'sun-rays-right',type:'line',x:103,y:172,width:14,height:0,strokeColor:'#e7b85d',revealAt:0},
+    {id:'sun-label',type:'text',x:65,y:218,width:70,height:22,text:'SUN',fontSize:13,strokeColor:'#35465b',revealAt:0},
+    {id:'sunlight',type:'arrow',x:112,y:174,width:96,height:0,strokeColor:'#d5a64d',revealAt:1},
+    {id:'earth-day',type:'ellipse',x:205,y:104,width:144,height:144,strokeColor:'#35465b',backgroundColor:'#e7b85d',revealAt:1},
+    {id:'earth-night',type:'rectangle',x:277,y:104,width:72,height:144,strokeColor:'#26374d',backgroundColor:'#26374d',revealAt:2},
+    {id:'earth-edge',type:'ellipse',x:205,y:104,width:144,height:144,strokeColor:'#6fa5bb',backgroundColor:'transparent',revealAt:1},
+    {id:'day-label',type:'text',x:231,y:169,width:48,height:24,text:'DAY',fontSize:14,strokeColor:'#35465b',revealAt:2},
+    {id:'night-label',type:'text',x:295,y:169,width:58,height:24,text:'NIGHT',fontSize:12,strokeColor:'#ffffff',revealAt:2},
+    {id:'rotation-arrow',type:'arrow',x:238,y:276,width:84,height:0,strokeColor:'#d17b5b',revealAt:3},
+    {id:'rotation-label',type:'text',x:280,y:300,width:140,height:20,text:'EARTH ROTATES',fontSize:12,strokeColor:'#d17b5b',revealAt:3}
+  ]
+};
+function renderExcalidrawElements(scene,reveal){
+  for(const el of scene.elements){
+    if((el.revealAt||0)>reveal) continue;
+    const x=el.x,y=el.y,w=el.width||0,h=el.height||0;
+    const stroke=parseInt((el.strokeColor||'#35465b').replace('#',''),16);
+    const fill=el.backgroundColor&&el.backgroundColor!=='transparent'?parseInt(el.backgroundColor.replace('#',''),16):null;
+    if(el.type==='text'){text(el.text,x+w/2,y+h/2,el.fontSize||13,stroke);continue;}
+    const g=new PIXI.Graphics();
+    if(el.type==='ellipse'){
+      g.ellipse(x+w/2,y+h/2,Math.abs(w)/2,Math.abs(h)/2);
+      if(fill!==null) g.fill(fill);
+      g.stroke({color:stroke,width:2,alpha:.9});
+    } else if(el.type==='rectangle'){
+      g.rect(x,y,w,h);
+      if(fill!==null) g.fill(fill);
+      g.stroke({color:stroke,width:1.5,alpha:.8});
+    } else if(el.type==='line'||el.type==='arrow'){
+      g.moveTo(x,y).lineTo(x+w,y+h).stroke({color:stroke,width:2.5,cap:'round'});
+      if(el.type==='arrow'){
+        const a=Math.atan2(h,w), ex=x+w,ey=y+h;
+        g.moveTo(ex-9*Math.cos(a-.45),ey-9*Math.sin(a-.45)).lineTo(ex,ey).lineTo(ex-9*Math.cos(a+.45),ey-9*Math.sin(a+.45)).stroke({color:stroke,width:2.5,cap:'round'});
+      }
+    }
+    world.addChild(g);
+  }
+}
+defs.beyond_earth_sky_watching={
+ title:'DAY AND NIGHT · EXCALIDRAW → PIXI',caption:'Earth rotates. The side facing the Sun has daylight; the side turned away has night.',
+ draw(){renderExcalidrawElements(dayNightExcalidrawScene,Math.min(3,Math.floor(step/2)));}
+};
+
 const order=Object.keys(defs);let active=order[0],step=0;
 function render(){world.removeChildren();world.scale.set(1);const w=root.clientWidth,h=root.clientHeight,scale=Math.min(w/390,h/330);world.scale.set(scale);world.position.set((w-390*scale)/2,(h-330*scale)/2);const d=defs[active]||defs[order[Math.min(step,7)]];text(d.title,195,25,12,C.teal);d.draw();caption.textContent=d.caption;count.textContent=String(step+1).padStart(2,'0')+' / 08';bar.style.width=((step+1)/8*100)+'%'}
 function setStep(n,subtype){step=Math.max(0,Math.min(7,Number(n)||0));if(subtype&&defs[subtype])active=subtype;else active=order[step];render()}

@@ -51,6 +51,36 @@
       ],
       "risk": "medium",
       "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "UNIFIED-PROCEED-SLEEP-WAKE-CONTROLLER",
+      "status": "APPROVED",
+      "approved_by": "Founder approval in ChatGPT conversation on 2026-10-30",
+      "scope": [
+        "Extend the existing PadippuPal AutoPilot workflow with one deterministic full-cycle controller.",
+        "Dispatch the existing guidance, curriculum, Android APK, deployed read-only API smoke, and Android UI smoke workflows in a fixed order.",
+        "Poll each exact branch/SHA workflow run at one-minute intervals with bounded discovery and execution timeouts.",
+        "Continue to later independent checks after an earlier stage fails and publish one consolidated result.",
+        "Add deterministic tests for workflow ordering, failure continuation, and release safety."
+      ],
+      "non_goals": [
+        "Create a second workflow family, agent, service, task queue, or ledger.",
+        "Add Codex or a paid model integration.",
+        "Invent or apply arbitrary source-code repairs or blindly retry unchanged failures.",
+        "Merge pull requests, deploy production, write production data, run destructive migrations, or publish releases.",
+        "Change learner-facing application behavior."
+      ],
+      "acceptance_criteria": [
+        "A single full-cycle workflow dispatch coordinates all five existing checks on the selected branch and exact SHA.",
+        "The controller sleeps 60 seconds between status checks and uses bounded run-discovery and stage timeouts.",
+        "A failed, timed-out, or undiscoverable stage does not suppress later independent checks.",
+        "The final controller result is non-success if any stage is not successful.",
+        "The Android workflow is always dispatched with publish_release=false.",
+        "Unit tests cover stage ordering, continuation after failure, and release safety.",
+        "Documentation clearly states that arbitrary code repair and ChatGPT-to-GitHub workflow dispatch are not yet available."
+      ],
+      "risk": "medium",
+      "approval_expires": "Until revoked by founder"
     }
   ]
-}
+}\n

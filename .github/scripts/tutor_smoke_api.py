@@ -22,21 +22,21 @@ LESSON = {
     "interactive_lesson": {
         "id": "synth-smoke-beyond-earth",
         "chapter": "Beyond Earth",
-        "topic": "Constellations",
-        "title": "Beyond Earth — Constellation",
+        "topic": "Day and Night",
+        "title": "Beyond Earth — Day and Night",
         "scene_type": "synthesis_static",
-        "caption": "A constellation is a pattern of stars seen in the night sky.",
+        "caption": "The Sun lights one half of Earth. Rotation causes day and night.",
         "visual_kind": "beyond_earth",
-        "visual_subtype": "beyond_earth_constellation",
+        "visual_subtype": "beyond_earth_sky_watching",
         "animation": "narration_synced_2d",
         "objects": [{"label": "North Star", "position": [0.78, 0.20]}, {"label": "Star pattern", "position": [0.45, 0.55]}, {"label": "Ursa Major", "position": [0.18, 0.78]}],
-        "steps": [{"id": "constellation-pattern", "label": "Join the stars", "caption": "A constellation is a pattern of stars seen in the night sky.", "visual_kind": "beyond_earth", "visual_subtype": "beyond_earth_constellation", "nodes": ["North Star", "Star pattern", "Ursa Major"], "source_chunk_ids": ["smoke-beyond-earth-source"], "reference_page_numbers": [1], "actions": ["Reveal the stars, then trace the constellation pattern"], "narration_sync": ["pattern of stars", "night sky"], "animation_plan": {"mode": "staggered_reveal", "duration_ms": 850, "loop": False}}]
+        "steps": [{"id": "step_2", "label": "Explain day and night", "caption": "The Sun lights one half of Earth. Rotation causes day and night.", "visual_kind": "beyond_earth", "visual_subtype": "beyond_earth_sky_watching", "nodes": ["Sun", "Sunlight", "Earth", "Day", "Night"], "source_chunk_ids": ["smoke-beyond-earth-source"], "reference_page_numbers": [1], "actions": ["Reveal sunlight, day and night hemispheres, then Earth rotation"], "narration_sync": ["Sunlight", "day and night", "rotates"], "animation_plan": {"mode": "staggered_reveal", "duration_ms": 850, "loop": False}}]
     },
     "segments": [
-        {"id": "beyond-earth-definition", "spoken_text": "Look carefully at the night sky. Some stars appear to form familiar patterns. A group of stars that forms a recognised pattern is called a constellation. The stars only appear close together from our viewpoint on Earth; they can be very far apart in space.", "caption_text": "A constellation is a pattern of stars seen in the night sky.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
-        {"id": "beyond-earth-example", "spoken_text": "For example, Ursa Major is a well-known constellation. We can use the pattern to help recognise a region of the sky. The stars are not joined by real lines; the lines in a drawing simply help us see the pattern.", "caption_text": "Ursa Major is a familiar constellation pattern.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
-        {"id": "beyond-earth-misconception", "spoken_text": "Remember that a constellation is an apparent pattern as seen from Earth. The stars in it are not necessarily near one another. A labelled sky drawing is a model to help us identify the pattern, not a map showing the true distances between stars.", "caption_text": "The pattern is how stars appear from Earth, not their true distances.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
-        {"id": "beyond-earth-recap", "spoken_text": "Let us recap. A constellation is a recognisable pattern of stars in the night sky. Ursa Major is one example. The stars only appear grouped when we look from Earth, and a drawing uses labels and guide lines to make the pattern easier to understand.", "caption_text": "Constellation means a recognisable pattern of stars.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None}
+        {"id": "beyond-earth-definition", "spoken_text": "The Sun is a star. It gives Earth light and heat. Sunlight travels through space and reaches Earth. The half of Earth facing the Sun has day, while the opposite half has night.", "caption_text": "A constellation is a pattern of stars seen in the night sky.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-example", "spoken_text": "Earth is always rotating on an imaginary line called its axis. As Earth rotates, different places turn towards the Sun and then away from it. This is why day changes to night.", "caption_text": "Ursa Major is a familiar constellation pattern.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-misconception", "spoken_text": "The Sun does not move around Earth to make day and night. Earth rotates from west to east. One complete rotation takes about 24 hours.", "caption_text": "The pattern is how stars appear from Earth, not their true distances.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-recap", "spoken_text": "Let us recap. Sunlight illuminates the half of Earth facing the Sun. That side has day; the other side has night. Earth rotation causes the cycle to continue.", "caption_text": "Constellation means a recognisable pattern of stars.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None}
     ]
 }
 for _segment in LESSON["segments"]:
@@ -64,7 +64,7 @@ class Handler(BaseHTTPRequestHandler):
                 "subject": "Science",
                 "chapters": [{
                     "title": "Beyond Earth",
-                    "topics": ["Constellations"],
+                    "topics": ["Constellations", "Day and Night"],
                 }],
             })
             return
@@ -119,7 +119,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(201, {"saved": len(saved), "tasks": saved})
             return
         if path == "/tutor/lesson-plan":
-            if str(body.get("topic", "")).casefold() not in {"constellations", "constellation"}:
+            if str(body.get("topic", "")).casefold() not in {"day and night", "day/night"}:
                 self._send(200, {
                     "lesson_id": "smoke-off-topic",
                     "grounded": False,
@@ -150,17 +150,17 @@ class Handler(BaseHTTPRequestHandler):
 
 def self_test() -> None:
     assert len(LESSON["segments"]) == 4
-    assert "constellation" in LESSON["segments"][0]["spoken_text"].casefold()
+    assert "sunlight" in LESSON["segments"][0]["spoken_text"].casefold()
     assert "ursa major" in LESSON["segments"][1]["spoken_text"].casefold()
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
     assert LESSON["interactive_lesson"]["scene_type"] == "synthesis_static"
-    assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["North Star", "Star pattern", "Ursa Major"]
+    assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["Sun", "Sunlight", "Earth", "Day", "Night"]
     assert LESSON["interactive_lesson"]["steps"][0]["source_chunk_ids"] == ["smoke-beyond-earth-source"]
     full_lesson = " ".join(segment["spoken_text"] for segment in LESSON["segments"])
     assert len(full_lesson) >= 220
     assert len(full_lesson.split()) >= 140
     assert "square" not in json.dumps(LESSON).casefold()
-    print("smoke API fixture self-test passed: Beyond Earth constellation lesson with labelled native visual")
+    print("smoke API fixture self-test passed: Beyond Earth Day/Night lesson with native Canvas visual")
 
 
 def main() -> None:

@@ -134,7 +134,7 @@ internal fun BeyondEarthNativeCanvas(
                 drawCircle(Color(0xFF244A78), earthR, Offset(earthX, earthY))
                 val dayClip = Path().apply {
                     moveTo(earthX, earthY - earthR)
-                    arcTo(androidx.compose.ui.geometry.Rect(earthX-earthR, earthY-earthR, earthX+earthR, earthY+earthR), -90f, 180f, false)
+                    arcTo(androidx.compose.ui.geometry.Rect(earthX-earthR, earthY-earthR, earthX+earthR, earthY+earthR), -90f, -180f, false)
                     close()
                 }
                 clipPath(dayClip) {

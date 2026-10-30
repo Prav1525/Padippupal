@@ -25,6 +25,32 @@
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "UNIFIED-PROCEED-OPERATING-CYCLE",
+      "status": "APPROVED",
+      "approved_by": "Founder explicitly approved unified Engineering Operating System + AutoPilot integration in ChatGPT conversation on 2026-10-30",
+      "scope": [
+        "Align the canonical Proceed trigger, AGENTS.md, Engineering AutoPilot documentation, CI automation documentation, approved-work ledger and active-work handoff so Engineering OS and AutoPilot operate together on the same task.",
+        "Define one shared task-selection, approval/evidence, execution, retest, acceptance and handoff cycle using existing repository structures.",
+        "State the actual capability boundary: GitHub AutoPilot is a CI recorder and deterministic policy validator; session execution uses available connected tools and is not unattended AI code repair."
+      ],
+      "non_goals": [
+        "Create a second agent, service, dashboard, workflow family, task database or competing source of truth.",
+        "Add Codex, paid model integrations or unattended AI code-writing workers.",
+        "Change learner-facing product behavior, curriculum content or production data.",
+        "Merge PRs automatically, deploy production, perform destructive migrations or publish public releases."
+      ],
+      "acceptance_criteria": [
+        "One founder command, Proceed, invokes the canonical Engineering OS + AutoPilot sequence; no second prompt or separate trigger is required.",
+        "Engineering OS owns whole-project context recovery, priority selection, the single active task and acceptance review.",
+        "AutoPilot applies exact task approval, CI evidence, root-cause, five-generation and retest controls to that same task.",
+        "Both roles share one task ID, branch/PR, investigation trail and active-work handoff.",
+        "GitHub workflow and tool capability limitations are stated accurately; no unattended repair or durable cross-run counter is falsely claimed.",
+        "Existing policy validation and unit tests pass on the exact proposed commit; no learner-facing or production behavior changes."
+      ],
+      "risk": "medium",
+      "approval_expires": "Until revoked by founder"
     }
   ]
 }

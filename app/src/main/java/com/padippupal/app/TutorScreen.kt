@@ -411,12 +411,23 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             )
         }
         if (activeKind == "beyond_earth") {
-            BeyondEarthPixiCanvas(
-                step = active,
-                subtype = activeSubtypeForChapter(lesson, activeStep),
-                compact = compact,
-                modifier = Modifier.fillMaxWidth()
-            )
+            val chapterSubtype = activeSubtypeForChapter(lesson, activeStep)
+            if (chapterSubtype == "beyond_earth_sky_watching") {
+                // Day/Night uses the native offline Canvas renderer; the active tutor
+                // synthesis step progressively reveals the illustration as narration advances.
+                BeyondEarthNativeCanvas(
+                    step = active,
+                    compact = compact,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                BeyondEarthPixiCanvas(
+                    step = active,
+                    subtype = chapterSubtype,
+                    compact = compact,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         } else {
         Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {
             Canvas(Modifier.fillMaxSize()) {

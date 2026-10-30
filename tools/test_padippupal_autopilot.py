@@ -34,6 +34,23 @@ class RepairLimitTests(unittest.TestCase):
             next_generation(-1)
 
 
+class TriggerContractTests(unittest.TestCase):
+    def test_validator_rejects_a_split_or_incomplete_trigger_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for rel in ("TESTING_GUIDANCE.md", "TEST_INVESTIGATION.md",
+                        "docs/TESTING_ERRORS.md", "docs/TEST_FAILURE_REGISTER.md",
+                        "docs/AUTOPILOT_TRIGGER_PROMPT.md",
+                        ".github/testing-regression-checklist.md"):
+                path = root / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("guide", encoding="utf-8")
+            ledger = {"policy":"approved-roadmap-only", "max_repair_generations":5, "tasks":[]}
+            (root / "docs/approved-work.json").write_text(json.dumps(ledger), encoding="utf-8")
+            errors = validate(root)
+            self.assertTrue(any("unified trigger contract is missing" in item for item in errors))
+
+
 class ApprovalTests(unittest.TestCase):
     def test_only_exact_approved_task_is_eligible(self):
         ledger = {"tasks": [

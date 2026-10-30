@@ -176,9 +176,9 @@ def assert_chapter_selected(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("SELECTED CHAPTER TEXT:", " | ".join(texts[:100]))
-    if "patterns in mathematics" not in joined:
-        raise SystemExit("Smoke test did not select Class 6 Science Chapter 1: Beyond Earth")
-    print("PASS: selected the expected Science Chapter 1")
+    if "beyond earth" not in joined or "constellations" not in joined:
+        raise SystemExit("Smoke test did not select Class 6 Science chapter Beyond Earth with its default topic")
+    print("PASS: selected Class 6 Science — Beyond Earth (Constellations)")
 
 def tap_numbered(path, number):
     nodes, texts = load(path)

@@ -13,84 +13,32 @@ DIARY_TASKS: dict[str, list[dict]] = {}
 DIARY_PARSE_REQUESTS: list[dict] = []
 
 LESSON = {
-    "lesson_id": "smoke-all-ones",
+    "lesson_id": "smoke-beyond-earth",
     "grounded": True,
     "provider": "smoke_fixture",
     "language": "English",
-    "subject": "Mathematics",
-    "sources": [{"chunk_id": "smoke-source", "title": "Smoke-test fixture", "page_start": 1, "page_end": 1}],
-    # Original compact 2D visual, mapped to this exact synthesized All 1s lesson.
-    # It deliberately models the learning relationship (repeated equal terms), not a copied textbook illustration.
+    "subject": "Science",
+    "sources": [{"chunk_id": "smoke-beyond-earth-source", "title": "Beyond Earth smoke fixture", "page_start": 1, "page_end": 1}],
     "interactive_lesson": {
-        "id": "synth-smoke-all-ones",
-        "chapter": "Patterns in Mathematics",
-        "topic": "All 1s",
-        "title": "All 1s pattern visual",
+        "id": "synth-smoke-beyond-earth",
+        "chapter": "Beyond Earth",
+        "topic": "Constellations",
+        "title": "Beyond Earth — Constellation",
         "scene_type": "synthesis_static",
-        "caption": "Each term stays 1. The pattern repeats without growing.",
-        "visual_kind": "sequence",
-        "visual_subtype": "sequence",
+        "caption": "A constellation is a pattern of stars seen in the night sky.",
+        "visual_kind": "beyond_earth",
+        "visual_subtype": "beyond_earth_constellation",
         "animation": "narration_synced_2d",
-        "objects": [
-            {"label": "1", "position": [0.06, 0.30]},
-            {"label": "1", "position": [0.25, 0.30]},
-            {"label": "1", "position": [0.44, 0.30]},
-            {"label": "1", "position": [0.63, 0.30]},
-            {"label": "1", "position": [0.82, 0.30]}
-        ],
-        "steps": [{
-            "id": "all-ones-rule",
-            "label": "Every term is 1",
-            "caption": "Each term stays 1. The pattern repeats without growing.",
-            "visual_kind": "sequence",
-            "visual_subtype": "sequence",
-            "nodes": ["1", "1", "1", "1", "1"],
-            "source_chunk_ids": ["smoke-source"],
-            "reference_page_numbers": [1],
-            "actions": ["Reveal the repeated 1s from left to right"],
-            "narration_sync": ["every term is the number 1", "repeats the same number"],
-            "animation_plan": {"mode": "staggered_reveal", "duration_ms": 850, "loop": False}
-        }]
+        "objects": [{"label": "North Star", "position": [0.78, 0.20]}, {"label": "Star pattern", "position": [0.45, 0.55]}, {"label": "Ursa Major", "position": [0.18, 0.78]}],
+        "steps": [{"id": "constellation-pattern", "label": "Join the stars", "caption": "A constellation is a pattern of stars seen in the night sky.", "visual_kind": "beyond_earth", "visual_subtype": "beyond_earth_constellation", "nodes": ["North Star", "Star pattern", "Ursa Major"], "source_chunk_ids": ["smoke-beyond-earth-source"], "reference_page_numbers": [1], "actions": ["Reveal the stars, then trace the constellation pattern"], "narration_sync": ["pattern of stars", "night sky"], "animation_plan": {"mode": "staggered_reveal", "duration_ms": 850, "loop": False}}]
     },
     "segments": [
-        {
-            "id": "all-ones-definition",
-            "spoken_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease. The rule is simple: write 1 again each time.",
-            "caption_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease. The rule is simple: write 1 again each time.",
-            "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "none", "target": "", "value": ""},
-            "checkpoint": None,
-        },
-        {
-            "id": "all-ones-example",
-            "spoken_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule repeats the same number each time. The pattern can have three terms, five terms, or ten terms, and the rule stays the same.",
-            "caption_text": "For example, if we write the pattern in five spaces, each space contains 1: 1, 1, 1, 1, 1. We can predict the next term is also 1 because the rule repeats the same number each time. The pattern can have three terms, five terms, or ten terms, and the rule stays the same.",
-            "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "none", "target": "", "value": ""},
-            "checkpoint": None,
-        },
-        {
-            "id": "all-ones-common-mistake",
-            "spoken_text": "A common mistake is to think every number pattern must grow. This one does not grow; it repeats 1 each time. Even if the list becomes longer, the value of each term does not change. In an All 1s pattern, each term is the number 1, so we should not replace it with a different number.",
-            "caption_text": "A common mistake is to think every number pattern must grow. This one does not grow; it repeats 1 each time. Even if the list becomes longer, the value of each term does not change. In an All 1s pattern, each term is the number 1, so we should not replace it with a different number.",
-            "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "none", "target": "", "value": ""},
-            "checkpoint": None,
-        },
-        {
-            "id": "all-ones-recap",
-            "spoken_text": "Here is another way to check the rule: cover the last term and ask what should come next. Since the rule repeats 1, the missing term must also be 1. Adding more terms changes the length of the list, not the value of each term. Remember, in the All 1s pattern, every term is 1. Quick recap: 1, 1, 1, 1 always follows the same rule. What number comes next after 1, 1, 1?",
-            "caption_text": "Here is another way to check the rule: cover the last term and ask what should come next. Since the rule repeats 1, the missing term must also be 1. Adding more terms changes the length of the list, not the value of each term. Remember, in the All 1s pattern, every term is 1. Quick recap: 1, 1, 1, 1 always follows the same rule. What number comes next after 1, 1, 1?",
-            "source_chunk_ids": ["smoke-source"],
-            "visual_action": {"type": "none", "target": "", "value": ""},
-            "checkpoint": None,
-        },
-    ],
+        {"id": "beyond-earth-definition", "spoken_text": "Look carefully at the night sky. Some stars appear to form familiar patterns. A group of stars that forms a recognised pattern is called a constellation. The stars only appear close together from our viewpoint on Earth; they can be very far apart in space.", "caption_text": "A constellation is a pattern of stars seen in the night sky.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-example", "spoken_text": "For example, Ursa Major is a well-known constellation. We can use the pattern to help recognise a region of the sky. The stars are not joined by real lines; the lines in a drawing simply help us see the pattern.", "caption_text": "Ursa Major is a familiar constellation pattern.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-misconception", "spoken_text": "Remember that a constellation is an apparent pattern as seen from Earth. The stars in it are not necessarily near one another. A labelled sky drawing is a model to help us identify the pattern, not a map showing the true distances between stars.", "caption_text": "The pattern is how stars appear from Earth, not their true distances.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-recap", "spoken_text": "Let us recap. A constellation is a recognisable pattern of stars in the night sky. Ursa Major is one example. The stars only appear grouped when we look from Earth, and a drawing uses labels and guide lines to make the pattern easier to understand.", "caption_text": "Constellation means a recognisable pattern of stars.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None}
+    ]
 }
-
-# The live Android player reads the visual from the active segment. Keep the
-# deterministic fixture faithful to that contract instead of relying only on
-# the response-level visual, which chat mode uses.
 for _segment in LESSON["segments"]:
     _segment["interactive_lesson"] = LESSON["interactive_lesson"]
 
@@ -113,10 +61,10 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {
                 "board": "CBSE",
                 "class_level": 6,
-                "subject": "Mathematics",
+                "subject": "Science",
                 "chapters": [{
-                    "title": "Patterns in Mathematics",
-                    "topics": ["All 1s"],
+                    "title": "Beyond Earth",
+                    "topics": ["Constellations"],
                 }],
             })
             return
@@ -171,7 +119,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(201, {"saved": len(saved), "tasks": saved})
             return
         if path == "/tutor/lesson-plan":
-            if str(body.get("topic", "")).casefold() not in {"all 1s", "all ones", "all one's"}:
+            if str(body.get("topic", "")).casefold() not in {"constellations", "constellation"}:
                 self._send(200, {
                     "lesson_id": "smoke-off-topic",
                     "grounded": False,
@@ -202,17 +150,17 @@ class Handler(BaseHTTPRequestHandler):
 
 def self_test() -> None:
     assert len(LESSON["segments"]) == 4
-    assert "All 1s" in LESSON["segments"][0]["spoken_text"]
-    assert "repeats" in LESSON["segments"][1]["spoken_text"]
+    assert "constellation" in LESSON["segments"][0]["spoken_text"].casefold()
+    assert "ursa major" in LESSON["segments"][1]["spoken_text"].casefold()
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
     assert LESSON["interactive_lesson"]["scene_type"] == "synthesis_static"
-    assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["1", "1", "1", "1", "1"]
+    assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["North Star", "Star pattern", "Ursa Major"]
     assert LESSON["interactive_lesson"]["steps"][0]["source_chunk_ids"] == ["smoke-source"]
     full_lesson = " ".join(segment["spoken_text"] for segment in LESSON["segments"])
     assert len(full_lesson) >= 220
     assert len(full_lesson.split()) >= 140
     assert "square" not in json.dumps(LESSON).casefold()
-    print("smoke API fixture self-test passed: topic-valid lesson with source-mapped inline 2D visual")
+    print("smoke API fixture self-test passed: Beyond Earth constellation lesson with labelled native visual")
 
 
 def main() -> None:

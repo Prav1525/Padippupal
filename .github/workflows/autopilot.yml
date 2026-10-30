@@ -10,6 +10,7 @@ on:
       - "docs/ENGINEERING_AUTOPILOT.md"
       - "docs/CI_AUTOMATION.md"
       - "docs/approved-work.json"
+      - "docs/AUTOPILOT_TRIGGER_PROMPT.md"
   workflow_dispatch:
   workflow_run:
     workflows:

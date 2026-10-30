@@ -2,45 +2,53 @@
 
 **Snapshot date:** 2026-10-30  
 **Default branch:** `main`  
-**Snapshot base commit:** `407844ea458799eadc99b9af1e7364939902e9dd`  
+**Main commit at inspection:** `407844ea458799eadc99b9af1e7364939902e9dd`  
+**Engineering OS branch:** `chore/persistent-engineering-os-phase1`  
 **Repository:** https://github.com/Prav1525/Padippupal
 
-> This is a dated, evidence-based handoff snapshot, not a live dashboard. Re-check GitHub, CI, and deployed services at the start of each resumed task.
+> Dated handoff only, not a live dashboard. Re-fetch GitHub, CI and deployed environments before relying on this snapshot.
 
-## Product and codebase snapshot
-- Android client: Kotlin + Jetpack Compose; main application screens include home/profile/curriculum/tutor and study features.
-- Backend: Python FastAPI curriculum/tutor service under `backend/`.
-- Curriculum/synthesis modules include `backend/syllabus_synthesis.py`, source registry and lesson-content/visual modules. Inspect current implementation before assuming any specific pipeline is fully operational.
-- Android tutor and inline lesson rendering are primarily in `app/src/main/java/com/padippupal/app/TutorScreen.kt`.
-- The repository contains Python backend tests and Android JVM tests plus GitHub Actions workflows for Android builds, emulator smoke, curriculum tests, deployed API smoke, and investigation-guidance validation.
-- The README explicitly describes the project as a prototype and records material gaps in approved official-source coverage, OCR, complete chapter generation, concept mastery and PDF export. Verify current implementation before changing these claims.
+## Verified repository facts
+- Android client: Kotlin + Jetpack Compose.
+- Backend: Python FastAPI under `backend/`.
+- Tutor UI and inline lesson presentation are primarily in `app/src/main/java/com/padippupal/app/TutorScreen.kt`.
+- Existing mandatory engineering rules: `AGENTS.md` and `TESTING_GUIDANCE.md`.
+- Existing regression and incident records: `.github/testing-regression-checklist.md`, `docs/TESTING_ERRORS.md`, and `TEST_INVESTIGATION.md`.
+- Existing CI workflows include Android build, Android emulator smoke, curriculum-engine tests, deployed API smoke and investigation-guidance validation.
+- Product documentation explicitly distinguishes prototype/roadmap capability from verified shipped capability. See `README.md`, `docs/CONCEPT_MASTERY.md`, `docs/LIVE_TEACHING_DESIGN.md`, and `docs/SYNTHESIS_VISUAL_MAPPING.md`.
 
-## Verified GitHub facts at snapshot time
-- Main commit: `407844ea458799eadc99b9af1e7364939902e9dd` (Beyond Earth astronomy visuals inline, PR #58).
-- Default branch: `main`.
-- Repository metadata reported 33 open issues/PRs combined in the open_issues count; a separate open-PR listing returned numerous active PRs. Re-fetch the list; do not treat this snapshot as current.
-- PR #59, **Add native labelled whiteboard visuals for Beyond Earth**, was open at head `0383b1fe9690ff3c97dcc901c64710be04ddba14`. Its own description says Android build and chapter-specific visual verification are still required. https://github.com/Prav1525/Padippupal/pull/59
-- Other open visual work at snapshot: PR #57 (inline teacher-drawing pilot) and PR #56 (topic-aware visual generation engine). These overlap in product area; review their scope and dependencies before combining or duplicating work.
-- Process/automation PRs #14 (persistent development protocol), #15 (CI failure triage), #18 (AutoPilot triage), and #22 (repository work entry point) were open. They are not merged into main at this snapshot. Review before creating overlapping automation.
-- No PR has been merged and no production environment/database has been changed as part of creating this Phase 1 handbook.
+## Current GitHub snapshot
+- `main`: `407844ea458799eadc99b9af1e7364939902e9dd`.
+- Beyond Earth PR #59 is open and unmerged: https://github.com/Prav1525/Padippupal/pull/59
+- PR #59 head at inspection: `0383b1fe9690ff3c97dcc901c64710be04ddba14`.
+- Latest runs for that head:
+  - [Android APK run 40989118308](https://github.com/Prav1525/Padippupal/actions/runs/40989118308): **PASS**.
+  - [Curriculum Engine Tests run 40989118292](https://github.com/Prav1525/Padippupal/actions/runs/40989118292): **PASS**.
+  - [Investigation Guidance Gate run 40989118330](https://github.com/Prav1525/Padippupal/actions/runs/40989118330): **PASS**.
+  - [Android UI smoke run 40989118437](https://github.com/Prav1525/Padippupal/actions/runs/40989118437): **FAIL** at “Validate smoke-test scripts”; emulator allocation and app navigation were skipped. This is a harness preflight failure, not evidence of app runtime failure or success.
+- Latest UI smoke job steps show APK build and fast JVM tests passed before script validation failed.
 
-## Active objective at handoff
-**Objective:** Establish a repository-backed Persistent Engineering Operating System (Phase 1: durable project memory and task handoff).
+## Phase 1 — Persistent Engineering Operating System
+- **Scope:** repository-backed charter, architecture/system map, decision log, known issues, acceptance criteria, current status and active-work handoff.
+- **Implementation branch:** `chore/persistent-engineering-os-phase1`.
+- **Base:** `main@407844ea458799eadc99b9af1e7364939902e9dd`.
+- **No application source, CI workflow behavior, deployment or production database changes are in scope.**
+- **Verification target:** read back every document, validate internal links and inspect branch diff; then open a review PR.
+- **Merge:** requires explicit founder approval.
 
-**Phase 1 acceptance:** charter, architecture map, decision log, known-issue register, acceptance gates, active-work handoff, and this status record exist in the repository; content is grounded in inspected files and labels uncertainty.
+## Priority after Phase 1
+Resume Beyond Earth PR #59: inspect the smoke preflight failure, repair the evidenced test harness issue, rerun emulator validation and inspect all eight visuals in the actual tutor UI. Do not treat a successful APK build or database seed as learner-ready proof.
 
-**Current user-facing product work to resume after Phase 1:** Beyond Earth native inline whiteboard pilot, PR #59. Do not infer that it is ready to merge or release from the database pilot alone.
-
-## Important constraints
+## Approval and safety constraints
 - No PR merges without explicit founder approval.
-- No production deployments or production database changes without explicit founder approval.
-- Preserve existing open PRs and unrelated branches.
-- Never expose API keys, tokens, student data, or other secrets in documentation, logs, or commits.
-- Read `AGENTS.md` and `TESTING_GUIDANCE.md` before code/test/build/deploy actions. Read `.github/testing-regression-checklist.md` and `docs/TESTING_ERRORS.md` before relevant tutor/UI tests.
+- No production deployment, production database write, destructive action or public release without explicit founder approval.
+- Preserve unrelated PRs and branches.
+- Never commit API keys, access tokens, production connection strings or private learner data.
+- Before code/test/build/deploy actions, read `AGENTS.md` and `TESTING_GUIDANCE.md`; consult relevant incident records and exact current evidence.
 
 ## Resume procedure
-1. Re-fetch main and the active branch heads.
-2. Re-fetch the active PR and latest CI runs/artifacts for its exact head SHA.
-3. Read the mandatory guidance and relevant incident records.
-4. Compare actual state with this snapshot; update this file with dated evidence.
-5. Continue the one active objective in `.engineering/tasks/active-work.md`.
+1. Read `PROJECT_CHARTER.md` and `.engineering/README.md`.
+2. Re-fetch main, active branch, PRs and relevant workflow runs.
+3. Read mandatory guidance and the relevant known-issue/task record.
+4. Reconcile this snapshot against actual state.
+5. Continue only the active objective in `.engineering/tasks/active-work.md`.

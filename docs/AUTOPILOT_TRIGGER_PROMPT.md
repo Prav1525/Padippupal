@@ -64,7 +64,11 @@ Perform these phases in order in this same engineering cycle:
 - Existing CI workflows remain the authoritative source of test evidence.
 - Do not introduce a second observer, another AutoPilot workflow, a parallel agent, or a new roadmap store.
 
-The current GitHub workflow records CI outcomes and validates policy. It is not an autonomous code-writing worker and does not provide durable cross-run repair-generation storage. The coordinated session protocol may use connected tools to perform approved work while the session is active; never describe this as unattended/background execution. Do not claim a persistent counter is operational until implemented and tested.
+The GitHub workflow now has one deterministic full-cycle controller. A founder starts it with the single `workflow_dispatch` mode `full-cycle` on the target branch. The controller runs the policy gate, curriculum tests, Android APK build, read-only deployed API smoke check, and Android emulator smoke in the documented order. After dispatching each check, it sleeps for 60 seconds, wakes, finds the exact branch/SHA workflow run, and polls until completion or a bounded timeout. A failed or unavailable stage is recorded and does not prevent later independent stages from running; the final cycle reports attention required if any stage did not succeed. The existing `workflow_run` observer records each completed run and opens/updates failure evidence issues. The APK dispatch always passes `publish_release=false`.
+
+This is deterministic CI orchestration, not AI code repair. It does not invent patches, rerun unchanged failures blindly, merge PRs, deploy, write production data, or publish releases. Unknown failures still require the connected engineering session to inspect logs/artifacts and make an approved evidence-based repair. Five-generation repair counting is still not durably persisted across runs.
+
+**Trigger integration limitation:** the connected GitHub tools available to this ChatGPT session can inspect runs and create branches/PRs, but do not expose the GitHub Actions workflow-dispatch operation. Until that action is available, start the full cycle from GitHub Actions → PadippuPal AutoPilot → Run workflow → `full-cycle`. Do not claim that typing `Proceed` in ChatGPT has launched a background GitHub run unless a dispatch is actually confirmed.
 
 ## Hard safety boundaries
 

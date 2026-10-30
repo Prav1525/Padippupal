@@ -548,3 +548,14 @@ Use this format:
 - **Investigation guidance gate:** PASS — run 578, https://github.com/Prav1525/Padippupal/actions/runs/40913934023.
 - **Visual-specific limitation:** The new astronomy scenes have backend regression coverage and the Android renderer compiles, but the emulator artifact does not yet capture the exact Beyond Earth chapter. A source-page and phone-size visual review of the new astronomy scene remains a release follow-up.
 - **Release status:** Not yet merged or deployed. No production database writes or learner activation were performed.
+
+
+
+### 2026-10-30 — Chapter-only Beyond Earth handwritten whiteboard pilot (native, no SVG)
+- **Branch / commit:** `feature/beyond-earth-whiteboard-native`; Android renderer commit `4fcd9ecc9609f9a9bc909f22567cde31a648df3d`.
+- **Scope:** CBSE Class 6 Science, `Beyond Earth` only. No other chapter or subject is changed.
+- **Database test evidence:** Neon test branch `br-muddy-wave-az5r8igq`; chapter lesson contains 8 teaching stages and 8 active labelled structured-drawing records. Read-back confirmed all 8 records carry `no_svg=true`. Production DB read-back before promotion returned 0 matching pilot records.
+- **Rendering change:** `TutorScreen.kt` routes Beyond Earth visual subtypes through native Jetpack Compose Canvas scenes. Existing progressive reveal and inline caption/label flow are reused. No SVG markup or SVG renderer is introduced by this PR.
+- **Validation state:** Android APK workflow and investigation guidance gate are running on PR #59. The first guidance-gate attempt failed because this file was not updated; this entry addresses that specific requirement. Phone-size screenshot review for all eight astronomy scenes remains required before production promotion.
+- **Known limitation:** The native scenes are schematic and the structured visual assets are label/step data, not externally rendered PNGs. This pilot intentionally draws them with Compose Canvas, as requested; visual fidelity and label legibility still require emulator review.
+- **Release rule:** Do not merge or write the pilot data to production until the exact PR head has passing required checks and the Android artifact is verified. The existing production chapter remains unchanged.

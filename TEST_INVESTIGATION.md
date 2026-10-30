@@ -590,3 +590,11 @@ Use this format:
 - **Root cause:** CONFIRMED — the file imported the internal implementation-facing `weight` symbol instead of relying on the RowScope extension provided by the layout receiver.
 - **Repair:** Removed the invalid explicit import; no API, tests, or assertions were changed.
 - **Next verification:** Rerun Android APK build and full UI smoke on the new exact head SHA; treat all prior checks as stale for the changed commit.
+
+
+### 2026-10-30 — Beyond Earth whiteboard Compose import failure
+- **Affected PR:** #69; initial failing exact PR head `bbd6d819e248ad56e66eaed20d7f71ac14e1bd2f`.
+- **Evidence:** Android APK run 41000383046 (job 123883172514) and Android UI smoke run 41000382877 (job 123883172152).
+- **Confirmed root cause:** Direct import of Compose `Modifier.weight` is inaccessible; it is supplied by the enclosing RowScope/ColumnScope.
+- **Correction:** Removed the invalid import in commit `44d4f14dd711115250721ce64965029d9a30be79`.
+- **Retest:** Corrected-head Android build, JVM tests, and emulator screenshot review pending. Initial failure remains recorded; no merge/deploy.

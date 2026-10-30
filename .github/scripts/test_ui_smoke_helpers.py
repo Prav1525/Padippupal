@@ -498,3 +498,39 @@ class BeyondEarthChapterSelectionTests(unittest.TestCase):
             assert_chapter_selected(str(path))
         finally:
             path.unlink(missing_ok=True)
+
+
+class CompletedLessonWordingRegressionTests(unittest.TestCase):
+    def test_completed_constellation_lesson_accepts_singular_transcript_wording(self):
+        from ui_smoke import assert_completed_lesson
+        transcript = ("Look carefully at the night sky. A group of stars that forms a "
+                      "recognised pattern is called a constellation. " * 8
+                      + "Ursa Major is one example.")
+        root = ET.fromstring(f"""<hierarchy>
+          <node text="Beyond Earth · Constellations"/>
+          <node text="{transcript}"/>
+          <node text="Beyond Earth — Constellation"/>
+          <node text="Live lesson complete."/>
+          <node text="Ask your teacher…"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-completed-lesson-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_completed_lesson(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_completed_lesson_still_requires_a_retained_long_transcript(self):
+        from ui_smoke import assert_completed_lesson
+        root = ET.fromstring("""<hierarchy>
+          <node text="Live lesson complete."/>
+          <node text="Ask your teacher…"/>
+          <node text="Beyond Earth — Constellation"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-completed-lesson-empty-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            with self.assertRaisesRegex(SystemExit, "Completed lesson disappeared"):
+                assert_completed_lesson(str(path))
+        finally:
+            path.unlink(missing_ok=True)

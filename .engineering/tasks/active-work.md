@@ -1,39 +1,40 @@
 # Active work handoff
 
 **Last updated:** 2026-10-30  
-**Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
+**Rule:** Maintain one primary objective. Use this file as the shared handoff for Engineering OS and AutoPilot; do not create separate task queues.
 
-## Active objective: Phase 1 — Persistent Engineering Operating System
-- **Scope:** Repository-backed project memory and task handoff.
-- **Branch:** `chore/persistent-engineering-os-phase1`
-- **Base:** `main@407844ea458799eadc99b9af1e7364939902e9dd`
-- **Current head at handoff:** `b8fb0b17090b310435a88dbe7985a965ab48286f`
-- **Review PR:** [#61 — Establish PadippuPal Persistent Engineering Operating System — Phase 1](https://github.com/Prav1525/Padippupal/pull/61)
-- **Status:** Documentation implemented; all 10 PR files read back from the branch; PR diff inspected and limited to project documentation plus the AGENTS.md task-start index.
-- **Checks on exact head:**
-  - [Investigation Guidance Gate run 40990741794](https://github.com/Prav1525/Padippupal/actions/runs/40990741794): PASS.
-  - [Android APK run 40990741790](https://github.com/Prav1525/Padippupal/actions/runs/40990741790): PASS (workflow regression signal; not required to validate documentation).
-  - [Android UI smoke run 40990741779](https://github.com/Prav1525/Padippupal/actions/runs/40990741779): IN PROGRESS at last check; emulator journey had started. This workflow is not proof of Phase 1 documentation correctness.
-- **Acceptance:** Charter, status, architecture, system map, decisions, known issues, acceptance criteria, engineering index, and active-work handoff exist; repository task-start instructions point to them; claims are evidence-labelled and unknowns are explicit.
-- **Non-goals:** no application source changes, CI workflow behavior changes, deployment or production database writes.
-- **Next action:** finish checking the exact-head UI smoke run if relevant, then review PR #61. Do not merge until the founder explicitly approves.
+## Active objective: One coordinated “Proceed” operating cycle
+- **Task ID:** `UNIFIED-PROCEED-OPERATING-CYCLE`
+- **Approval:** Founder explicitly approved implementing the unified Engineering OS + AutoPilot operating behavior in the ChatGPT conversation on 2026-10-30.
+- **Scope:** Implement one deterministic sleep-wake controller in the existing AutoPilot workflow. It runs the existing policy, curriculum, APK, deployed read-only API and emulator checks in order; sleeps 60 seconds between status checks; matches each run to the selected branch and exact SHA; continues after failures; and produces one consolidated result. Keep the Engineering OS and AutoPilot on one task identity and handoff.
+- **Non-goals:** no second agent/service/workflow/task database; no Codex; no paid model integration; no autonomous GitHub code-writing worker; no changes to learner-facing app behavior; no production writes/deployments/releases; no automatic PR merge.
+- **Base:** `main@dcd1b98c2d269fad97af933ed6ff4df5dca18033`.
+- **Branch:** `engineering/unified-proceed-operating-cycle`.
+- **Status:** Controller and regression tests implemented on this branch; PR #65 updated. Exact-head Actions verification pending.
+- **Acceptance:** One existing AutoPilot workflow dispatch starts the full cycle; the controller checks each exact-SHA run after 60-second waits, has bounded discovery/stage timeouts, continues to later checks after failures, never requests public APK release, and returns failure if any stage is not successful. Controller tests cover order, continuation-after-failure and no-release input. The docs accurately state that code repair and ChatGPT-to-GitHub dispatch remain unavailable.
+- **Next action:** open a focused PR, run required checks on its exact head, inspect results and update this handoff with SHAs and links.
 
-## Next product objective: Beyond Earth native whiteboard pilot
-- **PR:** [#59](https://github.com/Prav1525/Padippupal/pull/59)
-- **Head at last check:** `0383b1fe9690ff3c97dcc901c64710be04ddba14`
-- **Scope:** CBSE Class 6 Science, Beyond Earth; native Compose Canvas visuals; no SVG; labelled diagrams; progressive reveal; inline tutor flow.
-- **Latest checks on that head:**
-  - [Android APK run 40989118308](https://github.com/Prav1525/Padippupal/actions/runs/40989118308): PASS.
-  - [Curriculum tests run 40989118292](https://github.com/Prav1525/Padippupal/actions/runs/40989118292): PASS.
-  - [Investigation guidance run 40989118330](https://github.com/Prav1525/Padippupal/actions/runs/40989118330): PASS.
-  - [Android UI smoke run 40989118437](https://github.com/Prav1525/Padippupal/actions/runs/40989118437): FAIL at script validation before emulator startup; runtime behavior remains UNVERIFIED.
-- **Next action:** inspect failing smoke-step logs, fix only the evidence-backed harness issue, rerun emulator validation and inspect screenshots/UI hierarchy for all eight stages.
-- **Release boundary:** do not merge PR #59, deploy or write production DB without explicit founder approval.
+## Operating sequence for every “Proceed”
+1. Re-fetch main, active branch, open PRs and recent workflow runs.
+2. Recover the charter, status, architecture, system map, decisions, known issues, acceptance criteria, active task, approved-work ledger and relevant product/test records.
+3. Build one prioritized queue from approved active work, open PRs, verified regressions and required dependencies.
+4. Select the highest-priority executable task; state why briefly.
+5. Apply AutoPilot's approval/evidence/diagnosis/repair-cap/retest rules to that same task.
+6. Execute through available connected tools; do not imply background/unattended execution.
+7. Verify acceptance on exact commit, update the shared investigation and this handoff, then continue to the next approved item.
+8. Stop for missing approval, unavailable evidence/access, unsafe action, or an unresolved dependency.
+
+## Capability truth
+GitHub `.github/workflows/autopilot.yml` currently validates policy and records completed CI runs/failures. `tools/padippupal_autopilot.py` provides deterministic checks; it does not implement an AI code-repair worker or durable cross-run generation storage. Five generations remain the operating limit, but unattended repair must stay disabled until durable counting, least-privilege execution and controlled tests exist.
+
+## Completed foundation
+- PR #61 — Engineering Operating System merged: `fb17b56524b0f081f7176ff35c949e76d9580d2f`.
+- PR #62 — Unified trigger / AutoPilot Stage 1 merged: `dcd1b98c2d269fad97af933ed6ff4df5dca18033`.
+- PR #62 exact-head Android emulator navigation smoke passed: https://github.com/Prav1525/Padippupal/actions/runs/40992845745.
 
 ## Resume checklist
-- Re-fetch main and working branch heads; do not assume this handoff is current.
-- Re-fetch active PR state and latest checks for its exact head SHA.
-- Re-read `AGENTS.md` and `TESTING_GUIDANCE.md` before edits/tests/builds/deploys.
-- For tutor/UI tests, re-read `.github/testing-regression-checklist.md` and `docs/TESTING_ERRORS.md`.
-- Inspect failure logs/artifacts before retrying; do not repeat an unchanged failed approach.
-- Update this file with exact evidence and one next action.
+- Re-fetch live GitHub state; do not trust this snapshot.
+- Read `AGENTS.md` and `TESTING_GUIDANCE.md` before every new edit/test/build batch.
+- For tutor/UI tasks, also read `.github/testing-regression-checklist.md` and `docs/TESTING_ERRORS.md`.
+- Inspect logs/artifacts before retrying; never repeat an unchanged failed approach.
+- Record exact SHAs, commands, check URLs, outcomes and limitations.

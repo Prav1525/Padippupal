@@ -25,6 +25,62 @@
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "UNIFIED-PROCEED-OPERATING-CYCLE",
+      "status": "APPROVED",
+      "approved_by": "Founder explicitly approved unified Engineering Operating System + AutoPilot integration in ChatGPT conversation on 2026-10-30",
+      "scope": [
+        "Align the canonical Proceed trigger, AGENTS.md, Engineering AutoPilot documentation, CI automation documentation, approved-work ledger and active-work handoff so Engineering OS and AutoPilot operate together on the same task.",
+        "Define one shared task-selection, approval/evidence, execution, retest, acceptance and handoff cycle using existing repository structures.",
+        "State the actual capability boundary: GitHub AutoPilot is a CI recorder and deterministic policy validator; session execution uses available connected tools and is not unattended AI code repair."
+      ],
+      "non_goals": [
+        "Create a second agent, service, dashboard, workflow family, task database or competing source of truth.",
+        "Add Codex, paid model integrations or unattended AI code-writing workers.",
+        "Change learner-facing product behavior, curriculum content or production data.",
+        "Merge PRs automatically, deploy production, perform destructive migrations or publish public releases."
+      ],
+      "acceptance_criteria": [
+        "One founder command, Proceed, invokes the canonical Engineering OS + AutoPilot sequence; no second prompt or separate trigger is required.",
+        "Engineering OS owns whole-project context recovery, priority selection, the single active task and acceptance review.",
+        "AutoPilot applies exact task approval, CI evidence, root-cause, five-generation and retest controls to that same task.",
+        "Both roles share one task ID, branch/PR, investigation trail and active-work handoff.",
+        "GitHub workflow and tool capability limitations are stated accurately; no unattended repair or durable cross-run counter is falsely claimed.",
+        "Existing policy validation and unit tests pass on the exact proposed commit; no learner-facing or production behavior changes."
+      ],
+      "risk": "medium",
+      "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "UNIFIED-PROCEED-SLEEP-WAKE-CONTROLLER",
+      "status": "APPROVED",
+      "approved_by": "Founder approval in ChatGPT conversation on 2026-10-30",
+      "scope": [
+        "Extend the existing PadippuPal AutoPilot workflow with one deterministic full-cycle controller.",
+        "Dispatch the existing guidance, curriculum, Android APK, deployed read-only API smoke, and Android UI smoke workflows in a fixed order.",
+        "Poll each exact branch/SHA workflow run at one-minute intervals with bounded discovery and execution timeouts.",
+        "Continue to later independent checks after an earlier stage fails and publish one consolidated result.",
+        "Add deterministic tests for workflow ordering, failure continuation, and release safety."
+      ],
+      "non_goals": [
+        "Create a second workflow family, agent, service, task queue, or ledger.",
+        "Add Codex or a paid model integration.",
+        "Invent or apply arbitrary source-code repairs or blindly retry unchanged failures.",
+        "Merge pull requests, deploy production, write production data, run destructive migrations, or publish releases.",
+        "Change learner-facing application behavior."
+      ],
+      "acceptance_criteria": [
+        "A single full-cycle workflow dispatch coordinates all five existing checks on the selected branch and exact SHA.",
+        "The controller sleeps 60 seconds between status checks and uses bounded run-discovery and stage timeouts.",
+        "A failed, timed-out, or undiscoverable stage does not suppress later independent checks.",
+        "The final controller result is non-success if any stage is not successful.",
+        "The Android workflow is always dispatched with publish_release=false.",
+        "Unit tests cover stage ordering, continuation after failure, and release safety.",
+        "Documentation clearly states that arbitrary code repair and ChatGPT-to-GitHub workflow dispatch are not yet available."
+      ],
+      "risk": "medium",
+      "approval_expires": "Until revoked by founder"
     }
   ]
 }

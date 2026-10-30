@@ -2,6 +2,14 @@
 
 This is the existing PadippuPal AutoPilot workflow, not a separate agent.
 
+## One coordinated sleep-wake cycle
+
+Use the existing `PadippuPal AutoPilot` workflow and select `full-cycle` from its `workflow_dispatch` input. The single controller runs the existing guidance, curriculum, Android APK, deployed read-only API, and emulator smoke workflows in order. It sleeps for 60 seconds between status checks, wakes to inspect the exact run on the selected branch/SHA, and continues to the next check even if an earlier independent check fails. Each result is also received by the existing `workflow_run` evidence recorder. The final controller result is successful only if every stage succeeds.
+
+The Android dispatch always sets `publish_release=false`. The deployed API smoke stage performs health/retrieval reads only. There are bounded stage timeouts, no blind retries, no automatic code repair, no PR merge and no deployment. A failed stage creates evidence for the next diagnosis; it does not get hidden by later green checks.
+
+The connected ChatGPT GitHub tools do not currently expose workflow dispatch. Until that capability exists, launch `full-cycle` from the GitHub Actions UI. A chat “Proceed” is not proof that a GitHub workflow started.
+
 ## Existing flow
 
 ```text
@@ -53,6 +61,17 @@ The policy helper permits at most five distinct repair generations. A sixth gene
 - No production credentials.
 - No automatic merge, deployment, production database write, destructive migration, or public release.
 - Public APK publishing is gated by owner-triggered `workflow_dispatch` with `publish_release=true`.
+
+## Single “Proceed” trigger — Engineering OS + AutoPilot
+
+The founder uses one command: **“Proceed”**. The canonical session trigger is `docs/AUTOPILOT_TRIGGER_PROMPT.md`. It coordinates the Engineering Operating System and AutoPilot on the same task:
+
+1. Engineering OS recovers the full project context and selects the next approved, highest-priority task.
+2. AutoPilot applies approval, CI evidence, diagnosis, repair-cap and retest controls.
+3. Connected tools execute permitted work in the active session.
+4. Engineering OS verifies acceptance and updates the shared active-work/investigation handoff before continuing.
+
+There is no separate AutoPilot command, parallel task ledger or second workflow family. The GitHub workflow itself remains a CI recorder/policy validator, not an autonomous code-writing worker.
 
 ## Single trigger prompt
 

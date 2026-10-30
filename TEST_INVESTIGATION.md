@@ -571,3 +571,18 @@ Use this format:
 - **Scope boundary:** Stage 1 records CI evidence and validates the approval/retry policy. It does not yet run an AI code repair worker; Stage 2 must reconcile PR #15's repair proposal into this same workflow. Paid API activation requires explicit cost approval.
 - **Safety:** Android public APK release remains owner-dispatch gated. No PR merge, deployment, production DB write, or public release was performed.
 - **Verification:** Pending exact-head GitHub Actions checks; no end-to-end failure event has been simulated on this branch.
+
+
+### 2026-10-30 — Unified Proceed operating-cycle integration
+- **Branch:** `engineering/unified-proceed-operating-cycle`.
+- **Initial exact tested commit:** `5254ecb0f1e1186c4787552a9aecb2ea3b57684f`.
+- **Requirement:** Align the one canonical “Proceed” trigger so Engineering OS and AutoPilot coordinate on one task, approval gate, execution/retest sequence and handoff.
+- **Changes:** Updated `AGENTS.md`, `PROJECT_STATUS.md`, `.engineering/tasks/active-work.md`, `docs/AUTOPILOT_TRIGGER_PROMPT.md`, `docs/ENGINEERING_AUTOPILOT.md`, `docs/CI_AUTOMATION.md` and added the founder-approved bounded integration item to `docs/approved-work.json`.
+- **First verification:** AutoPilot policy validation PASS — run https://github.com/Prav1525/Padippupal/actions/runs/40994371017. Investigation Guidance Gate FAIL — run https://github.com/Prav1525/Padippupal/actions/runs/40994370883.
+- **Exact failure:** `validate_investigation_ledger.py` reported: `code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Root cause:** **CONFIRMED** — the approval-ledger JSON is classified by repository policy as a code/config change and requires a matching investigation record.
+- **Correction:** Added this investigation entry before retrying. No assertions or policy gates were weakened.
+- **Other checks:** Android APK run https://github.com/Prav1525/Padippupal/actions/runs/40994370842 and Android UI smoke run https://github.com/Prav1525/Padippupal/actions/runs/40994370943 were still running at the time of this record; their final results must be checked on the updated head.
+- **Capability boundary:** GitHub AutoPilot remains a CI recorder and deterministic policy validator, not an autonomous code-writing worker; no durable cross-run repair counter is activated. The Proceed integration coordinates connected tools during an active session.
+- **Safety:** No app behavior, production data, deployment, public release or automatic merge is included.
+- **Next action:** Rerun all required checks on the updated exact PR head and inspect the final outcomes.

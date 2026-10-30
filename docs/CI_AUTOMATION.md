@@ -2,6 +2,14 @@
 
 This is the existing PadippuPal AutoPilot workflow, not a separate agent.
 
+## One coordinated sleep-wake cycle
+
+Use the existing `PadippuPal AutoPilot` workflow and select `full-cycle` from its `workflow_dispatch` input. The single controller runs the existing guidance, curriculum, Android APK, deployed read-only API, and emulator smoke workflows in order. It sleeps for 60 seconds between status checks, wakes to inspect the exact run on the selected branch/SHA, and continues to the next check even if an earlier independent check fails. Each result is also received by the existing `workflow_run` evidence recorder. The final controller result is successful only if every stage succeeds.
+
+The Android dispatch always sets `publish_release=false`. The deployed API smoke stage performs health/retrieval reads only. There are bounded stage timeouts, no blind retries, no automatic code repair, no PR merge and no deployment. A failed stage creates evidence for the next diagnosis; it does not get hidden by later green checks.
+
+The connected ChatGPT GitHub tools do not currently expose workflow dispatch. Until that capability exists, launch `full-cycle` from the GitHub Actions UI. A chat “Proceed” is not proof that a GitHub workflow started.
+
 ## Existing flow
 
 ```text

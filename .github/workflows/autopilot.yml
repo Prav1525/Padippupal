@@ -6,12 +6,23 @@ on:
     paths:
       - ".github/workflows/autopilot.yml"
       - "tools/padippupal_autopilot.py"
+      - "tools/padippupal_proceed_controller.py"
       - "tools/test_padippupal_autopilot.py"
+      - "tools/test_padippupal_proceed_controller.py"
       - "docs/ENGINEERING_AUTOPILOT.md"
       - "docs/CI_AUTOMATION.md"
       - "docs/approved-work.json"
       - "docs/AUTOPILOT_TRIGGER_PROMPT.md"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run the complete coordinated engineering check cycle or only validate policy"
+        required: true
+        type: choice
+        options:
+          - full-cycle
+          - validate
+        default: full-cycle
   workflow_run:
     workflows:
       - "Android APK"
@@ -27,7 +38,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: padippupal-autopilot-${{ github.event.workflow_run.id || github.event.pull_request.number || github.run_id }}
+  group: padippupal-autopilot-${{ github.event.workflow_run.id || github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -43,9 +54,30 @@ jobs:
         run: |
           set -euo pipefail
           python tools/padippupal_autopilot.py validate
-          python -m py_compile tools/padippupal_autopilot.py tools/test_padippupal_autopilot.py
+          python -m py_compile tools/padippupal_autopilot.py tools/test_padippupal_autopilot.py tools/padippupal_proceed_controller.py tools/test_padippupal_proceed_controller.py
           python tools/test_padippupal_autopilot.py
+          python tools/test_padippupal_proceed_controller.py
           git diff --check
+
+  coordinated-proceed-cycle:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full-cycle'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run one coordinated sleep-wake engineering cycle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/padippupal_proceed_controller.py
 
   record-ci-result:
     if: github.event_name == 'workflow_run'

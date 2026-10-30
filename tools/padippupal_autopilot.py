@@ -9,6 +9,13 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 APPROVED_WORK = ROOT / "docs" / "approved-work.json"
 MAX_REPAIR_GENERATIONS = 5
+REQUIRED_TRIGGER_CONTRACT = (
+    "Same-invocation operating contract",
+    "Engineering OS lane (orchestrator)",
+    "AutoPilot lane (execution and quality subsystem)",
+    "One shared state",
+    "one coordinated cycle",
+)
 REQUIRED_GUIDES = (
     "TESTING_GUIDANCE.md",
     "TEST_INVESTIGATION.md",
@@ -61,6 +68,16 @@ def validate(root: pathlib.Path = ROOT) -> list[str]:
                 path.read_text(encoding="utf-8")
             except (OSError, UnicodeError):
                 errors.append(f"unreadable required guide: {relative}")
+
+    trigger_path = root / "docs" / "AUTOPILOT_TRIGGER_PROMPT.md"
+    if trigger_path.is_file():
+        try:
+            trigger_text = trigger_path.read_text(encoding="utf-8")
+            for required in REQUIRED_TRIGGER_CONTRACT:
+                if required not in trigger_text:
+                    errors.append(f"unified trigger contract is missing: {required}")
+        except (OSError, UnicodeError):
+            errors.append("unified trigger prompt is unreadable")
 
     ledger_path = root / "docs" / "approved-work.json"
     try:

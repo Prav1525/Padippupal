@@ -1,0 +1,148 @@
+name: PadippuPal AutoPilot
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/autopilot.yml"
+      - "tools/padippupal_autopilot.py"
+      - "tools/test_padippupal_autopilot.py"
+      - "docs/ENGINEERING_AUTOPILOT.md"
+      - "docs/CI_AUTOMATION.md"
+      - "docs/approved-work.json"
+      - "docs/AUTOPILOT_TRIGGER_PROMPT.md"
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Android APK"
+      - "Android UI smoke test"
+      - "Curriculum Engine Tests"
+      - "Investigation Guidance Gate"
+      - "Deployed PadippuPal API Smoke Test"
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: padippupal-autopilot-${{ github.event.workflow_run.id || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Validate engineering guides and approved-work ledger
+        run: |
+          set -euo pipefail
+          python tools/padippupal_autopilot.py validate
+          python -m py_compile tools/padippupal_autopilot.py tools/test_padippupal_autopilot.py
+          python tools/test_padippupal_autopilot.py
+          git diff --check
+
+  record-ci-result:
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      issues: write
+    steps:
+      - name: Inspect completed workflow and record failures
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            if (!run) {
+              core.setFailed("workflow_run payload missing");
+              return;
+            }
+            if (!run.head_repository || run.head_repository.full_name !== context.payload.repository.full_name) {
+              core.notice("Ignoring fork-originated workflow run.");
+              return;
+            }
+
+            const {owner, repo} = context.repo;
+            let jobs = [];
+            try {
+              const response = await github.rest.actions.listJobsForWorkflowRun({
+                owner, repo, run_id: run.id, per_page: 100
+              });
+              jobs = response.data.jobs || [];
+            } catch (error) {
+              core.warning("Job metadata unavailable: " + error.message);
+            }
+
+            const failed = jobs.filter(job =>
+              ["failure", "timed_out", "action_required"].includes(job.conclusion)
+            );
+            const marker = "<!-- padippupal-autopilot:" + run.id + ":" + (run.run_attempt || 1) + " -->";
+            const rows = jobs.map(job =>
+              "- **" + job.name + "** — " + (job.conclusion || job.status) +
+              " ([job](" + job.html_url + "))"
+            ).join("\n") || "- Job metadata unavailable.";
+
+            const body = [
+              marker,
+              "## PadippuPal AutoPilot CI record",
+              "",
+              "- Workflow: **" + run.name + "**",
+              "- Result: **" + (run.conclusion || run.status) + "**",
+              "- Branch: `" + (run.head_branch || "unknown") + "`",
+              "- Exact tested SHA: `" + (run.head_sha || "unknown") + "`",
+              "- Run: " + run.html_url,
+              "- Attempt: " + (run.run_attempt || 1),
+              "",
+              "### Jobs",
+              rows,
+              "",
+              "### Required next steps",
+              "1. Read the existing PadippuPal engineering instructions and current failure register.",
+              "2. Inspect the first failing step and full logs/artifacts for this exact SHA.",
+              "3. Classify root cause as confirmed, probable, or unknown; keyword matches are not proof.",
+              "4. Continue implementation only when it matches an APPROVED entry in `docs/approved-work.json`.",
+              "5. Record each distinct repair generation; stop and escalate after generation 5.",
+              "6. Preserve tests and acceptance criteria. Do not skip tests or weaken assertions.",
+              "7. Create reviewable PRs only. Never merge, deploy, write production data, or publish releases automatically.",
+              "",
+              "_This record is evidence collection only. It does not claim an AI repair has run._"
+            ].join("\n");
+
+            if (run.conclusion === "failure") {
+              const all = await github.rest.issues.listForRepo({owner, repo, state:"all", per_page:100});
+              const prior = all.data.find(issue =>
+                !issue.pull_request && issue.body && issue.body.includes(marker)
+              );
+              if (prior) {
+                await github.rest.issues.update({owner, repo, issue_number:prior.number,
+                  title:"[AutoPilot] " + run.name + " failed — run " + run.id, body});
+                core.notice("Updated existing AutoPilot record #" + prior.number);
+              } else {
+                const created = await github.rest.issues.create({owner, repo,
+                  title:"[AutoPilot] " + run.name + " failed — run " + run.id, body});
+                core.notice("Created AutoPilot record " + created.data.html_url);
+              }
+            }
+
+            await core.summary
+              .addHeading("PadippuPal AutoPilot — CI result")
+              .addTable([
+                [{data:"Field",header:true},{data:"Value",header:true}],
+                ["Workflow", run.name],
+                ["Result", run.conclusion || run.status],
+                ["Branch", run.head_branch || "unknown"],
+                ["Exact SHA", run.head_sha || "unknown"],
+                ["Failed jobs", failed.map(job => job.name).join(", ") || "none"],
+                ["Source run", run.html_url],
+                ["Repair limit", "5 distinct generations; then escalate"],
+                ["Autonomy", "Approved roadmap only"],
+                ["Release boundary", "No merge, deployment, production write, or public release"]
+              ])
+              .write();

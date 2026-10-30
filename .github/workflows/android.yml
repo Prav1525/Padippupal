@@ -6,13 +6,21 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish this tested APK as a public GitHub release (founder approval required)"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,11 +42,29 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
-      - name: Publish direct APK download
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+  publish-release:
+    name: Founder-approved public APK release
+    needs: build
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.publish_release == true &&
+      github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download APK built in this workflow run
+        uses: actions/download-artifact@v4
+        with:
+          name: PadippuPal-debug-apk
+          path: release-artifact
+      - name: Publish explicitly approved APK
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "apk-build-${{ github.run_number }}" app/build/outputs/apk/debug/app-debug.apk \
+          set -euo pipefail
+          test -s release-artifact/app-debug.apk
+          gh release create "apk-build-${{ github.run_number }}" release-artifact/app-debug.apk \
             --title "PadippuPal APK build ${{ github.run_number }}" \
-            --notes "Automated debug APK from commit ${{ github.sha }}."
+            --notes "Founder-approved public APK from commit ${{ github.sha }}."

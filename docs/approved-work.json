@@ -1,0 +1,30 @@
+{
+  "policy": "approved-roadmap-only",
+  "max_repair_generations": 5,
+  "tasks": [
+    {
+      "id": "AUTOPILOT-CI-REPAIR",
+      "status": "APPROVED",
+      "approved_by": "Founder approval in ChatGPT conversation on 2026-10-30",
+      "scope": [
+        "Investigate failures in configured PadippuPal CI and test workflows.",
+        "Prepare focused repairs only when they are necessary to satisfy an already-approved roadmap task's acceptance criteria.",
+        "Run the relevant regression checks and create a reviewable pull request."
+      ],
+      "non_goals": [
+        "Invent or implement new product features.",
+        "Change curriculum or learner-facing behavior outside an approved task.",
+        "Merge pull requests, deploy production, write production data, perform destructive migrations, or publish releases."
+      ],
+      "acceptance_criteria": [
+        "Every repair links to the originating failed workflow run and exact tested SHA.",
+        "A confirmed root cause and regression test are recorded before a repair is proposed.",
+        "No more than five distinct repair generations are attempted for one originating failure; generation five failure escalates.",
+        "All changes are isolated in branches and submitted as pull requests.",
+        "Required checks run against the exact proposed commit and no assertions are weakened or tests skipped."
+      ],
+      "risk": "high",
+      "approval_expires": "Until revoked by founder"
+    }
+  ]
+}

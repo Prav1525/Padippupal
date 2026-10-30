@@ -606,3 +606,13 @@ Use this format:
 - **Correction:** Map each stable step ID to its chapter-specific scene (constellation, sky watching, Sun/star, solar system, planets/stars, Earth/Moon, asteroid/comet, galaxy) and assert all eight mappings in the smoke-helper contract tests.
 - **Data safety:** Test branch read only; production database remains unchanged.
 - **Retest:** Exact-head Android build, JVM tests, emulator smoke and screenshot review pending.
+
+
+### 2026-10-30 — Native Day/Night Canvas renderer (PR #81)
+- **Objective:** Replace the Beyond Earth Day/Night WebView/PixiJS scene with a native offline Jetpack Compose Canvas renderer, with progressive visuals driven by the tutor's active lesson step and no manual Next control.
+- **Branch:** `feature/native-live-science-canvas`; base `feature/beyond-earth-excalidraw-board`.
+- **Implementation:** Added `BeyondEarthNativeCanvas.kt` and routed the `beyond_earth_sky_watching` scene to it. Other Beyond Earth subtypes retain their existing renderer.
+- **Initial verification:** Investigation Guidance Gate run `41009975359` failed because this file had not yet been updated. This is a documentation/ledger gate failure, not an Android compile result.
+- **Current verification status:** Android build, tests, tutor narration-step alignment, emulator screenshot and visual review are NOT YET VERIFIED on this candidate. Do not merge or release until those gates pass.
+- **Known review items:** Confirm step-index thresholds correspond to actual narration events; ensure Earth rotation is only animated when the tutor is explaining rotation; improve illustration fidelity and verify compact layout.
+- **Safety:** No merge, production deployment, production database write or public APK release.

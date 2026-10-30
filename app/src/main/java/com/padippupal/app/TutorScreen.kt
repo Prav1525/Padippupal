@@ -345,7 +345,7 @@ private fun activeSubtypeForChapter(lesson: JSONObject, activeStep: JSONObject?)
 }
 
 @Composable
-private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?) {
+private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?, narrationText: String = "", narrationWordIndex: Int = 0, narrationActive: Boolean = false) {
     val title = lesson.optString("title", "Lesson visual")
     val caption = lesson.optString("caption", "")
     val objects = lesson.optJSONArray("objects")
@@ -745,7 +745,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
     if (scene == "synthesis_static") {
-        SynthesizedVisualCard(lesson, compact, activeStepOverride)
+        SynthesizedVisualCard(lesson, compact, activeStepOverride, narrationText, narrationWordIndex, narrationActive)
         return
     }
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {

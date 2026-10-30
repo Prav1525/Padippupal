@@ -595,8 +595,24 @@ def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
     for index, visual in enumerate(visuals):
         blueprint = visual.get("blueprint", {})
         nodes = blueprint.get("nodes", []) if isinstance(blueprint, dict) else []
-        if not isinstance(nodes, list):
-            nodes = []
+        if not isinstance(nodes, list) or not nodes:
+            # Chapter whiteboard blueprints store their labelled concepts as
+            # objects/actions and progressive drawing steps, not a flat nodes array.
+            raw_objects = blueprint.get("objects", []) if isinstance(blueprint, dict) else []
+            nodes = [
+                str(item.get("label", "")).strip()
+                for item in raw_objects
+                if isinstance(item, dict) and str(item.get("label", "")).strip()
+            ] if isinstance(raw_objects, list) else []
+            if not nodes and isinstance(blueprint, dict):
+                drawing_steps = blueprint.get("steps", [])
+                if isinstance(drawing_steps, list):
+                    for drawing_step in drawing_steps:
+                        if isinstance(drawing_step, dict) and isinstance(drawing_step.get("nodes"), list):
+                            nodes.extend(str(value).strip() for value in drawing_step["nodes"] if str(value).strip())
+                            if nodes:
+                                break
+        nodes = nodes[:6]
         steps.append({
             "id": visual.get("step_id", f"step-{index + 1}"),
             "label": blueprint.get("title", visual.get("summary_text", "")),

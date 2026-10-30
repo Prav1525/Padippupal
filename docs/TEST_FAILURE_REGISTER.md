@@ -320,3 +320,15 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `bab28a9060ae8e86db31b18141739df877d30377` shortens the capture window to 12 frames at 0.5-second intervals (about six seconds) so the highlight scan samples the active lesson sooner.
 - **Regression check:** Re-run `android-ui-smoke.sh`; it must capture the active tutor screen, find the inline visual, and detect a moving spoken-word highlight across at least two positions.
 - **Validation:** Pending fresh Android emulator run. Do not close this incident or merge until the emulator flow passes.
+
+
+## Incident: Beyond Earth smoke contract unit test asserted obsolete source text
+
+- **Date:** 2026-10-30
+- **Affected PR:** [#59](https://github.com/Prav1525/Padippupal/pull/59), branch `feature/beyond-earth-whiteboard-native`.
+- **Evidence:** [Android UI smoke run 40989118437](https://github.com/Prav1525/Padippupal/actions/runs/40989118437), job 123846977986, exact tested head `0383b1fe9690ff3c97dcc901c64710be04ddba14`.
+- **Observed failure:** `SynthesisInlineVisualContractTests.test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay` failed in smoke-script validation. JVM tests and APK build passed; emulator end-to-end was skipped because script validation failed.
+- **Root cause:** **CONFIRMED** the unit test expected the literal source fragment `"pattern of stars" in joined`, but the live assertion correctly checks a full constellation summary and a tuple of accepted explanation phrases. The production assertion and test fixture both expose the expected constellation text. This was a stale test-source expectation, not an observed Android rendering failure.
+- **Fix:** Commit `e24f782e5e22be72f371a5001b66fff61ccf51f2` updates the contract test to assert the actual summary check, accepted explanation tuple, and explicit rejection of Mathematics content. It does not weaken the runtime assertion.
+- **Regression protection:** Re-run the helper unit-test suite and full API-35 Android UI smoke on the updated exact PR head. Review the Beyond Earth live screenshot and hierarchy; do not infer visual correctness from script validation alone.
+- **Status:** Fix committed; exact-head regression and runtime visual verification **PENDING**. No merge or deployment performed.

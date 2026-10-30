@@ -45,8 +45,15 @@ internal fun BeyondEarthNativeCanvas(
     modifier: Modifier = Modifier
 ) {
     val narrationWords = narrationText.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
-    val wordProgress = if (narrationWords.isEmpty()) 1f else
-        ((narrationWordIndex + if (narrationActive) 1 else narrationWords.size).toFloat() / narrationWords.size).coerceIn(0f, 1f)
+    var observedWordProgress by androidx.compose.runtime.remember(narrationText) { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    androidx.compose.runtime.LaunchedEffect(narrationText, narrationWordIndex, narrationActive) {
+        if (narrationActive && narrationWords.isNotEmpty()) {
+            val current = ((narrationWordIndex + 1).toFloat() / narrationWords.size).coerceIn(0f, 1f)
+            observedWordProgress = maxOf(observedWordProgress, current)
+        }
+    }
+    // Preserve the last spoken position across pause/completion; inactivity is not 100%.
+    val wordProgress = if (narrationWords.isEmpty()) 1f else observedWordProgress
     // Reveal each part in sync with the live spoken sentence; no manual stage control.
     val reveal = when {
         narrationWords.isEmpty() -> step.coerceIn(0, 3)

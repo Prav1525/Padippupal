@@ -332,3 +332,11 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `44d4f14dd711115250721ce64965029d9a30be79` removes the invalid import. No assertion or test was weakened.
 - **Regression check:** Re-run Android APK build, JVM tests and full API-35 emulator smoke on the corrected exact PR head; inspect Beyond Earth screenshots and UI hierarchy.
 - **Status:** Fix committed; corrected-head verification pending. Do not merge or deploy until all required checks pass.
+
+
+## Incident: Beyond Earth whiteboard imported an internal Compose layout symbol
+- **Symptom:** PR #69 Android APK build run [41000383046](https://github.com/Prav1525/Padippupal/actions/runs/41000383046) and UI smoke run [41000382877](https://github.com/Prav1525/Padippupal/actions/runs/41000382877) failed during Kotlin compilation before emulator allocation.
+- **Root cause:** Confirmed — BeyondEarthWhiteboard.kt explicitly imported androidx.compose.foundation.layout.weight, which resolves to an internal implementation symbol and is not accessible to the app module.
+- **Fix:** Removed the explicit import. Modifier.weight calls remain inside their normal RowScope/ColumnScope receivers.
+- **Additional regression protection:** Added Beyond Earth native-board contract checks to test_ui_smoke_helpers.py; tap-to-reveal state is keyed by both subtype and active narrated step so it resets when narration advances.
+- **Verification:** Corrected-head Android APK, JVM, emulator UI, and curriculum checks are tracked by the latest PR #69 workflow runs. Do not close this incident until all exact-head checks pass and the chapter screenshot is inspected.

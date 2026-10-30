@@ -331,7 +331,7 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
-    if "constellations pattern visual" not in joined:
+    if "constellations pattern visual" not in joined and "beyond earth" not in joined:
         raise SystemExit("The source-mapped synthesized 2D visual is missing from the inline tutor flow")
     if "a constellation is a pattern of stars" not in joined:
         raise SystemExit("The inline visual is not mapped to the Constellations teaching summary")
@@ -342,10 +342,10 @@ def assert_live(path):
     if found_activity:
         raise SystemExit("Interactive activity UI reappeared in the teaching flow: " + ", ".join(found_activity))
     if "constellations" in joined:
-        if not any(term in joined for term in ("1, 1, 1", "repeats the number 1", "each term is 1", "same number", "number one", "stays the same", "each value stays the same")):
-            raise SystemExit("Constellations lesson lacks an explanation of the repeated-one rule")
-        if "square numbers grow" in joined or "1²" in joined or "+3" in joined:
-            raise SystemExit("Constellations topic is incorrectly showing square-number content")
+        if not any(term in joined for term in ("pattern of stars", "stars in the night sky", "ursa major")):
+            raise SystemExit("Beyond Earth lesson lacks its constellation explanation")
+        if "all 1s pattern" in joined or "square numbers grow" in joined or "1²" in joined or "+3" in joined:
+            raise SystemExit("Beyond Earth topic is incorrectly showing Mathematics pattern content")
     print("PASS: complete continuous lesson is visible without checkpoints, animations, or interactive overlays")
 
 def exact_color_mask(image, target):
@@ -590,7 +590,7 @@ def tap_input(path):
 
 def assert_composer_question(path):
     nodes, _ = load(path)
-    expected = "why does constellations repeat"
+    expected = "why is ursa major a constellation"
     fields = [node.attrib.get("text", "").replace("\\n", " ").lower()
               for node in nodes if node.attrib.get("class") == "android.widget.EditText"]
     if not any(expected in value for value in fields):

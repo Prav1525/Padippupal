@@ -7,6 +7,16 @@
 
 ## One engineering system
 
+The founder-facing command is **“Proceed”**. It invokes one coordinated session cycle; the founder must not start Engineering OS and AutoPilot separately.
+
+- Engineering OS owns context recovery, prioritization, the single active task and acceptance review.
+- AutoPilot owns approval/evidence gates, CI investigation, bounded repair discipline and retest evidence.
+- Connected tools perform the permitted work during the active session.
+- Both roles use the same task ID, branch/PR, investigation record and `.engineering/tasks/active-work.md` handoff.
+
+The sequence is: recover → select one approved task → AutoPilot policy/evidence gate → execute → retest → Engineering OS acceptance review → update shared handoff → continue to next approved task. A real safety/approval/dependency blocker stops the shared cycle.
+
+
 The AutoPilot is not a separate agent, service, dashboard, or task queue. It extends the repository's existing engineering structure:
 
 - `.github/workflows/autopilot.yml` is the single CI result and policy-validation entry point.
@@ -29,13 +39,15 @@ The existing AutoPilot workflow:
 
 The failure observer does not check out or execute the failed branch. Fork-originated workflow runs are ignored.
 
+**Capability truth:** Stage 1 is a CI event recorder and deterministic policy validator. It does not autonomously write application code and does not persist repair-generation counts across workflow runs. The “Proceed” session can use connected repository tools to carry out approved work while the session is active; this is not unattended/background automation.
+
 ## Approved roadmap policy
 
 A task is eligible only when its exact ID appears in `docs/approved-work.json` with status `APPROVED`, bounded scope, non-goals, acceptance criteria and approval provenance.
 
 - A failure is not permission to invent a feature.
 - A task marked `PROPOSED`, `BLOCKED`, or absent from the ledger is not executable.
-- The currently recorded approval is limited to CI/test failure investigation and repairs required by already-approved roadmap acceptance criteria.
+- The approved-work ledger records CI/test failure investigation and repairs required by already-approved roadmap acceptance criteria, plus the founder-approved scope to align the single Proceed operating contract across existing engineering instructions and records. It does not approve new learner-facing features.
 - Scope expansion, curriculum changes, new product features or changes to user-visible behavior require a separate founder approval recorded in the ledger.
 
 ## Five-generation repair policy
@@ -62,7 +74,7 @@ The Python helper currently validates the five-generation cap and exact approved
 
 ## Single trigger prompt — non-Codex execution
 
-Use [docs/AUTOPILOT_TRIGGER_PROMPT.md](AUTOPILOT_TRIGGER_PROMPT.md) as the one reusable trigger for a complete engineering cycle. It combines startup context recovery, CI observation, evidence collection, root-cause investigation, approved-scope checks, bounded repair, retesting, engineering-ledger updates, PR preparation and escalation.
+Use [docs/AUTOPILOT_TRIGGER_PROMPT.md](AUTOPILOT_TRIGGER_PROMPT.md) as the one canonical trigger for a complete Engineering OS + AutoPilot cycle. The founder says “Proceed” once; both roles operate together on the same task and handoff. It combines startup context recovery, CI observation, evidence collection, root-cause investigation, approved-scope checks, bounded repair, retesting, engineering-ledger updates, PR preparation and escalation.
 
 Codex is explicitly excluded. Do not add Codex workflows, APIs, CLI tooling, credentials or paid model calls. Use existing deterministic tools and the connected engineering capabilities available in the session. If a required repair capability is unavailable, report the limitation rather than claiming autonomous repair.
 

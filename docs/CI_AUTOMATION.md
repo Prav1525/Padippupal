@@ -54,6 +54,10 @@ The policy helper permits at most five distinct repair generations. A sixth gene
 - No automatic merge, deployment, production database write, destructive migration, or public release.
 - Public APK publishing is gated by owner-triggered `workflow_dispatch` with `publish_release=true`.
 
-## Stage 2 requirements
+## Single trigger prompt
 
-Integrate the existing repair proposal from PR #15 into this workflow after reconciling it with PR #18. Do not add another agent, workflow service, or task ledger. A paid model API requires explicit founder cost approval before its secret is enabled. The repair worker must never receive a GitHub write token; a separate least-privilege job may open a PR after validating the patch and retests.
+The complete non-Codex engineering procedure lives in [AUTOPILOT_TRIGGER_PROMPT.md](AUTOPILOT_TRIGGER_PROMPT.md). Use that one prompt to coordinate context recovery, CI evidence, failure investigation, approved-scope validation, bounded repair, retesting, engineering records, PR preparation and escalation.
+
+Codex and paid model integrations are excluded. The trigger prompt does not imply that a code-repair worker or durable cross-run generation counter is already running; verify the actual tools and repository capabilities before starting a repair. If no safe repair mechanism or persistent counter exists, stop and report the limitation.
+
+Do not add another agent, observer workflow, service or task ledger. PR #15's Codex worker is intentionally not part of this architecture.

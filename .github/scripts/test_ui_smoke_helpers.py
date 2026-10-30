@@ -447,6 +447,17 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
         self.assertIn('else -> drawGalaxy(stage, sw, unit)', board)
         self.assertIn("BeyondEarthWhiteboard(", tutor)
         self.assertIn('lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)', tutor)
+        for step, scene in (
+            ("step_1", "beyond_earth_constellation"),
+            ("step_2", "beyond_earth_sky_watching"),
+            ("step_3", "beyond_earth_sun_star"),
+            ("step_4", "beyond_earth_solar_system"),
+            ("step_5", "beyond_earth_planet_star"),
+            ("step_6", "beyond_earth_earth_moon"),
+            ("step_7", "beyond_earth_asteroid_comet"),
+            ("step_8", "beyond_earth_galaxy"),
+        ):
+            self.assertIn(f'"{step}" to "{scene}"', tutor)
 
     def test_board_is_native_compose_and_manual_reveal_resets_per_narrated_step(self):
         root = Path(__file__).resolve().parents[2]

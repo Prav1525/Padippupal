@@ -18,6 +18,18 @@ The AutoPilot is not a separate agent, service, dashboard, or task queue. It ext
 
 There must be one source of truth for tasks and approvals. The Autopilot consumes existing records; it does not create a parallel product roadmap.
 
+## Same-invocation relationship with the Engineering Operating System
+
+The founder-facing **“Proceed”** command invokes one coordinated engineering cycle. The Engineering Operating System is the project-wide orchestrator; AutoPilot is its execution/quality subsystem in the same cycle. They are not two separately started agents:
+
+- Engineering OS owns whole-project context recovery, task selection, dependency ordering, roadmap scope, acceptance criteria and the durable handoff.
+- AutoPilot owns CI/test evidence collection, deterministic policy checks, failure investigation records and bounded repair/retest support where an approved execution capability is available.
+- Both use the same active-work record, approved-work ledger, investigation history, PR/commit evidence and definition of done.
+- Engineering OS directs product work beyond CI; AutoPilot's CI queue must never become the entire product roadmap.
+- AutoPilot's evidence and safety gates apply to every relevant engineering task; Engineering OS makes the final acceptance decision from that evidence.
+
+**Current runtime truth:** Stage 1 GitHub Actions is an event recorder and policy validator, not an autonomous code-writing worker. The ChatGPT engineering session performs approved repository work with available tools while coordinating both responsibilities. Unattended AI repairs and durable cross-run repair counting remain inactive until implemented and independently tested. Never claim otherwise.
+
 ## Current Stage 1 behavior
 
 The existing AutoPilot workflow:

@@ -2,6 +2,17 @@
 
 **Before every code edit, test action, build action, build/configuration change, or deployment action, read `TESTING_GUIDANCE.md` in full and follow it.** This is a per-action requirement, not a one-time setup step. If a task spans multiple edits or sessions, re-open the guidance before each new batch of edits and whenever the investigation context changes.
 
+## Persistent engineering context (required at every resumed task)
+Before planning work in a new or resumed session, read these repository records:
+1. `PROJECT_CHARTER.md` — product mission, principles and owner-controlled operations.
+2. `PROJECT_STATUS.md` — last reconciled repository/PR/CI/deployment snapshot; re-verify live state.
+3. `.engineering/ENGINEERING_RULES.md` — context recovery, evidence and authorization rules.
+4. `.engineering/ARCHITECTURE.md` and `.engineering/SYSTEM_MAP.md` — verified facts and explicitly unresolved architecture questions.
+5. `.engineering/DECISIONS.md`, `.engineering/KNOWN_ISSUES.md` and `.engineering/tasks/active-work.md` — decisions, open failures and current work.
+6. Relevant module notes under `.engineering/modules/`.
+
+The records are durable context, not unquestionable truth. Reconcile them with the current GitHub branch/commit, PRs, workflow runs and target environment. Actual source and fresh environment evidence take precedence. Update the records when new evidence changes the project state. Do not invent missing architecture details.
+
 ## Required pre-action gate
 Before touching code or starting a consequential build/test/deploy action, state in working notes (and in the user update when meaningful):
 1. The relevant guidance being applied, including build-specific rules when applicable.

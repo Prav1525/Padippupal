@@ -571,3 +571,38 @@ Use this format:
 - **Scope boundary:** Stage 1 records CI evidence and validates the approval/retry policy. It does not yet run an AI code repair worker; Stage 2 must reconcile PR #15's repair proposal into this same workflow. Paid API activation requires explicit cost approval.
 - **Safety:** Android public APK release remains owner-dispatch gated. No PR merge, deployment, production DB write, or public release was performed.
 - **Verification:** Pending exact-head GitHub Actions checks; no end-to-end failure event has been simulated on this branch.
+
+
+### 2026-10-30 — Beyond Earth Excalidraw-style teaching board release
+- **Founder-approved task:** `SCIENCE-BEYOND-EARTH-EXCALIDRAW-BOARD` (see `docs/approved-work.json`).
+- **Branch:** `feature/beyond-earth-excalidraw-board`.
+- **Objective:** Finish the chapter-scoped native Compose hand-drawn board for all eight Beyond Earth visual subtypes, synchronized with narrated lesson steps and learner tap-to-reveal.
+- **Implementation inspected:** `BeyondEarthWhiteboard.kt` supplies a paper-like board, pencil/double-stroke paths, rough shapes, chapter-specific diagrams, progressive stages and tap-to-sketch interaction; `TutorScreen.kt` selects it only for Beyond Earth and retains the existing renderer for other lessons.
+- **Constraints:** Native Compose only; no SVG; no other chapter changes; no production database writes.
+- **Verification status at entry:** UNVERIFIED — exact-head Android build, unit/static checks, UI smoke, backend/curriculum checks and rendered chapter review still required.
+- **Release gate:** Merge/deploy only after required checks pass on the exact candidate SHA; verify the production APK artifact before reporting availability.
+
+### 2026-10-30 — Android APK build attempt 1 for Beyond Earth board
+- **Exact candidate:** `bbd6d819e248ad56e66eaed20d7f71ac14e1bd2f` (PR #69).
+- **Workflow:** Android APK run `41000383046`, job `build`.
+- **Command:** `gradle --no-daemon assembleDebug` (JDK 17, Gradle 8.9).
+- **Outcome:** FAIL — Kotlin compilation rejected `import androidx.compose.foundation.layout.weight` in `BeyondEarthWhiteboard.kt:16`: `Cannot access 'val RowColumnParentData?.weight: Float': it is internal in file.`
+- **Root cause:** CONFIRMED — the file imported the internal implementation-facing `weight` symbol instead of relying on the RowScope extension provided by the layout receiver.
+- **Repair:** Removed the invalid explicit import; no API, tests, or assertions were changed.
+- **Next verification:** Rerun Android APK build and full UI smoke on the new exact head SHA; treat all prior checks as stale for the changed commit.
+
+
+### 2026-10-30 — Beyond Earth whiteboard Compose import failure
+- **Affected PR:** #69; initial failing exact PR head `bbd6d819e248ad56e66eaed20d7f71ac14e1bd2f`.
+- **Evidence:** Android APK run 41000383046 (job 123883172514) and Android UI smoke run 41000382877 (job 123883172152).
+- **Confirmed root cause:** Direct import of Compose `Modifier.weight` is inaccessible; it is supplied by the enclosing RowScope/ColumnScope.
+- **Correction:** Removed the invalid import in commit `44d4f14dd711115250721ce64965029d9a30be79`.
+- **Retest:** Corrected-head Android build, JVM tests, and emulator screenshot review pending. Initial failure remains recorded; no merge/deploy.
+
+
+### 2026-10-30 — Beyond Earth generic subtype routing correction
+- **Evidence:** Read-only test-branch database inspection found all eight chapter visual blueprints use `handwritten_whiteboard`; stable asset IDs are `step_1` through `step_8`, with concept-specific summaries and visual kinds.
+- **Confirmed risk:** Prefixing the generic subtype would route all eight records to the same fallback drawing.
+- **Correction:** Map each stable step ID to its chapter-specific scene (constellation, sky watching, Sun/star, solar system, planets/stars, Earth/Moon, asteroid/comet, galaxy) and assert all eight mappings in the smoke-helper contract tests.
+- **Data safety:** Test branch read only; production database remains unchanged.
+- **Retest:** Exact-head Android build, JVM tests, emulator smoke and screenshot review pending.

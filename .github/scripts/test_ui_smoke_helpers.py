@@ -77,9 +77,9 @@ class ExactSelectorTests(unittest.TestCase):
     def test_live_lesson_assertion_reads_icon_only_pause_and_stop_labels(self):
         root = ET.fromstring("""<hierarchy>
           <node text="Live lesson · segment 1 of 1" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,50][300,250]"/>
-          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
-          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
+          <node text="A group of stars that forms a recognised pattern is called a constellation. The stars only appear close together from our viewpoint on Earth; they can be very far apart in space." bounds="[0,50][300,250]"/>
+          <node text="Beyond Earth — Constellation" bounds="[0,250][300,300]"/>
+          <node text="A constellation is a pattern of stars seen in the night sky." bounds="[0,300][300,350]"/>
           <node text="" content-desc="Pause playback" bounds="[0,350][100,400]"/>
           <node text="" content-desc="Stop lesson" bounds="[100,350][200,400]"/>
         </hierarchy>""")
@@ -93,9 +93,9 @@ class ExactSelectorTests(unittest.TestCase):
     def test_live_assertion_accepts_a_short_first_segment_before_later_segments(self):
         root = ET.fromstring("""<hierarchy>
           <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,50][300,250]"/>
-          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
-          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
+          <node text="A group of stars that forms a recognised pattern is called a constellation. The stars only appear close together from our viewpoint on Earth." bounds="[0,50][300,250]"/>
+          <node text="Beyond Earth — Constellation" bounds="[0,250][300,300]"/>
+          <node text="A constellation is a pattern of stars seen in the night sky." bounds="[0,300][300,350]"/>
           <node text="" content-desc="Pause playback" bounds="[0,350][100,400]"/>
           <node text="" content-desc="Stop lesson" bounds="[100,350][200,400]"/>
         </hierarchy>""")
@@ -125,9 +125,9 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
     def test_smoke_api_supplies_a_source_mapped_original_2d_visual(self):
         fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
         self.assertIn('"scene_type": "synthesis_static"', fixture)
-        self.assertIn('"title": "All 1s pattern visual"', fixture)
-        self.assertIn('"nodes": ["1", "1", "1", "1", "1"]', fixture)
-        self.assertIn('"source_chunk_ids": ["smoke-source"]', fixture)
+        self.assertIn('"title": "Beyond Earth — Constellation"', fixture)
+        self.assertIn('"nodes": ["North Star", "Star pattern", "Ursa Major"]', fixture)
+        self.assertIn('"source_chunk_ids": ["smoke-beyond-earth-source"]', fixture)
         self.assertIn('"animation": "narration_synced_2d"', fixture)
 
     def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):
@@ -135,8 +135,8 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('"all 1s pattern visual" not in joined', live)
-        self.assertIn('"each term stays 1" not in joined', live)
+        self.assertIn('"all 1s pattern" in joined', live)
+        self.assertIn('"pattern of stars" in joined', live)
         self.assertNotIn('"watch the pattern"', live)
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
 

@@ -24,3 +24,13 @@ After any change or meaningful build/test action:
 Never claim success without verification. A successful compile does not prove tests passed; a generated APK does not prove runtime behaviour. Never repeat an unchanged failed approach. Never merge a PR without the user's explicit permission.
 
 These requirements apply to all coding agents and human contributors. `TESTING_GUIDANCE.md` is the detailed source of truth.
+
+
+## Persistent engineering memory
+Before starting or resuming any PadippuPal task, read:
+1. `PROJECT_CHARTER.md` and `PROJECT_STATUS.md`.
+2. `.engineering/README.md` and the relevant architecture/module, decision, known-issue, and acceptance records.
+3. `.engineering/tasks/active-work.md` to recover the single active objective.
+4. The existing mandatory guidance above and, for tutor/UI work, `.github/testing-regression-checklist.md` plus `docs/TESTING_ERRORS.md`.
+
+Reconcile dated documentation with actual branch heads, PRs, CI runs/artifacts, and deployed state before acting. Actual evidence outranks this snapshot. Update the status and active-work handoff with exact commit/run links at meaningful task boundaries. Do not merge PRs or make production changes without explicit founder approval.

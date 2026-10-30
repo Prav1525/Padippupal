@@ -340,3 +340,14 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Removed the explicit import. Modifier.weight calls remain inside their normal RowScope/ColumnScope receivers.
 - **Additional regression protection:** Added Beyond Earth native-board contract checks to test_ui_smoke_helpers.py; tap-to-reveal state is keyed by both subtype and active narrated step so it resets when narration advances.
 - **Verification:** Corrected-head Android APK, JVM, emulator UI, and curriculum checks are tracked by the latest PR #69 workflow runs. Do not close this incident until all exact-head checks pass and the chapter screenshot is inspected.
+
+
+## Incident: Beyond Earth lesson assets shared a generic visual subtype
+
+- **Date:** 2026-10-30
+- **Affected PR:** [#69](https://github.com/Prav1525/Padippupal/pull/69)
+- **Evidence:** Read-only inspection of Neon test branch `br-muddy-wave-az5r8igq`, lesson `10d13a36-87e9-5f3b-8210-f62eb95e8854`, confirmed eight ordered asset IDs `step_1`–`step_8`; every blueprint uses `visual_subtype=handwritten_whiteboard` while `visual_kind` differs by concept.
+- **Root cause:** **CONFIRMED** — the first client routing implementation prefixed the generic subtype, which could send every chapter step to the Galaxy fallback instead of its matching scene.
+- **Fix:** Map the stable chapter step IDs to the eight distinct scene types in `activeSubtypeForChapter`; add regression assertions for every step-to-scene mapping. No production data was modified.
+- **Regression check:** Re-run Android compile, JVM/helper tests and full API-35 UI smoke on the corrected PR head; inspect the actual Beyond Earth screenshot.
+- **Status:** Fix committed; exact-head verification pending. Do not merge or deploy until checks and screenshot review pass.

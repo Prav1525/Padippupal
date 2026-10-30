@@ -61,6 +61,7 @@ import kotlin.math.roundToInt
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -410,12 +411,10 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             )
         }
         if (activeKind == "beyond_earth") {
-            BeyondEarthWhiteboard(
-                subtype = activeSubtypeForChapter(lesson, activeStep),
-                labels = activeLabels,
-                revealCount = revealCount,
-                stepKey = active,
-                compact = compact
+            BeyondEarthPixiCanvas(
+                step = active,
+                compact = compact,
+                modifier = Modifier.fillMaxWidth()
             )
         } else {
         Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {

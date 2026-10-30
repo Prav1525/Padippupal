@@ -470,3 +470,31 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
         self.assertIn("stepKey = active", tutor)
         self.assertNotIn(".svg", board.lower())
         self.assertNotIn("androidx.compose.ui.graphics.vector", board)
+
+
+class BeyondEarthChapterSelectionTests(unittest.TestCase):
+    def test_chapter_selection_assertion_matches_the_real_beyond_earth_picker(self):
+        source = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        start = source.index("def assert_chapter_selected(path):")
+        end = source.index("\\ndef tap_numbered", start)
+        assertion = source[start:end].lower()
+        self.assertIn('"beyond earth" not in joined', assertion)
+        self.assertIn('"constellations" not in joined', assertion)
+        self.assertNotIn("patterns in mathematics", assertion)
+
+    def test_actual_beyond_earth_accessibility_tree_passes_chapter_assertion(self):
+        from ui_smoke import assert_chapter_selected
+        root = ET.fromstring("""<hierarchy>
+          <node text="PadippuPal"/>
+          <node text="Beyond Earth · Constellations"/>
+          <node text="Chapter"/>
+          <node text="Beyond Earth"/>
+          <node text="Topic / concept"/>
+          <node text="Constellations"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-beyond-earth-chapter-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_chapter_selected(str(path))
+        finally:
+            path.unlink(missing_ok=True)

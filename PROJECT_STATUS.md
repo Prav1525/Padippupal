@@ -28,13 +28,13 @@
 4. Engineering OS checks acceptance criteria and updates the same handoff before selecting another approved task.
 5. Stop only for a real approval, safety, access, evidence or dependency blocker—not because the task belongs to another subsystem.
 
-**Important capability boundary:** GitHub AutoPilot is currently a CI event recorder and deterministic policy validator. It does not autonomously write code or maintain a durable cross-run repair-generation counter. The coordinated “Proceed” behavior is a session-level operating protocol using available connected tools; unattended AI repair is not activated or claimed.
+**Important capability boundary:** GitHub AutoPilot is a CI event recorder, deterministic policy validator, and now includes a bounded sleep-wake controller for the existing checks. It does not autonomously write code or maintain a durable cross-run repair-generation counter. The controller polls each dispatched run at 60-second intervals and continues after independent failures. ChatGPT's connected GitHub tools currently do not expose workflow dispatch, so a chat message alone cannot launch the background cycle.
 
 ## Current integration work
 - **Objective:** make the single “Proceed” contract explicit and consistent across repository instructions, trigger, AutoPilot documentation, approval ledger and active-work handoff.
 - **Branch:** `engineering/unified-proceed-operating-cycle`.
 - **Base:** `main@dcd1b98c2d269fad97af933ed6ff4df5dca18033`.
-- **Status:** documentation and approval-ledger alignment in progress; verification pending.
+- **Status:** deterministic sleep-wake controller, unit tests and operating documentation implemented on `engineering/unified-proceed-operating-cycle`; exact-head Actions verification pending.
 - **No application source, production database, deployment or public release changes are in scope.**
 
 ## Approval and safety constraints
@@ -45,4 +45,4 @@
 - Actual code, exact commit, CI artifacts and verified deployed environment outrank dated documentation.
 
 ## Next action
-Complete the single-trigger documentation alignment, run the AutoPilot policy validation and unit tests through the PR checks, inspect the exact-head results, then update this handoff with evidence.
+Run the exact-head AutoPilot policy/controller tests and inspect the PR checks. Then exercise `workflow_dispatch` full-cycle from GitHub Actions to verify real run discovery, one-minute polling, failure continuation and consolidated reporting.

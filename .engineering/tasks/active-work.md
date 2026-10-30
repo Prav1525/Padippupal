@@ -24,6 +24,8 @@
 - **Next action:** inspect failing smoke-step logs, fix only the evidence-backed harness issue, rerun emulator validation and inspect screenshots/UI hierarchy for all eight stages.
 - **Release boundary:** do not merge PR #59, deploy or write production DB without explicit founder approval.
 
+**Review PR:** https://github.com/Prav1525/Padippupal/pull/61
+
 ## Resume checklist
 - Re-fetch main and working branch heads; do not assume this handoff is current.
 - Re-fetch active PR state and latest checks for its exact head SHA.

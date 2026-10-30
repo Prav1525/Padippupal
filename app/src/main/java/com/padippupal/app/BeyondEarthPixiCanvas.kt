@@ -58,7 +58,7 @@ internal fun BeyondEarthPixiCanvas(
         },
         update = { view ->
             view.evaluateJavascript(
-                "window.PadippuPalVisual && window.PadippuPalVisual.setStep($safeStep)",
+                "window.PadippuPalVisual && window.PadippuPalVisual.setStep($safeStep, ${JSONObject.quote(subtype)})",
                 null
             )
         }

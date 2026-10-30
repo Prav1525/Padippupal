@@ -14,6 +14,7 @@ REQUIRED_GUIDES = (
     "TEST_INVESTIGATION.md",
     "docs/TESTING_ERRORS.md",
     "docs/TEST_FAILURE_REGISTER.md",
+    "docs/AUTOPILOT_TRIGGER_PROMPT.md",
     ".github/testing-regression-checklist.md",
 )
 

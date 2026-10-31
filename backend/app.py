@@ -584,6 +584,41 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
             "content_fingerprint": row["content_fingerprint"],
         })
     visuals_by_step = {str(item["step_id"]): item for item in ordered}
+    # Use the chapter's figure map, not a broad citation page range. This prevents
+    # adjacent, unrelated figures from being attached to a teaching segment.
+    topic_text = normalize(payload.topic).casefold()
+    figure_pages_by_topic = [
+        (("stars", "constellation", "pole star", "big dipper", "little dipper"), [1, 2, 3, 5]),
+        (("night sky watching", "observing the night sky", "sky watching"), [6]),
+        (("sun", "solar system", "planet"), [8, 10]),
+        (("telescope", "observing the sky"), [13]),
+        (("natural satellite", "moon"), [14]),
+        (("asteroid", "comet"), [16]),
+        (("milky way", "galaxy", "universe"), [17]),
+    ]
+    matched_pages = next((pages for terms, pages in figure_pages_by_topic
+                          if any(term in topic_text for term in terms)), [])
+    cited_source_ids = list(dict.fromkeys(
+        str(source_by_id[chunk_id].get("source_id") or "")
+        for chunk_id in normalized_ids if chunk_id in source_by_id
+        and source_by_id[chunk_id].get("source_id")
+    ))
+    textbook_images: list[dict[str, Any]] = []
+    if matched_pages and cited_source_ids:
+        source_marks = ",".join("?" for _ in cited_source_ids)
+        page_marks = ",".join("?" for _ in matched_pages)
+        with db() as conn:
+            image_rows = conn.execute(
+                f"""SELECT source_id,page_no,mime_type,sha256 FROM source_page_images
+                    WHERE source_id IN ({source_marks}) AND page_no IN ({page_marks})
+                    ORDER BY page_no""",
+                (*cited_source_ids, *matched_pages),
+            ).fetchall()
+        textbook_images = [{
+            "page_no": int(row["page_no"]), "mime_type": str(row["mime_type"]),
+            "sha256": str(row["sha256"]),
+            "url": f"/textbook-images/{row['source_id']}/{int(row['page_no'])}",
+        } for row in image_rows]
     for segment in segments:
         if not isinstance(segment, dict):
             continue
@@ -591,7 +626,10 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
         inline = build_inline_synthesized_visual(
             profile_key, lesson, [visual_record] if visual_record else [], topic=payload.topic
         ) if visual_record else None
-        segment["interactive_lesson"] = inline or fallback_visual
+        interactive = inline or (dict(fallback_visual) if fallback_visual else None)
+        if interactive is not None and textbook_images:
+            interactive["textbook_images"] = textbook_images
+        segment["interactive_lesson"] = interactive
     return segments
 
 

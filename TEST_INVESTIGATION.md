@@ -616,3 +616,17 @@ Use this format:
 - **Current verification status:** Android build, tests, tutor narration-step alignment, emulator screenshot and visual review are NOT YET VERIFIED on this candidate. Do not merge or release until those gates pass.
 - **Known review items:** Confirm step-index thresholds correspond to actual narration events; ensure Earth rotation is only animated when the tutor is explaining rotation; improve illustration fidelity and verify compact layout.
 - **Safety:** No merge, production deployment, production database write or public APK release.
+
+
+### 2026-10-31 — Integrate textbook page images into chapter synthesis
+- **Branch / commit:** `feat/beyond-earth-synthesis-textbook-images`; implementation `636f6d236adb737ff96d4dcdedc622e473388e5a`; test `c5841fccb9f8a10f9346b21562a5f3cc44a2f793`.
+- **Test command or workflow URL:** GitHub Actions investigation guidance check, [run 41201674736](https://github.com/Prav1525/Padippupal/actions/runs/41201674736).
+- **Result:** **FAIL** (repository policy gate, not application tests).
+- **Exact failure or assertion:** `TEST_INVESTIGATION.md was not updated in this PR`.
+- **Evidence links (logs/screenshots/XML/artifacts):** [failed check log](https://github.com/Prav1525/Padippupal/actions/runs/41201674736/job/124538533330); [PR #105](https://github.com/Prav1525/Padippupal/pull/105).
+- **Change made (files + rationale):** Added `source_page_images` storage, PDF/ZIP figure-bearing page extraction, SHA-256 persistence, a source image endpoint, synthesis topic image URL metadata, and focused extraction/serving tests in `backend/app.py` and `backend/test_textbook_synthesis_images.py`.
+- **Root cause:** CONFIRMED — the repository's investigation gate requires a matching append-only ledger entry whenever code/config files change.
+- **What this attempt proves:** The PR and code changes exist; the guidance check ran and correctly rejected the missing ledger update.
+- **What remains unverified:** Python test suite, Postgres compatibility, real NCERT PDF ingestion, topic-to-figure matching quality, tutor UI rendering, production storage, and deployment.
+- **Difference from previous attempt:** This adds the first implementation and focused tests for textbook page assets in the same synthesis response.
+- **Next action and why:** Append this evidence and rerun the gate; then run backend tests and review the PR diff before considering merge.

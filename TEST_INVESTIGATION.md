@@ -616,3 +616,17 @@ Use this format:
 - **Current verification status:** Android build, tests, tutor narration-step alignment, emulator screenshot and visual review are NOT YET VERIFIED on this candidate. Do not merge or release until those gates pass.
 - **Known review items:** Confirm step-index thresholds correspond to actual narration events; ensure Earth rotation is only animated when the tutor is explaining rotation; improve illustration fidelity and verify compact layout.
 - **Safety:** No merge, production deployment, production database write or public APK release.
+
+
+### 2026-10-31 — Beyond Earth Neon development asset uploader (PR #99)
+- **Candidate:** `256cde20a1abad3fc7c51448f877e89b9461d532` on `fix/beyond-earth-neon-asset-upload`, based on PR #94.
+- **Implementation:** Added a pinned Python S3-compatible uploader for the three Beyond Earth PNG assets. It requires explicit `--apply`, development Neon database/storage environment variables, verifies object byte counts and SHA-256 metadata, and updates only the exact matching lesson metadata rows to `uploaded` after all object verifications succeed.
+- **Safety:** No production deployment, merge, or `ready` status change. Images are not yet present in the repository asset directory and no upload has been performed.
+- **CI evidence:** Investigation Guidance Gate run `41176272066` failed because this PR had not updated `TEST_INVESTIGATION.md`; the implementation validation itself has not passed yet. Ledger updated in this commit for rerun.
+- **Remaining:** Place the three PNGs in `backend/assets/beyond-earth/`, provide development-only Neon S3 and DB credentials in the execution environment, run the uploader, verify all three objects and DB statuses, then separately verify TutorScreen rendering and screenshot evidence.
+
+
+### 2026-10-31 — Beyond Earth uploader boto3 exception handling correction
+- **Candidate:** `55e7cf76fef975946a7b38249045bfefa2f8d641` (PR #99).
+- **Correction:** Catch the documented `botocore.exceptions.ClientError` type directly rather than relying on a generated `s3.exceptions.ClientError` member.
+- **Verification:** CI must rerun on this exact candidate. No storage upload or database write performed.

@@ -74,3 +74,36 @@ This is a working starter engine, not a production deployment. The Android app a
 ## Release and source-trust gates
 
 The lesson catalog is a teaching/visual blueprint, not an authoritative substitute for the current official textbook. `source_registry.json` currently marks all source entries as not approved for automatic ingestion. Before describing an answer as NCERT-grounded, verify the exact official syllabus/textbook edition, chapter and medium and ensure the required usage rights are in place. Gemini Live is intentionally not part of the current release; add it only after the request/response tutor, session restoration, visual lesson and speech paths pass phone testing.
+
+
+## Beyond Earth development image upload
+
+The Beyond Earth manifest defines three pinned image assets. Upload them only to
+the development Neon branch/bucket; this helper refuses missing credentials and
+does not change production. Place the validated PNGs at:
+
+- `backend/assets/beyond-earth/solar-system-v1.png`
+- `backend/assets/beyond-earth/day-and-night-v1.png`
+- `backend/assets/beyond-earth/moon-phases-v1.png`
+
+Install backend requirements, then export the development branch's
+`DATABASE_URL` and Neon Object Storage S3 credentials
+(`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL_S3`,
+and optionally `AWS_REGION`, default `ap-southeast-1`). Run a dry run first:
+
+```bash
+python backend/scripts/upload_beyond_earth_assets.py
+```
+
+Then explicitly upload and verify:
+
+```bash
+python backend/scripts/upload_beyond_earth_assets.py --apply
+```
+
+The script is pinned to the three approved object keys and the development
+lesson UUID. It verifies each stored object's byte count and SHA-256 metadata
+before changing the matching `lesson_image_assets` row from `pending` to
+`uploaded`. It does not mark assets `ready`, publish a release, or deploy the
+Android app. If an object already exists with different bytes, the script
+stops; use `--overwrite` only after reviewing the replacement.

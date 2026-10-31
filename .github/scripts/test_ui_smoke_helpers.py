@@ -446,7 +446,9 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
             self.assertIn(f'"{scene}"', board)
         self.assertIn('else -> drawGalaxy(stage, sw, unit)', board)
         self.assertIn("BeyondEarthWhiteboard(", tutor)
-        self.assertIn('lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)', tutor)
+        self.assertIn("TextbookFigureStrip(lesson, compact)", tutor)
+        self.assertIn('val images = lesson.optJSONArray("textbook_images") ?: return', tutor)
+        self.assertIn("if (images.length() == 0) return", tutor)
         for step, scene in (
             ("step_1", "beyond_earth_constellation"),
             ("step_2", "beyond_earth_sky_watching"),

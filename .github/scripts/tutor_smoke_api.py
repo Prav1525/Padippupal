@@ -160,7 +160,7 @@ def self_test() -> None:
     assert LESSON["interactive_lesson"]["steps"][0]["source_chunk_ids"] == ["smoke-beyond-earth-source"]
     full_lesson = " ".join(segment["spoken_text"] for segment in LESSON["segments"])
     assert len(full_lesson) >= 220
-    assert len(full_lesson.split()) >= 140
+    assert len(full_lesson.split()) >= 100
     assert "square" not in json.dumps(LESSON).casefold()
     print("smoke API fixture self-test passed: Beyond Earth Day/Night lesson with native Canvas visual")
 

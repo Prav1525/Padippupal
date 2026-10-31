@@ -16,6 +16,7 @@ from pathlib import Path
 import boto3
 import psycopg
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 PROJECT_LESSON_ID = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
 BUCKET = "padippupal-science-visuals"
@@ -77,7 +78,7 @@ def main() -> int:
                 raise SystemExit(f"Object already exists with different content: s3://{BUCKET}/{key}; rerun with --overwrite")
             if not same:
                 s3.put_object(Bucket=BUCKET, Key=key, Body=payload, ContentType="image/png", Metadata={"sha256": digest})
-        except s3.exceptions.ClientError as exc:
+        except ClientError as exc:
             code = exc.response.get("Error", {}).get("Code", "")
             if code not in ("404", "NoSuchKey", "NotFound"):
                 raise

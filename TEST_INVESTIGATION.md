@@ -624,3 +624,9 @@ Use this format:
 - **Safety:** No production deployment, merge, or `ready` status change. Images are not yet present in the repository asset directory and no upload has been performed.
 - **CI evidence:** Investigation Guidance Gate run `41176272066` failed because this PR had not updated `TEST_INVESTIGATION.md`; the implementation validation itself has not passed yet. Ledger updated in this commit for rerun.
 - **Remaining:** Place the three PNGs in `backend/assets/beyond-earth/`, provide development-only Neon S3 and DB credentials in the execution environment, run the uploader, verify all three objects and DB statuses, then separately verify TutorScreen rendering and screenshot evidence.
+
+
+### 2026-10-31 — Beyond Earth uploader boto3 exception handling correction
+- **Candidate:** `55e7cf76fef975946a7b38249045bfefa2f8d641` (PR #99).
+- **Correction:** Catch the documented `botocore.exceptions.ClientError` type directly rather than relying on a generated `s3.exceptions.ClientError` member.
+- **Verification:** CI must rerun on this exact candidate. No storage upload or database write performed.

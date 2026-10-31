@@ -154,7 +154,7 @@ python3 .github/scripts/ui_smoke.py tap-topic-picker chapter-selected.xml
 sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
-python3 .github/scripts/ui_smoke.py tap-first-concept concept-menu.xml
+python3 .github/scripts/ui_smoke.py tap-numbered concept-menu.xml 2
 sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml
@@ -230,6 +230,7 @@ timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-lesson.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/live-lesson.xml live-lesson.xml
 python3 .github/scripts/ui_smoke.py assert-live live-lesson.xml | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py assert-live-layout ui-screenshots/live-lesson.png | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-native-daynight ui-screenshots/live-lesson.png | tee -a "$REPORT"
 python3 .github/scripts/ui_smoke.py assert-highlight-frames live-lesson.xml ui-screenshots/live-frames | tee -a "$REPORT"
 
 log "Testing live playback pause and resume"
@@ -276,7 +277,7 @@ log "Testing a follow-up question after lesson playback"
 timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-input.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-input.xml follow-up-input.xml
 python3 .github/scripts/ui_smoke.py tap-input follow-up-input.xml
-"${ADB[@]}" shell input text 'Why%sis%sUrsa%sMajor%sa%sconstellation'
+"${ADB[@]}" shell input text 'Why%sdoes%sEarth%shave%sday%sand%sNight'
 sleep 1
 timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-typed.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-typed.xml follow-up-typed.xml

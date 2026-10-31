@@ -345,7 +345,7 @@ private fun activeSubtypeForChapter(lesson: JSONObject, activeStep: JSONObject?)
 }
 
 @Composable
-private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?) {
+private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?, narrationText: String = "", narrationWordIndex: Int = 0, narrationActive: Boolean = false) {
     val title = lesson.optString("title", "Lesson visual")
     val caption = lesson.optString("caption", "")
     val objects = lesson.optJSONArray("objects")
@@ -411,12 +411,26 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             )
         }
         if (activeKind == "beyond_earth") {
-            BeyondEarthPixiCanvas(
-                step = active,
-                subtype = activeSubtypeForChapter(lesson, activeStep),
-                compact = compact,
-                modifier = Modifier.fillMaxWidth()
-            )
+            val chapterSubtype = activeSubtypeForChapter(lesson, activeStep)
+            if (chapterSubtype == "beyond_earth_sky_watching") {
+                // Day/Night uses the native offline Canvas renderer; the active tutor
+                // synthesis step progressively reveals the illustration as narration advances.
+                BeyondEarthNativeCanvas(
+                    step = active,
+                    compact = compact,
+                    narrationText = narrationText,
+                    narrationWordIndex = narrationWordIndex,
+                    narrationActive = narrationActive,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                BeyondEarthPixiCanvas(
+                    step = active,
+                    subtype = chapterSubtype,
+                    compact = compact,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         } else {
         Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {
             Canvas(Modifier.fillMaxSize()) {
@@ -724,14 +738,14 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
-private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
+private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null, narrationText: String = "", narrationWordIndex: Int = 0, narrationActive: Boolean = false) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
     if (scene == "synthesis_static") {
-        SynthesizedVisualCard(lesson, compact, activeStepOverride)
+        SynthesizedVisualCard(lesson, compact, activeStepOverride, narrationText, narrationWordIndex, narrationActive)
         return
     }
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {
@@ -2531,7 +2545,10 @@ internal fun TutorScreen(
                                 sessionKey = sessionKey,
                                 todayKey = todayKey,
                                 compact = true,
-                                activeStepOverride = liveVisualStep
+                                activeStepOverride = liveVisualStep,
+                                narrationText = liveCaption,
+                                narrationWordIndex = liveWordIndex,
+                                narrationActive = speechActive
                             )
                             liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
                                 val topicKey = topic.lowercase(Locale.ROOT)

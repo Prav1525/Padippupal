@@ -34,7 +34,7 @@ LESSON = {
     },
     "segments": [
         {"id": "beyond-earth-definition", "spoken_text": "The Sun is a star. It gives Earth light and heat. Sunlight travels through space and reaches Earth. The half of Earth facing the Sun has day, while the opposite half has night.", "caption_text": "A constellation is a pattern of stars seen in the night sky.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
-        {"id": "beyond-earth-example", "spoken_text": "Earth is always rotating on an imaginary line called its axis. As Earth rotates, different places turn towards the Sun and then away from it. This is why day changes to night.", "caption_text": "Ursa Major is a familiar constellation pattern.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-example", "spoken_text": "Earth is always rotating on an imaginary line called its axis. As Earth rotates, different places turn towards the Sun and then away from it. This is why day changes to night.", "caption_text": "Earth rotates on its axis, causing day and night.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
         {"id": "beyond-earth-misconception", "spoken_text": "The Sun does not move around Earth to make day and night. Earth rotates from west to east. One complete rotation takes about 24 hours.", "caption_text": "The pattern is how stars appear from Earth, not their true distances.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
         {"id": "beyond-earth-recap", "spoken_text": "Let us recap. Sunlight illuminates the half of Earth facing the Sun. That side has day; the other side has night. Earth rotation causes the cycle to continue.", "caption_text": "Constellation means a recognisable pattern of stars.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None}
     ]
@@ -151,7 +151,7 @@ class Handler(BaseHTTPRequestHandler):
 def self_test() -> None:
     assert len(LESSON["segments"]) == 4
     assert "sunlight" in LESSON["segments"][0]["spoken_text"].casefold()
-    assert "ursa major" in LESSON["segments"][1]["spoken_text"].casefold()
+    assert "rotating" in LESSON["segments"][1]["spoken_text"].casefold()
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
     assert LESSON["interactive_lesson"]["scene_type"] == "synthesis_static"
     assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["Sun", "Sunlight", "Earth", "Day", "Night"]

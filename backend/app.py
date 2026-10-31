@@ -600,7 +600,7 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
                           if any(term in topic_text for term in terms)), [])
     cited_source_ids = list(dict.fromkeys(
         str(source_by_id[chunk_id].get("source_id") or "")
-        for chunk_id in normalized_ids if chunk_id in source_by_id
+        for chunk_id in allowed_ids if chunk_id in source_by_id
         and source_by_id[chunk_id].get("source_id")
     ))
     textbook_images: list[dict[str, Any]] = []

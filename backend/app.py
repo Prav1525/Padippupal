@@ -587,17 +587,7 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
     # Use the chapter's figure map, not a broad citation page range. This prevents
     # adjacent, unrelated figures from being attached to a teaching segment.
     topic_text = normalize(payload.topic).casefold()
-    figure_pages_by_topic = [
-        (("stars", "constellation", "pole star", "big dipper", "little dipper"), [1, 2, 3, 5]),
-        (("night sky watching", "observing the night sky", "sky watching"), [6]),
-        (("sun", "solar system", "planet"), [8, 10]),
-        (("telescope", "observing the sky"), [13]),
-        (("natural satellite", "moon"), [14]),
-        (("asteroid", "comet"), [16]),
-        (("milky way", "galaxy", "universe"), [17]),
-    ]
-    matched_pages = next((pages for terms, pages in figure_pages_by_topic
-                          if any(term in topic_text for term in terms)), [])
+    matched_pages = textbook_figure_pages_for_topic(topic_text)
     cited_source_ids = list(dict.fromkeys(
         str(source_by_id[chunk_id].get("source_id") or "")
         for chunk_id in allowed_ids if chunk_id in source_by_id
@@ -761,6 +751,23 @@ def save_job(source_id: str) -> str:
         )
     return job_id
 
+
+
+def textbook_figure_pages_for_topic(topic: str) -> list[int]:
+    """Return one-based PDF page numbers for the most specific Beyond Earth topic match."""
+    normalized = normalize(topic).casefold()
+    # Specific observation terms must precede broad terms such as "planet".
+    figure_pages_by_topic = [
+        (("telescope", "observing the sky", "observing planets"), [13]),
+        (("night sky watching", "observing the night sky", "sky watching"), [6]),
+        (("natural satellite", "moon"), [14]),
+        (("asteroid", "comet"), [16]),
+        (("milky way", "galaxy", "universe"), [17]),
+        (("stars", "constellation", "pole star", "big dipper", "little dipper"), [1, 2, 3, 5]),
+        (("sun", "solar system", "planet"), [8, 10]),
+    ]
+    return next((pages for terms, pages in figure_pages_by_topic
+                 if any(term in normalized for term in terms)), [])
 
 
 def extract_pdf_visual_pages(pdf_bytes: bytes, max_pages: int = 40) -> dict[int, bytes]:

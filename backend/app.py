@@ -3179,6 +3179,12 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             if (segments and _lesson_segments_match_topic(payload.topic, segments)
                     and _lesson_segments_are_substantive(segments)):
                 segments = _translate_approved_segments(segments, payload.app_language)
+                chapter_visual = build_inline_synthesized_visual(
+                    str(approved["id"]), lesson, synthesized_visuals, str(approved.get("topic") or "")
+                ) or matched_visual
+                if chapter_visual and segments:
+                    first_segment_visual = segments[0].get("interactive_lesson") or {}
+                    chapter_visual["textbook_images"] = first_segment_visual.get("textbook_images", [])
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",
@@ -3187,7 +3193,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "chapter_overview": lesson.get("overview", ""),
                         "learning_objectives": lesson.get("learning_objectives", []),
                         "chapter_title": lesson.get("chapter_title", approved["chapter"]),
-                        "interactive_lesson": build_inline_synthesized_visual(str(approved["id"]), lesson, synthesized_visuals, str(approved.get("topic") or "")) or matched_visual,
+                        "interactive_lesson": chapter_visual,
                         "synthesized_visuals": synthesized_visuals}
             if segments:
                 logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",
@@ -3426,10 +3432,13 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     # same segment the learner hears. This is the dynamic Gemini path; approved
     # chapter lessons use the dedicated lesson_visual_assets table above.
     lesson_segments = attach_topic_visuals(payload, validated["segments"], sources, matched_visual)
+    lesson_visual = matched_visual
+    if lesson_segments and lesson_segments[0].get("interactive_lesson"):
+        lesson_visual = dict(lesson_segments[0]["interactive_lesson"])
     return {"lesson_id": str(uuid.uuid4()), "segments": lesson_segments, "grounded": True, "sources": sources,
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False,
-            "interactive_lesson": matched_visual}
+            "interactive_lesson": lesson_visual}
 
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:

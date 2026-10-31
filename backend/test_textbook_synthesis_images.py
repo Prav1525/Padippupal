@@ -50,3 +50,11 @@ def test_nonexistent_textbook_page_returns_404(tmp_path, monkeypatch):
     curriculum.init_db()
     response = TestClient(curriculum.app).get("/textbook-images/missing/99")
     assert response.status_code == 404
+
+
+
+def test_topic_figure_mapping_prefers_specific_observation_topics():
+    assert curriculum.textbook_figure_pages_for_topic("Planets and observing the sky") == [13]
+    assert curriculum.textbook_figure_pages_for_topic("The Sun and our Solar System") == [8, 10]
+    assert curriculum.textbook_figure_pages_for_topic("Natural satellites and the Moon") == [14]
+    assert curriculum.textbook_figure_pages_for_topic("Stars and constellations") == [1, 2, 3, 5]

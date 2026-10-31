@@ -135,17 +135,17 @@ def assert_settings(path):
     # Voice preferences live lower in the independently scrollable setup form.
     # Validate the controls in a second accessibility dump after scrolling rather
     # than falsely treating off-screen Compose children as missing.
-    expected = ("Mathematics", "Language", "English", "Tanglish")
+    expected = ("Science", "Language", "English", "Tanglish")
     missing = [term for term in expected if term.lower() not in joined]
     # When a saved session already has Chapter 1 selected, the control shows the
     # selected chapter name rather than the empty-state "Choose chapter" prompt.
     if "choose chapter" not in joined and "patterns in mathematics" not in joined:
-        missing.append("Choose chapter or selected chapter (Patterns in Mathematics)")
+        missing.append("Choose chapter or selected chapter (Beyond Earth)")
     # The topic picker intentionally shows its selected database topic (for this
-    # smoke test, "All 1s") instead of the "Choose concept" placeholder. Accept
+    # smoke test, "Constellations") instead of the "Choose concept" placeholder. Accept
     # either state, but never accept a settings screen with no topic selection.
-    if "choose concept" not in joined and "all 1s" not in joined:
-        missing.append("Choose concept or selected topic (All 1s)")
+    if "choose concept" not in joined and "day and night" not in joined and "constellations" not in joined:
+        missing.append("Choose concept or selected topic (Constellations)")
     if missing:
         raise SystemExit("Tutor settings are missing expected controls: " + ", ".join(missing))
     print("PASS: subject, chapter/topic, language, and fixed Done footer are accessible")
@@ -165,7 +165,7 @@ def assert_chapter_button(path):
     print("CHAPTER OPTIONS TEXT:", " | ".join(texts[:120]))
     node = next((n for n in nodes if "choose chapter" in n.attrib.get("text", "").lower()), None)
     if node is None:
-        raise SystemExit("Choose chapter control was not found after selecting Mathematics")
+        raise SystemExit("Choose chapter control was not found after selecting Science")
     if node.attrib.get("enabled") != "true":
         raise SystemExit("Choose chapter control is disabled")
     if any("no chapter list is available" in text.lower() for text in texts):
@@ -176,9 +176,9 @@ def assert_chapter_selected(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("SELECTED CHAPTER TEXT:", " | ".join(texts[:100]))
-    if "patterns in mathematics" not in joined:
-        raise SystemExit("Smoke test did not select Class 6 Mathematics Chapter 1: Patterns in Mathematics")
-    print("PASS: selected the expected Mathematics Chapter 1")
+    if "beyond earth" not in joined:
+        raise SystemExit("Smoke test did not select Class 6 Science chapter Beyond Earth with its default topic")
+    print("PASS: selected Class 6 Science — Beyond Earth (Constellations)")
 
 def tap_numbered(path, number):
     nodes, texts = load(path)
@@ -226,7 +226,7 @@ def tap_topic_picker(path):
     candidates = []
     for node in nodes:
         label = node.attrib.get("text", "").strip()
-        if label.lower() == "choose concept" or label.lower() == "all 1s":
+        if label.lower() in {"choose concept", "constellations", "day and night"}:
             if re.fullmatch(r"\[\d+,\d+\]\[\d+,\d+\]", node.attrib.get("bounds", "")):
                 candidates.append(node)
     if not candidates:
@@ -264,7 +264,14 @@ def assert_completed_lesson(path):
         raise SystemExit("Playback did not reach the explicit lesson-complete state")
     if "ask your teacher" not in joined:
         raise SystemExit("Question composer is missing after lesson playback completes")
-    if not any(len(value.strip()) >= 220 and "all 1s" in value.lower() for value in texts):
+    # The chapter picker uses the plural, while the rendered card and narration
+    # use the singular. Match either wording in the retained lesson transcript.
+    retained_lesson = any(
+        len(value.strip()) >= 220
+        and any(term in value.lower() for term in ("day and night", "sunlight", "earth rotates"))
+        for value in texts
+    )
+    if not retained_lesson:
         raise SystemExit("Completed lesson disappeared instead of remaining available in chat history")
     if any(term in joined for term in ("how did that explanation feel", "i understand", "explain again")):
         raise SystemExit("Per-reply feedback prompt reappeared after the lesson")
@@ -278,7 +285,7 @@ def assert_followup_answer(path):
     expected = "the smoke-test tutor is ready to help with the selected topic"
     if expected not in joined:
         raise SystemExit("Follow-up question did not receive the expected tutor response")
-    if "why does all 1s repeat" not in joined:
+    if "why does earth have day and night" not in joined:
         raise SystemExit("The submitted follow-up question is not visible in chat history")
     print("PASS: follow-up question and answer are both visible")
 
@@ -310,7 +317,7 @@ def assert_live(path):
     found_interruptions = [label for label in forbidden_interruptions if label in joined]
     if found_interruptions:
         raise SystemExit("Per-segment checkpoint or animation UI reappeared: " + ", ".join(found_interruptions))
-    lesson_words = ("one", "all 1s", "pattern", "number")
+    lesson_words = ("sunlight", "day and night", "earth rotates", "rotation", "constellation", "stars in the night sky")
     if not any(term in joined for term in lesson_words):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
     voice_failures = (
@@ -331,21 +338,18 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
-    if "all 1s pattern visual" not in joined:
+    if "day and night" not in joined and "beyond earth" not in joined:
         raise SystemExit("The source-mapped synthesized 2D visual is missing from the inline tutor flow")
-    if "each term stays 1" not in joined:
-        raise SystemExit("The inline visual is not mapped to the All 1s teaching summary")
+    if not any(term in joined for term in ("the sun lights one half of earth", "earth rotates", "a constellation is a pattern of stars", "a group of stars that forms a recognised pattern")):
+        raise SystemExit("The inline visual is not mapped to the Constellations teaching summary")
     if "ask your teacher" in joined or "send question" in joined:
         raise SystemExit("Chat composer is still visible during the dedicated live teaching experience")
     forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")
     found_activity = [label for label in forbidden_activity_labels if label in joined]
     if found_activity:
         raise SystemExit("Interactive activity UI reappeared in the teaching flow: " + ", ".join(found_activity))
-    if "all 1s" in joined:
-        if not any(term in joined for term in ("1, 1, 1", "repeats the number 1", "each term is 1", "same number", "number one", "stays the same", "each value stays the same")):
-            raise SystemExit("All 1s lesson lacks an explanation of the repeated-one rule")
-        if "square numbers grow" in joined or "1²" in joined or "+3" in joined:
-            raise SystemExit("All 1s topic is incorrectly showing square-number content")
+    if "day and night" in joined and not any(term in joined for term in ("sunlight", "earth rotates", "the sun is a star")):
+        raise SystemExit("Beyond Earth Day/Night lesson lacks its science explanation")
     print("PASS: complete continuous lesson is visible without checkpoints, animations, or interactive overlays")
 
 def exact_color_mask(image, target):
@@ -434,6 +438,22 @@ def assert_live_layout(path):
     if ratio > 0.35:
         raise SystemExit("A large pale-green lesson card still occupies the teaching viewport")
     print("PASS: live lesson uses a continuous canvas without a dominant green card")
+
+
+def assert_native_daynight(path):
+    from PIL import Image
+    image = Image.open(path).convert("RGB")
+    width, height = image.size
+    region = image.crop((int(width*.04), int(height*.50), int(width*.96), int(height*.78)))
+    yellow = ocean = land = 0
+    for r, g, b in region.getdata():
+        if r > 205 and 105 < g < 225 and b < 125: yellow += 1
+        if b > 125 and g > 95 and g > r*1.15: ocean += 1
+        if g > r*1.12 and g > b*.90 and g < 225: land += 1
+    print(f"Native Day/Night Canvas pixel evidence: sun={yellow}, ocean={ocean}, land={land}")
+    if yellow < 100 or ocean < 250 or land < 80:
+        raise SystemExit("Native Day/Night Canvas did not render its Sun, Earth/ocean and land")
+    print("PASS: native Day/Night Canvas is visibly rendered in the actual Tutor screenshot")
 
 
 def exact_text_candidates(nodes, target):
@@ -590,7 +610,7 @@ def tap_input(path):
 
 def assert_composer_question(path):
     nodes, _ = load(path)
-    expected = "why does all 1s repeat"
+    expected = "why does earth have day and night"
     fields = [node.attrib.get("text", "").replace("\\n", " ").lower()
               for node in nodes if node.attrib.get("class") == "android.widget.EditText"]
     if not any(expected in value for value in fields):
@@ -607,7 +627,7 @@ def has_label(path, label):
 def assert_topic_selected(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
-    if "all 1s" not in joined and "patterns in mathematics" not in joined:
+    if "day and night" not in joined and "patterns in mathematics" not in joined:
         raise SystemExit("No database-backed topic/chapter selection is visible: " + " | ".join(texts[:100]))
     print("PASS: a database-backed chapter/topic is already selected")
 
@@ -664,6 +684,8 @@ def main():
         assert_followup_answer(path)
     elif action == "assert-highlight-frames" and len(sys.argv) >= 4:
         assert_highlight_frames(sys.argv[3])
+    elif action == "assert-native-daynight":
+        assert_native_daynight(sys.argv[2])
     elif action == "assert-live-layout":
         assert_live_layout(path)
     elif action == "assert-playback-state" and len(sys.argv) >= 4:

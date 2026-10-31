@@ -320,3 +320,55 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `bab28a9060ae8e86db31b18141739df877d30377` shortens the capture window to 12 frames at 0.5-second intervals (about six seconds) so the highlight scan samples the active lesson sooner.
 - **Regression check:** Re-run `android-ui-smoke.sh`; it must capture the active tutor screen, find the inline visual, and detect a moving spoken-word highlight across at least two positions.
 - **Validation:** Pending fresh Android emulator run. Do not close this incident or merge until the emulator flow passes.
+
+
+## Incident: Beyond Earth whiteboard Compose import blocked Android compilation
+
+- **Date:** 2026-10-30
+- **Affected PR:** [#69](https://github.com/Prav1525/Padippupal/pull/69)
+- **Exact failing workflow:** Android APK run [41000383046](https://github.com/Prav1525/Padippupal/actions/runs/41000383046), job 123883172514; Android UI smoke run [41000382877](https://github.com/Prav1525/Padippupal/actions/runs/41000382877), job 123883172152.
+- **Exact failure:** Kotlin compilation failed in `BeyondEarthWhiteboard.kt:16:43`: inaccessible internal `RowColumnParentData?.weight` import.
+- **Root cause:** **CONFIRMED** — the file imported `androidx.compose.foundation.layout.weight` directly, although `weight` is a RowScope/ColumnScope member extension and should be resolved from the layout scope.
+- **Fix:** Commit `44d4f14dd711115250721ce64965029d9a30be79` removes the invalid import. No assertion or test was weakened.
+- **Regression check:** Re-run Android APK build, JVM tests and full API-35 emulator smoke on the corrected exact PR head; inspect Beyond Earth screenshots and UI hierarchy.
+- **Status:** Fix committed; corrected-head verification pending. Do not merge or deploy until all required checks pass.
+
+
+## Incident: Beyond Earth whiteboard imported an internal Compose layout symbol
+- **Symptom:** PR #69 Android APK build run [41000383046](https://github.com/Prav1525/Padippupal/actions/runs/41000383046) and UI smoke run [41000382877](https://github.com/Prav1525/Padippupal/actions/runs/41000382877) failed during Kotlin compilation before emulator allocation.
+- **Root cause:** Confirmed — BeyondEarthWhiteboard.kt explicitly imported androidx.compose.foundation.layout.weight, which resolves to an internal implementation symbol and is not accessible to the app module.
+- **Fix:** Removed the explicit import. Modifier.weight calls remain inside their normal RowScope/ColumnScope receivers.
+- **Additional regression protection:** Added Beyond Earth native-board contract checks to test_ui_smoke_helpers.py; tap-to-reveal state is keyed by both subtype and active narrated step so it resets when narration advances.
+- **Verification:** Corrected-head Android APK, JVM, emulator UI, and curriculum checks are tracked by the latest PR #69 workflow runs. Do not close this incident until all exact-head checks pass and the chapter screenshot is inspected.
+
+
+## Incident: Beyond Earth lesson assets shared a generic visual subtype
+
+- **Date:** 2026-10-30
+- **Affected PR:** [#69](https://github.com/Prav1525/Padippupal/pull/69)
+- **Evidence:** Read-only inspection of Neon test branch `br-muddy-wave-az5r8igq`, lesson `10d13a36-87e9-5f3b-8210-f62eb95e8854`, confirmed eight ordered asset IDs `step_1`–`step_8`; every blueprint uses `visual_subtype=handwritten_whiteboard` while `visual_kind` differs by concept.
+- **Root cause:** **CONFIRMED** — the first client routing implementation prefixed the generic subtype, which could send every chapter step to the Galaxy fallback instead of its matching scene.
+- **Fix:** Map the stable chapter step IDs to the eight distinct scene types in `activeSubtypeForChapter`; add regression assertions for every step-to-scene mapping. No production data was modified.
+- **Regression check:** Re-run Android compile, JVM/helper tests and full API-35 UI smoke on the corrected PR head; inspect the actual Beyond Earth screenshot.
+- **Status:** Fix committed; exact-head verification pending. Do not merge or deploy until checks and screenshot review pass.
+
+
+## Incident: Beyond Earth emulator smoke used a stale Mathematics chapter assertion
+
+- **Date:** 2026-10-30
+- **Affected PR:** [#69](https://github.com/Prav1525/Padippupal/pull/69)
+- **Evidence:** Android UI smoke run [41000868407](https://github.com/Prav1525/Padippupal/actions/runs/41000868407), emulator artifact ID 12952969688, and the captured chapter-selected.xml accessibility tree.
+- **Observed failure:** APK installation, home navigation, lesson setup, Science selection, and the Beyond Earth chapter picker all worked. The selected accessibility tree contained Beyond Earth · Constellations, but the test failed with a message claiming it had not selected Beyond Earth.
+- **Root cause:** CONFIRMED — assert_chapter_selected incorrectly required the unrelated phrase "patterns in mathematics". This stale assertion belonged to an older Mathematics lesson and did not match the real Beyond Earth chapter picker.
+- **Fix:** Update the chapter assertion to require both Beyond Earth and its default topic Constellations; add a fixture test using the exact labels observed in the failed emulator tree.
+- **Regression prevention:** The helper test also asserts the obsolete Mathematics phrase is absent. The next exact-head API-35 emulator run must pass chapter selection, enter the lesson, capture the active teaching screen, and provide the Beyond Earth whiteboard screenshot.
+- **Status:** Fix committed; fresh CI and screenshot review pending. Do not merge or deploy until the actual chapter board is visible and verified.
+
+
+## Incident: Android UI smoke validation stopped on a Python syntax error
+
+- **Symptom:** Workflow run [41210277502](https://github.com/Prav1525/Padippupal/actions/runs/41210277502) passed JVM tests and the debug APK build, then failed before emulator allocation while compiling `.github/scripts/ui_smoke.py`: line 630 raised `SyntaxError: expected ':'`.
+- **Root cause:** The `assert_topic_selected` conditional was missing its trailing colon. This prevented the Android emulator flow from running; it was a smoke-test script defect, not evidence of an app runtime failure.
+- **Fix:** Commit `2cdb4643d8d8532c0bde8f560267529243acfbd3` adds the missing colon.
+- **Regression prevention:** The Android UI workflow already runs `python3 -m py_compile .github/scripts/ui_smoke.py` before emulator allocation. Keep this compile gate and require the complete emulator run after the fix.
+- **Validation:** Fresh CI on the fix commit is pending. This incident remains open until script validation and the Android emulator flow pass, including inspection of the actual Beyond Earth TutorScreen and textbook figures.

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#f7f4ed"><title>PadippuPal · Beyond Earth</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f7f4ed;color:#29394c;font-family:ui-rounded,"Trebuchet MS",system-ui,sans-serif}
+#app{height:100%;display:flex;flex-direction:column}.top{height:36px;padding:8px 14px 3px;display:flex;justify-content:space-between;align-items:center}.brand{font-size:10px;letter-spacing:.14em;font-weight:800;color:#788596}.count{font-size:10px;color:#788596}#progress{height:2px;background:#e7e0d4}#bar{height:100%;background:#d17b5b;width:12.5%;transition:width .25s}#canvas{flex:1;min-height:0;position:relative}canvas{display:block;width:100%;height:100%}.foot{height:42px;padding:5px 15px 9px;display:flex;align-items:center}.caption{font-size:12px;line-height:1.25;color:#58677a}
+</style></head><body><main id="app"><header class="top"><div class="brand">FIELD NOTES · BEYOND EARTH</div><div class="count" id="count">01 / 08</div></header><div id="progress"><div id="bar"></div></div><section id="canvas" aria-label="Interactive astronomy teaching drawing"></section><footer class="foot"><div class="caption" id="caption">Patterns in the night sky help us recognize constellations.</div></footer></main>
+<script type="module">
+import * as PIXI from 'https://cdn.jsdelivr.net/npm/pixi.js@8.6.6/dist/pixi.min.mjs';
+const root=document.querySelector('#canvas'),caption=document.querySelector('#caption'),count=document.querySelector('#count'),bar=document.querySelector('#bar');
+const app=new PIXI.Application();await app.init({resizeTo:root,background:'#f7f4ed',antialias:true,autoDensity:true,resolution:Math.min(devicePixelRatio||1,2)});root.appendChild(app.canvas);
+const world=new PIXI.Container();app.stage.addChild(world);
+const C={ink:0x35465b,muted:0x8793a1,gold:0xe7b85d,coral:0xd17b5b,blue:0x6fa5bb,teal:0x5c9b8c,green:0x9dbb91,paper:0xf7f4ed,night:0x26374d,moon:0xd9d4c8};
+function text(t,x,y,size=13,color=C.ink){const o=new PIXI.Text({text:t,style:{fontFamily:'Trebuchet MS,system-ui',fontSize:size,fill:color,fontWeight:'600'}});o.anchor.set(.5);o.position.set(x,y);world.addChild(o)}
+function circle(x,y,r,fill,stroke=C.ink){const g=new PIXI.Graphics();g.circle(x,y,r).fill(fill).stroke({color:stroke,width:2,alpha:.82});world.addChild(g);return g}
+function path(points,color=C.ink,width=2.6,alpha=1){const g=new PIXI.Graphics();for(let i=1;i<points.length;i++)g.moveTo(points[i-1][0],points[i-1][1]).lineTo(points[i][0],points[i][1]);g.stroke({color,width,alpha,cap:'round',join:'round'});world.addChild(g)}
+function star(x,y,r=4){const g=new PIXI.Graphics();g.star(x,y,4,r,r*.45).fill(C.gold).stroke({color:C.ink,width:.8,alpha:.4});world.addChild(g)}
+function planet(x,y,r,color){circle(x,y,r,color);const g=new PIXI.Graphics();g.ellipse(x,y,r*1.65,r*.45).stroke({color:C.ink,width:1.5,alpha:.65});world.addChild(g)}
+function sun(x,y,r=25){circle(x,y,r,C.gold);const g=new PIXI.Graphics();for(let i=0;i<12;i++){const a=i*Math.PI/6;g.moveTo(x+Math.cos(a)*(r+6),y+Math.sin(a)*(r+6)).lineTo(x+Math.cos(a)*(r+13),y+Math.sin(a)*(r+13)).stroke({color:C.gold,width:2.5,cap:'round'})}world.addChild(g)}
+const defs={
+beyond_earth_constellation:{title:'A PATTERN IN THE NIGHT SKY',caption:'A constellation is a recognizable pattern of stars seen from Earth.',draw(){const p=[[88,170],[142,108],[195,154],[257,90],[309,168],[230,232],[142,218]];p.forEach(([x,y])=>star(x,y,5));path(p,C.ink,2.5);path([[142,108],[230,232],[309,168]],C.coral,1.5,.8);text('STAR PATTERN',198,290,12,C.teal)}},
+beyond_earth_sky_watching:{title:'LOOK UP · OBSERVE · RECORD',caption:'The sky changes through the night and across seasons. Careful observation helps us notice patterns.',draw(){for(let i=0;i<30;i++){const x=42+(i*67)%310,y=65+(i*43)%165;star(x,y,i%4===0?4:2.5)}const g=new PIXI.Graphics();g.moveTo(36,250).lineTo(115,210).lineTo(180,238).lineTo(252,192).lineTo(354,225).stroke({color:C.teal,width:3,cap:'round'});world.addChild(g);circle(195,210,13,C.coral);text('OBSERVE',195,292,13)}},
+beyond_earth_sun_star:{title:'OUR SUN IS A STAR',caption:'The Sun is a star. It appears larger and brighter than other stars because it is much closer to Earth.',draw(){sun(110,177,45);for(let i=0;i<24;i++){const a=i*Math.PI/12;star(260+Math.cos(a)*74,177+Math.sin(a)*74,2.5)}circle(260,177,28,0xf1d9a0);text('OUR SUN',110,255,13);text('DISTANT STARS',260,275,12,C.teal)}},
+beyond_earth_solar_system:{title:'OUR SOLAR SYSTEM',caption:'The Sun is at the centre of our solar system. Eight planets travel around it in orbits.',draw(){sun(195,185,24);const radii=[49,73,99,128];radii.forEach((r,i)=>{const g=new PIXI.Graphics();g.ellipse(195,185,r,r*.58).stroke({color:C.muted,width:1.3,alpha:.6});world.addChild(g);const a=[-.4,.8,2.5,4.7][i];planet(195+Math.cos(a)*r,185+Math.sin(a)*r*.58,[5,7,9,7][i],[C.moon,C.gold,C.blue,C.coral][i])});text('THE SUN AND EIGHT PLANETS',195,300,12)}},
+beyond_earth_planet_star:{title:'PLANETS AND STARS',caption:'Stars produce their own light. Planets do not; they reflect light from a star.',draw(){sun(100,175,31);planet(285,175,27,C.blue);path([[145,175],[242,175]],C.gold,2.4);text('MAKES ITS OWN LIGHT',100,244,11);text('REFLECTS STARLIGHT',285,244,11);text('STAR',100,280,12,C.teal);text('PLANET',285,280,12,C.teal)}},
+beyond_earth_earth_moon:{title:'EARTH AND ITS MOON',caption:'The Moon is Earth’s natural satellite. It travels around Earth and reflects sunlight.',draw(){circle(195,185,44,C.blue);const land=new PIXI.Graphics();land.ellipse(182,171,17,24).fill(C.green);land.ellipse(212,199,12,18).fill(C.green);world.addChild(land);const orbit=new PIXI.Graphics();orbit.ellipse(195,185,112,70).stroke({color:C.muted,width:1.8,alpha:.8});world.addChild(orbit);circle(307,185,17,C.moon);sun(55,90,18);path([[78,105],[150,150],[275,175]],C.gold,2,0.8);text('EARTH',195,252,12);text('MOON',307,220,11)}},
+beyond_earth_asteroid_comet:{title:'ASTEROIDS AND COMETS',caption:'Asteroids are rocky objects. Comets contain ice and dust and can develop glowing tails near the Sun.',draw(){const pts=[];for(let i=0;i<18;i++){const a=i*2.4,r=38+(i%5)*10;pts.push([112+Math.cos(a)*r,177+Math.sin(a)*r*.7])}pts.forEach(([x,y],i)=>circle(x,y,3+(i%3),C.muted));circle(270,170,15,C.moon);path([[254,162],[216,143],[185,125]],C.blue,5,.8);path([[254,178],[213,192],[185,212]],C.coral,2,.8);text('ASTEROID BELT',112,270,11);text('COMET',270,235,11)}},
+beyond_earth_milky_way:{title:'OUR HOME GALAXY · THE MILKY WAY',caption:'The Milky Way is a vast galaxy containing our Sun and billions of other stars.',draw(){for(let i=0;i<220;i++){const a=i*.37,r=8+i*.34,x=195+Math.cos(a)*r,y=178+Math.sin(a)*r*.38;circle(x,y,i%13===0?2.3:1.1,i%7===0?C.gold:0x8293a6,0x8293a6)}const g=new PIXI.Graphics();g.ellipse(195,178,132,49).stroke({color:C.coral,width:2,alpha:.45});world.addChild(g);text('MILKY WAY',195,275,14,C.teal)}}
+};
+
+/* Excalidraw-compatible source scene. PixiJS is the playback renderer;
+   these are scene elements, not a second independently-authored drawing. */
+const dayNightExcalidrawScene={
+  type:'excalidraw',version:2,
+  elements:[
+    {id:'sun',type:'ellipse',x:36,y:144,width:58,height:58,strokeColor:'#35465b',backgroundColor:'#e7b85d',revealAt:0},
+    {id:'sun-rays',type:'line',x:65,y:132,width:0,height:-18,strokeColor:'#e7b85d',revealAt:0},
+    {id:'sun-rays-left',type:'line',x:27,y:172,width:-14,height:0,strokeColor:'#e7b85d',revealAt:0},
+    {id:'sun-rays-right',type:'line',x:103,y:172,width:14,height:0,strokeColor:'#e7b85d',revealAt:0},
+    {id:'sun-label',type:'text',x:65,y:218,width:70,height:22,text:'SUN',fontSize:13,strokeColor:'#35465b',revealAt:0},
+    {id:'sunlight',type:'arrow',x:112,y:174,width:96,height:0,strokeColor:'#d5a64d',revealAt:1},
+    {id:'earth-day',type:'ellipse',x:205,y:104,width:144,height:144,strokeColor:'#35465b',backgroundColor:'#e7b85d',revealAt:1},
+    {id:'earth-night',type:'rectangle',x:277,y:104,width:72,height:144,strokeColor:'#26374d',backgroundColor:'#26374d',revealAt:2},
+    {id:'earth-edge',type:'ellipse',x:205,y:104,width:144,height:144,strokeColor:'#6fa5bb',backgroundColor:'transparent',revealAt:1},
+    {id:'day-label',type:'text',x:231,y:169,width:48,height:24,text:'DAY',fontSize:14,strokeColor:'#35465b',revealAt:2},
+    {id:'night-label',type:'text',x:295,y:169,width:58,height:24,text:'NIGHT',fontSize:12,strokeColor:'#ffffff',revealAt:2},
+    {id:'rotation-arrow',type:'arrow',x:238,y:276,width:84,height:0,strokeColor:'#d17b5b',revealAt:3},
+    {id:'rotation-label',type:'text',x:280,y:300,width:140,height:20,text:'EARTH ROTATES',fontSize:12,strokeColor:'#d17b5b',revealAt:3}
+  ]
+};
+function renderExcalidrawElements(scene,reveal){
+  for(const el of scene.elements){
+    if((el.revealAt||0)>reveal) continue;
+    const x=el.x,y=el.y,w=el.width||0,h=el.height||0;
+    const stroke=parseInt((el.strokeColor||'#35465b').replace('#',''),16);
+    const fill=el.backgroundColor&&el.backgroundColor!=='transparent'?parseInt(el.backgroundColor.replace('#',''),16):null;
+    if(el.type==='text'){text(el.text,x+w/2,y+h/2,el.fontSize||13,stroke);continue;}
+    const g=new PIXI.Graphics();
+    if(el.type==='ellipse'){
+      g.ellipse(x+w/2,y+h/2,Math.abs(w)/2,Math.abs(h)/2);
+      if(fill!==null) g.fill(fill);
+      g.stroke({color:stroke,width:2,alpha:.9});
+    } else if(el.type==='rectangle'){
+      g.rect(x,y,w,h);
+      if(fill!==null) g.fill(fill);
+      g.stroke({color:stroke,width:1.5,alpha:.8});
+    } else if(el.type==='line'||el.type==='arrow'){
+      g.moveTo(x,y).lineTo(x+w,y+h).stroke({color:stroke,width:2.5,cap:'round'});
+      if(el.type==='arrow'){
+        const a=Math.atan2(h,w), ex=x+w,ey=y+h;
+        g.moveTo(ex-9*Math.cos(a-.45),ey-9*Math.sin(a-.45)).lineTo(ex,ey).lineTo(ex-9*Math.cos(a+.45),ey-9*Math.sin(a+.45)).stroke({color:stroke,width:2.5,cap:'round'});
+      }
+    }
+    world.addChild(g);
+  }
+}
+defs.beyond_earth_sky_watching={
+ title:'DAY AND NIGHT · EXCALIDRAW → PIXI',caption:'Earth rotates. The side facing the Sun has daylight; the side turned away has night.',
+ draw(){renderExcalidrawElements(dayNightExcalidrawScene,Math.min(3,Math.floor(step/2)));}
+};
+
+const order=Object.keys(defs);let active=order[0],step=0;
+function render(){world.removeChildren();world.scale.set(1);const w=root.clientWidth,h=root.clientHeight,scale=Math.min(w/390,h/330);world.scale.set(scale);world.position.set((w-390*scale)/2,(h-330*scale)/2);const d=defs[active]||defs[order[Math.min(step,7)]];text(d.title,195,25,12,C.teal);d.draw();caption.textContent=d.caption;count.textContent=String(step+1).padStart(2,'0')+' / 08';bar.style.width=((step+1)/8*100)+'%'}
+function setStep(n,subtype){step=Math.max(0,Math.min(7,Number(n)||0));if(subtype==='beyond_earth_day_night')active='beyond_earth_sky_watching';else if(subtype&&defs[subtype])active=subtype;else active=order[step];render()}
+window.PadippuPalVisual={setStep,getStep:()=>step,setSubtype:s=>{if(defs[s]){active=s;render()}}};
+window.addEventListener('resize',render);render();
+</script></body></html>

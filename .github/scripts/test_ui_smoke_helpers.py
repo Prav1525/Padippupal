@@ -77,9 +77,9 @@ class ExactSelectorTests(unittest.TestCase):
     def test_live_lesson_assertion_reads_icon_only_pause_and_stop_labels(self):
         root = ET.fromstring("""<hierarchy>
           <node text="Live lesson · segment 1 of 1" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,50][300,250]"/>
-          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
-          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
+          <node text="A group of stars that forms a recognised pattern is called a constellation. The stars only appear close together from our viewpoint on Earth; they can be very far apart in space." bounds="[0,50][300,250]"/>
+          <node text="Beyond Earth — Constellation" bounds="[0,250][300,300]"/>
+          <node text="A constellation is a pattern of stars seen in the night sky." bounds="[0,300][300,350]"/>
           <node text="" content-desc="Pause playback" bounds="[0,350][100,400]"/>
           <node text="" content-desc="Stop lesson" bounds="[100,350][200,400]"/>
         </hierarchy>""")
@@ -93,9 +93,9 @@ class ExactSelectorTests(unittest.TestCase):
     def test_live_assertion_accepts_a_short_first_segment_before_later_segments(self):
         root = ET.fromstring("""<hierarchy>
           <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,50][300,250]"/>
-          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
-          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
+          <node text="A group of stars that forms a recognised pattern is called a constellation. The stars only appear close together from our viewpoint on Earth." bounds="[0,50][300,250]"/>
+          <node text="Beyond Earth — Constellation" bounds="[0,250][300,300]"/>
+          <node text="A constellation is a pattern of stars seen in the night sky." bounds="[0,300][300,350]"/>
           <node text="" content-desc="Pause playback" bounds="[0,350][100,400]"/>
           <node text="" content-desc="Stop lesson" bounds="[100,350][200,400]"/>
         </hierarchy>""")
@@ -125,9 +125,9 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
     def test_smoke_api_supplies_a_source_mapped_original_2d_visual(self):
         fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
         self.assertIn('"scene_type": "synthesis_static"', fixture)
-        self.assertIn('"title": "All 1s pattern visual"', fixture)
-        self.assertIn('"nodes": ["1", "1", "1", "1", "1"]', fixture)
-        self.assertIn('"source_chunk_ids": ["smoke-source"]', fixture)
+        self.assertIn('"title": "Beyond Earth — Day and Night"', fixture)
+        self.assertIn('"nodes": ["Sun", "Sunlight", "Earth", "Day", "Night"]', fixture)
+        self.assertIn('"source_chunk_ids": ["smoke-beyond-earth-source"]', fixture)
         self.assertIn('"animation": "narration_synced_2d"', fixture)
 
     def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):
@@ -135,8 +135,9 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('"all 1s pattern visual" not in joined', live)
-        self.assertIn('"each term stays 1" not in joined', live)
+        self.assertIn('lesson_words = ("sunlight", "day and night", "earth rotates", "rotation", "constellation", "stars in the night sky")', live)
+        self.assertIn('"a constellation is a pattern of stars"', live)
+        self.assertIn('"the sun lights one half of earth"', live)
         self.assertNotIn('"watch the pattern"', live)
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
 
@@ -425,3 +426,113 @@ class PreviousScreenSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BeyondEarthWhiteboardContractTests(unittest.TestCase):
+    def test_all_eight_chapter_scenes_use_the_native_hand_drawn_board(self):
+        root = Path(__file__).resolve().parents[2]
+        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
+        tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        scenes = (
+            "beyond_earth_constellation",
+            "beyond_earth_sky_watching",
+            "beyond_earth_sun_star",
+            "beyond_earth_solar_system",
+            "beyond_earth_planet_star",
+            "beyond_earth_earth_moon",
+            "beyond_earth_asteroid_comet",
+        )
+        for scene in scenes:
+            self.assertIn(f'"{scene}"', board)
+        self.assertIn('else -> drawGalaxy(stage, sw, unit)', board)
+        self.assertIn("BeyondEarthWhiteboard(", tutor)
+        self.assertIn("TextbookFigureStrip(lesson, compact)", tutor)
+        self.assertIn('val images = lesson.optJSONArray("textbook_images") ?: return', tutor)
+        self.assertIn("if (images.length() == 0) return", tutor)
+        for step, scene in (
+            ("step_1", "beyond_earth_constellation"),
+            ("step_2", "beyond_earth_sky_watching"),
+            ("step_3", "beyond_earth_sun_star"),
+            ("step_4", "beyond_earth_solar_system"),
+            ("step_5", "beyond_earth_planet_star"),
+            ("step_6", "beyond_earth_earth_moon"),
+            ("step_7", "beyond_earth_asteroid_comet"),
+            ("step_8", "beyond_earth_galaxy"),
+        ):
+            self.assertIn(f'"{step}" to "{scene}"', tutor)
+
+    def test_board_is_native_compose_and_manual_reveal_resets_per_narrated_step(self):
+        root = Path(__file__).resolve().parents[2]
+        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
+        tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn("Canvas(Modifier.fillMaxSize())", board)
+        self.assertIn("pointerInput(subtype)", board)
+        self.assertIn("detectTapGestures", board)
+        self.assertIn("remember(subtype, stepKey)", board)
+        self.assertIn("stepKey = active", tutor)
+        self.assertNotIn(".svg", board.lower())
+        self.assertNotIn("androidx.compose.ui.graphics.vector", board)
+
+
+class BeyondEarthChapterSelectionTests(unittest.TestCase):
+    def test_chapter_selection_assertion_matches_the_real_beyond_earth_picker(self):
+        source = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        start = source.index("def assert_chapter_selected(path):")
+        end = source.index("\\ndef tap_numbered", start)
+        assertion = source[start:end].lower()
+        self.assertIn('"beyond earth" not in joined', assertion)
+        self.assertIn('"constellations" not in joined', assertion)
+        self.assertNotIn("patterns in mathematics", assertion)
+
+    def test_actual_beyond_earth_accessibility_tree_passes_chapter_assertion(self):
+        from ui_smoke import assert_chapter_selected
+        root = ET.fromstring("""<hierarchy>
+          <node text="PadippuPal"/>
+          <node text="Beyond Earth · Constellations"/>
+          <node text="Chapter"/>
+          <node text="Beyond Earth"/>
+          <node text="Topic / concept"/>
+          <node text="Constellations"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-beyond-earth-chapter-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_chapter_selected(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+
+class CompletedLessonWordingRegressionTests(unittest.TestCase):
+    def test_completed_constellation_lesson_accepts_singular_transcript_wording(self):
+        from ui_smoke import assert_completed_lesson
+        transcript = ("Look carefully at the night sky. A group of stars that forms a "
+                      "recognised pattern is called a constellation. " * 8
+                      + "Ursa Major is one example.")
+        root = ET.fromstring(f"""<hierarchy>
+          <node text="Beyond Earth · Constellations"/>
+          <node text="{transcript}"/>
+          <node text="Beyond Earth — Constellation"/>
+          <node text="Live lesson complete."/>
+          <node text="Ask your teacher…"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-completed-lesson-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_completed_lesson(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_completed_lesson_still_requires_a_retained_long_transcript(self):
+        from ui_smoke import assert_completed_lesson
+        root = ET.fromstring("""<hierarchy>
+          <node text="Live lesson complete."/>
+          <node text="Ask your teacher…"/>
+          <node text="Beyond Earth — Constellation"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-completed-lesson-empty-test.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            with self.assertRaisesRegex(SystemExit, "Completed lesson disappeared"):
+                assert_completed_lesson(str(path))
+        finally:
+            path.unlink(missing_ok=True)

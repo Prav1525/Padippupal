@@ -1,5 +1,6 @@
 package com.padippupal.app
 
+import android.graphics.BitmapFactory
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -17,6 +18,7 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -60,11 +62,16 @@ import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -316,8 +323,94 @@ private fun ChapterOneMathAnimation(
         }
 }
 
+private fun activeSubtypeForChapter(lesson: JSONObject, activeStep: JSONObject?): String {
+    val chapter = lesson.optString("chapter").ifBlank { lesson.optString("chapter_title") }
+    if (chapter.equals("Beyond Earth", ignoreCase = true)) {
+        // Stored chapter assets use the shared "handwritten_whiteboard" style
+        // subtype. Their stable step IDs carry the actual science concept.
+        val sceneByStep = mapOf(
+            "step_1" to "beyond_earth_constellation",
+            "step_2" to "beyond_earth_sky_watching",
+            "step_3" to "beyond_earth_sun_star",
+            "step_4" to "beyond_earth_solar_system",
+            "step_5" to "beyond_earth_planet_star",
+            "step_6" to "beyond_earth_earth_moon",
+            "step_7" to "beyond_earth_asteroid_comet",
+            "step_8" to "beyond_earth_galaxy"
+        )
+        val stepId = activeStep?.optString("id").orEmpty()
+        sceneByStep[stepId]?.let { return it }
+    }
+    val stepSubtype = activeStep?.optString("visual_subtype").orEmpty()
+    val lessonSubtype = lesson.optString("visual_subtype").orEmpty()
+    val raw = if (stepSubtype.isNotBlank()) stepSubtype else lessonSubtype
+    if (chapter.equals("Beyond Earth", ignoreCase = true) && raw.isNotBlank()) {
+        return if (raw.startsWith("beyond_earth_")) raw else "beyond_earth_$raw"
+    }
+    return raw
+}
+
 @Composable
-private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?) {
+private fun TextbookFigureStrip(lesson: JSONObject, compact: Boolean) {
+    val images = lesson.optJSONArray("textbook_images") ?: return
+    if (images.length() == 0) return
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Text("FROM YOUR TEXTBOOK", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        for (index in 0 until images.length()) {
+            val item = images.optJSONObject(index) ?: continue
+            val path = item.optString("url").trim()
+            if (path.isBlank()) continue
+            val fullUrl = if (path.startsWith("http://") || path.startsWith("https://")) path
+                else BuildConfig.CURRICULUM_API_BASE_URL.trimEnd('/') + "/" + path.trimStart('/')
+            var bitmap by remember(fullUrl) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+            var failed by remember(fullUrl) { mutableStateOf(false) }
+            LaunchedEffect(fullUrl) {
+                val decoded = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val connection = URL(fullUrl).openConnection() as HttpURLConnection
+                        connection.connectTimeout = 8000
+                        connection.readTimeout = 15000
+                        try {
+                            if (connection.responseCode !in 200..299) null
+                            else connection.inputStream.use { BitmapFactory.decodeStream(it)?.asImageBitmap() }
+                        } finally {
+                            connection.disconnect()
+                        }
+                    }.getOrNull()
+                }
+                bitmap = decoded
+                failed = decoded == null
+            }
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFFFFFEFA),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E3E6))
+            ) {
+                Column(Modifier.padding(if (compact) 6.dp else 9.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap!!,
+                            contentDescription = "NCERT textbook figure, page ${item.optInt("page_no")}",
+                            modifier = Modifier.fillMaxWidth().heightIn(max = if (compact) 170.dp else 240.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else if (failed) {
+                        Text("Textbook figure could not be loaded.", color = TutorGrey, fontSize = 11.sp)
+                    } else {
+                        Box(Modifier.fillMaxWidth().height(if (compact) 72.dp else 100.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
+                        }
+                    }
+                    Text("NCERT · page ${item.optInt("page_no")}", color = TutorGrey, fontSize = 10.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?, narrationText: String = "", narrationWordIndex: Int = 0, narrationActive: Boolean = false) {
     val title = lesson.optString("title", "Lesson visual")
     val caption = lesson.optString("caption", "")
     val objects = lesson.optJSONArray("objects")
@@ -333,8 +426,9 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
     val active = (activeStepOverride ?: 0).coerceIn(0, stepCount - 1)
     val activeStep = steps?.optJSONObject(active)
     val activeCaption = activeStep?.optString("caption").orEmpty().ifBlank { caption }
-    val activeKind = activeStep?.optString("visual_kind").orEmpty()
-        .ifBlank { lesson.optString("visual_kind", "concept_card") }
+    val activeKind = if (activeSubtypeForChapter(lesson, activeStep).startsWith("beyond_earth_")) "beyond_earth" else
+        activeStep?.optString("visual_kind").orEmpty()
+            .ifBlank { lesson.optString("visual_kind", "concept_card") }
     val activeSubtype = activeStep?.optString("visual_subtype").orEmpty()
         .ifBlank { lesson.optString("visual_subtype", activeKind) }.lowercase()
     val activeLabels = buildList {
@@ -381,11 +475,60 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 maxLines = if (compact) 2 else Int.MAX_VALUE
             )
         }
+        // The strip is self-gating on a non-empty textbook_images array.
+        // Do not depend on optional chapter metadata being copied into the visual payload.
+        TextbookFigureStrip(lesson, compact)
+        if (activeKind == "beyond_earth") {
+            val chapterSubtype = activeSubtypeForChapter(lesson, activeStep)
+            if (chapterSubtype == "beyond_earth_sky_watching") {
+                // Day/Night uses the native offline Canvas renderer; the active tutor
+                // synthesis step progressively reveals the illustration as narration advances.
+                BeyondEarthNativeCanvas(
+                    step = active,
+                    compact = compact,
+                    narrationText = narrationText,
+                    narrationWordIndex = narrationWordIndex,
+                    narrationActive = narrationActive,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                BeyondEarthPixiCanvas(
+                    step = active,
+                    subtype = chapterSubtype,
+                    compact = compact,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        } else {
         Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {
             Canvas(Modifier.fillMaxSize()) {
             val stroke = 1.6.dp.toPx()
             val centerY = size.height * 0.52f
             when (activeKind) {
+                "beyond_earth" -> {
+                    val ink = Color(0xFF334155); val teal = Color(0xFF0F766E); val blue = Color(0xFF60A5FA); val gold = Color(0xFFF4C95D)
+                    val cx = size.width * .50f; val cy = centerY
+                    when (activeSubtype) {
+                        "beyond_earth_constellation" -> {
+                            val pts = listOf(Offset(.18f*size.width,.32f*size.height),Offset(.34f*size.width,.18f*size.height),Offset(.48f*size.width,.42f*size.height),Offset(.68f*size.width,.22f*size.height),Offset(.82f*size.width,.48f*size.height))
+                            pts.forEachIndexed { i,p -> drawCircle(gold,5.dp.toPx(),p); if(i>0) drawLine(ink,pts[i-1],p,stroke) }
+                        }
+                        "beyond_earth_sky_watching" -> {
+                            val pts=listOf(Offset(.20f*size.width,.58f*size.height),Offset(.31f*size.width,.42f*size.height),Offset(.48f*size.width,.44f*size.height),Offset(.50f*size.width,.63f*size.height),Offset(.34f*size.width,.68f*size.height))
+                            pts.forEachIndexed { i,p -> drawCircle(gold,5.dp.toPx(),p); if(i>0) drawLine(ink,pts[i-1],p,stroke) }; drawLine(teal,Offset(.49f*size.width,.44f*size.height),Offset(.78f*size.width,.18f*size.height),stroke*1.5f); drawCircle(gold,6.dp.toPx(),Offset(.80f*size.width,.16f*size.height))
+                        }
+                        "beyond_earth_sun_star" -> {
+                            drawCircle(gold,22.dp.toPx(),Offset(.27f*size.width,cy)); repeat(8) { k -> val a=k*Math.PI/4; drawLine(gold,Offset(.27f*size.width+kotlin.math.cos(a).toFloat()*26.dp.toPx(),cy+kotlin.math.sin(a).toFloat()*26.dp.toPx()),Offset(.27f*size.width+kotlin.math.cos(a).toFloat()*34.dp.toPx(),cy+kotlin.math.sin(a).toFloat()*34.dp.toPx()),stroke) }; drawCircle(blue,5.dp.toPx(),Offset(.76f*size.width,cy)); drawCircle(blue,3.dp.toPx(),Offset(.87f*size.width,.28f*size.height))
+                        }
+                        "beyond_earth_solar_system" -> {
+                            drawCircle(gold,15.dp.toPx(),Offset(.12f*size.width,cy)); val xs=listOf(.27f,.37f,.47f,.57f,.68f,.78f,.87f); xs.forEachIndexed { i,x -> drawCircle(if(i==2) teal else blue,(if(i<4) 5 else 8).dp.toPx(),Offset(x*size.width,cy+(if(i%2==0) -8 else 8).dp.toPx())) }; drawLine(ink,Offset(.20f*size.width,cy+25.dp.toPx()),Offset(.91f*size.width,cy+25.dp.toPx()),stroke)
+                        }
+                        "beyond_earth_planet_star" -> { drawCircle(gold,17.dp.toPx(),Offset(.28f*size.width,cy)); drawCircle(blue,14.dp.toPx(),Offset(.72f*size.width,cy)); drawLine(gold,Offset(.40f*size.width,cy-8.dp.toPx()),Offset(.57f*size.width,cy-8.dp.toPx()),stroke*1.5f) }
+                        "beyond_earth_earth_moon" -> { drawOval(teal,Offset(cx-18.dp.toPx(),cy-14.dp.toPx()),androidx.compose.ui.geometry.Size(36.dp.toPx(),28.dp.toPx())); drawOval(ink,Offset(cx-18.dp.toPx(),cy-14.dp.toPx()),androidx.compose.ui.geometry.Size(36.dp.toPx(),28.dp.toPx()),style=androidx.compose.ui.graphics.drawscope.Stroke(stroke)); drawOval(blue,Offset(cx-78.dp.toPx(),cy-38.dp.toPx()),androidx.compose.ui.geometry.Size(156.dp.toPx(),76.dp.toPx()),style=androidx.compose.ui.graphics.drawscope.Stroke(stroke)); drawCircle(Color(0xFFE5E7EB),7.dp.toPx(),Offset(cx+76.dp.toPx(),cy)) }
+                        "beyond_earth_asteroid_comet" -> { repeat(7) { i -> drawCircle(ink,(3+i%3).dp.toPx(),Offset((.20f+i*.08f)*size.width,(.30f+(i%3)*.13f)*size.height)) }; drawCircle(gold,13.dp.toPx(),Offset(.70f*size.width,cy)); drawLine(blue,Offset(.66f*size.width,cy),Offset(.48f*size.width,cy-16.dp.toPx()),stroke*2); drawLine(blue,Offset(.66f*size.width,cy),Offset(.48f*size.width,cy+16.dp.toPx()),stroke*2) }
+                        else -> { val rings=listOf(.16f,.29f,.42f); rings.forEach { r -> drawOval(Color(0xFF94A3B8),Offset(cx-size.width*r,cy-size.height*r*.45f),androidx.compose.ui.geometry.Size(size.width*r*2,size.height*r*.9f),style=androidx.compose.ui.graphics.drawscope.Stroke(stroke)) }; drawCircle(teal,7.dp.toPx(),Offset(cx,cy)); drawCircle(gold,5.dp.toPx(),Offset(cx+size.width*.27f,cy-size.height*.10f)) }
+                    }
+                }
                 "orbit" -> {
                     val sun = Offset(size.width * 0.16f, centerY)
                     val earth = Offset(size.width * 0.58f, centerY)
@@ -628,7 +771,8 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 }
             }
         }
-        if (activeKind != "sequence" && activeKind != "process") {
+        }
+        if (activeKind != "sequence" && activeKind != "process" && activeKind != "beyond_earth") {
             activeLabels.take(revealCount).chunked(3).forEach { group ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 group.forEach { label ->
@@ -662,14 +806,14 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
-private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
+private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null, narrationText: String = "", narrationWordIndex: Int = 0, narrationActive: Boolean = false) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
     val title = lesson.optString("title", lesson.optString("topic", "Explore this concept"))
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
     if (scene == "synthesis_static") {
-        SynthesizedVisualCard(lesson, compact, activeStepOverride)
+        SynthesizedVisualCard(lesson, compact, activeStepOverride, narrationText, narrationWordIndex, narrationActive)
         return
     }
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {
@@ -2469,7 +2613,10 @@ internal fun TutorScreen(
                                 sessionKey = sessionKey,
                                 todayKey = todayKey,
                                 compact = true,
-                                activeStepOverride = liveVisualStep
+                                activeStepOverride = liveVisualStep,
+                                narrationText = liveCaption,
+                                narrationWordIndex = liveWordIndex,
+                                narrationActive = speechActive
                             )
                             liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
                                 val topicKey = topic.lowercase(Locale.ROOT)

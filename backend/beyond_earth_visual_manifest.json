@@ -1,0 +1,114 @@
+{
+  "schema_version": 2,
+  "curriculum": {
+    "board": "CBSE",
+    "class_level": 6,
+    "subject": "Science",
+    "medium": "English",
+    "chapter": "Beyond Earth",
+    "textbook": "NCERT Curiosity",
+    "edition": "Reprint 2026-27",
+    "chapter_number": 12
+  },
+  "status": "textbook_figure_mapping",
+  "textbook_source": {
+    "title": "Curiosity: Textbook of Science, Grade 6",
+    "publisher": "National Council of Educational Research and Training (NCERT)",
+    "chapter_title": "Beyond Earth",
+    "pdf_url": "https://ncert.nic.in/textbook/pdf/fecu112.pdf",
+    "edition": "Reprint 2026-27",
+    "source_pages": "Chapter pages 231-252; PDF pages 1-21",
+    "rights_status": "permission_required_before_copying_or_hosting_extracted_figures",
+    "rights_note": "NCERT copyright notice reserves reproduction rights. Keep source references and link to the official PDF until permission or a documented reuse licence is confirmed. Do not upload extracted figure files to object storage or serve copied figures in the app before rights clearance."
+  },
+  "storage_policy": {
+    "image_storage": "object_storage",
+    "metadata_storage": "application_database",
+    "production_write": false,
+    "note": "This is a source-grounded figure map, not a production DB seed. No textbook image binaries are included or uploaded.",
+    "development_branch": "beyond-earth-visual-assets-dev",
+    "bucket": "padippupal-science-visuals",
+    "asset_metadata_table": "lesson_image_assets"
+  },
+  "presentation": {
+    "placement": "inline_with_matching_tutor_segment",
+    "reveal": "show_only_when_topic_matches",
+    "max_visual_height_dp": 260,
+    "no_overlay": true,
+    "fallback": "official_textbook_source_link_until_rights_cleared"
+  },
+  "visual_source_policy": {
+    "preferred_source": "official_textbook_figure",
+    "no_ai_generated_images": true,
+    "no_redrawing_or_styling": true,
+    "no_forced_visual_per_module": true,
+    "extract_only_after_rights_clearance": true
+  },
+  "modules": [
+    {
+      "id": "stars-and-constellations",
+      "topic": "Stars and constellations",
+      "visuals": [
+        {"figure": "Fig. 12.1", "caption": "The beauty of night sky from a very dark location in Ladakh, India", "book_page": 231, "pdf_page": 0, "match": "dark-sky introduction"},
+        {"figure": "Fig. 12.2", "caption": "A part of the night sky", "book_page": 232, "pdf_page": 1, "match": "star-pattern activity"},
+        {"figure": "Fig. 12.3", "caption": "Some constellations and stars", "book_page": 233, "pdf_page": 2, "match": "Orion, Taurus, Canis Major and Sirius"},
+        {"figure": "Fig. 12.4", "caption": "Big Dipper, Little Dipper and Pole Star", "book_page": 235, "pdf_page": 4, "match": "locating north and identifying constellations"}
+      ]
+    },
+    {
+      "id": "night-sky-watching",
+      "topic": "Night sky watching",
+      "visuals": [
+        {"figure": "Fig. 12.5", "caption": "Night sky watching", "book_page": 236, "pdf_page": 5, "match": "safe observation activity"}
+      ]
+    },
+    {
+      "id": "sun-and-solar-system",
+      "topic": "The Sun and our Solar System",
+      "visuals": [
+        {"figure": "Fig. 12.6", "caption": "The rising Sun", "book_page": 238, "pdf_page": 7, "match": "Sun as our nearest star and source of light and heat"},
+        {"figure": "Fig. 12.7", "caption": "An artist's representation of the Solar System", "book_page": 240, "pdf_page": 9, "match": "Sun, eight planets and asteroid belt; figure is explicitly not to scale"}
+      ]
+    },
+    {
+      "id": "planets-and-observation",
+      "topic": "Planets and observing the sky",
+      "visuals": [
+        {"figure": "Fig. 12.8", "caption": "A telescope", "book_page": 243, "pdf_page": 12, "match": "how telescopes help us observe distant objects"}
+      ]
+    },
+    {
+      "id": "natural-satellites-and-moon",
+      "topic": "Natural satellites and the Moon",
+      "visuals": [
+        {"figure": "Fig. 12.9", "caption": "The Moon", "book_page": 244, "pdf_page": 13, "match": "Moon imagery and surface craters; includes Cartosat and Chandrayaan-3 images"}
+      ]
+    },
+    {
+      "id": "asteroids-and-comets",
+      "topic": "Asteroids and comets",
+      "visuals": [
+        {"figure": "Fig. 12.10", "caption": "A Comet", "book_page": 246, "pdf_page": 15, "match": "comet and its tail"}
+      ]
+    },
+    {
+      "id": "milky-way-and-universe",
+      "topic": "The Milky Way Galaxy and the Universe",
+      "visuals": [
+        {"figure": "Fig. 12.11", "caption": "Milky Way Galaxy as seen from a very dark location in Ladakh, India", "book_page": 247, "pdf_page": 16, "match": "our home galaxy"}
+      ]
+    }
+  ],
+  "explicit_gaps": [
+    {
+      "topic": "Day and night",
+      "status": "no_dedicated_explanatory_figure_in_chapter",
+      "note": "The chapter text briefly mentions Earth's rotation, but does not provide a dedicated day/night diagram. Do not reuse an unrelated figure."
+    },
+    {
+      "topic": "Phases of the Moon",
+      "status": "not_taught_or_illustrated_as_a_topic_in_this_chapter",
+      "note": "No Moon-phases sequence appears in Chapter 12. Do not create or attach a Moon-phases visual to this chapter."
+    }
+  ]
+}

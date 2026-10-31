@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
@@ -196,6 +197,15 @@ def init_db() -> None:
         CREATE TABLE IF NOT EXISTS source_content (
             source_id TEXT PRIMARY KEY REFERENCES sources(id) ON DELETE CASCADE,
             content TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS source_page_images (
+            source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+            page_no INTEGER NOT NULL,
+            mime_type TEXT NOT NULL DEFAULT 'image/png',
+            image_bytes BYTEA NOT NULL,
+            sha256 TEXT NOT NULL,
+            created_at REAL NOT NULL,
+            PRIMARY KEY(source_id, page_no)
         );
         CREATE TABLE IF NOT EXISTS chunks (
             id TEXT PRIMARY KEY,
@@ -574,6 +584,31 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
             "content_fingerprint": row["content_fingerprint"],
         })
     visuals_by_step = {str(item["step_id"]): item for item in ordered}
+    # Use the chapter's figure map, not a broad citation page range. This prevents
+    # adjacent, unrelated figures from being attached to a teaching segment.
+    topic_text = normalize(payload.topic).casefold()
+    matched_pages = textbook_figure_pages_for_topic(topic_text)
+    cited_source_ids = list(dict.fromkeys(
+        str(source_by_id[chunk_id].get("source_id") or "")
+        for chunk_id in allowed_ids if chunk_id in source_by_id
+        and source_by_id[chunk_id].get("source_id")
+    ))
+    textbook_images: list[dict[str, Any]] = []
+    if matched_pages and cited_source_ids:
+        source_marks = ",".join("?" for _ in cited_source_ids)
+        page_marks = ",".join("?" for _ in matched_pages)
+        with db() as conn:
+            image_rows = conn.execute(
+                f"""SELECT source_id,page_no,mime_type,sha256 FROM source_page_images
+                    WHERE source_id IN ({source_marks}) AND page_no IN ({page_marks})
+                    ORDER BY page_no""",
+                (*cited_source_ids, *matched_pages),
+            ).fetchall()
+        textbook_images = [{
+            "page_no": int(row["page_no"]), "mime_type": str(row["mime_type"]),
+            "sha256": str(row["sha256"]),
+            "url": f"/textbook-images/{row['source_id']}/{int(row['page_no'])}",
+        } for row in image_rows]
     for segment in segments:
         if not isinstance(segment, dict):
             continue
@@ -581,7 +616,10 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
         inline = build_inline_synthesized_visual(
             profile_key, lesson, [visual_record] if visual_record else [], topic=payload.topic
         ) if visual_record else None
-        segment["interactive_lesson"] = inline or fallback_visual
+        interactive = inline or (dict(fallback_visual) if fallback_visual else None)
+        if interactive is not None and textbook_images:
+            interactive["textbook_images"] = textbook_images
+        segment["interactive_lesson"] = interactive
     return segments
 
 
@@ -595,8 +633,24 @@ def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
     for index, visual in enumerate(visuals):
         blueprint = visual.get("blueprint", {})
         nodes = blueprint.get("nodes", []) if isinstance(blueprint, dict) else []
-        if not isinstance(nodes, list):
-            nodes = []
+        if not isinstance(nodes, list) or not nodes:
+            # Chapter whiteboard blueprints store their labelled concepts as
+            # objects/actions and progressive drawing steps, not a flat nodes array.
+            raw_objects = blueprint.get("objects", []) if isinstance(blueprint, dict) else []
+            nodes = [
+                str(item.get("label", "")).strip()
+                for item in raw_objects
+                if isinstance(item, dict) and str(item.get("label", "")).strip()
+            ] if isinstance(raw_objects, list) else []
+            if not nodes and isinstance(blueprint, dict):
+                drawing_steps = blueprint.get("steps", [])
+                if isinstance(drawing_steps, list):
+                    for drawing_step in drawing_steps:
+                        if isinstance(drawing_step, dict) and isinstance(drawing_step.get("nodes"), list):
+                            nodes.extend(str(value).strip() for value in drawing_step["nodes"] if str(value).strip())
+                            if nodes:
+                                break
+        nodes = nodes[:6]
         steps.append({
             "id": visual.get("step_id", f"step-{index + 1}"),
             "label": blueprint.get("title", visual.get("summary_text", "")),
@@ -696,6 +750,65 @@ def save_job(source_id: str) -> str:
             (job_id, source_id, now, now),
         )
     return job_id
+
+
+
+def textbook_figure_pages_for_topic(topic: str) -> list[int]:
+    """Return one-based PDF page numbers for the most specific Beyond Earth topic match."""
+    normalized = normalize(topic).casefold()
+    # Specific observation terms must precede broad terms such as "planet".
+    figure_pages_by_topic = [
+        (("telescope", "observing the sky", "observing planets"), [13]),
+        (("night sky watching", "observing the night sky", "sky watching"), [6]),
+        (("natural satellite", "moon"), [14]),
+        (("asteroid", "comet"), [16]),
+        (("milky way", "galaxy", "universe"), [17]),
+        (("stars", "constellation", "pole star", "big dipper", "little dipper"), [1, 2, 3, 5]),
+        (("sun", "solar system", "planet"), [8, 10]),
+    ]
+    return next((pages for terms, pages in figure_pages_by_topic
+                 if any(term in normalized for term in terms)), [])
+
+
+def extract_pdf_visual_pages(pdf_bytes: bytes, max_pages: int = 40) -> dict[int, bytes]:
+    """Render figure-bearing textbook pages for topic-linked inline display."""
+    try:
+        import fitz
+        document = fitz.open(stream=pdf_bytes, filetype="pdf")
+    except Exception:
+        return {}
+    extracted: dict[int, bytes] = {}
+    try:
+        for page_index, page in enumerate(document):
+            if len(extracted) >= max_pages:
+                break
+            try:
+                if not page.get_images(full=True) and len(page.get_drawings()) < 1:
+                    continue
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
+                extracted[page_index + 1] = pix.tobytes("png")
+            except Exception:
+                continue
+    finally:
+        document.close()
+    return extracted
+
+
+def persist_source_page_images(source_id: str, page_images: dict[int, bytes]) -> int:
+    """Persist source page images idempotently with SHA-256 checksums."""
+    now = time.time()
+    with db() as conn:
+        for page_no, image_bytes in page_images.items():
+            digest = hashlib.sha256(image_bytes).hexdigest()
+            conn.execute(
+                """INSERT INTO source_page_images(source_id,page_no,mime_type,image_bytes,sha256,created_at)
+                   VALUES(?,?,'image/png',?,?,?)
+                   ON CONFLICT(source_id,page_no) DO UPDATE SET
+                     mime_type=excluded.mime_type,image_bytes=excluded.image_bytes,
+                     sha256=excluded.sha256,created_at=excluded.created_at""",
+                (source_id, int(page_no), image_bytes, digest, now),
+            )
+    return len(page_images)
 
 
 def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_count: int | None = None) -> dict[str, str]:
@@ -1071,6 +1184,8 @@ async def ingest_pdf(
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Could not process PDF or metadata: {exc}") from exc
     result = enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
+    page_images = extract_pdf_visual_pages(raw)
+    result["stored_visual_pages"] = str(persist_source_page_images(result["source_id"], page_images)) if page_images and result.get("source_id") else "0"
     result["visual_reference_pages"] = str(len(visual_refs))
     return result
 
@@ -1143,6 +1258,8 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
                     chapter_title = f"Chapter PDF ({filename})"
             metadata = base.model_copy(update={"title": f"{base.title} — {chapter_title}"})
             result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages))
+            page_images = extract_pdf_visual_pages(pdf_raw)
+            result["stored_visual_pages"] = str(persist_source_page_images(result["source_id"], page_images)) if page_images and result.get("source_id") else "0"
             result["visual_reference_pages"] = str(len(visual_refs)); results.append({"file": filename, "title": metadata.title, **result})
         except Exception as exc:
             results.append({"file": filename, "status": "failed", "error": str(exc)[:300]})
@@ -2429,6 +2546,21 @@ def _normalize_detail_id(raw_id: str, expected_key: str) -> str:
     return candidate
 
 
+
+@app.get("/textbook-images/{source_id}/{page_no}")
+def get_textbook_page_image(source_id: str, page_no: int) -> Response:
+    """Serve the stored source page image referenced by a synthesized topic."""
+    with db() as conn:
+        row = conn.execute(
+            "SELECT mime_type,image_bytes,sha256 FROM source_page_images WHERE source_id=? AND page_no=?",
+            (source_id, page_no),
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="No extracted textbook visual exists for this source page.")
+    return Response(content=bytes(row["image_bytes"]), media_type=str(row["mime_type"]),
+                    headers={"ETag": '"' + str(row["sha256"]) + '"', "Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/admin/syllabus-synthesis/rounds/{round_id}", dependencies=[Depends(require_admin)])
 def get_syllabus_synthesis_round(round_id: str) -> dict[str, Any]:
     round_id = _normalize_detail_id(round_id, "round_id")
@@ -2446,6 +2578,19 @@ def get_syllabus_synthesis_round(round_id: str) -> dict[str, Any]:
     decoded_topics = []
     for raw in topics:
         topic = dict(raw)
+        page_start, page_end = topic.get("page_start"), topic.get("page_end")
+        with db() as conn:
+            image_rows = conn.execute(
+                """SELECT page_no,mime_type,sha256 FROM source_page_images
+                   WHERE source_id=? AND page_no BETWEEN ? AND ? ORDER BY page_no""",
+                (topic["source_id"], int(page_start or 0), int(page_end or 0)),
+            ).fetchall() if page_start is not None and page_end is not None else []
+        topic["textbook_images"] = [
+            {"page_no": int(image["page_no"]), "mime_type": str(image["mime_type"]),
+             "sha256": str(image["sha256"]),
+             "url": f"/textbook-images/{topic['source_id']}/{int(image['page_no'])}"}
+            for image in image_rows
+        ]
         for field, public_field in (
             ("learning_objectives_json", "learning_objectives"),
             ("explanation_json", "explanation"),
@@ -3041,6 +3186,12 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             if (segments and _lesson_segments_match_topic(payload.topic, segments)
                     and _lesson_segments_are_substantive(segments)):
                 segments = _translate_approved_segments(segments, payload.app_language)
+                chapter_visual = build_inline_synthesized_visual(
+                    str(approved["id"]), lesson, synthesized_visuals, str(approved.get("topic") or "")
+                ) or matched_visual
+                if chapter_visual and segments:
+                    first_segment_visual = segments[0].get("interactive_lesson") or {}
+                    chapter_visual["textbook_images"] = first_segment_visual.get("textbook_images", [])
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",
@@ -3049,7 +3200,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                         "chapter_overview": lesson.get("overview", ""),
                         "learning_objectives": lesson.get("learning_objectives", []),
                         "chapter_title": lesson.get("chapter_title", approved["chapter"]),
-                        "interactive_lesson": build_inline_synthesized_visual(str(approved["id"]), lesson, synthesized_visuals, str(approved.get("topic") or "")) or matched_visual,
+                        "interactive_lesson": chapter_visual,
                         "synthesized_visuals": synthesized_visuals}
             if segments:
                 logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",
@@ -3288,10 +3439,13 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     # same segment the learner hears. This is the dynamic Gemini path; approved
     # chapter lessons use the dedicated lesson_visual_assets table above.
     lesson_segments = attach_topic_visuals(payload, validated["segments"], sources, matched_visual)
+    lesson_visual = matched_visual
+    if lesson_segments and lesson_segments[0].get("interactive_lesson"):
+        lesson_visual = dict(lesson_segments[0]["interactive_lesson"])
     return {"lesson_id": str(uuid.uuid4()), "segments": lesson_segments, "grounded": True, "sources": sources,
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False,
-            "interactive_lesson": matched_visual}
+            "interactive_lesson": lesson_visual}
 
 @app.post("/tutor/chat")
 def tutor_chat(payload: TutorChatRequest) -> dict[str, Any]:

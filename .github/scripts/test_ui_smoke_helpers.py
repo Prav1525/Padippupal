@@ -125,8 +125,8 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
     def test_smoke_api_supplies_a_source_mapped_original_2d_visual(self):
         fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
         self.assertIn('"scene_type": "synthesis_static"', fixture)
-        self.assertIn('"title": "Beyond Earth — Constellation"', fixture)
-        self.assertIn('"nodes": ["North Star", "Star pattern", "Ursa Major"]', fixture)
+        self.assertIn('"title": "Beyond Earth — Day and Night"', fixture)
+        self.assertIn('"nodes": ["Sun", "Sunlight", "Earth", "Day", "Night"]', fixture)
         self.assertIn('"source_chunk_ids": ["smoke-beyond-earth-source"]', fixture)
         self.assertIn('"animation": "narration_synced_2d"', fixture)
 
@@ -135,9 +135,9 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('if "a constellation is a pattern of stars" not in joined:', live)
-        self.assertIn('("pattern of stars", "stars in the night sky", "ursa major")', live)
-        self.assertIn('if "all 1s pattern" in joined', live)
+        self.assertIn('lesson_words = ("sunlight", "day and night", "earth rotates", "rotation", "constellation", "stars in the night sky")', live)
+        self.assertIn('"a constellation is a pattern of stars"', live)
+        self.assertIn('"the sun lights one half of earth"', live)
         self.assertNotIn('"watch the pattern"', live)
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
 

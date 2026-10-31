@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
@@ -196,6 +197,15 @@ def init_db() -> None:
         CREATE TABLE IF NOT EXISTS source_content (
             source_id TEXT PRIMARY KEY REFERENCES sources(id) ON DELETE CASCADE,
             content TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS source_page_images (
+            source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+            page_no INTEGER NOT NULL,
+            mime_type TEXT NOT NULL DEFAULT 'image/png',
+            image_bytes BYTEA NOT NULL,
+            sha256 TEXT NOT NULL,
+            created_at REAL NOT NULL,
+            PRIMARY KEY(source_id, page_no)
         );
         CREATE TABLE IF NOT EXISTS chunks (
             id TEXT PRIMARY KEY,
@@ -714,6 +724,48 @@ def save_job(source_id: str) -> str:
     return job_id
 
 
+
+def extract_pdf_visual_pages(pdf_bytes: bytes, max_pages: int = 40) -> dict[int, bytes]:
+    """Render figure-bearing textbook pages for topic-linked inline display."""
+    try:
+        import fitz
+        document = fitz.open(stream=pdf_bytes, filetype="pdf")
+    except Exception:
+        return {}
+    extracted: dict[int, bytes] = {}
+    try:
+        for page_index, page in enumerate(document):
+            if len(extracted) >= max_pages:
+                break
+            try:
+                if not page.get_images(full=True) and len(page.get_drawings()) < 8:
+                    continue
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
+                extracted[page_index + 1] = pix.tobytes("png")
+            except Exception:
+                continue
+    finally:
+        document.close()
+    return extracted
+
+
+def persist_source_page_images(source_id: str, page_images: dict[int, bytes]) -> int:
+    """Persist source page images idempotently with SHA-256 checksums."""
+    now = time.time()
+    with db() as conn:
+        for page_no, image_bytes in page_images.items():
+            digest = hashlib.sha256(image_bytes).hexdigest()
+            conn.execute(
+                """INSERT INTO source_page_images(source_id,page_no,mime_type,image_bytes,sha256,created_at)
+                   VALUES(?,?,'image/png',?,?,?)
+                   ON CONFLICT(source_id,page_no) DO UPDATE SET
+                     mime_type=excluded.mime_type,image_bytes=excluded.image_bytes,
+                     sha256=excluded.sha256,created_at=excluded.created_at""",
+                (source_id, int(page_no), image_bytes, digest, now),
+            )
+    return len(page_images)
+
+
 def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_count: int | None = None) -> dict[str, str]:
     source_id = str(uuid.uuid4())
     # Persist the payload in SQLite before exposing the job to the worker.
@@ -1087,6 +1139,8 @@ async def ingest_pdf(
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Could not process PDF or metadata: {exc}") from exc
     result = enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
+    page_images = extract_pdf_visual_pages(raw)
+    result["stored_visual_pages"] = str(persist_source_page_images(result["source_id"], page_images)) if page_images and result.get("source_id") else "0"
     result["visual_reference_pages"] = str(len(visual_refs))
     return result
 
@@ -1159,6 +1213,8 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
                     chapter_title = f"Chapter PDF ({filename})"
             metadata = base.model_copy(update={"title": f"{base.title} — {chapter_title}"})
             result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages))
+            page_images = extract_pdf_visual_pages(pdf_raw)
+            result["stored_visual_pages"] = str(persist_source_page_images(result["source_id"], page_images)) if page_images and result.get("source_id") else "0"
             result["visual_reference_pages"] = str(len(visual_refs)); results.append({"file": filename, "title": metadata.title, **result})
         except Exception as exc:
             results.append({"file": filename, "status": "failed", "error": str(exc)[:300]})
@@ -2445,6 +2501,21 @@ def _normalize_detail_id(raw_id: str, expected_key: str) -> str:
     return candidate
 
 
+
+@app.get("/textbook-images/{source_id}/{page_no}")
+def get_textbook_page_image(source_id: str, page_no: int) -> Response:
+    """Serve the stored source page image referenced by a synthesized topic."""
+    with db() as conn:
+        row = conn.execute(
+            "SELECT mime_type,image_bytes,sha256 FROM source_page_images WHERE source_id=? AND page_no=?",
+            (source_id, page_no),
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="No extracted textbook visual exists for this source page.")
+    return Response(content=bytes(row["image_bytes"]), media_type=str(row["mime_type"]),
+                    headers={"ETag": '"' + str(row["sha256"]) + '"', "Cache-Control": "public, max-age=86400"})
+
+
 @app.get("/admin/syllabus-synthesis/rounds/{round_id}", dependencies=[Depends(require_admin)])
 def get_syllabus_synthesis_round(round_id: str) -> dict[str, Any]:
     round_id = _normalize_detail_id(round_id, "round_id")
@@ -2462,6 +2533,19 @@ def get_syllabus_synthesis_round(round_id: str) -> dict[str, Any]:
     decoded_topics = []
     for raw in topics:
         topic = dict(raw)
+        page_start, page_end = topic.get("page_start"), topic.get("page_end")
+        with db() as conn:
+            image_rows = conn.execute(
+                """SELECT page_no,mime_type,sha256 FROM source_page_images
+                   WHERE source_id=? AND page_no BETWEEN ? AND ? ORDER BY page_no""",
+                (topic["source_id"], int(page_start or 0), int(page_end or 0)),
+            ).fetchall() if page_start is not None and page_end is not None else []
+        topic["textbook_images"] = [
+            {"page_no": int(image["page_no"]), "mime_type": str(image["mime_type"]),
+             "sha256": str(image["sha256"]),
+             "url": f"/textbook-images/{topic['source_id']}/{int(image['page_no'])}"}
+            for image in image_rows
+        ]
         for field, public_field in (
             ("learning_objectives_json", "learning_objectives"),
             ("explanation_json", "explanation"),

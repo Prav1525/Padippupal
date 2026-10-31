@@ -29,14 +29,14 @@ LESSON = {
         "visual_kind": "beyond_earth",
         "visual_subtype": "beyond_earth_sky_watching",
         "animation": "narration_synced_2d",
-        "objects": [{"label": "North Star", "position": [0.78, 0.20]}, {"label": "Star pattern", "position": [0.45, 0.55]}, {"label": "Ursa Major", "position": [0.18, 0.78]}],
+        "objects": [{"label": "Sun", "position": [0.78, 0.20]}, {"label": "Sunlight", "position": [0.45, 0.55]}, {"label": "Earth", "position": [0.18, 0.78]}],
         "steps": [{"id": "step_2", "label": "Explain day and night", "caption": "The Sun lights one half of Earth. Rotation causes day and night.", "visual_kind": "beyond_earth", "visual_subtype": "beyond_earth_sky_watching", "nodes": ["Sun", "Sunlight", "Earth", "Day", "Night"], "source_chunk_ids": ["smoke-beyond-earth-source"], "reference_page_numbers": [1], "actions": ["Reveal sunlight, day and night hemispheres, then Earth rotation"], "narration_sync": ["Sunlight", "day and night", "rotates"], "animation_plan": {"mode": "staggered_reveal", "duration_ms": 850, "loop": False}}]
     },
     "segments": [
-        {"id": "beyond-earth-definition", "spoken_text": "The Sun is a star. It gives Earth light and heat. Sunlight travels through space and reaches Earth. The half of Earth facing the Sun has day, while the opposite half has night.", "caption_text": "A constellation is a pattern of stars seen in the night sky.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-definition", "spoken_text": "The Sun is a star. It gives Earth light and heat. Sunlight travels through space and reaches Earth. The half of Earth facing the Sun has day, while the opposite half has night.", "caption_text": "Sunlight reaches Earth and lights the half facing the Sun.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
         {"id": "beyond-earth-example", "spoken_text": "Earth is always rotating on an imaginary line called its axis. As Earth rotates, different places turn towards the Sun and then away from it. This is why day changes to night.", "caption_text": "Earth rotates on its axis, causing day and night.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
-        {"id": "beyond-earth-misconception", "spoken_text": "The Sun does not move around Earth to make day and night. Earth rotates from west to east. One complete rotation takes about 24 hours.", "caption_text": "The pattern is how stars appear from Earth, not their true distances.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
-        {"id": "beyond-earth-recap", "spoken_text": "Let us recap. Sunlight illuminates the half of Earth facing the Sun. That side has day; the other side has night. Earth rotation causes the cycle to continue.", "caption_text": "Constellation means a recognisable pattern of stars.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None}
+        {"id": "beyond-earth-misconception", "spoken_text": "The Sun does not move around Earth to make day and night. Earth rotates from west to east. One complete rotation takes about 24 hours.", "caption_text": "Earth turns from west to east; one rotation takes about 24 hours.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None},
+        {"id": "beyond-earth-recap", "spoken_text": "Let us recap. Sunlight illuminates the half of Earth facing the Sun. That side has day; the other side has night. Earth rotation causes the cycle to continue.", "caption_text": "The side facing the Sun has day; the opposite side has night.", "source_chunk_ids": ["smoke-beyond-earth-source"], "visual_action": {"type": "none", "target": "", "value": ""}, "checkpoint": None}
     ]
 }
 for _segment in LESSON["segments"]:
@@ -152,6 +152,8 @@ def self_test() -> None:
     assert len(LESSON["segments"]) == 4
     assert "sunlight" in LESSON["segments"][0]["spoken_text"].casefold()
     assert "rotating" in LESSON["segments"][1]["spoken_text"].casefold()
+    assert all("constellation" not in segment["caption_text"].casefold() for segment in LESSON["segments"])
+    assert all(any(term in segment["caption_text"].casefold() for term in ("sun", "earth", "day", "night")) for segment in LESSON["segments"])
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
     assert LESSON["interactive_lesson"]["scene_type"] == "synthesis_static"
     assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["Sun", "Sunlight", "Earth", "Day", "Night"]

@@ -363,3 +363,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Update the chapter assertion to require both Beyond Earth and its default topic Constellations; add a fixture test using the exact labels observed in the failed emulator tree.
 - **Regression prevention:** The helper test also asserts the obsolete Mathematics phrase is absent. The next exact-head API-35 emulator run must pass chapter selection, enter the lesson, capture the active teaching screen, and provide the Beyond Earth whiteboard screenshot.
 - **Status:** Fix committed; fresh CI and screenshot review pending. Do not merge or deploy until the actual chapter board is visible and verified.
+
+
+## Incident: Android UI smoke validation stopped on a Python syntax error
+
+- **Symptom:** Workflow run [41210277502](https://github.com/Prav1525/Padippupal/actions/runs/41210277502) passed JVM tests and the debug APK build, then failed before emulator allocation while compiling `.github/scripts/ui_smoke.py`: line 630 raised `SyntaxError: expected ':'`.
+- **Root cause:** The `assert_topic_selected` conditional was missing its trailing colon. This prevented the Android emulator flow from running; it was a smoke-test script defect, not evidence of an app runtime failure.
+- **Fix:** Commit `2cdb4643d8d8532c0bde8f560267529243acfbd3` adds the missing colon.
+- **Regression prevention:** The Android UI workflow already runs `python3 -m py_compile .github/scripts/ui_smoke.py` before emulator allocation. Keep this compile gate and require the complete emulator run after the fix.
+- **Validation:** Fresh CI on the fix commit is pending. This incident remains open until script validation and the Android emulator flow pass, including inspection of the actual Beyond Earth TutorScreen and textbook figures.

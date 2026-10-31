@@ -317,7 +317,7 @@ def assert_live(path):
     found_interruptions = [label for label in forbidden_interruptions if label in joined]
     if found_interruptions:
         raise SystemExit("Per-segment checkpoint or animation UI reappeared: " + ", ".join(found_interruptions))
-    lesson_words = ("sunlight", "day and night", "earth rotates", "rotation")
+    lesson_words = ("sunlight", "day and night", "earth rotates", "rotation", "constellation", "stars in the night sky")
     if not any(term in joined for term in lesson_words):
         raise SystemExit("Live lesson is active but no recognizable inline teaching caption text is accessible")
     voice_failures = (
@@ -340,7 +340,7 @@ def assert_live(path):
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
     if "day and night" not in joined and "beyond earth" not in joined:
         raise SystemExit("The source-mapped synthesized 2D visual is missing from the inline tutor flow")
-    if "the sun lights one half of earth" not in joined and "earth rotates" not in joined:
+    if not any(term in joined for term in ("the sun lights one half of earth", "earth rotates", "a constellation is a pattern of stars", "a group of stars that forms a recognised pattern")):
         raise SystemExit("The inline visual is not mapped to the Constellations teaching summary")
     if "ask your teacher" in joined or "send question" in joined:
         raise SystemExit("Chat composer is still visible during the dedicated live teaching experience")

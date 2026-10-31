@@ -26,6 +26,7 @@ from exam_master import router as exam_master_router
 from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
 from lesson_visuals import build_visual_records
 from textbook_visual_refs import describe_pdf_visual_references
+from visual_image_generation import router as visual_image_generation_router
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -42,6 +43,7 @@ app = FastAPI(
     description="Background ingestion and profile-filtered retrieval for approved curriculum sources.",
 )
 app.include_router(exam_master_router)
+app.include_router(visual_image_generation_router)
 
 # Allow browser-based API clients (including Swagger) to call the HTTPS API.
 # Admin endpoints remain protected by the x-admin-token dependency.

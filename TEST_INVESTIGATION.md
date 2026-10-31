@@ -630,3 +630,11 @@ Use this format:
 - **Candidate:** `55e7cf76fef975946a7b38249045bfefa2f8d641` (PR #99).
 - **Correction:** Catch the documented `botocore.exceptions.ClientError` type directly rather than relying on a generated `s3.exceptions.ClientError` member.
 - **Verification:** CI must rerun on this exact candidate. No storage upload or database write performed.
+
+### 2026-10-31 — Free-tier Beyond Earth visual generation (PR #101)
+- **Candidate:** `6dcfd2734e4c970258658b6544f11878ac745fa7`, branch `feat/free-visual-image-generation`, stacked on PR #99.
+- **Implementation:** Added an admin-only FastAPI route for the three allow-listed Beyond Earth assets. It calls Cloudflare Workers AI FLUX.1 Schnell, converts the response to PNG, uploads directly to development Neon Object Storage, verifies stored SHA-256 and byte length, then updates only the matching development `lesson_image_assets` row to `uploaded`.
+- **Safety:** Requires `PADIPPUPAL_VISUALS_ENV=development`, rejects production-looking database URLs, requires the existing admin token, and has no paid fallback or student-triggered generation. It never sets assets to `ready`.
+- **Initial CI:** Investigation Guidance Gate run `41190971613` failed only because this ledger entry was missing. This is a process-gate failure, not a runtime test result.
+- **Not yet verified:** Python dependency installation, endpoint tests, Cloudflare credentials/quota, Neon development credentials, actual image generation/storage, and TutorScreen rendering. No production writes, deployment or merge.
+

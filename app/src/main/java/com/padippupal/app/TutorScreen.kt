@@ -1,5 +1,6 @@
 package com.padippupal.app
 
+import android.graphics.BitmapFactory
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -17,6 +18,7 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -66,6 +68,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -345,6 +349,65 @@ private fun activeSubtypeForChapter(lesson: JSONObject, activeStep: JSONObject?)
 }
 
 @Composable
+private fun TextbookFigureStrip(lesson: JSONObject, compact: Boolean) {
+    val images = lesson.optJSONArray("textbook_images") ?: return
+    if (images.length() == 0) return
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Text("FROM YOUR TEXTBOOK", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        for (index in 0 until images.length()) {
+            val item = images.optJSONObject(index) ?: continue
+            val path = item.optString("url").trim()
+            if (path.isBlank()) continue
+            val fullUrl = if (path.startsWith("http://") || path.startsWith("https://")) path
+                else BuildConfig.CURRICULUM_API_BASE_URL.trimEnd('/') + "/" + path.trimStart('/')
+            var bitmap by remember(fullUrl) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+            var failed by remember(fullUrl) { mutableStateOf(false) }
+            LaunchedEffect(fullUrl) {
+                val decoded = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val connection = URL(fullUrl).openConnection() as HttpURLConnection
+                        connection.connectTimeout = 8000
+                        connection.readTimeout = 15000
+                        try {
+                            if (connection.responseCode !in 200..299) null
+                            else connection.inputStream.use { BitmapFactory.decodeStream(it)?.asImageBitmap() }
+                        } finally {
+                            connection.disconnect()
+                        }
+                    }.getOrNull()
+                }
+                bitmap = decoded
+                failed = decoded == null
+            }
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFFFFFEFA),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E3E6))
+            ) {
+                Column(Modifier.padding(if (compact) 6.dp else 9.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap!!,
+                            contentDescription = "NCERT textbook figure, page ${item.optInt("page_no")}",
+                            modifier = Modifier.fillMaxWidth().heightIn(max = if (compact) 170.dp else 240.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else if (failed) {
+                        Text("Textbook figure could not be loaded.", color = TutorGrey, fontSize = 11.sp)
+                    } else {
+                        Box(Modifier.fillMaxWidth().height(if (compact) 72.dp else 100.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = TutorGreen)
+                        }
+                    }
+                    Text("NCERT · page ${item.optInt("page_no")}", color = TutorGrey, fontSize = 10.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeStepOverride: Int?, narrationText: String = "", narrationWordIndex: Int = 0, narrationActive: Boolean = false) {
     val title = lesson.optString("title", "Lesson visual")
     val caption = lesson.optString("caption", "")
@@ -409,6 +472,9 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 lineHeight = if (compact) 13.sp else 17.sp,
                 maxLines = if (compact) 2 else Int.MAX_VALUE
             )
+        }
+        if (lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)) {
+            TextbookFigureStrip(lesson, compact)
         }
         if (activeKind == "beyond_earth") {
             val chapterSubtype = activeSubtypeForChapter(lesson, activeStep)

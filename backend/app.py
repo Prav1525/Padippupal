@@ -776,7 +776,7 @@ def extract_pdf_visual_pages(pdf_bytes: bytes, max_pages: int = 40) -> dict[int,
             if len(extracted) >= max_pages:
                 break
             try:
-                if not page.get_images(full=True) and len(page.get_drawings()) < 8:
+                if not page.get_images(full=True) and len(page.get_drawings()) < 1:
                     continue
                 pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
                 extracted[page_index + 1] = pix.tobytes("png")

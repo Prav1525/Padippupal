@@ -107,3 +107,28 @@ before changing the matching `lesson_image_assets` row from `pending` to
 `uploaded`. It does not mark assets `ready`, publish a release, or deploy the
 Android app. If an object already exists with different bytes, the script
 stops; use `--overwrite` only after reviewing the replacement.
+
+## Free-tier lesson visual generation (development only)
+
+The admin-only `POST /admin/visuals/generate/{asset_id}` endpoint generates one of the three allow-listed CBSE Class 6 Beyond Earth visuals with Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell`, converts the result to PNG, writes it directly to Neon Object Storage, verifies the stored SHA-256 and byte length, and only then updates the matching `lesson_image_assets` row to `uploaded`.
+
+This endpoint is intentionally disabled unless `PADIPPUPAL_VISUALS_ENV=development`. It also refuses database URLs containing `prod` or `production`. It is not a student-facing endpoint and does not generate on lesson reads.
+
+Configure these variables only on a development deployment:
+- `PADIPPUPAL_ADMIN_TOKEN` — strong server-side admin secret.
+- `PADIPPUPAL_VISUALS_ENV=development` — explicit development-only guard.
+- `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` — Workers AI inference access.
+- `DATABASE_URL` — development Neon branch only.
+- `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optionally `AWS_REGION=ap-southeast-1` — development Neon Object Storage access.
+
+Call one asset at a time with the `x-admin-token` header:
+```http
+POST /admin/visuals/generate/beyond-earth-solar-system-v1
+x-admin-token: <admin-secret>
+```
+The other approved IDs are `beyond-earth-day-night-v1` and `beyond-earth-moon-phases-v1`.
+
+Workers AI has a published 10,000-Neuron daily free allocation on Workers Free. Calls beyond the free allocation fail on the Free plan; this integration has no paid fallback. Monitor usage in Cloudflare. Free quota is shared with other Workers AI tasks in the account, and the daily allowance can change under Cloudflare's terms. The endpoint does not automatically retry provider failures or generate more than the requested single image.
+
+The endpoint is code-only until deployed with development credentials and tested against the development Neon branch. It does not set assets to `ready`, deploy the Android app, or write production storage/database.
+

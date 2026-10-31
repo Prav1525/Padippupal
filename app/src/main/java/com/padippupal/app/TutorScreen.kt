@@ -475,9 +475,9 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 maxLines = if (compact) 2 else Int.MAX_VALUE
             )
         }
-        if (lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)) {
-            TextbookFigureStrip(lesson, compact)
-        }
+        // The strip is self-gating on a non-empty textbook_images array.
+        // Do not depend on optional chapter metadata being copied into the visual payload.
+        TextbookFigureStrip(lesson, compact)
         if (activeKind == "beyond_earth") {
             val chapterSubtype = activeSubtypeForChapter(lesson, activeStep)
             if (chapterSubtype == "beyond_earth_sky_watching") {

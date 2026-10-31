@@ -627,7 +627,7 @@ def has_label(path, label):
 def assert_topic_selected(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
-    if "day and night" not in joined and "patterns in mathematics" not in joined
+    if "day and night" not in joined and "patterns in mathematics" not in joined:
         raise SystemExit("No database-backed topic/chapter selection is visible: " + " | ".join(texts[:100]))
     print("PASS: a database-backed chapter/topic is already selected")
 

@@ -12,7 +12,11 @@
     "image_storage": "object_storage",
     "metadata_storage": "application_database",
     "production_write": false,
-    "note": "Generated image files must be uploaded to the configured object store before any asset is marked ready. This manifest is source-controlled authoring data, not a production DB seed."
+    "note": "Generated image files must be uploaded to the configured object store before any asset is marked ready. This manifest is source-controlled authoring data, not a production DB seed.",
+    "development_branch": "beyond-earth-visual-assets-dev",
+    "bucket": "padippupal-science-visuals",
+    "asset_metadata_table": "lesson_image_assets",
+    "database_asset_records": "created_pending_upload"
   },
   "presentation": {
     "placement": "inline_with_matching_tutor_segment",
@@ -26,7 +30,7 @@
       "id": "earth-moon-and-sun",
       "topic": "Earth, Moon and Sun",
       "visual_type": "three_body_orbit_explainer",
-      "generated_image_status": "pending_asset_upload",
+      "generated_image_status": "pending_upload",
       "image_prompt": "Original child-friendly crayon and pencil classroom whiteboard illustration showing the Sun, Earth and Moon, with clearly labelled bodies and distinct orbital paths; scientifically clear relative positions, no seasons, no extra planets, no decorative text.",
       "stages": [
         {
@@ -74,7 +78,7 @@
       "id": "day-and-night",
       "topic": "Day and night",
       "visual_type": "sunlight_earth_rotation",
-      "generated_image_status": "pending_asset_upload",
+      "generated_image_status": "pending_upload",
       "image_prompt": "Original child-friendly crayon and pencil classroom whiteboard illustration showing the Sun shining on Earth, one illuminated day hemisphere and one dark night hemisphere, a labelled tilted axis and a clear rotation arrow; sunlight direction must be scientifically correct.",
       "stages": [
         {
@@ -128,7 +132,7 @@
       "id": "phases-of-the-moon",
       "topic": "Phases of the Moon",
       "visual_type": "moon_phase_sequence",
-      "generated_image_status": "pending_asset_upload",
+      "generated_image_status": "pending_upload",
       "image_prompt": "Original child-friendly crayon and pencil classroom whiteboard illustration showing the Moon's phases as seen from Earth: new moon, crescent, quarter, gibbous and full moon, with sunlight coming from one consistent direction and clearly labelled phases.",
       "stages": [
         {

@@ -1,183 +1,114 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "curriculum": {
     "board": "CBSE",
     "class_level": 6,
     "subject": "Science",
     "medium": "English",
-    "chapter": "Beyond Earth"
+    "chapter": "Beyond Earth",
+    "textbook": "NCERT Curiosity",
+    "edition": "Reprint 2026-27",
+    "chapter_number": 12
   },
-  "status": "authoring",
+  "status": "textbook_figure_mapping",
+  "textbook_source": {
+    "title": "Curiosity: Textbook of Science, Grade 6",
+    "publisher": "National Council of Educational Research and Training (NCERT)",
+    "chapter_title": "Beyond Earth",
+    "pdf_url": "https://ncert.nic.in/textbook/pdf/fecu112.pdf",
+    "edition": "Reprint 2026-27",
+    "source_pages": "Chapter pages 231-252; PDF pages 1-21",
+    "rights_status": "permission_required_before_copying_or_hosting_extracted_figures",
+    "rights_note": "NCERT copyright notice reserves reproduction rights. Keep source references and link to the official PDF until permission or a documented reuse licence is confirmed. Do not upload extracted figure files to object storage or serve copied figures in the app before rights clearance."
+  },
   "storage_policy": {
     "image_storage": "object_storage",
     "metadata_storage": "application_database",
     "production_write": false,
-    "note": "Generated image files must be uploaded to the configured object store before any asset is marked ready. This manifest is source-controlled authoring data, not a production DB seed.",
+    "note": "This is a source-grounded figure map, not a production DB seed. No textbook image binaries are included or uploaded.",
     "development_branch": "beyond-earth-visual-assets-dev",
     "bucket": "padippupal-science-visuals",
-    "asset_metadata_table": "lesson_image_assets",
-    "database_asset_records": "created_pending_upload"
+    "asset_metadata_table": "lesson_image_assets"
   },
   "presentation": {
     "placement": "inline_with_matching_tutor_segment",
-    "reveal": "narration_synced",
-    "fallback": "native_canvas_blueprint",
+    "reveal": "show_only_when_topic_matches",
     "max_visual_height_dp": 260,
-    "no_overlay": true
+    "no_overlay": true,
+    "fallback": "official_textbook_source_link_until_rights_cleared"
+  },
+  "visual_source_policy": {
+    "preferred_source": "official_textbook_figure",
+    "no_ai_generated_images": true,
+    "no_redrawing_or_styling": true,
+    "no_forced_visual_per_module": true,
+    "extract_only_after_rights_clearance": true
   },
   "modules": [
     {
-      "id": "earth-moon-and-sun",
-      "topic": "Earth, Moon and Sun",
-      "visual_type": "three_body_orbit_explainer",
-      "generated_image_status": "pending_upload",
-      "image_prompt": "Original child-friendly crayon and pencil classroom whiteboard illustration showing the Sun, Earth and Moon, with clearly labelled bodies and distinct orbital paths; scientifically clear relative positions, no seasons, no extra planets, no decorative text.",
-      "stages": [
-        {
-          "id": "sun",
-          "narration_cues": [
-            "Sun"
-          ],
-          "reveal": [
-            "sun"
-          ]
-        },
-        {
-          "id": "earth",
-          "narration_cues": [
-            "Earth"
-          ],
-          "reveal": [
-            "earth"
-          ]
-        },
-        {
-          "id": "moon",
-          "narration_cues": [
-            "Moon"
-          ],
-          "reveal": [
-            "moon"
-          ]
-        },
-        {
-          "id": "orbits",
-          "narration_cues": [
-            "orbit",
-            "revolves",
-            "around"
-          ],
-          "reveal": [
-            "earth_orbit",
-            "moon_orbit"
-          ]
-        }
+      "id": "stars-and-constellations",
+      "topic": "Stars and constellations",
+      "visuals": [
+        {"figure": "Fig. 12.1", "caption": "The beauty of night sky from a very dark location in Ladakh, India", "book_page": 231, "pdf_page": 0, "match": "dark-sky introduction"},
+        {"figure": "Fig. 12.2", "caption": "A part of the night sky", "book_page": 232, "pdf_page": 1, "match": "star-pattern activity"},
+        {"figure": "Fig. 12.3", "caption": "Some constellations and stars", "book_page": 233, "pdf_page": 2, "match": "Orion, Taurus, Canis Major and Sirius"},
+        {"figure": "Fig. 12.4", "caption": "Big Dipper, Little Dipper and Pole Star", "book_page": 235, "pdf_page": 4, "match": "locating north and identifying constellations"}
       ]
     },
     {
-      "id": "day-and-night",
+      "id": "night-sky-watching",
+      "topic": "Night sky watching",
+      "visuals": [
+        {"figure": "Fig. 12.5", "caption": "Night sky watching", "book_page": 236, "pdf_page": 5, "match": "safe observation activity"}
+      ]
+    },
+    {
+      "id": "sun-and-solar-system",
+      "topic": "The Sun and our Solar System",
+      "visuals": [
+        {"figure": "Fig. 12.6", "caption": "The rising Sun", "book_page": 238, "pdf_page": 7, "match": "Sun as our nearest star and source of light and heat"},
+        {"figure": "Fig. 12.7", "caption": "An artist's representation of the Solar System", "book_page": 240, "pdf_page": 9, "match": "Sun, eight planets and asteroid belt; figure is explicitly not to scale"}
+      ]
+    },
+    {
+      "id": "planets-and-observation",
+      "topic": "Planets and observing the sky",
+      "visuals": [
+        {"figure": "Fig. 12.8", "caption": "A telescope", "book_page": 243, "pdf_page": 12, "match": "how telescopes help us observe distant objects"}
+      ]
+    },
+    {
+      "id": "natural-satellites-and-moon",
+      "topic": "Natural satellites and the Moon",
+      "visuals": [
+        {"figure": "Fig. 12.9", "caption": "The Moon", "book_page": 244, "pdf_page": 13, "match": "Moon imagery and surface craters; includes Cartosat and Chandrayaan-3 images"}
+      ]
+    },
+    {
+      "id": "asteroids-and-comets",
+      "topic": "Asteroids and comets",
+      "visuals": [
+        {"figure": "Fig. 12.10", "caption": "A Comet", "book_page": 246, "pdf_page": 15, "match": "comet and its tail"}
+      ]
+    },
+    {
+      "id": "milky-way-and-universe",
+      "topic": "The Milky Way Galaxy and the Universe",
+      "visuals": [
+        {"figure": "Fig. 12.11", "caption": "Milky Way Galaxy as seen from a very dark location in Ladakh, India", "book_page": 247, "pdf_page": 16, "match": "our home galaxy"}
+      ]
+    }
+  ],
+  "explicit_gaps": [
+    {
       "topic": "Day and night",
-      "visual_type": "sunlight_earth_rotation",
-      "generated_image_status": "pending_upload",
-      "image_prompt": "Original child-friendly crayon and pencil classroom whiteboard illustration showing the Sun shining on Earth, one illuminated day hemisphere and one dark night hemisphere, a labelled tilted axis and a clear rotation arrow; sunlight direction must be scientifically correct.",
-      "stages": [
-        {
-          "id": "sun",
-          "narration_cues": [
-            "Sun",
-            "star"
-          ],
-          "reveal": [
-            "sun"
-          ]
-        },
-        {
-          "id": "sunlight",
-          "narration_cues": [
-            "light",
-            "sunlight",
-            "reaches"
-          ],
-          "reveal": [
-            "sunlight_rays"
-          ]
-        },
-        {
-          "id": "day-night",
-          "narration_cues": [
-            "day",
-            "night",
-            "half"
-          ],
-          "reveal": [
-            "day_hemisphere",
-            "night_hemisphere"
-          ]
-        },
-        {
-          "id": "rotation",
-          "narration_cues": [
-            "rotate",
-            "rotation",
-            "axis"
-          ],
-          "reveal": [
-            "axis",
-            "rotation_arrow"
-          ]
-        }
-      ]
+      "status": "no_dedicated_explanatory_figure_in_chapter",
+      "note": "The chapter text briefly mentions Earth's rotation, but does not provide a dedicated day/night diagram. Do not reuse an unrelated figure."
     },
     {
-      "id": "phases-of-the-moon",
       "topic": "Phases of the Moon",
-      "visual_type": "moon_phase_sequence",
-      "generated_image_status": "pending_upload",
-      "image_prompt": "Original child-friendly crayon and pencil classroom whiteboard illustration showing the Moon's phases as seen from Earth: new moon, crescent, quarter, gibbous and full moon, with sunlight coming from one consistent direction and clearly labelled phases.",
-      "stages": [
-        {
-          "id": "sunlight",
-          "narration_cues": [
-            "Sun",
-            "sunlight"
-          ],
-          "reveal": [
-            "sunlight_direction"
-          ]
-        },
-        {
-          "id": "new-crescent",
-          "narration_cues": [
-            "new moon",
-            "crescent"
-          ],
-          "reveal": [
-            "new_moon",
-            "crescent"
-          ]
-        },
-        {
-          "id": "quarter-gibbous",
-          "narration_cues": [
-            "quarter",
-            "half",
-            "gibbous"
-          ],
-          "reveal": [
-            "quarter",
-            "gibbous"
-          ]
-        },
-        {
-          "id": "full-moon",
-          "narration_cues": [
-            "full moon"
-          ],
-          "reveal": [
-            "full_moon"
-          ]
-        }
-      ]
+      "status": "not_taught_or_illustrated_as_a_topic_in_this_chapter",
+      "note": "No Moon-phases sequence appears in Chapter 12. Do not create or attach a Moon-phases visual to this chapter."
     }
   ]
 }

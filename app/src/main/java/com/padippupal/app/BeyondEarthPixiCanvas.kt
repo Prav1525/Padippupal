@@ -2,6 +2,9 @@ package com.padippupal.app
 
 import android.annotation.SuppressLint
 import android.view.View
+import android.util.Log
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,12 +53,19 @@ internal fun BeyondEarthPixiCanvas(
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                webChromeClient = object : WebChromeClient() {
+                    override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                        Log.d("BeyondEarthCanvas", "${message.message()} -- line ${message.lineNumber()} (${message.sourceId()})")
+                        return true
+                    }
+                }
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
                         view.evaluateJavascript(
-                            "window.PadippuPalVisual && window.PadippuPalVisual.setStep($safeStep, ${JSONObject.quote(subtype)})",
-                            null
-                        )
+                            "window.PadippuPalVisual ? (window.PadippuPalVisual.setStep($safeStep, ${JSONObject.quote(subtype)}), JSON.stringify(window.__padippuCanvasDiagnostics || {bridgeReady:false})) : JSON.stringify({bridgeReady:false,readyState:document.readyState})"
+                        ) { result ->
+                            Log.d("BeyondEarthCanvas", "pageFinished url=$url step=$safeStep subtype=$subtype diagnostics=$result")
+                        }
                     }
                 }
                 webViewState.value = this
@@ -64,9 +74,10 @@ internal fun BeyondEarthPixiCanvas(
         },
         update = { view ->
             view.evaluateJavascript(
-                "window.PadippuPalVisual && window.PadippuPalVisual.setStep($safeStep, ${JSONObject.quote(subtype)})",
-                null
-            )
+                "window.PadippuPalVisual ? (window.PadippuPalVisual.setStep($safeStep, ${JSONObject.quote(subtype)}), JSON.stringify(window.__padippuCanvasDiagnostics || {bridgeReady:false})) : JSON.stringify({bridgeReady:false,readyState:document.readyState})"
+            ) { result ->
+                Log.d("BeyondEarthCanvas", "update step=$safeStep subtype=$subtype diagnostics=$result")
+            }
         }
     )
 

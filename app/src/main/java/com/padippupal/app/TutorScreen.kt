@@ -2494,7 +2494,7 @@ internal fun TutorScreen(
                         }
                         if (liveCaption.isNotBlank()) {
                             WordByWordCaption(
-                                liveCaption, speechActive || liveLessonActive, liveWordIndex,
+                                liveCaption, speechActive || (liveLessonActive && !livePaused), liveWordIndex,
                                 // At checkpoints, don't let the caption consume all remaining height:
                                 // the compact concept animation and fixed answer card must stay visible.
                                 modifier = if (awaitingUnderstanding) {

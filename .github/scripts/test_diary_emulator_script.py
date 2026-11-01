@@ -73,7 +73,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
 
     def test_accessibility_dump_retries_transient_null_roots_and_captures_diagnostics(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        dump_helper = source[source.index("dump_ui(){"):source.index("\\ntap_label(){")]
+        dump_helper = source[source.index("dump_ui(){"):source.index("tap_label(){")]
         self.assertIn("for attempt in $(seq 1 8)", dump_helper)
         self.assertIn("test -s \"$local_path\"", dump_helper)
         self.assertIn("grep -q '<hierarchy' \"$local_path\"", dump_helper)

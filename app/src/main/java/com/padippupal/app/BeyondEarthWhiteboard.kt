@@ -136,8 +136,30 @@ internal fun BeyondEarthWhiteboard(
                     letterSpacing = 0.4.sp
                 )
             }
-
-    
+            if (labels.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 9.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    labels.take(3).forEach { label ->
+                        Text(
+                            label,
+                            modifier = Modifier.weight(1f).background(
+                                Color(0xFFFFFEF8).copy(alpha = 0.92f),
+                                RoundedCornerShape(5.dp)
+                            ).padding(horizontal = 4.dp, vertical = 3.dp),
+                            color = BoardInk,
+                            fontSize = if (compact) 7.sp else 8.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

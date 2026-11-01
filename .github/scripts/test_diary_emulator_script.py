@@ -71,6 +71,15 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("exactly one clickable photo tile", helper)
         self.assertNotIn('grep -qi "PadippuPal-diary-test.jpg" ui-screenshots/diary-test/diary-picker.xml', source)
 
+    def test_accessibility_dump_retries_transient_null_roots_and_captures_diagnostics(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        dump_helper = source[source.index("dump_ui(){"):source.index("\\ntap_label(){")]
+        self.assertIn("for attempt in $(seq 1 8)", dump_helper)
+        self.assertIn("test -s \"$local_path\"", dump_helper)
+        self.assertIn("grep -q '<hierarchy' \"$local_path\"", dump_helper)
+        self.assertIn("transient null root or system UI transition", dump_helper)
+        self.assertIn("dumpsys activity activities", dump_helper)
+
     def test_picker_return_is_verified_before_crop_assertions(self):
         source = SCRIPT.read_text(encoding="utf-8")
         self.assertIn('package="com.padippupal.app"', source)

@@ -415,7 +415,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 subtype = activeSubtypeForChapter(lesson, activeStep),
                 labels = activeLabels,
                 revealCount = revealCount,
-                stepKey = activeStep,
+                stepKey = active,
                 compact = compact
             )
         } else {

@@ -443,7 +443,7 @@ def assert_live_layout(path):
     # The canvas viewport is directly below the inline visual title/caption. A page
     # that loads but never executes its canvas renderer is uniformly paper-coloured;
     # accessibility checks alone miss this. Require real ink/colour pixels here.
-    canvas_region = image.crop((int(width * 0.04), int(height * 0.46),
+    canvas_region = image.crop((int(width * 0.04), int(height * 0.52),
                                 int(width * 0.96), int(height * 0.66)))
     pixels = list(canvas_region.getdata())
     paper = (247, 244, 237)

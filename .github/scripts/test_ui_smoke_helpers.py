@@ -426,10 +426,11 @@ class PreviousScreenSelectionTests(unittest.TestCase):
 
 
 class BeyondEarthWhiteboardContractTests(unittest.TestCase):
-    def test_all_eight_chapter_scenes_use_the_native_hand_drawn_board(self):
+    def test_all_eight_chapter_scenes_route_through_the_real_webview_renderer(self):
         root = Path(__file__).resolve().parents[2]
-        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
         tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        renderer = (root / "app/src/main/java/com/padippupal/app/BeyondEarthPixiCanvas.kt").read_text()
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
         scenes = (
             "beyond_earth_constellation",
             "beyond_earth_sky_watching",
@@ -438,11 +439,12 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
             "beyond_earth_planet_star",
             "beyond_earth_earth_moon",
             "beyond_earth_asteroid_comet",
+            "beyond_earth_milky_way",
         )
         for scene in scenes:
-            self.assertIn(f'"{scene}"', board)
-        self.assertIn('else -> drawGalaxy(stage, sw, unit)', board)
-        self.assertIn("BeyondEarthWhiteboard(", tutor)
+            self.assertIn(scene, html)
+        self.assertIn("BeyondEarthPixiCanvas(", tutor)
+        self.assertIn("loadUrl(\"file:///android_asset/beyond-earth/index.html\")", renderer)
         self.assertIn('lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)', tutor)
         for step, scene in (
             ("step_1", "beyond_earth_constellation"),
@@ -455,18 +457,22 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
             ("step_8", "beyond_earth_galaxy"),
         ):
             self.assertIn(f'"{step}" to "{scene}"', tutor)
+        self.assertNotIn(".svg", html.lower())
 
-    def test_board_is_native_compose_and_manual_reveal_resets_per_narrated_step(self):
+    def test_offline_first_paint_fallback_and_step_updates_are_wired(self):
         root = Path(__file__).resolve().parents[2]
-        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
-        tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        self.assertIn("Canvas(Modifier.fillMaxSize())", board)
-        self.assertIn("pointerInput(subtype)", board)
-        self.assertIn("detectTapGestures", board)
-        self.assertIn("remember(subtype, stepKey)", board)
-        self.assertIn("stepKey = active", tutor)
-        self.assertNotIn(".svg", board.lower())
-        self.assertNotIn("androidx.compose.ui.graphics.vector", board)
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        renderer = (root / "app/src/main/java/com/padippupal/app/BeyondEarthPixiCanvas.kt").read_text()
+        self.assertIn('id="fallback-canvas"', html)
+        self.assertIn('canvas.getContext(\'2d\')', html)
+        self.assertIn("function render()", html)
+        self.assertIn("window.PadippuPalVisual={setStep", html)
+        self.assertIn("window.__padippuFallbackState", html)
+        self.assertIn("window.PadippuPalVisual.setStep($safeStep", renderer)
+        self.assertIn("await app.init(", html)
+        self.assertIn("fallbackCanvas.hidden=true", html)
+        self.assertLess(html.index('id="fallback-canvas"'), html.index('<script type="module">'))
+        self.assertNotIn(".svg", html.lower())
 
 
 class BeyondEarthChapterSelectionTests(unittest.TestCase):

@@ -442,12 +442,15 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
         )
         for scene in scenes:
             self.assertIn(scene, html)
-        self.assertIn("BeyondEarthPixiCanvas(", tutor)
-        self.assertNotIn("BeyondEarthWhiteboard(", tutor)
+        # The live lesson must use the native Compose Canvas path. The WebView
+        # path had valid JS canvas diagnostics but yielded zero painted pixels in
+        # the emulator screenshot, so it is intentionally not routed into the tutor.
+        self.assertIn("BeyondEarthPixiCanvas(", tutor)  # retained for isolated diagnostics
         self.assertIn("activeKind == \"beyond_earth\"", tutor)
-        self.assertIn("compact = compact", tutor)
-        self.assertIn("modifier = Modifier.fillMaxWidth()", tutor)
-        self.assertIn('id="fallback-canvas"', html)
+        self.assertIn("&& false", tutor)
+        self.assertIn("Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp))", tutor)
+        self.assertIn('"beyond_earth_constellation" ->', tutor)
+        self.assertIn("id=\"fallback-canvas\"", html)
         self.assertIn("window.PadippuPalVisual={setStep,getStep", html)
 
     def test_webview_uses_software_layer_to_keep_compose_caption_visible(self):

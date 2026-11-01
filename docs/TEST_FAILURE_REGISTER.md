@@ -363,3 +363,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Update the chapter assertion to require both Beyond Earth and its default topic Constellations; add a fixture test using the exact labels observed in the failed emulator tree.
 - **Regression prevention:** The helper test also asserts the obsolete Mathematics phrase is absent. The next exact-head API-35 emulator run must pass chapter selection, enter the lesson, capture the active teaching screen, and provide the Beyond Earth whiteboard screenshot.
 - **Status:** Fix committed; fresh CI and screenshot review pending. Do not merge or deploy until the actual chapter board is visible and verified.
+
+
+## Incident: API 35 photo-picker transition returned a transient null accessibility root
+
+- **Symptom:** Android APK build, JVM tests, and static smoke-script validation passed, but emulator run [41276322860](https://github.com/Prav1525/Padippupal/actions/runs/41276322860) stopped immediately after selecting the sole photo tile. Logs showed `ERROR: null root node returned by UiTestAutomationBridge`, followed by a missing `diary-picker-selection-result.xml` file.
+- **Root cause:** The test treated one transient accessibility-tree failure during the system Photo Picker's URI handoff as a fatal test failure. The dump helper had no retry, and the selection-result tree was requested immediately after the tap.
+- **Fix:** Commit `e38e354d0d11e3f7bb79b1d14c193203f947ade5` retries the accessibility dump/pull up to eight times, rejects empty/non-hierarchy files, clears stale local/remote evidence before each attempt, and records the active Android activities if all retries fail.
+- **Regression test:** `.github/scripts/test_diary_emulator_script.py::test_accessibility_dump_retries_transient_null_roots_and_captures_diagnostics` asserts bounded retries, valid XML checks, and diagnostic capture.
+- **Validation:** Pending fresh CI. The emulator must complete the diary flow and continue to the tutor smoke test; then inspect the actual Beyond Earth lesson screenshot for visible native Compose drawing and layout. Do not merge or deploy until required checks and visual acceptance pass.

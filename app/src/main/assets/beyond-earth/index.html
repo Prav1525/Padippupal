@@ -1,48 +1,49 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#f7f4ed"><title>PadippuPal · Beyond Earth</title>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#f7f4ed"><title>PadippuPal · Beyond Earth</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f7f4ed;color:#29394c;font-family:ui-rounded,"Trebuchet MS",system-ui,sans-serif}
-#app{height:100%;display:flex;flex-direction:column}.top{height:36px;padding:8px 14px 3px;display:flex;justify-content:space-between;align-items:center}.brand{font-size:10px;letter-spacing:.14em;font-weight:800;color:#788596}.count{font-size:10px;color:#788596}#progress{height:2px;background:#e7e0d4}#bar{height:100%;background:#d17b5b;width:12.5%;transition:width .25s}#canvas{flex:1;min-height:0;position:relative}canvas{display:block;width:100%;height:100%}#fallback-canvas[hidden]{display:none}.foot{height:42px;padding:5px 15px 9px;display:flex;align-items:center}.caption{font-size:12px;line-height:1.25;color:#58677a}
-</style></head><body><main id="app"><header class="top"><div class="brand">FIELD NOTES · BEYOND EARTH</div><div class="count" id="count">01 / 08</div></header><div id="progress"><div id="bar"></div></div><section id="canvas" aria-label="Interactive astronomy teaching drawing"><canvas id="fallback-canvas" aria-label="Hand-drawn astronomy visual"></canvas></section><footer class="foot"><div class="caption" id="caption">Patterns in the night sky help us recognize constellations.</div></footer></main>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f7f4ed;color:#29394c;font-family:"Trebuchet MS",system-ui,sans-serif}
+#app{height:100%;display:flex;flex-direction:column}.top{height:36px;padding:8px 14px 3px;display:flex;justify-content:space-between;align-items:center}.brand{font-size:10px;letter-spacing:.14em;font-weight:800;color:#788596}.count{font-size:10px;color:#788596}#progress{height:2px;background:#e7e0d4}#bar{height:100%;background:#d17b5b;width:12.5%;transition:width .2s}#canvas{flex:1;min-height:0;position:relative}canvas{display:block;width:100%;height:100%}.foot{min-height:42px;padding:5px 15px 9px;display:flex;align-items:center}.caption{font-size:12px;line-height:1.25;color:#58677a}
+</style></head>
+<body><main id="app"><header class="top"><div class="brand">FIELD NOTES · BEYOND EARTH</div><div class="count" id="count">01 / 08</div></header><div id="progress"><div id="bar"></div></div><section id="canvas" aria-label="Interactive astronomy teaching drawing"><canvas id="board" aria-label="Hand-drawn astronomy visual"></canvas></section><footer class="foot"><div class="caption" id="caption">A constellation is a recognizable pattern of stars.</div></footer></main>
 <script>
-/* Offline-safe first-paint renderer. PixiJS replaces this only after its module loads successfully. */
+/* Offline-first hand-drawn Canvas 2D renderer. No CDN, module, WebGL, or SVG dependency. */
 (function(){
- const root=document.getElementById('canvas'), canvas=document.getElementById('fallback-canvas');
- const ctx=canvas.getContext('2d'); const state={step:0,subtype:''};
- const ink='#35465b',gold='#e7b85d',blue='#6fa5bb',teal='#5c9b8c',coral='#d17b5b',paper='#f7f4ed',moon='#d9d4c8';
- function line(a,b,color=ink,w=2.5){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
- function circle(x,y,r,fill,stroke=ink){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.stroke()}
- function label(s,x,y,size=14,color=ink){ctx.fillStyle=color;ctx.font='600 '+size+'px Trebuchet MS, sans-serif';ctx.textAlign='center';ctx.fillText(s,x,y)}
- function star(x,y,r=4){ctx.fillStyle=gold;ctx.strokeStyle=ink;ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.42:r;const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;i?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.closePath();ctx.fill();ctx.stroke()}
- function render(){
-   const w=Math.max(1,root.clientWidth),h=Math.max(1,root.clientHeight),dpr=Math.min(window.devicePixelRatio||1,2);
-   canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=paper;ctx.fillRect(0,0,w,h);
-   const s=Math.min(w/390,h/330);ctx.save();ctx.translate((w-390*s)/2,(h-330*s)/2);ctx.scale(s,s);
-   const st=state.step, sub=state.subtype;
-   label(({beyond_earth_day_night:'DAY AND NIGHT',beyond_earth_galaxy:'OUR HOME GALAXY · THE MILKY WAY'}[sub])||['A PATTERN IN THE NIGHT SKY','LOOK UP · OBSERVE · RECORD','OUR SUN IS A STAR','OUR SOLAR SYSTEM','PLANETS AND STARS','EARTH AND ITS MOON','ASTEROIDS AND COMETS','OUR HOME GALAXY · THE MILKY WAY'][st],195,25,12,teal);
-   if(sub==='beyond_earth_day_night'||(!sub&&st===3)){circle(65,170,25,gold);for(let i=0;i<8;i++){let a=i*Math.PI/4;line([65+30*Math.cos(a),170+30*Math.sin(a)],[65+39*Math.cos(a),170+39*Math.sin(a)],gold,2)}circle(267,170,65,gold);ctx.fillStyle='#26374d';ctx.fillRect(267,105,65,130);circle(267,170,65,'rgba(0,0,0,0)','rgba(0,0,0,0)');label('SUN',65,222,12);label('DAY',235,170,13);label('NIGHT',300,170,12,'#ffffff');if(st>=2){line([220,270],[310,270],coral,3);label('EARTH ROTATES',265,296,12,coral)}if(st>=1)line([100,170],[185,170],gold,3)}
-   else if((!sub&&st===0)||sub==='beyond_earth_constellation'){const p=[[88,170],[142,108],[195,154],[257,90],[309,168],[230,232],[142,218]];p.forEach((v,i)=>{star(v[0],v[1],5);if(i)line(p[i-1],v,ink,2)});label('STAR PATTERN',198,290,12,teal)}
-   else if((!sub&&st===1)||sub==='beyond_earth_sky_watching'){for(let i=0;i<30;i++)star(42+(i*67)%310,65+(i*43)%165,i%4===0?4:2.5);label('OBSERVE · RECORD · COMPARE',195,285,13,teal)}
-   else if((!sub&&st===2)||sub==='beyond_earth_sun_star'){circle(110,170,39,gold);for(let i=0;i<20;i++){let a=i*Math.PI/10;star(260+Math.cos(a)*62,170+Math.sin(a)*62,2.5)}label('OUR SUN',110,235,12);label('DISTANT STARS',260,260,12,teal)}
-   else if((!sub&&st===3)||sub==='beyond_earth_solar_system'){circle(195,165,19,gold);[45,70,95,120].forEach((r,i)=>{ctx.strokeStyle='#8793a1';ctx.beginPath();ctx.ellipse(195,165,r,r*.58,0,0,Math.PI*2);ctx.stroke();circle(195+Math.cos(i+1)*r,165+Math.sin(i+1)*r*.58,5+i%3*2,[moon,gold,blue,coral][i])});label('THE SUN AND PLANETS',195,285,12)}
-   else if((!sub&&st===4)||sub==='beyond_earth_planet_star'){circle(100,165,29,gold);circle(285,165,25,blue);line([140,165],[245,165],gold,3);label('STAR',100,220,12,teal);label('PLANET',285,220,12,teal);label('Makes light',100,245,11);label('Reflects light',285,245,11)}
-   else if((!sub&&st===5)||sub==='beyond_earth_earth_moon'){circle(195,165,43,blue);circle(307,165,16,moon);ctx.strokeStyle='#8793a1';ctx.beginPath();ctx.ellipse(195,165,112,70,0,0,Math.PI*2);ctx.stroke();circle(55,85,17,gold);line([78,100],[150,140],gold,2);label('EARTH',195,230,12);label('MOON',307,205,11)}
-   else if((!sub&&st===6)||sub==='beyond_earth_asteroid_comet'){for(let i=0;i<18;i++)circle(112+Math.cos(i*2.4)*(38+(i%5)*10),165+Math.sin(i*2.4)*(30+(i%5)*8),2+i%3,'#8793a1');circle(270,165,14,moon);line([254,157],[190,125],blue,4);label('ASTEROIDS',112,270,11);label('COMET',270,220,11)}
-   else {for(let i=0;i<180;i++){let a=i*.37,r=8+i*.34;circle(195+Math.cos(a)*r,165+Math.sin(a)*r*.38,i%13===0?2:1,i%7===0?gold:'#8293a6','#8293a6')}label('MILKY WAY',195,275,13,teal)}
-   ctx.restore();
- }
- function setStep(n,subtype){state.step=Math.max(0,Math.min(7,Number(n)||0));state.subtype=subtype||'';window.__padippuFallbackState={step:state.step,subtype:state.subtype};const captions=['A constellation is a recognizable pattern of stars seen from Earth.','Careful observation helps us notice patterns in the night sky.','The Sun is a star, much cl<!-- Deliberately offline Canvas 2D renderer: no CDN, WebGL, or module dependency. -->
-ild(g);
-  }
-}
-defs.beyond_earth_day_night={
- title:'DAY AND NIGHT · EXCALIDRAW → PIXI',caption:'Earth rotates. The side facing the Sun has daylight; the side turned away has night.',
- draw(){renderExcalidrawElements(dayNightExcalidrawScene,Math.min(3,Math.floor(step/2)));}
-};
-
-const order=Object.keys(defs);let active=order[0],step=0;
-function render(){world.removeChildren();world.scale.set(1);const w=root.clientWidth,h=root.clientHeight,scale=Math.min(w/390,h/330);world.scale.set(scale);world.position.set((w-390*scale)/2,(h-330*scale)/2);const d=defs[active]||defs[order[Math.min(step,7)]];text(d.title,195,25,12,C.teal);d.draw();caption.textContent=d.caption;count.textContent=String(step+1).padStart(2,'0')+' / 08';bar.style.width=((step+1)/8*100)+'%'}
-function setStep(n,subtype){step=Math.max(0,Math.min(7,Number(n)||0));if(subtype==='beyond_earth_day_night')active='beyond_earth_day_night';else if(subtype==='beyond_earth_galaxy')active='beyond_earth_milky_way';else if(subtype&&defs[subtype])active=subtype;else active=order[step];render()}
-window.PadippuPalVisual={setStep,getStep:()=>step,setSubtype:s=>{if(defs[s]){active=s;render()}}};
-window.addEventListener('resize',render);const pending=window.__padippuFallbackState;setStep(pending?.step??0,pending?.subtype??'');
+'use strict';
+const root=document.getElementById('canvas'),canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
+const count=document.getElementById('count'),bar=document.getElementById('bar'),caption=document.getElementById('caption');
+const ink='#35465b',gold='#e7b85d',blue='#6fa5bb',teal='#5c9b8c',coral='#d17b5b',paper='#f7f4ed',moon='#d9d4c8';
+const scenes=[
+['A PATTERN IN THE NIGHT SKY','A constellation is a recognizable pattern of stars seen from Earth.'],
+['LOOK UP · OBSERVE · RECORD','Careful observation helps us notice and record patterns in the night sky.'],
+['OUR SUN IS A STAR','The Sun is a star. It gives Earth light and heat.'],
+['OUR SOLAR SYSTEM','Our solar system has the Sun and the objects that travel around it.'],
+['PLANETS AND STARS','Stars make their own light. Planets reflect light from a star.'],
+['EARTH AND ITS MOON','The Moon travels around Earth.'],
+['ASTEROIDS AND COMETS','Asteroids are rocky objects; comets contain ice and dust.'],
+['OUR HOME GALAXY · THE MILKY WAY','The Milky Way is the galaxy that contains our Solar System.']
+];
+const aliases={'beyond_earth_constellation':0,'beyond_earth_sky_watching':1,'beyond_earth_sun_star':2,'beyond_earth_solar_system':3,'beyond_earth_planet_star':4,'beyond_earth_earth_moon':5,'beyond_earth_asteroid_comet':6,'beyond_earth_milky_way':7,'beyond_earth_galaxy':7};
+let step=0,subtype='';
+function line(a,b,color=ink,w=2.3){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
+function circle(x,y,r,fill,stroke=ink){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();if(stroke)ctx.stroke()}
+function label(t,x,y,size=13,color=ink){ctx.fillStyle=color;ctx.font='600 '+size+'px "Trebuchet MS",sans-serif';ctx.textAlign='center';ctx.fillText(t,x,y)}
+function star(x,y,r=4){ctx.fillStyle=gold;ctx.strokeStyle=ink;ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.42:r;const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;i?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.closePath();ctx.fill();ctx.stroke()}
+function scene0(){const p=[[68,163],[121,105],[179,148],[237,83],[302,144],[253,220],[153,216]];p.forEach((v,i)=>{if(i)line(p[i-1],v,ink,2);star(v[0],v[1],5)});label('STAR PATTERN',190,275,12,teal)}
+function scene1(){for(let i=0;i<34;i++)star(35+(i*67)%320,52+(i*43)%185,i%4===0?4:2.5);line([48,258],[342,258],teal,2);label('OBSERVE · RECORD · COMPARE',195,285,12,teal)}
+function scene2(){circle(105,158,36,gold);for(let i=0;i<12;i++){let a=i*Math.PI/6;line([105+41*Math.cos(a),158+41*Math.sin(a)],[105+51*Math.cos(a),158+51*Math.sin(a)],gold,2)}for(let i=0;i<17;i++)star(258+Math.cos(i*2.4)*47,155+Math.sin(i*2.4)*53,2.7);label('OUR SUN',105,220,12);label('DISTANT STARS',258,235,12,teal)}
+function scene3(){circle(195,160,18,gold);[42,68,94,121].forEach((r,i)=>{ctx.strokeStyle='#8793a1';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(195,160,r,r*.57,0,0,Math.PI*2);ctx.stroke();const a=[1.1,2.5,3.8,5.1][i];circle(195+Math.cos(a)*r,160+Math.sin(a)*r*.57,5+i%2*2,[moon,gold,blue,coral][i])});label('SUN + PLANETS',195,282,12,teal)}
+function scene4(){circle(100,153,29,gold);circle(285,153,25,blue);line([142,153],[244,153],gold,3);label('STAR',100,207,12,teal);label('PLANET',285,207,12,teal);label('Makes its own light',100,235,10);label('Reflects light',285,235,10)}
+function scene5(){circle(185,155,43,blue);ctx.fillStyle=teal;ctx.beginPath();ctx.ellipse(174,145,12,7,-.4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(199,174,15,8,.5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#8793a1';ctx.beginPath();ctx.ellipse(185,155,111,69,0,0,Math.PI*2);ctx.stroke();circle(296,155,15,moon);label('EARTH',185,220,12);label('MOON',296,190,11)}
+function scene6(){for(let i=0;i<18;i++)circle(105+Math.cos(i*2.4)*(35+(i%5)*9),155+Math.sin(i*2.4)*(27+(i%5)*7),2+i%3,'#8793a6','#8793a6');circle(278,157,13,moon);line([263,149],[205,119],blue,4);line([263,163],[220,193],teal,2);label('ASTEROIDS',105,252,12);label('COMET',278,208,11)}
+function scene7(){circle(195,160,7,gold);for(let arm=0;arm<3;arm++){let prev=null;for(let i=1;i<=70;i++){let t=i/70,a=arm*Math.PI*2/3+t*5.7,r=8+t*105,p=[195+Math.cos(a)*r,160+Math.sin(a)*r*.43];if(prev&&i%3===0)line(prev,p,arm===1?teal:blue,1.8);if(i%7===0)star(p[0],p[1],i%14===0?3:1.8);prev=p}}label('MILKY WAY',195,285,13,teal)}
+const drawers=[scene0,scene1,scene2,scene3,scene4,scene5,scene6,scene7];
+function render(){const w=Math.max(1,root.clientWidth),h=Math.max(1,root.clientHeight),dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=paper;ctx.fillRect(0,0,w,h);const s=Math.min(w/390,h/320);ctx.save();ctx.translate((w-390*s)/2,(h-320*s)/2);ctx.scale(s,s);label(scenes[step][0],195,24,11,teal);drawers[step]();ctx.restore();count.textContent=String(step+1).padStart(2,'0')+' / 08';bar.style.width=((step+1)/8*100)+'%';caption.textContent=scenes[step][1]}
+function setStep(n,s){subtype=typeof s==='string'?s:'';step=Number.isFinite(Number(n))?Math.max(0,Math.min(7,Number(n))):0;if(subtype in aliases)step=aliases[subtype];window.__padippuFallbackState={step,subtype};render()}
+window.PadippuPalVisual={setStep,getStep:()=>step,setSubtype:s=>{if(s in aliases)setStep(aliases[s],s)}};
+window.addEventListener('resize',render);
+render();
+})();
 </script></body></html>

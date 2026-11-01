@@ -534,6 +534,21 @@ class CompletedLessonWordingRegressionTests(unittest.TestCase):
             path.unlink(missing_ok=True)
 
 
+class BeyondEarthInlineLayoutTests(unittest.TestCase):
+    def test_standalone_header_progress_and_footer_remain_hidden_inline(self):
+        root = Path(__file__).resolve().parents[2]
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        css = html.split("</style>", 1)[0]
+        top = css.split(".top{", 1)[1].split("}", 1)[0]
+        progress = css.split("#progress{", 1)[1].split("}", 1)[0]
+        foot = css.split(".foot{", 1)[1].split("}", 1)[0]
+        self.assertIn("display:none", top)
+        self.assertNotIn("display:flex", top)
+        self.assertIn("display:none", progress)
+        self.assertIn("display:none", foot)
+        self.assertNotIn("display:flex", foot)
+
+
 class BeyondEarthPixiFallbackContractTests(unittest.TestCase):
     def test_canvas_has_offline_first_paint_when_pixijs_module_cannot_load(self):
         root = Path(__file__).resolve().parents[2]

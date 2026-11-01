@@ -485,7 +485,8 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
             self.assertIn(token, canvas)
         self.assertIn("Offline-safe first-paint renderer", html)
         self.assertIn("fallbackCanvas.hidden=false", html)
-        self.assertIn("if(!window.PIXI)", html)
+        self.assertNotIn("if(!window.PIXI)", html)
+        self.assertIn("fallbackCanvas.style.visibility='visible';", html)
 
 
 class BeyondEarthChapterSelectionTests(unittest.TestCase):
@@ -575,7 +576,9 @@ class BeyondEarthPixiFallbackContractTests(unittest.TestCase):
         self.assertIn("Offline-safe first-paint renderer", html)
         self.assertIn("window.PadippuPalVisual={setStep,getStep", html)
         self.assertIn("window.__padippuFallbackState", html)
-        self.assertIn("fallbackCanvas.hidden=true", html)
+        self.assertIn("fallbackCanvas.hidden=false", html)
+        self.assertNotIn("fallbackCanvas.hidden=true", html)
+        self.assertIn("fallbackCanvas.style.display='block';", html)
         self.assertIn("#fallback-canvas[hidden]{display:none}", html)
 
     def test_pixijs_bridge_maps_galaxy_alias_and_keeps_chapter_subtype(self):

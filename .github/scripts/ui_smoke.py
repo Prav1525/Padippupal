@@ -440,7 +440,20 @@ def assert_live_layout(path):
     print(f"Separate-card background coverage in teaching viewport: {ratio:.1%}")
     if ratio > 0.35:
         raise SystemExit("A large pale-green lesson card still occupies the teaching viewport")
-    print("PASS: live lesson uses a continuous canvas without a dominant green card")
+    # The canvas viewport is directly below the inline visual title/caption. A page
+    # that loads but never executes its canvas renderer is uniformly paper-coloured;
+    # accessibility checks alone miss this. Require real ink/colour pixels here.
+    canvas_region = image.crop((int(width * 0.04), int(height * 0.46),
+                                int(width * 0.96), int(height * 0.66)))
+    pixels = list(canvas_region.getdata())
+    paper = (247, 244, 237)
+    painted = sum(1 for r, g, b in pixels
+                  if max(abs(r-paper[0]), abs(g-paper[1]), abs(b-paper[2])) >= 24)
+    dark_ink = sum(1 for r, g, b in pixels if r < 150 and g < 160 and b < 175)
+    print(f"Inline visual paint scan: {painted} non-paper pixels; {dark_ink} dark-ink pixels")
+    if painted < 350 or dark_ink < 100:
+        raise SystemExit("Beyond Earth canvas is blank: expected visible diagram strokes/labels in the inline visual viewport")
+    print("PASS: inline teaching canvas contains visible diagram strokes and labels")
 
 
 def exact_text_candidates(nodes, target):

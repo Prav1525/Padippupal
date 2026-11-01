@@ -446,7 +446,7 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
         self.assertNotIn("BeyondEarthPixiCanvas(", tutor)
         self.assertIn("labels = activeLabels", tutor)
         self.assertIn("revealCount = revealCount", tutor)
-        self.assertIn("stepKey = activeStep", tutor)
+        self.assertIn("stepKey = active", tutor)
         self.assertIn("detectTapGestures", board)
         self.assertIn("manualReveal = (manualReveal + 1)", board)
         self.assertIn("Canvas(Modifier.fillMaxSize())", board)

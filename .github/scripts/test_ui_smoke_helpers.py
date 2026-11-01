@@ -463,6 +463,13 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
         self.assertIn("root.clientWidth>1&&root.clientHeight>1", html)
         self.assertIn("requestAnimationFrame(()=>requestAnimationFrame(", html)
 
+    def test_canvas_fallback_is_not_hidden_just_because_pixi_global_exists(self):
+        root = Path(__file__).resolve().parents[2]
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        self.assertIn("fallbackCanvas.hidden=false;", html)
+        self.assertIn("fallbackCanvas.style.visibility='visible';", html)
+        self.assertNotIn("if(!window.PIXI){fallbackCanvas.hidden=false;}else{fallbackCanvas.hidden=true;}", html)
+
     def test_ui_smoke_rejects_blank_paper_coloured_canvas(self):
         root = Path(__file__).resolve().parents[2]
         smoke = (root / ".github/scripts/ui_smoke.py").read_text()

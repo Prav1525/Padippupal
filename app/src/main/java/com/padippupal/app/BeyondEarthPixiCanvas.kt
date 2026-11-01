@@ -31,7 +31,7 @@ internal fun BeyondEarthPixiCanvas(
     val safeStep = step.coerceIn(0, 7)
 
     AndroidView(
-        modifier = modifier.height(if (compact) 230.dp else 310.dp),
+        modifier = modifier.height(if (compact) 150.dp else 190.dp),
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true

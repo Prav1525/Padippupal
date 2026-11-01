@@ -1,6 +1,7 @@
 package com.padippupal.app
 
 import android.annotation.SuppressLint
+import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,6 +35,11 @@ internal fun BeyondEarthPixiCanvas(
         modifier = modifier.height(if (compact) 150.dp else 190.dp),
         factory = { context ->
             WebView(context).apply {
+                // WebView's hardware-composited surface blanked the enclosing Compose lesson
+                // on the API 35 emulator (semantics tree remained populated, screenshots were
+                // paper-colored). Keep this small inline drawing in the software layer so the
+                // caption and its word-highlight span remain visible above it.
+                setLayerType(View.LAYER_TYPE_SOFTWARE, null)
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = false
                 settings.allowFileAccess = true

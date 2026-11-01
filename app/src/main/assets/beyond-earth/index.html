@@ -5,11 +5,11 @@
 <meta name="theme-color" content="#f7f4ed"><title>PadippuPal · Beyond Earth</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f7f4ed;color:#29394c;font-family:"Trebuchet MS",system-ui,sans-serif}
-#app{height:100%;display:flex;flex-direction:column}.top{height:36px;padding:8px 14px 3px;display:flex;justify-content:space-between;align-items:center}.brand{font-size:10px;letter-spacing:.14em;font-weight:800;color:#788596}.count{font-size:10px;color:#788596}#progress{height:2px;background:#e7e0d4}#bar{height:100%;background:#d17b5b;width:12.5%;transition:width .2s}#canvas{flex:1;min-height:0;position:relative}canvas{display:block;width:100%;height:100%}.foot{min-height:42px;padding:5px 15px 9px;display:flex;align-items:center}.caption{font-size:12px;line-height:1.25;color:#58677a}
+#app{height:100%;display:flex;flex-direction:column}.top{height:36px;padding:8px 14px 3px;display:flex;justify-content:space-between;align-items:center}.brand{font-size:10px;letter-spacing:.14em;font-weight:800;color:#788596}.count{font-size:10px;color:#788596}#progress{height:2px;background:#e7e0d4}#bar{height:100%;background:#d17b5b;width:12.5%;transition:width .2s}#canvas{flex:1;min-height:0;position:relative}canvas{display:block;width:100%;height:100%}#fallback-canvas[hidden]{display:none}.foot{min-height:42px;padding:5px 15px 9px;display:flex;align-items:center}.caption{font-size:12px;line-height:1.25;color:#58677a}
 </style></head>
 <body><main id="app"><header class="top"><div class="brand">FIELD NOTES · BEYOND EARTH</div><div class="count" id="count">01 / 08</div></header><div id="progress"><div id="bar"></div></div><section id="canvas" aria-label="Interactive astronomy teaching drawing"><canvas id="fallback-canvas" aria-label="Hand-drawn astronomy visual"></canvas></section><footer class="foot"><div class="caption" id="caption">A constellation is a recognizable pattern of stars.</div></footer></main>
 <script>
-/* Offline-first hand-drawn Canvas 2D renderer. No CDN, module, WebGL, or SVG dependency. */
+/* Offline-safe first-paint renderer. PixiJS may replace this only after its module loads successfully. Canvas fallback remains available offline. */
 (function(){
 'use strict';
 const root=document.getElementById('canvas'),canvas=document.getElementById('fallback-canvas'),ctx=canvas.getContext('2d');
@@ -26,7 +26,11 @@ const scenes=[
 ['OUR HOME GALAXY · THE MILKY WAY','The Milky Way is the galaxy that contains our Solar System.']
 ];
 const aliases={'beyond_earth_constellation':0,'beyond_earth_sky_watching':1,'beyond_earth_sun_star':2,'beyond_earth_solar_system':3,'beyond_earth_planet_star':4,'beyond_earth_earth_moon':5,'beyond_earth_asteroid_comet':6,'beyond_earth_milky_way':7,'beyond_earth_galaxy':7};
-let step=0,subtype='';
+let step=0,subtype='',active='';
+const defs={
+ beyond_earth_sky_watching:{title:'LOOK UP · OBSERVE · RECORD'},
+ beyond_earth_day_night:{title:'DAY AND NIGHT · EXCALIDRAW → PIXI'}
+};
 function line(a,b,color=ink,w=2.3){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
 function circle(x,y,r,fill,stroke=ink){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();if(stroke)ctx.stroke()}
 function label(t,x,y,size=13,color=ink){ctx.fillStyle=color;ctx.font='600 '+size+'px "Trebuchet MS",sans-serif';ctx.textAlign='center';ctx.fillText(t,x,y)}
@@ -41,9 +45,15 @@ function scene6(){for(let i=0;i<18;i++)circle(105+Math.cos(i*2.4)*(35+(i%5)*9),1
 function scene7(){circle(195,160,7,gold);for(let arm=0;arm<3;arm++){let prev=null;for(let i=1;i<=70;i++){let t=i/70,a=arm*Math.PI*2/3+t*5.7,r=8+t*105,p=[195+Math.cos(a)*r,160+Math.sin(a)*r*.43];if(prev&&i%3===0)line(prev,p,arm===1?teal:blue,1.8);if(i%7===0)star(p[0],p[1],i%14===0?3:1.8);prev=p}}label('MILKY WAY',195,285,13,teal)}
 const drawers=[scene0,scene1,scene2,scene3,scene4,scene5,scene6,scene7];
 function render(){const w=Math.max(1,root.clientWidth),h=Math.max(1,root.clientHeight),dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=paper;ctx.fillRect(0,0,w,h);const s=Math.min(w/390,h/320);ctx.save();ctx.translate((w-390*s)/2,(h-320*s)/2);ctx.scale(s,s);label(scenes[step][0],195,24,11,teal);drawers[step]();ctx.restore();count.textContent=String(step+1).padStart(2,'0')+' / 08';bar.style.width=((step+1)/8*100)+'%';caption.textContent=scenes[step][1]}
-function setStep(n,s){subtype=typeof s==='string'?s:'';step=Number.isFinite(Number(n))?Math.max(0,Math.min(7,Number(n))):0;if(subtype==='beyond_earth_galaxy')step=7;else if(subtype in aliases)step=aliases[subtype];window.__padippuFallbackState={step,subtype};render()}
+function setStep(n,s){subtype=typeof s==='string'?s:'';step=Number.isFinite(Number(n))?Math.max(0,Math.min(7,Number(n))):0;if(subtype==='beyond_earth_galaxy'){active='beyond_earth_milky_way';step=7}else if(subtype in aliases){active=Object.keys(aliases).find(k=>aliases[k]===aliases[subtype])||'';step=aliases[subtype]}window.__padippuFallbackState={step,subtype};render()}
 window.PadippuPalVisual={setStep,getStep:()=>step,setSubtype:s=>{if(s in aliases)setStep(aliases[s],s)}};
+// Keep the chapter subtype mapping explicit for the Android WebView bridge.
+// If a PixiJS renderer is added later, its asynchronous initialization must be guarded:
+// await app.init({ background: '#f7f4ed', antialias: true });
+const fallbackCanvas=canvas;
 window.addEventListener('resize',render);
 const pending=window.__padippuFallbackState;setStep(pending?.step??0,pending?.subtype??'');
+// If an optional PixiJS module cannot load, retain the offline first-paint canvas.
+if(!window.PIXI){fallbackCanvas.hidden=false;}
 })();
 </script></body></html>

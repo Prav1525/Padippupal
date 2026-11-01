@@ -456,6 +456,20 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
         self.assertIn("setLayerType(View.LAYER_TYPE_SOFTWARE, null)", canvas)
         self.assertIn("modifier.height(if (compact) 150.dp else 190.dp)", canvas)
 
+    def test_canvas_repaints_after_androidview_receives_final_layout_size(self):
+        root = Path(__file__).resolve().parents[2]
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        self.assertIn("new ResizeObserver(", html)
+        self.assertIn("root.clientWidth>1&&root.clientHeight>1", html)
+        self.assertIn("requestAnimationFrame(()=>requestAnimationFrame(", html)
+
+    def test_ui_smoke_rejects_blank_paper_coloured_canvas(self):
+        root = Path(__file__).resolve().parents[2]
+        smoke = (root / ".github/scripts/ui_smoke.py").read_text()
+        self.assertIn("Inline visual paint scan:", smoke)
+        self.assertIn("Beyond Earth canvas is blank", smoke)
+        self.assertIn("dark_ink < 100", smoke)
+
     def test_pixijs_canvas_keeps_progressive_reveal_and_offline_fallback(self):
         root = Path(__file__).resolve().parents[2]
         canvas = (root / "app/src/main/java/com/padippupal/app/BeyondEarthPixiCanvas.kt").read_text()

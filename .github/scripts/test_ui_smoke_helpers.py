@@ -463,6 +463,12 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
         self.assertIn("root.clientWidth>1&&root.clientHeight>1", html)
         self.assertIn("requestAnimationFrame(()=>requestAnimationFrame(", html)
 
+    def test_canvas_has_a_minimum_paintable_height_inside_compose_webview(self):
+        root = Path(__file__).resolve().parents[2]
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        self.assertIn("#canvas{flex:1;min-height:160px;", html)
+        self.assertIn("rootRectHeight:root.getBoundingClientRect().height", html)
+
     def test_canvas_fallback_is_not_hidden_just_because_pixi_global_exists(self):
         root = Path(__file__).resolve().parents[2]
         html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()

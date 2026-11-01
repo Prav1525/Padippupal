@@ -550,8 +550,7 @@ class BeyondEarthPixiFallbackContractTests(unittest.TestCase):
         self.assertIn("subtype==='beyond_earth_galaxy'", html)
         self.assertIn("active='beyond_earth_milky_way'", html)
         self.assertIn("defs.beyond_earth_day_night={", html)
-        self.assertIn("beyond_earth_sky_watching:{title", html)
-        self.assertNotIn("defs.beyond_earth_sky_watching={\\n title:'DAY AND NIGHT", html)
+        self.assertIn("beyond_earth_sky_watching:{title:'LOOK UP · OBSERVE · RECORD'", html)
         self.assertIn("setStep(pending?.step??0,pending?.subtype??'')", html)
 
 

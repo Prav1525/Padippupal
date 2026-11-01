@@ -380,3 +380,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** The engineering documentation now explicitly requires one AutoPilot workflow, one approved-work ledger, and the existing project records as the single source of truth.
 - **Verification:** Pending exact-head workflow and helper test results. The repair worker is not yet active; PR #15's Codex proposal still requires cost approval and integration into the same workflow.
 - **Status:** Architecture correction implemented; runtime verification pending.
+
+
+### TE-2026-11-01 — Beyond Earth canvas could be blank while UI smoke passed
+
+- **Date discovered:** 2026-11-01.
+- **Area:** Beyond Earth WebView renderer / Android visual acceptance.
+- **Symptom:** The successful Android UI smoke artifact for commit `9f53b06fd6eb5858f1699f81a0f2187255dc4430` showed the live tutor text and chapter visual labels, but the entire expected drawing region was blank. The existing smoke assertion counted DOM labels as evidence of a visible visual, so it falsely passed the visual acceptance check.
+- **Root cause:** **Probable, not yet runtime-confirmed** — the page's only drawing path depended on a remote PixiJS ES-module import from jsDelivr. The screenshot proves the page shell loaded but not that the module loaded or rendered. The logcat artifact also records a WebView renderer-process crash, but it does not establish that this crash caused the earlier blank screenshot.
+- **Corrective action:** Added an offline-safe Canvas 2D first-paint fallback that renders the eight chapter concepts without a network dependency; PixiJS hides the fallback only after its renderer is initialized. Preserved the chapter step bridge and added the missing `beyond_earth_galaxy` → Milky Way scene alias.
+- **Regression protection:** Added explicit helper-contract tests for fallback canvas presence, fallback-to-Pixi handoff, pending step restoration, and galaxy alias routing. Moved the unittest entry point to the end of `.github/scripts/test_ui_smoke_helpers.py` so the appended contract tests are actually discovered when the file is run directly.
+- **Evidence:** Original successful UI run [41007760716](https://github.com/Prav1525/Padippupal/actions/runs/41007760716), artifact [12956179180](https://github.com/Prav1525/Padippupal/actions/runs/41007760716); original screenshot showed a blank drawing area despite accessible visual text. Fix commits: `2b0b58553f24a458b38c6bf67a44fd157c50428c`, `d984ae70c77e41dce013bad16b98010f4cfb6118`, `495e0cfd631ca6ea47ec40b6d8fe1819d8b2ad2c`.
+- **Verification:** The exact-head Investigation Guidance Gate passed on `d984ae70c77e41dce013bad16b98010f4cfb6118`. Android APK, curriculum tests and Android UI smoke are running against that earlier fix head; the latest helper-test change has triggered another workflow cycle. Inspect the new screenshot and confirm visible nonblank canvas pixels before closing this incident.
+- **Status:** **Fix implemented; runtime verification pending.** Do not merge or deploy until the latest exact-head checks pass and the new screenshot visibly contains the intended drawing.

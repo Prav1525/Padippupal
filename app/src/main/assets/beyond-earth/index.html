@@ -7,12 +7,12 @@
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f7f4ed;color:#29394c;font-family:"Trebuchet MS",system-ui,sans-serif}
 #app{height:100%;display:flex;flex-direction:column}.top{height:36px;padding:8px 14px 3px;display:flex;justify-content:space-between;align-items:center}.brand{font-size:10px;letter-spacing:.14em;font-weight:800;color:#788596}.count{font-size:10px;color:#788596}#progress{height:2px;background:#e7e0d4}#bar{height:100%;background:#d17b5b;width:12.5%;transition:width .2s}#canvas{flex:1;min-height:0;position:relative}canvas{display:block;width:100%;height:100%}.foot{min-height:42px;padding:5px 15px 9px;display:flex;align-items:center}.caption{font-size:12px;line-height:1.25;color:#58677a}
 </style></head>
-<body><main id="app"><header class="top"><div class="brand">FIELD NOTES · BEYOND EARTH</div><div class="count" id="count">01 / 08</div></header><div id="progress"><div id="bar"></div></div><section id="canvas" aria-label="Interactive astronomy teaching drawing"><canvas id="board" aria-label="Hand-drawn astronomy visual"></canvas></section><footer class="foot"><div class="caption" id="caption">A constellation is a recognizable pattern of stars.</div></footer></main>
+<body><main id="app"><header class="top"><div class="brand">FIELD NOTES · BEYOND EARTH</div><div class="count" id="count">01 / 08</div></header><div id="progress"><div id="bar"></div></div><section id="canvas" aria-label="Interactive astronomy teaching drawing"><canvas id="fallback-canvas" aria-label="Hand-drawn astronomy visual"></canvas></section><footer class="foot"><div class="caption" id="caption">A constellation is a recognizable pattern of stars.</div></footer></main>
 <script>
 /* Offline-first hand-drawn Canvas 2D renderer. No CDN, module, WebGL, or SVG dependency. */
 (function(){
 'use strict';
-const root=document.getElementById('canvas'),canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
+const root=document.getElementById('canvas'),canvas=document.getElementById('fallback-canvas'),ctx=canvas.getContext('2d');
 const count=document.getElementById('count'),bar=document.getElementById('bar'),caption=document.getElementById('caption');
 const ink='#35465b',gold='#e7b85d',blue='#6fa5bb',teal='#5c9b8c',coral='#d17b5b',paper='#f7f4ed',moon='#d9d4c8';
 const scenes=[
@@ -41,9 +41,9 @@ function scene6(){for(let i=0;i<18;i++)circle(105+Math.cos(i*2.4)*(35+(i%5)*9),1
 function scene7(){circle(195,160,7,gold);for(let arm=0;arm<3;arm++){let prev=null;for(let i=1;i<=70;i++){let t=i/70,a=arm*Math.PI*2/3+t*5.7,r=8+t*105,p=[195+Math.cos(a)*r,160+Math.sin(a)*r*.43];if(prev&&i%3===0)line(prev,p,arm===1?teal:blue,1.8);if(i%7===0)star(p[0],p[1],i%14===0?3:1.8);prev=p}}label('MILKY WAY',195,285,13,teal)}
 const drawers=[scene0,scene1,scene2,scene3,scene4,scene5,scene6,scene7];
 function render(){const w=Math.max(1,root.clientWidth),h=Math.max(1,root.clientHeight),dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=paper;ctx.fillRect(0,0,w,h);const s=Math.min(w/390,h/320);ctx.save();ctx.translate((w-390*s)/2,(h-320*s)/2);ctx.scale(s,s);label(scenes[step][0],195,24,11,teal);drawers[step]();ctx.restore();count.textContent=String(step+1).padStart(2,'0')+' / 08';bar.style.width=((step+1)/8*100)+'%';caption.textContent=scenes[step][1]}
-function setStep(n,s){subtype=typeof s==='string'?s:'';step=Number.isFinite(Number(n))?Math.max(0,Math.min(7,Number(n))):0;if(subtype in aliases)step=aliases[subtype];window.__padippuFallbackState={step,subtype};render()}
+function setStep(n,s){subtype=typeof s==='string'?s:'';step=Number.isFinite(Number(n))?Math.max(0,Math.min(7,Number(n))):0;if(subtype==='beyond_earth_galaxy')step=7;else if(subtype in aliases)step=aliases[subtype];window.__padippuFallbackState={step,subtype};render()}
 window.PadippuPalVisual={setStep,getStep:()=>step,setSubtype:s=>{if(s in aliases)setStep(aliases[s],s)}};
 window.addEventListener('resize',render);
-render();
+const pending=window.__padippuFallbackState;setStep(pending?.step??0,pending?.subtype??'');
 })();
 </script></body></html>

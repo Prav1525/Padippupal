@@ -425,11 +425,11 @@ class PreviousScreenSelectionTests(unittest.TestCase):
 
 
 
-class BeyondEarthWhiteboardContractTests(unittest.TestCase):
-    def test_all_eight_chapter_scenes_use_native_compose_whiteboard(self):
+class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
+    def test_all_eight_chapter_scenes_use_the_inline_pixijs_canvas(self):
         root = Path(__file__).resolve().parents[2]
         tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
         scenes = (
             "beyond_earth_constellation",
             "beyond_earth_sky_watching",
@@ -441,33 +441,24 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
             "beyond_earth_milky_way",
         )
         for scene in scenes:
-            self.assertIn(scene, board)
-        self.assertIn("BeyondEarthWhiteboard(", tutor)
-        self.assertNotIn("BeyondEarthPixiCanvas(", tutor)
-        self.assertIn("labels = activeLabels", tutor)
-        self.assertIn("revealCount = revealCount", tutor)
-        self.assertIn("stepKey = active", tutor)
-        self.assertIn("detectTapGestures", board)
-        self.assertIn("manualReveal = (manualReveal + 1)", board)
-        self.assertIn("Canvas(Modifier.fillMaxSize())", board)
-        self.assertNotIn(".svg", board.lower())
+            self.assertIn(scene, html)
+        self.assertIn("BeyondEarthPixiCanvas(", tutor)
+        self.assertNotIn("BeyondEarthWhiteboard(", tutor)
+        self.assertIn("activeKind == \"beyond_earth\"", tutor)
+        self.assertIn("compact = compact", tutor)
+        self.assertIn("modifier = Modifier.fillMaxWidth()", tutor)
+        self.assertIn('id="fallback-canvas"', html)
+        self.assertIn("window.PadippuPalVisual={setStep,getStep", html)
 
-    def test_native_whiteboard_routes_progressive_reveal_and_all_scene_drawers(self):
+    def test_pixijs_canvas_keeps_progressive_reveal_and_offline_fallback(self):
         root = Path(__file__).resolve().parents[2]
-        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
-        for drawer in (
-            "drawConstellation(stage",
-            "drawSkyWatcher(stage",
-            "drawSunStar(stage",
-            "drawSolarSystem(stage",
-            "drawPlanetStar(stage",
-            "drawEarthMoon(stage",
-            "drawAsteroidsComet(stage",
-            "drawGalaxy(stage",
-        ):
-            self.assertIn(drawer, board)
-        self.assertIn("val stage = maxOf(revealCount, manualReveal)", board)
-        self.assertIn("stage.coerceAtLeast(1)", board)
+        canvas = (root / "app/src/main/java/com/padippupal/app/BeyondEarthPixiCanvas.kt").read_text()
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        for token in ("setStep", "subtype", "compact"):
+            self.assertIn(token, canvas)
+        self.assertIn("Offline-safe first-paint renderer", html)
+        self.assertIn("fallbackCanvas.hidden=false", html)
+        self.assertIn("if(!window.PIXI)", html)
 
 
 class BeyondEarthChapterSelectionTests(unittest.TestCase):

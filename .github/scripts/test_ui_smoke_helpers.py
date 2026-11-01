@@ -424,9 +424,6 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         self.assertNotIn('tap tutor.xml "Change"', script)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class BeyondEarthWhiteboardContractTests(unittest.TestCase):
     def test_all_eight_chapter_scenes_use_the_native_hand_drawn_board(self):
@@ -534,3 +531,26 @@ class CompletedLessonWordingRegressionTests(unittest.TestCase):
                 assert_completed_lesson(str(path))
         finally:
             path.unlink(missing_ok=True)
+
+
+class BeyondEarthPixiFallbackContractTests(unittest.TestCase):
+    def test_canvas_has_offline_first_paint_when_pixijs_module_cannot_load(self):
+        root = Path(__file__).resolve().parents[2]
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        self.assertIn('id="fallback-canvas"', html)
+        self.assertIn("Offline-safe first-paint renderer", html)
+        self.assertIn("window.PadippuPalVisual={setStep,getStep", html)
+        self.assertIn("window.__padippuFallbackState", html)
+        self.assertIn("fallbackCanvas.hidden=true", html)
+        self.assertIn("#fallback-canvas[hidden]{display:none}", html)
+
+    def test_pixijs_bridge_maps_galaxy_alias_and_keeps_chapter_subtype(self):
+        root = Path(__file__).resolve().parents[2]
+        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        self.assertIn("subtype==='beyond_earth_galaxy'", html)
+        self.assertIn("active='beyond_earth_milky_way'", html)
+        self.assertIn("setStep(pending?.step??0,pending?.subtype??'')", html)
+
+
+if __name__ == "__main__":
+    unittest.main()

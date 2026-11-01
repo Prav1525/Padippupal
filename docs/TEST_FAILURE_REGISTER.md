@@ -372,3 +372,16 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `e38e354d0d11e3f7bb79b1d14c193203f947ade5` retries the accessibility dump/pull up to eight times, rejects empty/non-hierarchy files, clears stale local/remote evidence before each attempt, and records the active Android activities if all retries fail.
 - **Regression test:** `.github/scripts/test_diary_emulator_script.py::test_accessibility_dump_retries_transient_null_roots_and_captures_diagnostics` asserts bounded retries, valid XML checks, and diagnostic capture.
 - **Validation:** Pending fresh CI. The emulator must complete the diary flow and continue to the tutor smoke test; then inspect the actual Beyond Earth lesson screenshot for visible native Compose drawing and layout. Do not merge or deploy until required checks and visual acceptance pass.
+
+
+## Incident: Beyond Earth inline canvas collapsed to a 1-pixel drawing surface
+
+- **Date:** 2026-11-01
+- **Affected PR:** [#69](https://github.com/Prav1525/Padippupal/pull/69)
+- **Exact failing run:** Android UI smoke [41303929882](https://github.com/Prav1525/Padippupal/actions/runs/41303929882), job 124840363864, artifact 13082401454.
+- **Observed failure:** Tutor text, title, and caption were present, but the inline drawing area was blank. Pixel scan reported `0 non-paper pixels; 0 dark-ink pixels`.
+- **Root cause:** **CONFIRMED** by WebView diagnostics in `ui-screenshots/logcat.txt`: the script started and rendered three times with a valid 2D context, but `lastRender` reported `w=376, h=1, canvasWidth=752, canvasHeight=2`. The `#canvas` flex item was allowed to shrink to 1 CSS pixel by `min-height:0`, so the scene's coordinate transform scaled the drawing effectively to zero. This was not a missing JavaScript execution or a canvas-context failure.
+- **Fix:** Commit `ea10c2925fe9111d5cfabc12bc85b7df834aa1c2` gives `#canvas` a 160px minimum paintable height and records viewport/container dimensions in diagnostics.
+- **Regression test:** Commit `6bebd0d874efec37924b70db110a8738a702db51` adds `test_canvas_has_a_minimum_paintable_height_inside_compose_webview`.
+- **Verification:** Corrected-head Android UI smoke and screenshot inspection are pending. Must confirm the actual pixels show stars/connecting lines/labels and the pixel scan is nonblank; passing accessibility labels alone is insufficient.
+- **Release safety:** PR remains unmerged; no production deploy or database write was performed.

@@ -450,6 +450,12 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
         self.assertIn('id="fallback-canvas"', html)
         self.assertIn("window.PadippuPalVisual={setStep,getStep", html)
 
+    def test_webview_uses_software_layer_to_keep_compose_caption_visible(self):
+        root = Path(__file__).resolve().parents[2]
+        canvas = (root / "app/src/main/java/com/padippupal/app/BeyondEarthPixiCanvas.kt").read_text()
+        self.assertIn("setLayerType(View.LAYER_TYPE_SOFTWARE, null)", canvas)
+        self.assertIn("modifier.height(if (compact) 150.dp else 190.dp)", canvas)
+
     def test_pixijs_canvas_keeps_progressive_reveal_and_offline_fallback(self):
         root = Path(__file__).resolve().parents[2]
         canvas = (root / "app/src/main/java/com/padippupal/app/BeyondEarthPixiCanvas.kt").read_text()

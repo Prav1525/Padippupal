@@ -479,7 +479,7 @@ class BeyondEarthChapterSelectionTests(unittest.TestCase):
     def test_chapter_selection_assertion_matches_the_real_beyond_earth_picker(self):
         source = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
         start = source.index("def assert_chapter_selected(path):")
-        end = source.index("\\ndef tap_numbered", start)
+        end = source.index("\ndef tap_numbered", start)
         assertion = source[start:end].lower()
         self.assertIn('"beyond earth" not in joined', assertion)
         self.assertIn('"constellations" not in joined', assertion)

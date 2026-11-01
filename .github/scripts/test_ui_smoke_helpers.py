@@ -477,8 +477,9 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
     def test_canvas_fallback_is_not_hidden_just_because_pixi_global_exists(self):
         root = Path(__file__).resolve().parents[2]
         html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
-        self.assertIn("fallbackCanvas.hidden=false;", html)
-        self.assertIn("fallbackCanvas.style.visibility='visible';", html)
+        self.assertIn('id="dom-fallback"', html)
+        self.assertIn("domFallback.style.display='flex';", html)
+        self.assertIn("fallbackCanvas.hidden=true;", html)
         self.assertNotIn("if(!window.PIXI){fallbackCanvas.hidden=false;}else{fallbackCanvas.hidden=true;}", html)
 
     def test_ui_smoke_rejects_blank_paper_coloured_canvas(self):
@@ -495,9 +496,10 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
         for token in ("setStep", "subtype", "compact"):
             self.assertIn(token, canvas)
         self.assertIn("Offline-safe first-paint renderer", html)
-        self.assertIn("fallbackCanvas.hidden=false", html)
+        self.assertIn('id="dom-fallback"', html)
+        self.assertIn("domFallback.style.display='flex';", html)
+        self.assertIn("fallbackCanvas.hidden=true", html)
         self.assertNotIn("if(!window.PIXI)", html)
-        self.assertIn("fallbackCanvas.style.visibility='visible';", html)
 
 
 class BeyondEarthChapterSelectionTests(unittest.TestCase):

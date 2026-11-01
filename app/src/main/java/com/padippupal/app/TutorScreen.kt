@@ -411,11 +411,12 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             )
         }
         if (activeKind == "beyond_earth") {
-            BeyondEarthPixiCanvas(
-                step = active,
+            BeyondEarthWhiteboard(
                 subtype = activeSubtypeForChapter(lesson, activeStep),
-                compact = compact,
-                modifier = Modifier.fillMaxWidth()
+                labels = activeLabels,
+                revealCount = revealCount,
+                stepKey = activeStep,
+                compact = compact
             )
         } else {
         Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {

@@ -410,9 +410,11 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
                 maxLines = if (compact) 2 else Int.MAX_VALUE
             )
         }
-        if (activeKind == "beyond_earth") {
-            // Route the live Beyond Earth lesson through the chapter's offline-safe
-            // Canvas renderer. Keep it embedded in the lesson flow, without a second card.
+        // The WebView renderer reports a valid 2D context but produces no visible
+        // pixels in Android's captured lesson viewport. Prefer the native Compose
+        // Canvas fallback until the WebView path passes the pixel-paint regression.
+        if (activeKind == "beyond_earth" && false) {
+            // Disabled: this path paints a blank paper rectangle on the emulator.
             BeyondEarthPixiCanvas(
                 step = active,
                 subtype = activeSubtypeForChapter(lesson, activeStep),

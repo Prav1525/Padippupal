@@ -460,7 +460,9 @@ class BeyondEarthPixiCanvasContractTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
         self.assertIn("new ResizeObserver(", html)
-        self.assertIn("root.clientWidth>1&&root.clientHeight>1", html)
+        self.assertIn("if(root.clientWidth>1)requestAnimationFrame(render)", html)
+        self.assertIn("Math.max(160,root.clientHeight,window.innerHeight||0,document.documentElement.clientHeight||0)", html)
+        self.assertIn("rootRectHeight:root.getBoundingClientRect().height", html)
         self.assertIn("requestAnimationFrame(()=>requestAnimationFrame(", html)
 
     def test_canvas_has_a_minimum_paintable_height_inside_compose_webview(self):

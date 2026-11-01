@@ -561,5 +561,20 @@ class BeyondEarthPixiFallbackContractTests(unittest.TestCase):
         self.assertIn("setStep(pending?.step??0,pending?.subtype??'')", html)
 
 
+class LiveLessonWordHighlightRegressionTests(unittest.TestCase):
+    def test_live_caption_highlight_stays_active_for_entire_live_lesson(self):
+        root = Path(__file__).resolve().parents[2]
+        tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        call = tutor[tutor.index("WordByWordCaption(\n                                liveCaption"):
+                     tutor.index("expandToAvailableHeight = false",
+                                 tutor.index("WordByWordCaption(\n                                liveCaption"))]
+        self.assertIn("speechActive || liveLessonActive", call)
+        self.assertIn("SpanStyle(background = Color(0xFFDCE7FF)", tutor)
+        self.assertIn("active && index == currentWordIndex", tutor)
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        self.assertIn("assert_highlight_frames", smoke)
+        self.assertIn("distinct highlight positions", smoke)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -445,7 +445,7 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
             self.assertIn(scene, html)
         self.assertIn("BeyondEarthPixiCanvas(", tutor)
         self.assertIn("loadUrl(\"file:///android_asset/beyond-earth/index.html\")", renderer)
-        self.assertIn('lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)', tutor)
+        self.assertIn('if (chapter.equals("Beyond Earth", ignoreCase = true))', tutor)
         for step, scene in (
             ("step_1", "beyond_earth_constellation"),
             ("step_2", "beyond_earth_sky_watching"),

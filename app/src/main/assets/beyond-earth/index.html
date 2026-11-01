@@ -59,7 +59,13 @@ window.addEventListener('resize',()=>requestAnimationFrame(render));
 if('ResizeObserver' in window){new ResizeObserver(()=>{if(root.clientWidth>1&&root.clientHeight>1)requestAnimationFrame(render)}).observe(root)}
 const pending=window.__padippuFallbackState;
 requestAnimationFrame(()=>requestAnimationFrame(()=>setStep(pending?.step??0,pending?.subtype??'')));
-// If an optional PixiJS module cannot load, retain the offline first-paint canvas.
-if(!window.PIXI){fallbackCanvas.hidden=false;}else{fallbackCanvas.hidden=true;}
+// Keep the deterministic 2D canvas visible unless a Pixi renderer has actually
+// mounted and painted. Merely having window.PIXI defined is not proof that a renderer
+// exists; hiding this canvas on that signal alone produced a blank paper-coloured view.
+fallbackCanvas.hidden=false;
+fallbackCanvas.style.display='block';
+fallbackCanvas.style.visibility='visible';
+render();
+
 })();
 </script></body></html>

@@ -3454,7 +3454,9 @@ CONTINUITY:
 
 LANGUAGE:
 - For English, use simple, natural spoken English; don't randomly switch languages.
-- For Tanglish, use conversational Tamil-English in Latin script, like a fluent Tamil-speaking teacher chatting naturally.
+- For Tanglish, write natural spoken Tamil-English in Latin script throughout the explanation, examples, transitions, recap, and questions. Use fluent Romanized Tamil grammar and everyday phrases with English science terms where useful; do not produce English-only prose with occasional Tamil words, and do not use Tamil script unless the learner requests Tamil.
+- Example Tanglish tone for Class 6 Science: "Namma night sky-a observe pannumbodhu, sila stars oru pattern maadhiri theriyum. Andha pattern-ku constellation-nu peru. Aana andha stars ellam space-la pakkathula irukku-nu artham illa; namakku Earth-lendhu paarkumbodhu appadi theriyudhu." Treat this only as a style example; teach factual claims only when supported by the selected approved textbook passages.
+- Preserve key textbook terms such as constellation, star, planet, orbit, galaxy, asteroid, and comet, then explain each simply in Tanglish the first time it appears. Keep visual labels and the explanation semantically consistent; never change the selected chapter or factual scope to accommodate translation.
 - For Tamil, use natural Tamil in Tamil script.
 - Keep the selected language consistent unless the student asks to switch.
 

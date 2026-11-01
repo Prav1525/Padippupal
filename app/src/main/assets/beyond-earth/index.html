@@ -28,9 +28,9 @@ const scenes=[
 const aliases={'beyond_earth_constellation':0,'beyond_earth_sky_watching':1,'beyond_earth_sun_star':2,'beyond_earth_solar_system':3,'beyond_earth_planet_star':4,'beyond_earth_earth_moon':5,'beyond_earth_asteroid_comet':6,'beyond_earth_milky_way':7,'beyond_earth_galaxy':7};
 let step=0,subtype='',active='';
 const defs={
- beyond_earth_sky_watching:{title:'LOOK UP · OBSERVE · RECORD',caption:'Observe patterns in the night sky.'},
- beyond_earth_day_night:{title:'DAY AND NIGHT · EXCALIDRAW → PIXI',caption:'Earth rotates to create day and night.'}
+ beyond_earth_sky_watching:{title:'LOOK UP · OBSERVE · RECORD',caption:'Observe patterns in the night sky.'}
 };
+defs.beyond_earth_day_night={title:'DAY AND NIGHT · EXCALIDRAW → PIXI',caption:'Earth rotates to create day and night.'};
 function line(a,b,color=ink,w=2.3){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()}
 function circle(x,y,r,fill,stroke=ink){ctx.fillStyle=fill;ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();if(stroke)ctx.stroke()}
 function label(t,x,y,size=13,color=ink){ctx.fillStyle=color;ctx.font='600 '+size+'px "Trebuchet MS",sans-serif';ctx.textAlign='center';ctx.fillText(t,x,y)}

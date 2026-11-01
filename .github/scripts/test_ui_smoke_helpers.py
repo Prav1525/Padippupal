@@ -426,11 +426,10 @@ class PreviousScreenSelectionTests(unittest.TestCase):
 
 
 class BeyondEarthWhiteboardContractTests(unittest.TestCase):
-    def test_all_eight_chapter_scenes_route_through_the_real_webview_renderer(self):
+    def test_all_eight_chapter_scenes_use_native_compose_whiteboard(self):
         root = Path(__file__).resolve().parents[2]
         tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
-        renderer = (root / "app/src/main/java/com/padippupal/app/BeyondEarthPixiCanvas.kt").read_text()
-        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
+        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
         scenes = (
             "beyond_earth_constellation",
             "beyond_earth_sky_watching",
@@ -442,37 +441,33 @@ class BeyondEarthWhiteboardContractTests(unittest.TestCase):
             "beyond_earth_milky_way",
         )
         for scene in scenes:
-            self.assertIn(scene, html)
-        self.assertIn("BeyondEarthPixiCanvas(", tutor)
-        self.assertIn("loadUrl(\"file:///android_asset/beyond-earth/index.html\")", renderer)
-        self.assertIn('if (chapter.equals("Beyond Earth", ignoreCase = true))', tutor)
-        for step, scene in (
-            ("step_1", "beyond_earth_constellation"),
-            ("step_2", "beyond_earth_sky_watching"),
-            ("step_3", "beyond_earth_sun_star"),
-            ("step_4", "beyond_earth_solar_system"),
-            ("step_5", "beyond_earth_planet_star"),
-            ("step_6", "beyond_earth_earth_moon"),
-            ("step_7", "beyond_earth_asteroid_comet"),
-            ("step_8", "beyond_earth_galaxy"),
-        ):
-            self.assertIn(f'"{step}" to "{scene}"', tutor)
-        self.assertNotIn(".svg", html.lower())
+            self.assertIn(scene, board)
+        self.assertIn("BeyondEarthWhiteboard(", tutor)
+        self.assertNotIn("BeyondEarthPixiCanvas(", tutor)
+        self.assertIn("labels = activeLabels", tutor)
+        self.assertIn("revealCount = revealCount", tutor)
+        self.assertIn("stepKey = activeStep", tutor)
+        self.assertIn("detectTapGestures", board)
+        self.assertIn("manualReveal = (manualReveal + 1)", board)
+        self.assertIn("Canvas(Modifier.fillMaxSize())", board)
+        self.assertNotIn(".svg", board.lower())
 
-    def test_offline_first_paint_fallback_and_step_updates_are_wired(self):
+    def test_native_whiteboard_routes_progressive_reveal_and_all_scene_drawers(self):
         root = Path(__file__).resolve().parents[2]
-        html = (root / "app/src/main/assets/beyond-earth/index.html").read_text()
-        renderer = (root / "app/src/main/java/com/padippupal/app/BeyondEarthPixiCanvas.kt").read_text()
-        self.assertIn('id="fallback-canvas"', html)
-        self.assertIn('canvas.getContext(\'2d\')', html)
-        self.assertIn("function render()", html)
-        self.assertIn("window.PadippuPalVisual={setStep", html)
-        self.assertIn("window.__padippuFallbackState", html)
-        self.assertIn("window.PadippuPalVisual.setStep($safeStep", renderer)
-        self.assertIn("await app.init(", html)
-        self.assertIn("fallbackCanvas.hidden=true", html)
-        self.assertLess(html.index('id="fallback-canvas"'), html.index('<script type="module">'))
-        self.assertNotIn(".svg", html.lower())
+        board = (root / "app/src/main/java/com/padippupal/app/BeyondEarthWhiteboard.kt").read_text()
+        for drawer in (
+            "drawConstellation(stage",
+            "drawSkyWatcher(stage",
+            "drawSunStar(stage",
+            "drawSolarSystem(stage",
+            "drawPlanetStar(stage",
+            "drawEarthMoon(stage",
+            "drawAsteroidsComet(stage",
+            "drawGalaxy(stage",
+        ):
+            self.assertIn(drawer, board)
+        self.assertIn("val stage = maxOf(revealCount, manualReveal)", board)
+        self.assertIn("stage.coerceAtLeast(1)", board)
 
 
 class BeyondEarthChapterSelectionTests(unittest.TestCase):

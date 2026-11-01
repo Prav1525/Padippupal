@@ -75,12 +75,12 @@ internal fun BeyondEarthWhiteboard(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (compact) 190.dp else 248.dp)
+                .height(if (compact) 132.dp else 172.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .background(BoardPaper)
                 .border(1.dp, Color(0xFFE4DFD2), RoundedCornerShape(18.dp))
@@ -137,53 +137,7 @@ internal fun BeyondEarthWhiteboard(
                 )
             }
 
-            Text(
-                "TAP TO SKETCH  ↗",
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 15.dp, bottom = 11.dp),
-                color = BoardPencil,
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
-            )
-        }
-
-        if (labels.isNotEmpty()) {
-            labels.take(6).chunked(3).forEach { group ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(7.dp)
-                ) {
-                    group.forEachIndexed { index, label ->
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if ((index + stage) % 2 == 0) Color(0xFFF0F6F4) else Color(0xFFF5F3EC))
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Spacer(
-                                Modifier
-                                    .height(6.dp)
-                                    .weight(0.08f)
-                                    .background(if (index % 2 == 0) BoardTeal else BoardGold, RoundedCornerShape(4.dp))
-                            )
-                            Text(
-                                label,
-                                modifier = Modifier.weight(0.92f),
-                                color = BoardInk,
-                                fontSize = if (compact) 9.sp else 10.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                    repeat((3 - group.size).coerceAtLeast(0)) { Spacer(Modifier.weight(1f)) }
-                }
-            }
-        }
+    
     }
 }
 

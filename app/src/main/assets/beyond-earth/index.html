@@ -51,8 +51,14 @@ window.PadippuPalVisual={setStep,getStep:()=>step,setSubtype:s=>{if(s in aliases
 // If a PixiJS renderer is added later, its asynchronous initialization must be guarded:
 // await app.init({ background: '#f7f4ed', antialias: true });
 const fallbackCanvas=canvas;
-window.addEventListener('resize',render);
-const pending=window.__padippuFallbackState;setStep(pending?.step??0,pending?.subtype??'');
+window.addEventListener('resize',()=>requestAnimationFrame(render));
+// Android WebView can run module scripts before AndroidView has its final measured size.
+// A one-shot render at that moment writes 1x1 inline canvas dimensions; resize is not
+// guaranteed to fire when the enclosing Compose view finishes layout. Observe the actual
+// drawing viewport and repaint once it has a non-zero size, then recheck after first paint.
+if('ResizeObserver' in window){new ResizeObserver(()=>{if(root.clientWidth>1&&root.clientHeight>1)requestAnimationFrame(render)}).observe(root)}
+const pending=window.__padippuFallbackState;
+requestAnimationFrame(()=>requestAnimationFrame(()=>setStep(pending?.step??0,pending?.subtype??'')));
 // If an optional PixiJS module cannot load, retain the offline first-paint canvas.
 if(!window.PIXI){fallbackCanvas.hidden=false;}else{fallbackCanvas.hidden=true;}
 })();

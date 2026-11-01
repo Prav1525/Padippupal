@@ -69,6 +69,7 @@ internal fun BeyondEarthWhiteboard(
         "beyond_earth_planet_star" -> "PLANETS AND STARS"
         "beyond_earth_earth_moon" -> "EARTH AND ITS MOON"
         "beyond_earth_asteroid_comet" -> "SMALL BODIES IN SPACE"
+        "beyond_earth_milky_way" -> "A GALAXY OF STARS"
         else -> "A GALAXY OF STARS"
     }
 
@@ -112,6 +113,7 @@ internal fun BeyondEarthWhiteboard(
                     "beyond_earth_planet_star" -> drawPlanetStar(stage, sw, unit)
                     "beyond_earth_earth_moon" -> drawEarthMoon(stage, sw, unit)
                     "beyond_earth_asteroid_comet" -> drawAsteroidsComet(stage, sw, unit)
+                    "beyond_earth_milky_way" -> drawGalaxy(stage, sw, unit)
                     else -> drawGalaxy(stage, sw, unit)
                 }
             }

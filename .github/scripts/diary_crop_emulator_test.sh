@@ -56,6 +56,26 @@ sleep 6
 "${ADB[@]}" shell input swipe 520 1450 520 650 450
 sleep 1
 dump_ui diary-home
+if ! grep -qi "Scan homework" ui-screenshots/diary-test/diary-home.xml; then
+  # Hosted API 35 emulators can occasionally show a system-level Pixel Launcher
+  # ANR dialog above the app after media indexing. Recover only when that exact
+  # dialog is visible; then relaunch the app and re-check the real accessibility
+  # tree. A missing app control still fails closed after this one bounded retry.
+  if grep -qi "Pixel Launcher isn't responding\|Pixel Launcher is not responding" ui-screenshots/diary-test/diary-home.xml; then
+    log "Detected Pixel Launcher ANR overlay; dismissing the system dialog and retrying app launch once"
+    if ! tap_label ui-screenshots/diary-test/diary-home.xml "Wait"; then
+      tap_label ui-screenshots/diary-test/diary-home.xml "Close app"
+    fi
+    sleep 5
+    "${ADB[@]}" shell am force-stop com.padippupal.app
+    "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity >/dev/null
+    sleep 8
+    "${ADB[@]}" shell input swipe 520 1450 520 650 450
+    sleep 1
+    dump_ui diary-home-retry
+    cp ui-screenshots/diary-test/diary-home-retry.xml ui-screenshots/diary-test/diary-home.xml
+  fi
+fi
 python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-home.xml "Scan homework"
 sleep 3
 dump_ui diary-scanner

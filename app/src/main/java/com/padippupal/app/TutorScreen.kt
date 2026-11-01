@@ -411,12 +411,13 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
             )
         }
         if (activeKind == "beyond_earth") {
-            BeyondEarthWhiteboard(
+            // Route the live Beyond Earth lesson through the chapter's offline-safe
+            // Canvas renderer. Keep it embedded in the lesson flow, without a second card.
+            BeyondEarthPixiCanvas(
+                step = active,
                 subtype = activeSubtypeForChapter(lesson, activeStep),
-                labels = activeLabels,
-                revealCount = revealCount,
-                stepKey = active,
-                compact = compact
+                compact = compact,
+                modifier = Modifier.fillMaxWidth()
             )
         } else {
         Box(Modifier.fillMaxWidth().height(if (compact) 82.dp else 104.dp)) {

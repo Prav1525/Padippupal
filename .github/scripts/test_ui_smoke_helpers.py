@@ -568,7 +568,7 @@ class LiveLessonWordHighlightRegressionTests(unittest.TestCase):
         call = tutor[tutor.index("WordByWordCaption(\n                                liveCaption"):
                      tutor.index("expandToAvailableHeight = false",
                                  tutor.index("WordByWordCaption(\n                                liveCaption"))]
-        self.assertIn("speechActive || liveLessonActive", call)
+        self.assertIn("speechActive || (liveLessonActive && !livePaused)", call)
         self.assertIn("SpanStyle(background = Color(0xFFDCE7FF)", tutor)
         self.assertIn("active && index == currentWordIndex", tutor)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()

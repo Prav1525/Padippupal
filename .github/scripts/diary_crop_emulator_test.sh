@@ -9,8 +9,26 @@ REPORT=ui-screenshots/diary-test/report.txt
 log(){ printf '%s\n' "$*" | tee -a "$REPORT"; }
 dump_ui(){
   local name="$1"
-  timeout 20s "${ADB[@]}" shell uiautomator dump "/data/local/tmp/${name}.xml" >/dev/null
-  timeout 10s "${ADB[@]}" pull "/data/local/tmp/${name}.xml" "ui-screenshots/diary-test/${name}.xml" >/dev/null
+  local remote="/data/local/tmp/${name}.xml"
+  local local_path="ui-screenshots/diary-test/${name}.xml"
+  # Android 14/15 system pickers can briefly expose no accessibility root while
+  # handing a selected URI back to the app. Never let a transient null root
+  # abort the whole flow before we can inspect the next stable screen.
+  rm -f "$local_path"
+  for attempt in $(seq 1 8); do
+    "${ADB[@]}" shell rm -f "$remote" >/dev/null 2>&1 || true
+    if timeout 20s "${ADB[@]}" shell uiautomator dump "$remote" >/dev/null 2>&1 &&
+       timeout 10s "${ADB[@]}" pull "$remote" "$local_path" >/dev/null 2>&1 &&
+       test -s "$local_path" &&
+       grep -q '<hierarchy' "$local_path"; then
+      return 0
+    fi
+    rm -f "$local_path"
+    sleep 1
+  done
+  log "FAIL: accessibility tree '$name' unavailable after 8 retries (transient null root or system UI transition)"
+  "${ADB[@]}" shell dumpsys activity activities 2>&1 | tail -n 35 | tee -a "$REPORT" || true
+  return 1
 }
 tap_label(){
   local xml="$1" label="$2"

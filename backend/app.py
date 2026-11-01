@@ -581,7 +581,7 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
         inline = build_inline_synthesized_visual(
             profile_key, lesson, [visual_record] if visual_record else [], topic=payload.topic
         ) if visual_record else None
-        segment["interactive_lesson"] = inline or fallback_visual
+        segment["interactive_lesson"] = inline
     return segments
 
 
@@ -3045,12 +3045,11 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             # simple original 2D diagrams inferred from source-cited synthesis captions.
             # The renderer consumes each segment's visual inline beside that narration.
             try:
-                segments = attach_topic_visuals(payload, segments, refs, fallback_visual=matched_visual)
+                segments = attach_topic_visuals(payload, segments, refs)
             except Exception:
                 logger.exception("Topic visual persistence failed; preserving any exact-match visual fallback")
-                for segment in segments:
-                    if not segment.get("interactive_lesson"):
-                        segment["interactive_lesson"] = matched_visual
+                # Do not attach a chapter/topic fallback visual to unrelated segments.
+                # A missing exact-step visual is preferable to showing the wrong diagram.
             # Approval verifies source provenance, not that every step still matches
             # the learner's selected topic. Validate source-language text before translating,
             # because topic gates are deliberately tied to the approved source vocabulary.
@@ -3303,7 +3302,7 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
     # Persist per-step visuals against the selected topic and attach them to the
     # same segment the learner hears. This is the dynamic Gemini path; approved
     # chapter lessons use the dedicated lesson_visual_assets table above.
-    lesson_segments = attach_topic_visuals(payload, validated["segments"], sources, matched_visual)
+    lesson_segments = attach_topic_visuals(payload, validated["segments"], sources)
     return {"lesson_id": str(uuid.uuid4()), "segments": lesson_segments, "grounded": True, "sources": sources,
             "language": payload.app_language, "subject": subject, "provider": "gemini", "model": model,
             "timing_mode": "segment", "word_timestamps_available": False,

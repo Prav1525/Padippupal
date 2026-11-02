@@ -25,7 +25,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from exam_master import router as exam_master_router
 from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
-from lesson_visuals import build_visual_records
 from textbook_visual_refs import describe_pdf_visual_references
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()

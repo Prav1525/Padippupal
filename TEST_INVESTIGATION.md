@@ -650,3 +650,17 @@ Use this format:
 - **Change under review:** Adds an admin-only recovery endpoint for allowlisted NCERT Class 6 chapter PDFs; it should persist bytes only when the PDF magic header, stored SHA-256, and stored page count match. Caller-supplied URLs are not accepted.
 - **What remains unverified:** Endpoint behavior, successful exact-checksum recovery for Beyond Earth, Postgres compatibility, rights-gated page-image extraction, and inline tutor display. The endpoint does not itself restore images.
 - **Next action:** Record this investigation entry, rerun the gate, then add focused endpoint tests and run the backend suite. No merge, production DB mutation, deployment, or public release.
+
+
+### 2026-11-02 — Reject invalid retained textbook PDF assets
+- **Branch / commit:** `fix/recover-textbook-pdf-by-checksum`; integrity fix commits `46b19c03eca1d911b87a39864ac66c0ba9cef6a7`, `6fb170ee6dd21a917b701846ba3af77996206672`, test commit `82af50a237fa8af21b9fd6a68f440b516fb25bc9`.
+- **Test command or workflow URL:** Added `backend/test_source_pdf_asset_integrity.py`; execution on this exact head is pending.
+- **Result:** **UNVERIFIED** pending Python test workflow.
+- **Exact failure or assertion:** Prior endpoint treated any existing `source_pdf_assets` row as `already_present` without validating PDF bytes, digest, or page count.
+- **Evidence links:** [Recovery endpoint PR #154](https://github.com/Prav1525/Padippupal/pull/154); [integrity test file](https://github.com/Prav1525/Padippupal/blob/fix/recover-textbook-pdf-by-checksum/backend/test_source_pdf_asset_integrity.py).
+- **Change made (files + rationale):** `backend/app.py` now checks the PDF signature, recalculated byte checksum against both the asset and source checksums, and page count before accepting an existing asset. Added focused regression tests for valid assets, corrupted bytes, source checksum mismatch, page-count mismatch, and non-PDF data.
+- **Root cause:** **CONFIRMED** for the false `already_present` status: the existing-row shortcut had no integrity validation. Separately, the missing `source_pdf_assets` table on the inspected dev database indicates the running database has not initialized the schema from this code branch; this code's `init_db()` creates it at application startup, but live deployment/startup is not verified.
+- **What this attempt proves:** Code now has an explicit integrity predicate and regression coverage authored for the shortcut.
+- **What remains unverified:** Python tests have not run; PR #152/#154 are unmerged; no deployed backend schema change, PDF recovery, image extraction, or tutor screenshot has been verified. Beyond Earth image extraction remains blocked by the fail-closed reuse-rights policy until explicit authorization is stored and verified.
+- **Difference from previous attempt:** Adds asset-byte and metadata validation instead of trusting database row existence.
+- **Next action and why:** Run backend tests on this exact commit and inspect actual startup/schema behavior; then trace the live tutor image endpoint and rights metadata before attempting image extraction. No production database, merge, or deployment action was taken.

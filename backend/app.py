@@ -1249,6 +1249,36 @@ def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str
     return {"items": [dict(row) for row in rows]}
 
 
+@app.get("/admin/sources/{source_id}/page-images", dependencies=[Depends(require_admin)])
+def source_page_images(source_id: str, page_start: int = 1, page_end: int = 100) -> dict[str, Any]:
+    """Return page image metadata; actual textbook images remain admin-only by default."""
+    if page_start < 1 or page_end < page_start or page_end - page_start > 199:
+        raise HTTPException(status_code=400, detail="Invalid page range.")
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT page_number, mime_type, image_sha256, width, height
+               FROM source_page_images WHERE source_id=? AND page_number BETWEEN ? AND ?
+               ORDER BY page_number""",
+            (source_id, page_start, page_end),
+        ).fetchall()
+    return {"source_id": source_id, "pages": [dict(row) for row in rows]}
+
+
+@app.get("/admin/sources/{source_id}/page-images/{page_number}", dependencies=[Depends(require_admin)])
+def source_page_image(source_id: str, page_number: int):
+    """Serve a stored textbook page image only to an authorized admin."""
+    from fastapi.responses import Response
+    with db() as conn:
+        row = conn.execute(
+            "SELECT mime_type, image_bytes FROM source_page_images WHERE source_id=? AND page_number=?",
+            (source_id, page_number),
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Textbook page image not found.")
+    return Response(content=bytes(row["image_bytes"]), media_type=str(row["mime_type"]),
+                    headers={"Cache-Control": "private, no-store"})
+
+
 @app.get("/curriculum/outline")
 def curriculum_outline(board: str, class_level: int, subject: str, medium: str) -> dict[str, Any]:
     """Return ordered textbook chapter and concept lists from the curated lesson catalogue."""

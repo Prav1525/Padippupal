@@ -1249,6 +1249,31 @@ def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str
     return {"items": [dict(row) for row in rows]}
 
 
+@app.post("/admin/sources/{source_id}/extract-page-images", dependencies=[Depends(require_admin)])
+def extract_beyond_earth_page_images(source_id: str) -> dict[str, Any]:
+    """Fetch the fixed official PDF, verify its identity against the saved source, and persist page renders."""
+    import urllib.request
+    if source_id != "86bbabde-ec5d-455a-b4da-a1de78fad0d7":
+        raise HTTPException(status_code=404, detail="Supported textbook source not found.")
+    request = urllib.request.Request(
+        "https://ncert.nic.in/textbook/pdf/fecu112.pdf",
+        headers={"User-Agent": "PadippuPal textbook page-image importer/1.0", "Accept": "application/pdf"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=25) as response:
+            pdf_bytes = response.read(80 * 1024 * 1024 + 1)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Could not retrieve the official Beyond Earth PDF.") from exc
+    if len(pdf_bytes) > 80 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Textbook PDF exceeds the supported size.")
+    try:
+        page_count = _persist_pdf_and_page_images(source_id, pdf_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"source_id": source_id, "page_count": page_count, "pdf_sha256": hashlib.sha256(pdf_bytes).hexdigest()}
+
+
 @app.get("/textbook/beyond-earth/page/{page_number}")
 def beyond_earth_page_image(page_number: int):
     """Serve the mapped Beyond Earth source page image for the inline tutor card."""

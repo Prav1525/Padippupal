@@ -439,6 +439,17 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class TextbookImageFallbackContractTests(unittest.TestCase):
+    def test_missing_rights_gated_images_show_compact_official_source_link(self):
+        root = Path(__file__).resolve().parents[2]
+        tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn('if (images == null || images.length() == 0)', tutor)
+        self.assertIn('lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)', tutor)
+        self.assertIn('https://ncert.nic.in/textbook/pdf/fecu112.pdf', tutor)
+        self.assertIn('Textbook figures appear here when reuse is authorised.', tutor)
+        self.assertIn('Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp)', tutor)
+
+
 class BeyondEarthWhiteboardContractTests(unittest.TestCase):
     def test_all_eight_chapter_scenes_use_the_native_hand_drawn_board(self):
         root = Path(__file__).resolve().parents[2]

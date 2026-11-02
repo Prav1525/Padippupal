@@ -206,6 +206,15 @@ def init_db() -> None:
             created_at REAL NOT NULL,
             PRIMARY KEY(source_id, page_no)
         );
+        CREATE TABLE IF NOT EXISTS source_pdf_assets (
+            source_id TEXT PRIMARY KEY REFERENCES sources(id) ON DELETE CASCADE,
+            file_name TEXT NOT NULL DEFAULT '',
+            mime_type TEXT NOT NULL DEFAULT 'application/pdf',
+            pdf_bytes BYTEA NOT NULL,
+            sha256 TEXT NOT NULL,
+            page_count INTEGER,
+            created_at REAL NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS chunks (
             id TEXT PRIMARY KEY,
             source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
@@ -558,6 +567,22 @@ def extract_pdf_visual_pages(pdf_bytes: bytes, max_pages: int = 40) -> dict[int,
     return extracted
 
 
+def persist_source_pdf(source_id: str, pdf_bytes: bytes, file_name: str, page_count: int | None) -> None:
+    """Retain the original uploaded PDF so source images can be re-extracted without re-uploading."""
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise ValueError("Refusing to persist invalid PDF bytes.")
+    digest = hashlib.sha256(pdf_bytes).hexdigest()
+    with db() as conn:
+        conn.execute(
+            """INSERT INTO source_pdf_assets(source_id,file_name,mime_type,pdf_bytes,sha256,page_count,created_at)
+               VALUES(?,?,'application/pdf',?,?,?,?)
+               ON CONFLICT(source_id) DO UPDATE SET
+                 file_name=excluded.file_name,mime_type=excluded.mime_type,pdf_bytes=excluded.pdf_bytes,
+                 sha256=excluded.sha256,page_count=excluded.page_count,created_at=excluded.created_at""",
+            (source_id, Path(file_name).name[:255], pdf_bytes, digest, page_count, time.time()),
+        )
+
+
 def persist_source_page_images(source_id: str, page_images: dict[int, bytes]) -> int:
     """Persist source page images idempotently with SHA-256 checksums."""
     now = time.time()
@@ -796,6 +821,8 @@ async def ingest_pdf(
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Could not process PDF or metadata: {exc}") from exc
     result = enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
+    if result.get("source_id"):
+        persist_source_pdf(result["source_id"], raw, file.filename or metadata.title, len(reader.pages))
     # Text extraction is allowed independently; copying/hosting page images requires explicit rights.
     page_images = extract_pdf_visual_pages(raw) if may_extract_source_images(metadata) else {}
     result["stored_visual_pages"] = str(persist_source_page_images(result["source_id"], page_images)) if page_images and result.get("source_id") else "0"
@@ -872,6 +899,8 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
                     chapter_title = f"Chapter PDF ({filename})"
             metadata = base.model_copy(update={"title": f"{base.title} — {chapter_title}"})
             result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages))
+            if result.get("source_id"):
+                persist_source_pdf(result["source_id"], pdf_raw, filename, len(reader.pages))
             page_images = extract_pdf_visual_pages(pdf_raw) if may_extract_source_images(metadata) else {}
             result["stored_visual_pages"] = str(persist_source_page_images(result["source_id"], page_images)) if page_images and result.get("source_id") else "0"
             result["image_extraction_skipped_rights"] = str(not may_extract_source_images(metadata)).lower()

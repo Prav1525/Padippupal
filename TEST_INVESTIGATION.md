@@ -571,3 +571,14 @@ Use this format:
 - **Scope boundary:** Stage 1 records CI evidence and validates the approval/retry policy. It does not yet run an AI code repair worker; Stage 2 must reconcile PR #15's repair proposal into this same workflow. Paid API activation requires explicit cost approval.
 - **Safety:** Android public APK release remains owner-dispatch gated. No PR merge, deployment, production DB write, or public release was performed.
 - **Verification:** Pending exact-head GitHub Actions checks; no end-to-end failure event has been simulated on this branch.
+
+
+## 2026-11-02 — Original textbook PDF and page-image persistence
+
+- **Area:** PDF ingestion and source-linked textbook page images.
+- **Status:** IN PROGRESS — CI validation pending.
+- **Root cause:** PDF ingestion retained extracted text and page markers but discarded original PDF bytes and page image pixels.
+- **Change under test:** Clean branch `feat/textbook-pdf-image-extraction-clean`, PR #156. Adds original PDF byte retention, checksum/page-count checks, per-page PNG renders, and admin-only image metadata/byte endpoints. Does not change production data or public image access.
+- **Tests added:** `backend/test_textbook_pdf_images.py` checks PDF byte-for-byte persistence, image signatures and hashes, page numbering, dimensions, and rejection of checksum mismatch.
+- **Evidence:** GitHub Actions Curriculum Engine Tests run [41427176493](https://github.com/Prav1525/Padippupal/actions/runs/41427176493) was running when this entry was written. Investigation Guidance Gate [41427176497](https://github.com/Prav1525/Padippupal/actions/runs/41427176497) initially failed because this ledger entry was missing; rerun after this update.
+- **Production safety:** No merge, deployment, or production database write performed. Extracted textbook pages remain admin-only until reuse rights are cleared.

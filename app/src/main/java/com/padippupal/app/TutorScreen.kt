@@ -668,37 +668,73 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
-private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean) {
+private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, activeStepOverride: Int? = null) {
     val chapter = lesson.optString("chapter").trim()
+    val lessonId = lesson.optString("id").trim()
     val topic = lesson.optString("topic").ifBlank { lesson.optString("title") }.trim().lowercase()
-    val page = if ("beyond earth" in chapter.lowercase() && topic.length >= 2) -1 else 0
-    if (page == 0) {
-        SynthesizedVisualCard(lesson, compact, null)
+    val moduleKey = lesson.optString("module_key").trim()
+    val stepId = lesson.optString("step_id").trim().ifBlank {
+        activeStepOverride?.let { "step_${it + 1}" }.orEmpty()
+    }
+    if (!chapter.contains("beyond earth", ignoreCase = true)) {
+        SynthesizedVisualCard(lesson, compact, activeStepOverride)
         return
     }
-    var bitmap by remember(topic) { mutableStateOf<Bitmap?>(null) }
-    var failed by remember(topic) { mutableStateOf(false) }
-    var pageNumber by remember(topic) { mutableStateOf("") }
-    LaunchedEffect(topic) {
+    var bitmap by remember(lessonId, topic, moduleKey, stepId) { mutableStateOf<Bitmap?>(null) }
+    var failed by remember(lessonId, topic, moduleKey, stepId) { mutableStateOf(false) }
+    var assetLabel by remember(lessonId, topic, moduleKey, stepId) { mutableStateOf("") }
+    LaunchedEffect(lessonId, topic, moduleKey, stepId) {
         bitmap = null
-        pageNumber = ""
+        assetLabel = ""
         failed = false
         val loaded = withContext(Dispatchers.IO) {
             try {
+                if (lessonId.isBlank()) throw IllegalStateException("Missing approved lesson ID")
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
-                val encodedTopic = URLEncoder.encode(topic, "UTF-8")
-                val connection = URL("$base/textbook/beyond-earth/topic-image?topic=$encodedTopic").openConnection() as HttpURLConnection
-                connection.connectTimeout = 8000
-                connection.readTimeout = 12000
-                connection.requestMethod = "GET"
+                val encodedLessonId = URLEncoder.encode(lessonId, "UTF-8")
+                val listConnection = URL("$base/chapter-lessons/$encodedLessonId/images").openConnection() as HttpURLConnection
+                listConnection.connectTimeout = 8000
+                listConnection.readTimeout = 12000
+                listConnection.requestMethod = "GET"
+                val imageUrl: String
+                val imageTitle: String
                 try {
-                    if (connection.responseCode != HttpURLConnection.HTTP_OK) null
-                    else {
-                        pageNumber = connection.getHeaderField("X-Textbook-Page").orEmpty()
-                        connection.inputStream.use { BitmapFactory.decodeStream(it) }
+                    if (listConnection.responseCode != HttpURLConnection.HTTP_OK) {
+                        throw IllegalStateException("Original image manifest is not available")
                     }
+                    val payload = listConnection.inputStream.bufferedReader().use { it.readText() }
+                    val images = JSONObject(payload).optJSONArray("images") ?: JSONArray()
+                    val candidates = (0 until images.length()).mapNotNull { index ->
+                        images.optJSONObject(index)
+                    }
+                    val matched = candidates.firstOrNull { image ->
+                        val steps = image.optJSONArray("step_ids") ?: JSONArray()
+                        val stepMatch = stepId.isNotBlank() && (0 until steps.length()).any { steps.optString(it) == stepId }
+                        val moduleMatch = moduleKey.isNotBlank() && image.optString("module_key") == moduleKey
+                        stepMatch || moduleMatch
+                    } ?: throw IllegalStateException("No original image is mapped to this lesson step")
+                    imageUrl = matched.optString("url")
+                    imageTitle = matched.optString("title").ifBlank { matched.optString("alt_text") }
                 } finally {
-                    connection.disconnect()
+                    listConnection.disconnect()
+                }
+                if (imageUrl.isBlank() || !imageUrl.startsWith("/chapter-lessons/")) {
+                    throw IllegalStateException("Invalid original image URL")
+                }
+                val imageConnection = URL("$base$imageUrl").openConnection() as HttpURLConnection
+                imageConnection.connectTimeout = 8000
+                imageConnection.readTimeout = 12000
+                imageConnection.requestMethod = "GET"
+                try {
+                    if (imageConnection.responseCode != HttpURLConnection.HTTP_OK) {
+                        throw IllegalStateException("Original textbook image could not be loaded")
+                    }
+                    val decoded = imageConnection.inputStream.use { BitmapFactory.decodeStream(it) }
+                    if (decoded == null) throw IllegalStateException("Original textbook image is invalid")
+                    assetLabel = imageTitle
+                    decoded
+                } finally {
+                    imageConnection.disconnect()
                 }
             } catch (_: Exception) {
                 null
@@ -712,7 +748,7 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean) {
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
-            lesson.optString("title", "Beyond Earth — textbook figure"),
+            lesson.optString("title", "Beyond Earth — textbook image"),
             color = Color(0xFF17324D),
             fontSize = if (compact) 13.sp else 15.sp,
             fontWeight = FontWeight.Bold
@@ -720,19 +756,18 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean) {
         bitmap?.let { image ->
             androidx.compose.foundation.Image(
                 bitmap = image.asImageBitmap(),
-                contentDescription = lesson.optString("topic", "Beyond Earth textbook figure"),
+                contentDescription = assetLabel.ifBlank { lesson.optString("topic", "Original Beyond Earth textbook image") },
                 modifier = Modifier.fillMaxWidth().heightIn(max = if (compact) 180.dp else 230.dp),
                 contentScale = ContentScale.Fit
             )
             Text(
-                if (pageNumber.isNotBlank()) "NCERT Curiosity · Beyond Earth · PDF page $pageNumber"
-                else "NCERT Curiosity · Beyond Earth",
+                "Original NCERT textbook image" + if (assetLabel.isNotBlank()) " · $assetLabel" else "",
                 color = Color(0xFF64748B),
                 fontSize = 9.sp,
                 lineHeight = 11.sp
             )
         } ?: Text(
-            if (failed) "Textbook figure is not available yet." else "Loading textbook figure…",
+            if (failed) "Original textbook image for this step is not available yet." else "Loading original textbook image…",
             color = Color(0xFF64748B),
             fontSize = 10.sp,
             modifier = Modifier.padding(vertical = 2.dp)
@@ -750,7 +785,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val raw = lesson.optJSONArray("objects")
     if (scene == "synthesis_static") {
         if (lesson.optString("chapter").contains("Beyond Earth", ignoreCase = true)) {
-            BeyondEarthTextbookPageImage(lesson, compact)
+            BeyondEarthTextbookPageImage(lesson, compact, activeStepOverride)
         } else {
             SynthesizedVisualCard(lesson, compact, activeStepOverride)
         }

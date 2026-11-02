@@ -806,7 +806,7 @@ def recover_ncert_pdf(source_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Source not found.")
     if existing:
         return {"source_id": source_id, "status": "already_present", "sha256": existing["sha256"]}
-    match = re.search(r"\\b(fecu(?:10[1-9]|11[0-2]))\\.pdf\\b", source["title"], re.I)
+    match = re.search(r"\b(fecu(?:10[1-9]|11[0-2]))\.pdf\b", source["title"], re.I)
     if not match:
         raise HTTPException(status_code=422, detail="Source is not an allowlisted NCERT Class 6 chapter PDF.")
     filename = match.group(1).lower() + ".pdf"

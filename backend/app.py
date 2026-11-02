@@ -810,7 +810,7 @@ def recover_ncert_pdf(source_id: str) -> dict[str, Any]:
 
     with db() as conn:
         source = conn.execute(
-            "SELECT id, title, sha256, page_count FROM sources WHERE id=?",
+            "SELECT id, title, sha256, page_count, license_note FROM sources WHERE id=?",
             (source_id,),
         ).fetchone()
         existing = conn.execute(
@@ -828,7 +828,23 @@ def recover_ncert_pdf(source_id: str) -> dict[str, Any]:
             existing_bytes, existing["sha256"], existing["page_count"],
             source["sha256"], source["page_count"],
         ):
-            return {"source_id": source_id, "status": "already_present", "sha256": actual_digest}
+            rights_cleared = source_images_rights_cleared(str(source["license_note"] or ""))
+            stored_page_images = 0
+            if rights_cleared:
+                with db() as conn:
+                    count_row = conn.execute(
+                        "SELECT COUNT(*) AS image_count FROM source_page_images WHERE source_id=?",
+                        (source_id,),
+                    ).fetchone()
+                if int(count_row["image_count"] or 0) == 0:
+                    stored_page_images = persist_source_page_images(
+                        source_id, extract_pdf_visual_pages(existing_bytes)
+                    )
+            return {
+                "source_id": source_id, "status": "already_present", "sha256": actual_digest,
+                "stored_page_images": stored_page_images,
+                "image_extraction_skipped_rights": not rights_cleared,
+            }
         logger.error("Stored textbook PDF failed integrity check source_id=%s", source_id)
         raise HTTPException(
             status_code=409,
@@ -864,14 +880,22 @@ def recover_ncert_pdf(source_id: str) -> dict[str, Any]:
     if source["page_count"] and page_count != source["page_count"]:
         raise HTTPException(status_code=409, detail="PDF page count does not match the stored source record.")
     persist_source_pdf(source_id, pdf_bytes, filename, page_count)
+    rights_cleared = source_images_rights_cleared(str(source["license_note"] or ""))
+    page_images = extract_pdf_visual_pages(pdf_bytes) if rights_cleared else {}
+    stored_page_images = persist_source_page_images(source_id, page_images) if page_images else 0
     return {
         "source_id": source_id,
         "status": "recovered",
         "file_name": filename,
         "sha256": digest,
         "page_count": page_count,
-        "stored_page_images": 0,
-        "note": "PDF recovered. Page-image extraction remains subject to the source image-reuse rights gate.",
+        "stored_page_images": stored_page_images,
+        "image_extraction_skipped_rights": not rights_cleared,
+        "note": (
+            "PDF recovered and figure-bearing pages stored."
+            if rights_cleared else
+            "PDF recovered; page images were not extracted because reuse permission is not documented."
+        ),
     }
 
 

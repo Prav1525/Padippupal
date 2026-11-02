@@ -386,6 +386,10 @@ class SourceMetadata(BaseModel):
     title: str = Field(min_length=1, max_length=240)
     source_url: str = Field(default="", max_length=1000)
     license_note: str = Field(min_length=3, max_length=1000, description="Record permission/provenance before ingestion.")
+    image_reproduction_authorized: bool = Field(
+        default=False,
+        description="Explicit permission to extract and host page images; false by default. Set true only with documented reuse rights."
+    )
 
 
 class IngestTextRequest(SourceMetadata):
@@ -417,6 +421,23 @@ def require_admin(x_admin_token: str | None = Header(default=None)) -> None:
 
 def normalize(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
+
+
+def source_images_rights_cleared(license_note: str) -> bool:
+    """Fail closed unless provenance explicitly documents image reproduction rights."""
+    note = normalize(license_note).casefold()
+    return any(marker in note for marker in (
+        "permission granted for reproduction",
+        "licensed for reproduction",
+        "public domain",
+        "cc0",
+        "creative commons attribution",
+    ))
+
+
+def may_extract_source_images(metadata: SourceMetadata) -> bool:
+    """Require both an explicit opt-in and a documented reuse licence/permission."""
+    return bool(metadata.image_reproduction_authorized and source_images_rights_cleared(metadata.license_note))
 
 
 def get_or_create_lesson_visuals(lesson_id: str, lesson: dict[str, Any]) -> list[dict[str, Any]]:
@@ -599,9 +620,16 @@ def attach_topic_visuals(payload: "LessonPlanRequest", segments: list[dict[str, 
         page_marks = ",".join("?" for _ in matched_pages)
         with db() as conn:
             image_rows = conn.execute(
-                f"""SELECT source_id,page_no,mime_type,sha256 FROM source_page_images
-                    WHERE source_id IN ({source_marks}) AND page_no IN ({page_marks})
-                    ORDER BY page_no""",
+                f"""SELECT spi.source_id,spi.page_no,spi.mime_type,spi.sha256
+                    FROM source_page_images spi
+                    JOIN sources s ON s.id=spi.source_id
+                    WHERE spi.source_id IN ({source_marks}) AND spi.page_no IN ({page_marks})
+                      AND (LOWER(s.license_note) LIKE '%permission granted for reproduction%'
+                           OR LOWER(s.license_note) LIKE '%licensed for reproduction%'
+                           OR LOWER(s.license_note) LIKE '%public domain%'
+                           OR LOWER(s.license_note) LIKE '%cc0%'
+                           OR LOWER(s.license_note) LIKE '%creative commons attribution%')
+                    ORDER BY spi.page_no""",
                 (*cited_source_ids, *matched_pages),
             ).fetchall()
         textbook_images = [{
@@ -1184,8 +1212,10 @@ async def ingest_pdf(
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Could not process PDF or metadata: {exc}") from exc
     result = enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
-    page_images = extract_pdf_visual_pages(raw)
+    # Text extraction is allowed independently; copying/hosting page images requires explicit rights.
+    page_images = extract_pdf_visual_pages(raw) if may_extract_source_images(metadata) else {}
     result["stored_visual_pages"] = str(persist_source_page_images(result["source_id"], page_images)) if page_images and result.get("source_id") else "0"
+    result["image_extraction_skipped_rights"] = str(not may_extract_source_images(metadata)).lower()
     result["visual_reference_pages"] = str(len(visual_refs))
     return result
 
@@ -1258,8 +1288,9 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
                     chapter_title = f"Chapter PDF ({filename})"
             metadata = base.model_copy(update={"title": f"{base.title} — {chapter_title}"})
             result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages))
-            page_images = extract_pdf_visual_pages(pdf_raw)
+            page_images = extract_pdf_visual_pages(pdf_raw) if may_extract_source_images(metadata) else {}
             result["stored_visual_pages"] = str(persist_source_page_images(result["source_id"], page_images)) if page_images and result.get("source_id") else "0"
+            result["image_extraction_skipped_rights"] = str(not may_extract_source_images(metadata)).lower()
             result["visual_reference_pages"] = str(len(visual_refs)); results.append({"file": filename, "title": metadata.title, **result})
         except Exception as exc:
             results.append({"file": filename, "status": "failed", "error": str(exc)[:300]})
@@ -2552,7 +2583,14 @@ def get_textbook_page_image(source_id: str, page_no: int) -> Response:
     """Serve the stored source page image referenced by a synthesized topic."""
     with db() as conn:
         row = conn.execute(
-            "SELECT mime_type,image_bytes,sha256 FROM source_page_images WHERE source_id=? AND page_no=?",
+            """SELECT spi.mime_type,spi.image_bytes,spi.sha256
+               FROM source_page_images spi JOIN sources s ON s.id=spi.source_id
+               WHERE spi.source_id=? AND spi.page_no=?
+                 AND (LOWER(s.license_note) LIKE '%permission granted for reproduction%'
+                      OR LOWER(s.license_note) LIKE '%licensed for reproduction%'
+                      OR LOWER(s.license_note) LIKE '%public domain%'
+                      OR LOWER(s.license_note) LIKE '%cc0%'
+                      OR LOWER(s.license_note) LIKE '%creative commons attribution%')""",
             (source_id, page_no),
         ).fetchone()
     if not row:
@@ -2581,8 +2619,15 @@ def get_syllabus_synthesis_round(round_id: str) -> dict[str, Any]:
         page_start, page_end = topic.get("page_start"), topic.get("page_end")
         with db() as conn:
             image_rows = conn.execute(
-                """SELECT page_no,mime_type,sha256 FROM source_page_images
-                   WHERE source_id=? AND page_no BETWEEN ? AND ? ORDER BY page_no""",
+                """SELECT spi.page_no,spi.mime_type,spi.sha256 FROM source_page_images spi
+                   JOIN sources s ON s.id=spi.source_id
+                   WHERE spi.source_id=? AND spi.page_no BETWEEN ? AND ?
+                     AND (LOWER(s.license_note) LIKE '%permission granted for reproduction%'
+                          OR LOWER(s.license_note) LIKE '%licensed for reproduction%'
+                          OR LOWER(s.license_note) LIKE '%public domain%'
+                          OR LOWER(s.license_note) LIKE '%cc0%'
+                          OR LOWER(s.license_note) LIKE '%creative commons attribution%')
+                   ORDER BY spi.page_no""",
                 (topic["source_id"], int(page_start or 0), int(page_end or 0)),
             ).fetchall() if page_start is not None and page_end is not None else []
         topic["textbook_images"] = [

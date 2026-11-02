@@ -781,15 +781,15 @@ def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_
                       "status": existing["status"], "deduplicated": "true"}
         else:
             result = None
-        conn.execute(
-            """INSERT INTO sources(id, board, academic_year, class_level, subject, medium, term,
-               edition, title, source_url, license_note, sha256, status, page_count, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing', ?, ?)""",
-            (source_id, metadata.board, metadata.academic_year, metadata.class_level, metadata.subject,
-             metadata.medium, metadata.term, metadata.edition, metadata.title, metadata.source_url,
-             metadata.license_note, content_hash, page_count, now),
-        )
         if result is None:
+            conn.execute(
+                """INSERT INTO sources(id, board, academic_year, class_level, subject, medium, term,
+                   edition, title, source_url, license_note, sha256, status, page_count, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing', ?, ?)""",
+                (source_id, metadata.board, metadata.academic_year, metadata.class_level, metadata.subject,
+                 metadata.medium, metadata.term, metadata.edition, metadata.title, metadata.source_url,
+                 metadata.license_note, content_hash, page_count, now),
+            )
             conn.execute("INSERT INTO source_content(source_id, content) VALUES (?, ?)", (source_id, text))
             conn.execute(
                 "INSERT INTO jobs(id, source_id, status, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?)",

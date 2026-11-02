@@ -782,6 +782,71 @@ def ingest_text(payload: IngestTextRequest) -> dict[str, str]:
     return enqueue_source(metadata, text, content_hash)
 
 
+@app.post("/admin/recover-ncert-pdf/{source_id}", dependencies=[Depends(require_admin)])
+def recover_ncert_pdf(source_id: str) -> dict[str, Any]:
+    """Recover an original Class 6 NCERT chapter PDF only when its bytes match the stored checksum.
+
+    This is intentionally restricted to the official NCERT chapter filename allowlist;
+    it never accepts an arbitrary URL and never overwrites a source with mismatched bytes.
+    """
+    import urllib.request
+    from io import BytesIO
+    from pypdf import PdfReader
+
+    with db() as conn:
+        source = conn.execute(
+            "SELECT id, title, sha256, page_count FROM sources WHERE id=?",
+            (source_id,),
+        ).fetchone()
+        existing = conn.execute(
+            "SELECT sha256 FROM source_pdf_assets WHERE source_id=?",
+            (source_id,),
+        ).fetchone()
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found.")
+    if existing:
+        return {"source_id": source_id, "status": "already_present", "sha256": existing["sha256"]}
+    match = re.search(r"\\b(fecu(?:10[1-9]|11[0-2]))\\.pdf\\b", source["title"], re.I)
+    if not match:
+        raise HTTPException(status_code=422, detail="Source is not an allowlisted NCERT Class 6 chapter PDF.")
+    filename = match.group(1).lower() + ".pdf"
+    url = "https://ncert.nic.in/textbook/pdf/" + filename
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "PadippuPal textbook-source recovery/1.0", "Accept": "application/pdf"}
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            pdf_bytes = response.read(40 * 1024 * 1024 + 1)
+    except Exception as exc:
+        logger.warning("NCERT source recovery failed filename=%s error_type=%s", filename, type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Official textbook source could not be retrieved.") from exc
+    if len(pdf_bytes) > 40 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Official textbook PDF exceeds the recovery size limit.")
+    digest = hashlib.sha256(pdf_bytes).hexdigest()
+    if not pdf_bytes.startswith(b"%PDF") or digest != source["sha256"]:
+        raise HTTPException(
+            status_code=409,
+            detail="Official PDF bytes do not match this stored source checksum; refusing to attach a different edition.",
+        )
+    try:
+        reader = PdfReader(BytesIO(pdf_bytes), strict=True)
+        page_count = len(reader.pages)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="Retrieved official source is not a readable PDF.") from exc
+    if source["page_count"] and page_count != source["page_count"]:
+        raise HTTPException(status_code=409, detail="PDF page count does not match the stored source record.")
+    persist_source_pdf(source_id, pdf_bytes, filename, page_count)
+    return {
+        "source_id": source_id,
+        "status": "recovered",
+        "file_name": filename,
+        "sha256": digest,
+        "page_count": page_count,
+        "stored_page_images": 0,
+        "note": "PDF recovered. Page-image extraction remains subject to the source image-reuse rights gate.",
+    }
+
+
 @app.post("/admin/ingest-pdf", dependencies=[Depends(require_admin)], status_code=202)
 async def ingest_pdf(
     metadata_json: str,

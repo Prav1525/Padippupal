@@ -1274,22 +1274,45 @@ def extract_beyond_earth_page_images(source_id: str) -> dict[str, Any]:
     return {"source_id": source_id, "page_count": page_count, "pdf_sha256": hashlib.sha256(pdf_bytes).hexdigest()}
 
 
-@app.get("/textbook/beyond-earth/page/{page_number}")
-def beyond_earth_page_image(page_number: int):
-    """Serve the mapped Beyond Earth source page image for the inline tutor card."""
+@app.get("/textbook/beyond-earth/topic-image")
+def beyond_earth_topic_image(topic: str = Query(..., min_length=2, max_length=200)):
+    """Resolve a tutor topic to its cited PDF page, then serve that exact page render."""
     from fastapi.responses import Response
-    if page_number < 1 or page_number > 24:
-        raise HTTPException(status_code=404, detail="Beyond Earth source page not found.")
-    source_id = "86bbabde-ec5d-455a-b4da-a1de78fad0d7"
+    import re
+    normalized = re.sub(r"\s+", " ", topic).strip().lower()
+    terms = [term for term in re.findall(r"[a-z0-9]+", normalized) if len(term) > 2]
+    if not terms:
+        raise HTTPException(status_code=400, detail="A meaningful topic is required.")
     with db() as conn:
-        row = conn.execute(
-            "SELECT mime_type, image_bytes FROM source_page_images WHERE source_id=? AND page_number=?",
-            (source_id, page_number)
+        source = conn.execute(
+            "SELECT id FROM sources WHERE lower(title) LIKE ? AND status='ready' "
+            "ORDER BY created_at DESC LIMIT 1", ("%fecu112.pdf%",)
         ).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Beyond Earth page image has not been extracted yet.")
-    return Response(content=bytes(row["image_bytes"]), media_type=str(row["mime_type"]),
-                    headers={"Cache-Control": "public, max-age=3600"})
+        if source is None:
+            raise HTTPException(status_code=404, detail="Beyond Earth source is not indexed.")
+        chunks = conn.execute(
+            "SELECT page_start, page_end, text FROM chunks WHERE source_id=? "
+            "AND page_start IS NOT NULL ORDER BY chunk_no",
+            (str(source["id"]),)
+        ).fetchall()
+        best_page = None
+        best_score = 0
+        for chunk in chunks:
+            content = str(chunk["text"] or "").lower()
+            score = sum(1 for term in terms if term in content)
+            if score > best_score:
+                best_score = score
+                best_page = int(chunk["page_start"])
+        if best_page is None:
+            raise HTTPException(status_code=404, detail="No source page matches this lesson topic yet.")
+        image = conn.execute(
+            "SELECT mime_type, image_bytes FROM source_page_images WHERE source_id=? AND page_number=?",
+            (str(source["id"]), best_page)
+        ).fetchone()
+    if image is None:
+        raise HTTPException(status_code=404, detail="The matched textbook page image has not been extracted yet.")
+    return Response(content=bytes(image["image_bytes"]), media_type=str(image["mime_type"]),
+                    headers={"Cache-Control": "public, max-age=3600", "X-Textbook-Page": str(best_page)})
 
 
 @app.get("/admin/sources/{source_id}/page-images", dependencies=[Depends(require_admin)])

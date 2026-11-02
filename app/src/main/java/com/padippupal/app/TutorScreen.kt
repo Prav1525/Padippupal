@@ -670,8 +670,8 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 @Composable
 private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean) {
     val chapter = lesson.optString("chapter").trim()
-    val topic = lesson.optString("topic").lowercase()
-    val page = if ("beyond earth" in chapter.lowercase()) -1 else 0
+    val topic = lesson.optString("topic").ifBlank { lesson.optString("title") }.trim().lowercase()
+    val page = if ("beyond earth" in chapter.lowercase() && topic.length >= 2) -1 else 0
     if (page == 0) {
         SynthesizedVisualCard(lesson, compact, null)
         return

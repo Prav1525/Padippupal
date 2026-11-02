@@ -1249,6 +1249,24 @@ def catalog(board: str, class_level: int, subject: str, medium: str) -> dict[str
     return {"items": [dict(row) for row in rows]}
 
 
+@app.get("/textbook/beyond-earth/page/{page_number}")
+def beyond_earth_page_image(page_number: int):
+    """Serve the mapped Beyond Earth source page image for the inline tutor card."""
+    from fastapi.responses import Response
+    if page_number < 1 or page_number > 24:
+        raise HTTPException(status_code=404, detail="Beyond Earth source page not found.")
+    source_id = "86bbabde-ec5d-455a-b4da-a1de78fad0d7"
+    with db() as conn:
+        row = conn.execute(
+            "SELECT mime_type, image_bytes FROM source_page_images WHERE source_id=? AND page_number=?",
+            (source_id, page_number)
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Beyond Earth page image has not been extracted yet.")
+    return Response(content=bytes(row["image_bytes"]), media_type=str(row["mime_type"]),
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
 @app.get("/admin/sources/{source_id}/page-images", dependencies=[Depends(require_admin)])
 def source_page_images(source_id: str, page_start: int = 1, page_end: int = 100) -> dict[str, Any]:
     """List stored page-render metadata without returning image bytes."""

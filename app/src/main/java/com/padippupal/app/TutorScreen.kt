@@ -670,11 +670,14 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 @Composable
 private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, activeStepOverride: Int? = null) {
     val chapter = lesson.optString("chapter").trim()
-    val lessonId = lesson.optString("id").trim()
+    // Inline visual IDs are presentation IDs, not the approved chapter_lessons primary key.
+    val lessonId = lesson.optString("lesson_id").trim()
     val topic = lesson.optString("topic").ifBlank { lesson.optString("title") }.trim().lowercase()
     val moduleKey = lesson.optString("module_key").trim()
+    val stepsForMapping = lesson.optJSONArray("steps")
+    val activeIndexForMapping = (activeStepOverride ?: 0).coerceAtLeast(0)
     val stepId = lesson.optString("step_id").trim().ifBlank {
-        activeStepOverride?.let { "step_${it + 1}" }.orEmpty()
+        stepsForMapping?.optJSONObject(activeIndexForMapping)?.optString("id")?.trim().orEmpty()
     }
     if (!chapter.contains("beyond earth", ignoreCase = true)) {
         SynthesizedVisualCard(lesson, compact, activeStepOverride)

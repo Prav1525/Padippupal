@@ -389,12 +389,21 @@ private fun TextbookFigureStrip(lesson: JSONObject, compact: Boolean) {
             ) {
                 Column(Modifier.padding(if (compact) 6.dp else 9.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (bitmap != null) {
-                        Image(
-                            bitmap = bitmap!!,
-                            contentDescription = "NCERT textbook figure, page ${item.optInt("page_no")}",
-                            modifier = Modifier.fillMaxWidth().heightIn(max = if (compact) 170.dp else 240.dp),
-                            contentScale = ContentScale.Fit
-                        )
+                        val loadedBitmap = bitmap!!
+                        // Size the image to its actual aspect ratio before applying the height cap.
+                        // A capped, fill-width Image can otherwise retain a tall layout and leave
+                        // an obvious blank strip beneath portrait textbook pages.
+                        BoxWithConstraints(Modifier.fillMaxWidth()) {
+                            val aspectRatio = loadedBitmap.width.toFloat() / loadedBitmap.height.toFloat()
+                            val maxImageHeight = if (compact) 170.dp else 240.dp
+                            val imageHeight = minOf(maxImageHeight, maxWidth / aspectRatio)
+                            Image(
+                                bitmap = loadedBitmap,
+                                contentDescription = "NCERT textbook page, page ${item.optInt("page_no")}",
+                                modifier = Modifier.fillMaxWidth().height(imageHeight),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
                     } else if (failed) {
                         Text("Textbook figure could not be loaded.", color = TutorGrey, fontSize = 11.sp)
                     } else {

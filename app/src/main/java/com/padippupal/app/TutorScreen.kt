@@ -488,6 +488,8 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
         // The strip is self-gating on a non-empty textbook_images array.
         // Do not depend on optional chapter metadata being copied into the visual payload.
         TextbookFigureStrip(lesson, compact)
+        // Only stored textbook images are permitted; skip all generated Canvas/Pixi/SVG visuals.
+        return
         if (activeKind == "beyond_earth") {
             val chapterSubtype = activeSubtypeForChapter(lesson, activeStep)
             if (chapterSubtype == "beyond_earth_sky_watching") {
@@ -2541,7 +2543,7 @@ internal fun TutorScreen(
                                             sessionKey = sessionKey,
                                             todayKey = todayKey
                                         )
-                                        message.visualLesson != null -> DatabaseLessonVisual(message.visualLesson)
+
                                     }
                                 }
                                 // Feedback is intentionally deferred until the complete lesson flow is implemented.

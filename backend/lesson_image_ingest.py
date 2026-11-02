@@ -43,6 +43,16 @@ def ensure_blob_table(conn) -> None:
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
+    # A module may contain multiple individual PDF images. Keep the asset ID and
+    # object key unique; module_key is a grouping/filtering field, not an asset key.
+    conn.execute("""
+        ALTER TABLE lesson_image_assets
+        DROP CONSTRAINT IF EXISTS lesson_image_assets_lesson_id_module_key_key
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS lesson_image_assets_lesson_module_idx
+        ON lesson_image_assets (lesson_id, module_key)
+    """)
 
 
 @router.post("/admin/lesson-images/ingest", dependencies=[Depends(require_image_admin)])
@@ -57,13 +67,14 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
     except (ValueError, BadZipFile) as exc:
         raise HTTPException(status_code=422, detail="Invalid manifest JSON or ZIP archive.") from exc
     source_hash = str(manifest.get("source_sha256", "")).lower()
-    if not re.fullmatch(r"[0-9a-f]{64}", source_hash):
-        raise HTTPException(status_code=422, detail="Manifest must include the verified source PDF SHA-256.")
+    source_id = str(manifest.get("source_id", "")).strip()
+    if not re.fullmatch(r"[0-9a-f]{64}", source_hash) or not source_id:
+        raise HTTPException(status_code=422, detail="Manifest must include source_id and the verified source PDF SHA-256.")
     records = manifest.get("images")
     if not isinstance(records, list) or not records or len(records) > 300:
         raise HTTPException(status_code=422, detail="Manifest must include 1–300 image records.")
     names = {item.filename for item in archive.infolist() if not item.is_dir()}
-    seen_keys = set()
+    seen_ids = set()
     prepared = []
     for item in records:
         if not isinstance(item, dict):
@@ -87,10 +98,9 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
             raise HTTPException(status_code=422, detail="Invalid teaching step ID.")
         if not alt:
             raise HTTPException(status_code=422, detail="alt_text is required.")
-        key = (lesson_id, module_key)
-        if key in seen_keys:
-            raise HTTPException(status_code=422, detail="Only one image asset per lesson/module is supported by the current schema.")
-        seen_keys.add(key)
+        if asset_id in seen_ids:
+            raise HTTPException(status_code=422, detail="Duplicate image asset ID in manifest.")
+        seen_ids.add(asset_id)
         payload = archive.read(path)
         if not payload or len(payload) > MAX_IMAGE_BYTES:
             raise HTTPException(status_code=413, detail="Each image must be between 1 byte and 8 MB.")
@@ -107,6 +117,12 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
                          "alt_text": alt, "payload": payload, "sha256": hashlib.sha256(payload).hexdigest()})
     conn = connect()
     try:
+        source = conn.execute(
+            "SELECT id, sha256, status FROM sources WHERE id=%s",
+            (source_id,)
+        ).fetchone()
+        if not source or source["status"] != "ready" or str(source["sha256"]).lower() != source_hash:
+            raise HTTPException(status_code=422, detail="Source PDF ID/hash does not match a ready production source.")
         ensure_blob_table(conn)
         for item in prepared:
             lesson = conn.execute(
@@ -124,8 +140,9 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
                   (id, lesson_id, module_key, title, step_ids_json, bucket_name, object_key,
                    content_type, alt_text, status, content_fingerprint, created_at, updated_at)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'ready',%s,NOW(),NOW())
-                ON CONFLICT (lesson_id, module_key) DO UPDATE SET
-                  id=EXCLUDED.id, title=EXCLUDED.title, step_ids_json=EXCLUDED.step_ids_json,
+                ON CONFLICT (id) DO UPDATE SET
+                  lesson_id=EXCLUDED.lesson_id, module_key=EXCLUDED.module_key,
+                  title=EXCLUDED.title, step_ids_json=EXCLUDED.step_ids_json,
                   bucket_name=EXCLUDED.bucket_name, object_key=EXCLUDED.object_key,
                   content_type=EXCLUDED.content_type, alt_text=EXCLUDED.alt_text,
                   status='ready', content_fingerprint=EXCLUDED.content_fingerprint, updated_at=NOW()

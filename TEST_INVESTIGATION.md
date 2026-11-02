@@ -641,3 +641,12 @@ Use this format:
 - **What remains unverified:** Python/backend tests, Postgres execution, and successful re-import/retention of an actual textbook PDF. The existing Beyond Earth source record still contains extracted text only; no original PDF bytes have been recovered in the inspected database/storage.
 - **Safety:** No merge, production database change, production deployment, or public release.
 - **Next action:** Append this record, rerun the repository gate, and run relevant backend tests before considering merge.
+
+
+### 2026-11-02 — Checksum-verified recovery endpoint (PR #154)
+- **Branch / exact candidate:** `fix/recover-textbook-pdf-by-checksum` / `059185c89f2b51878baf06b0933b896b4f76f53d`.
+- **Workflow:** [Investigation Guidance Gate run 41402843046](https://github.com/Prav1525/Padippupal/actions/runs/41402843046), job 125138231355.
+- **Result:** **FAIL — ledger policy gate only.** The exact-head workflow reported: `code/config changed but TEST_INVESTIGATION.md was not updated in this PR.` No application tests ran in this workflow.
+- **Change under review:** Adds an admin-only recovery endpoint for allowlisted NCERT Class 6 chapter PDFs; it should persist bytes only when the PDF magic header, stored SHA-256, and stored page count match. Caller-supplied URLs are not accepted.
+- **What remains unverified:** Endpoint behavior, successful exact-checksum recovery for Beyond Earth, Postgres compatibility, rights-gated page-image extraction, and inline tutor display. The endpoint does not itself restore images.
+- **Next action:** Record this investigation entry, rerun the gate, then add focused endpoint tests and run the backend suite. No merge, production DB mutation, deployment, or public release.

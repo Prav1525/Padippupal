@@ -647,6 +647,7 @@ def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
         return None
     return {
         "id": "synth-" + lesson_id,
+        "lesson_id": lesson_id,
         "chapter": str(lesson.get("chapter_title") or "Synthesized lesson"),
         "topic": str(topic or lesson.get("topic") or lesson.get("chapter_title") or "Lesson concept"),
         "title": str(topic or lesson.get("chapter_title") or "Lesson visual"),

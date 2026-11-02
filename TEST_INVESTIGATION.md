@@ -677,3 +677,15 @@ Use this format:
 - **What remains unverified:** No live recovery was executed; the Beyond Earth record's rights note is not cleared, so this code deliberately will not extract its pages yet. The tutor rendering path and screenshot are still unverified.
 - **Difference from previous attempt:** Adds page-image backfill after verified PDF recovery and on already-present PDF assets, while preserving fail-closed rights checks.
 - **Next action and why:** Run Python regression tests and inspect the tutor lesson response/UI binding. Do not merge/deploy or alter production database without explicit approval.
+
+
+### 2026-11-02 — Store extracted page renders separately from serving permission
+- **Branch / commit:** `fix/recover-textbook-pdf-by-checksum`; commit `22816a060403f8a83e789f53e43b6cda2358f1e6`.
+- **Test command or workflow URL:** Not run yet; do not treat the investigation gate as application test evidence.
+- **Result:** **UNVERIFIED** pending backend tests and a live development recovery.
+- **Exact failure or assertion:** The recovery endpoint stored zero page images whenever the licence note did not match the narrow serving allowlist. This coupled private extraction/storage to permission for serving images in the tutor.
+- **Change made (files + rationale):** `backend/app.py` now extracts figure-bearing page renders into the database after the PDF passes the stored source SHA-256 and page-count checks. The image-serving endpoint retains its separate documented-rights gate; storage does not automatically make an image available to the tutor.
+- **Root cause:** The extraction path was gated by the same boolean used for public image serving, so no page-image rows could be created for sources with unclear rights notes.
+- **What this proves:** The recovery code now attempts extraction and persistence independently of the serving permission flag.
+- **What remains unverified:** The recovery endpoint has not been run against the Beyond Earth source. The official PDF must match the source checksum and page count; the live development schema and image-serving/UI flow must also be verified. No production changes were made.
+- **Next action and why:** Run backend regression tests and invoke recovery against the development source, then verify stored image rows and the tutor response. Do not bypass the serving rights gate or deploy production without approval.

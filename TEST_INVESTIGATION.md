@@ -664,3 +664,16 @@ Use this format:
 - **What remains unverified:** Python tests have not run; PR #152/#154 are unmerged; no deployed backend schema change, PDF recovery, image extraction, or tutor screenshot has been verified. Beyond Earth image extraction remains blocked by the fail-closed reuse-rights policy until explicit authorization is stored and verified.
 - **Difference from previous attempt:** Adds asset-byte and metadata validation instead of trusting database row existence.
 - **Next action and why:** Run backend tests on this exact commit and inspect actual startup/schema behavior; then trace the live tutor image endpoint and rights metadata before attempting image extraction. No production database, merge, or deployment action was taken.
+
+
+### 2026-11-02 — Recovery also backfills page images when permitted
+- **Branch / commit:** `fix/recover-textbook-pdf-by-checksum`; commit `eb16302e44d37fbe45cd5b4cfc216de2804c4b1c`.
+- **Test command or workflow URL:** Python test execution still pending; the investigation gate is not an application test.
+- **Result:** **UNVERIFIED** pending backend tests and a database-backed recovery run.
+- **Exact failure or assertion:** Recovery previously stored only the original PDF and always returned `stored_page_images: 0`; an already-present valid PDF also returned early without checking whether page images were missing.
+- **Change made (files + rationale):** `backend/app.py` now checks the source licence note after checksum validation and extracts/persists figure-bearing pages when the note explicitly identifies an accepted reuse licence/permission. If a valid PDF is already retained but page images are missing, the endpoint backfills them under the same rights check. It does not extract images when rights are unclear.
+- **Root cause:** The recovery path was disconnected from the existing page-image extraction/persistence functions, so even successful recovery could not restore the image rows required by the tutor.
+- **What this attempt proves:** The recovery endpoint now invokes the existing extraction/persistence path conditionally, including for valid retained PDFs with missing image rows.
+- **What remains unverified:** No live recovery was executed; the Beyond Earth record's rights note is not cleared, so this code deliberately will not extract its pages yet. The tutor rendering path and screenshot are still unverified.
+- **Difference from previous attempt:** Adds page-image backfill after verified PDF recovery and on already-present PDF assets, while preserving fail-closed rights checks.
+- **Next action and why:** Run Python regression tests and inspect the tutor lesson response/UI binding. Do not merge/deploy or alter production database without explicit approval.

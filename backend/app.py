@@ -799,13 +799,29 @@ def recover_ncert_pdf(source_id: str) -> dict[str, Any]:
             (source_id,),
         ).fetchone()
         existing = conn.execute(
-            "SELECT sha256 FROM source_pdf_assets WHERE source_id=?",
+            "SELECT sha256, pdf_bytes, page_count FROM source_pdf_assets WHERE source_id=?",
             (source_id,),
         ).fetchone()
     if not source:
         raise HTTPException(status_code=404, detail="Source not found.")
+    # Do not treat a row as recovered merely because it exists. Verify the bytes
+    # against the source record and the stored asset's own digest before returning.
     if existing:
-        return {"source_id": source_id, "status": "already_present", "sha256": existing["sha256"]}
+        existing_bytes = bytes(existing["pdf_bytes"])
+        actual_digest = hashlib.sha256(existing_bytes).hexdigest()
+        valid_existing = (
+            existing_bytes.startswith(b"%PDF")
+            and actual_digest == existing["sha256"]
+            and actual_digest == source["sha256"]
+            and (source["page_count"] is None or existing["page_count"] == source["page_count"])
+        )
+        if valid_existing:
+            return {"source_id": source_id, "status": "already_present", "sha256": actual_digest}
+        logger.error("Stored textbook PDF failed integrity check source_id=%s", source_id)
+        raise HTTPException(
+            status_code=409,
+            detail="Stored PDF asset failed source checksum or page-count validation; refusing to use it.",
+        )
     match = re.search(r"\b(fecu(?:10[1-9]|11[0-2]))\.pdf\b", source["title"], re.I)
     if not match:
         raise HTTPException(status_code=422, detail="Source is not an allowlisted NCERT Class 6 chapter PDF.")

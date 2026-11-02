@@ -582,3 +582,13 @@ Use this format:
 - **Verification status at entry:** Curriculum Engine Tests and Android APK/UI smoke workflows are running on the PR head. Investigation Guidance Gate initially failed because this required ledger entry was absent; do not call the feature verified until the ledger gate and remaining checks finish.
 - **Unverified acceptance items:** No production extraction or deploy was performed. After owner-approved deployment, invoke the protected extraction endpoint, verify the expected 24-page source and stored image hashes, then capture the actual Beyond Earth tutor screen on emulator/device. Existing CI smoke does not yet prove the mapped textbook page loaded in the real chapter.
 - **Safety:** No merge, deployment, production database write, or public release performed.
+
+
+### 2026-11-02 — Original embedded Beyond Earth image ingestion (WIP)
+- **Branch / PR:** feat/beyond-earth-embedded-image-pipeline / PR #165.
+- **Area:** Protected ingestion and delivery of individual original raster images embedded in the Beyond Earth PDF, mapped to approved lesson modules/step IDs.
+- **Evidence:** Source PDF SHA-256 is `514963bedfef5679733b4d2b6b7274629ebc9031dcded7777bf0324bf7404928`; 107 unique embedded raster images were extracted. Production has an approved English lesson with eight teaching steps (`step_1`–`step_8`). A production query did not find a separate Tanglish Beyond Earth lesson row.
+- **Change made:** Added a protected ZIP+manifest ingestion route with file-size, archive-path, MIME-signature, source-hash-format, approved-lesson, and medium checks; image bytes are stored in a PostgreSQL bytea table and metadata is registered in `lesson_image_assets`; read endpoints serve registered images only for approved lessons.
+- **Verification:** Curriculum Engine Tests passed on this PR head. Android APK and UI smoke workflows were still in progress at the time of inspection. Investigation Guidance Gate initially failed because this ledger entry was absent; rerun after this entry is committed.
+- **Acceptance gaps:** This is not complete or live. Android still needs to consume the new step-specific image endpoint; the manifest must be semantically checked against the real teaching steps (page-range matching alone is insufficient); the Tanglish lesson/mapping must be resolved; route-level tests and actual tutor screenshot verification remain outstanding. No production DB write, merge, or deployment performed.
+- **Safety:** This feature branch does not upload the local extracted files or change production data. Do not merge or declare completion until the remaining acceptance checks pass.

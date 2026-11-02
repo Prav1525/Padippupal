@@ -671,36 +671,32 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean) {
     val chapter = lesson.optString("chapter").trim()
     val topic = lesson.optString("topic").lowercase()
-    val page = when {
-        "beyond earth" !in chapter.lowercase() -> 0
-        "constellation" in topic || "stars" in topic -> 3
-        "night sky" in topic || "sky watching" in topic -> 6
-        "solar system" in topic || "sun" in topic -> 10
-        "telescope" in topic || "observing" in topic || "planet" in topic -> 13
-        "moon" in topic || "satellite" in topic -> 14
-        "comet" in topic || "asteroid" in topic -> 16
-        "milky way" in topic || "galaxy" in topic || "universe" in topic -> 17
-        else -> 0
-    }
+    val page = if ("beyond earth" in chapter.lowercase()) -1 else 0
     if (page == 0) {
         SynthesizedVisualCard(lesson, compact, null)
         return
     }
-    var bitmap by remember(page) { mutableStateOf<Bitmap?>(null) }
-    var failed by remember(page) { mutableStateOf(false) }
-    LaunchedEffect(page) {
+    var bitmap by remember(topic) { mutableStateOf<Bitmap?>(null) }
+    var failed by remember(topic) { mutableStateOf(false) }
+    var pageNumber by remember(topic) { mutableStateOf("") }
+    LaunchedEffect(topic) {
         bitmap = null
+        pageNumber = ""
         failed = false
         val loaded = withContext(Dispatchers.IO) {
             try {
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
-                val connection = URL("$base/textbook/beyond-earth/page/$page").openConnection() as HttpURLConnection
+                val encodedTopic = URLEncoder.encode(topic, "UTF-8")
+                val connection = URL("$base/textbook/beyond-earth/topic-image?topic=$encodedTopic").openConnection() as HttpURLConnection
                 connection.connectTimeout = 8000
                 connection.readTimeout = 12000
                 connection.requestMethod = "GET"
                 try {
                     if (connection.responseCode != HttpURLConnection.HTTP_OK) null
-                    else connection.inputStream.use { BitmapFactory.decodeStream(it) }
+                    else {
+                        pageNumber = connection.getHeaderField("X-Textbook-Page").orEmpty()
+                        connection.inputStream.use { BitmapFactory.decodeStream(it) }
+                    }
                 } finally {
                     connection.disconnect()
                 }
@@ -729,7 +725,8 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean) {
                 contentScale = ContentScale.Fit
             )
             Text(
-                "NCERT Curiosity · Beyond Earth · PDF page $page",
+                if (pageNumber.isNotBlank()) "NCERT Curiosity · Beyond Earth · PDF page $pageNumber"
+                else "NCERT Curiosity · Beyond Earth",
                 color = Color(0xFF64748B),
                 fontSize = 9.sp,
                 lineHeight = 11.sp

@@ -567,6 +567,21 @@ def extract_pdf_visual_pages(pdf_bytes: bytes, max_pages: int = 40) -> dict[int,
     return extracted
 
 
+def source_pdf_asset_is_valid(
+    pdf_bytes: bytes, asset_sha256: str, asset_page_count: int | None,
+    source_sha256: str, source_page_count: int | None,
+) -> bool:
+    """Check PDF signature, byte digest, and source page count before reuse."""
+    if not pdf_bytes.startswith(b"%PDF"):
+        return False
+    actual_digest = hashlib.sha256(pdf_bytes).hexdigest()
+    return (
+        actual_digest == asset_sha256
+        and actual_digest == source_sha256
+        and (source_page_count is None or asset_page_count == source_page_count)
+    )
+
+
 def persist_source_pdf(source_id: str, pdf_bytes: bytes, file_name: str, page_count: int | None) -> None:
     """Retain the original uploaded PDF so source images can be re-extracted without re-uploading."""
     if not pdf_bytes.startswith(b"%PDF"):
@@ -809,13 +824,10 @@ def recover_ncert_pdf(source_id: str) -> dict[str, Any]:
     if existing:
         existing_bytes = bytes(existing["pdf_bytes"])
         actual_digest = hashlib.sha256(existing_bytes).hexdigest()
-        valid_existing = (
-            existing_bytes.startswith(b"%PDF")
-            and actual_digest == existing["sha256"]
-            and actual_digest == source["sha256"]
-            and (source["page_count"] is None or existing["page_count"] == source["page_count"])
-        )
-        if valid_existing:
+        if source_pdf_asset_is_valid(
+            existing_bytes, existing["sha256"], existing["page_count"],
+            source["sha256"], source["page_count"],
+        ):
             return {"source_id": source_id, "status": "already_present", "sha256": actual_digest}
         logger.error("Stored textbook PDF failed integrity check source_id=%s", source_id)
         raise HTTPException(

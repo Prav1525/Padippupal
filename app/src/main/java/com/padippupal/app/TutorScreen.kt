@@ -9,6 +9,8 @@ import android.speech.RecognitionListener
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.media.MediaPlayer
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Base64
 import java.io.File
 import android.os.Handler
@@ -60,12 +62,16 @@ import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -662,6 +668,80 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
+private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean) {
+    val chapter = lesson.optString("chapter").trim()
+    val topic = lesson.optString("topic").ifBlank { lesson.optString("title") }.trim().lowercase()
+    val page = if ("beyond earth" in chapter.lowercase() && topic.length >= 2) -1 else 0
+    if (page == 0) {
+        SynthesizedVisualCard(lesson, compact, null)
+        return
+    }
+    var bitmap by remember(topic) { mutableStateOf<Bitmap?>(null) }
+    var failed by remember(topic) { mutableStateOf(false) }
+    var pageNumber by remember(topic) { mutableStateOf("") }
+    LaunchedEffect(topic) {
+        bitmap = null
+        pageNumber = ""
+        failed = false
+        val loaded = withContext(Dispatchers.IO) {
+            try {
+                val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
+                val encodedTopic = URLEncoder.encode(topic, "UTF-8")
+                val connection = URL("$base/textbook/beyond-earth/topic-image?topic=$encodedTopic").openConnection() as HttpURLConnection
+                connection.connectTimeout = 8000
+                connection.readTimeout = 12000
+                connection.requestMethod = "GET"
+                try {
+                    if (connection.responseCode != HttpURLConnection.HTTP_OK) null
+                    else {
+                        pageNumber = connection.getHeaderField("X-Textbook-Page").orEmpty()
+                        connection.inputStream.use { BitmapFactory.decodeStream(it) }
+                    }
+                } finally {
+                    connection.disconnect()
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+        bitmap = loaded
+        failed = loaded == null
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = if (compact) 2.dp else 4.dp, bottom = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            lesson.optString("title", "Beyond Earth — textbook figure"),
+            color = Color(0xFF17324D),
+            fontSize = if (compact) 13.sp else 15.sp,
+            fontWeight = FontWeight.Bold
+        )
+        bitmap?.let { image ->
+            androidx.compose.foundation.Image(
+                bitmap = image.asImageBitmap(),
+                contentDescription = lesson.optString("topic", "Beyond Earth textbook figure"),
+                modifier = Modifier.fillMaxWidth().heightIn(max = if (compact) 180.dp else 230.dp),
+                contentScale = ContentScale.Fit
+            )
+            Text(
+                if (pageNumber.isNotBlank()) "NCERT Curiosity · Beyond Earth · PDF page $pageNumber"
+                else "NCERT Curiosity · Beyond Earth",
+                color = Color(0xFF64748B),
+                fontSize = 9.sp,
+                lineHeight = 11.sp
+            )
+        } ?: Text(
+            if (failed) "Textbook figure is not available yet." else "Loading textbook figure…",
+            color = Color(0xFF64748B),
+            fontSize = 10.sp,
+            modifier = Modifier.padding(vertical = 2.dp)
+        )
+    }
+}
+
+
+@Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {
     val scene = lesson.optString("scene_type", "explore")
     val caption = lesson.optString("caption", "Move the objects and observe what changes.")
@@ -669,7 +749,11 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
     if (scene == "synthesis_static") {
-        SynthesizedVisualCard(lesson, compact, activeStepOverride)
+        if (lesson.optString("chapter").contains("Beyond Earth", ignoreCase = true)) {
+            BeyondEarthTextbookPageImage(lesson, compact)
+        } else {
+            SynthesizedVisualCard(lesson, compact, activeStepOverride)
+        }
         return
     }
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {

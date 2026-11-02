@@ -571,3 +571,14 @@ Use this format:
 - **Scope boundary:** Stage 1 records CI evidence and validates the approval/retry policy. It does not yet run an AI code repair worker; Stage 2 must reconcile PR #15's repair proposal into this same workflow. Paid API activation requires explicit cost approval.
 - **Safety:** Android public APK release remains owner-dispatch gated. No PR merge, deployment, production DB write, or public release was performed.
 - **Verification:** Pending exact-head GitHub Actions checks; no end-to-end failure event has been simulated on this branch.
+
+
+### 2026-11-02 — Fresh Beyond Earth source-page persistence and inline renderer
+- **Branch / PR:** feat/beyond-earth-inline-source-images / PR #162.
+- **Area:** Textbook PDF retention, deterministic per-page PNG rendering, and inline Android display for the Beyond Earth tutor.
+- **Root cause from production inspection:** The production source record exists (24 pages), but source_page_images and lesson_image_assets had no stored image rows; the Android tutor therefore had no page-image URL to display.
+- **Change made:** Added checksum/page-count-validated PDF and page-image persistence to PDF and ZIP ingestion; a protected endpoint re-fetches only the fixed official fecu112.pdf URL and refuses a checksum mismatch; a chapter-scoped page-image route serves the stored page render; the existing Compose tutor visual slot now loads mapped Beyond Earth pages with bounded height and zero bottom padding.
+- **Tests added:** backend/test_textbook_pdf_images.py checks byte-for-byte source PDF retention, PNG signature/hash/page metadata, checksum mismatch rejection, and private admin image-route access.
+- **Verification status at entry:** Curriculum Engine Tests and Android APK/UI smoke workflows are running on the PR head. Investigation Guidance Gate initially failed because this required ledger entry was absent; do not call the feature verified until the ledger gate and remaining checks finish.
+- **Unverified acceptance items:** No production extraction or deploy was performed. After owner-approved deployment, invoke the protected extraction endpoint, verify the expected 24-page source and stored image hashes, then capture the actual Beyond Earth tutor screen on emulator/device. Existing CI smoke does not yet prove the mapped textbook page loaded in the real chapter.
+- **Safety:** No merge, deployment, production database write, or public release performed.

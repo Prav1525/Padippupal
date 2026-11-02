@@ -33,7 +33,7 @@ def test_extract_and_serve_figure_bearing_textbook_page(tmp_path, monkeypatch):
                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (source_id, "CBSE", "2026-27", 6, "Science", "English", "", "2026",
              "Beyond Earth", "https://ncert.nic.in/textbook/pdf/fecu112.pdf",
-             "approved test fixture", hashlib.sha256(raw).hexdigest(), "ready", 1, 1.0),
+             "permission granted for reproduction in test fixture", hashlib.sha256(raw).hexdigest(), "ready", 1, 1.0),
         )
     assert curriculum.persist_source_page_images(source_id, images) == 1
 
@@ -58,3 +58,27 @@ def test_topic_figure_mapping_prefers_specific_observation_topics():
     assert curriculum.textbook_figure_pages_for_topic("The Sun and our Solar System") == [8, 10]
     assert curriculum.textbook_figure_pages_for_topic("Natural satellites and the Moon") == [14]
     assert curriculum.textbook_figure_pages_for_topic("Stars and constellations") == [1, 2, 3, 5]
+
+
+
+def test_image_extraction_fails_closed_without_explicit_permission():
+    metadata = curriculum.SourceMetadata(
+        board="CBSE", academic_year="2026-27", class_level=6, subject="Science",
+        medium="English", edition="2026", title="Beyond Earth",
+        source_url="https://ncert.nic.in/textbook/pdf/fecu112.pdf",
+        license_note="Permission required before copying or hosting extracted figures.",
+    )
+    assert curriculum.may_extract_source_images(metadata) is False
+
+
+def test_image_extraction_requires_both_opt_in_and_documented_rights():
+    base = dict(
+        board="CBSE", academic_year="2026-27", class_level=6, subject="Science",
+        medium="English", edition="2026", title="Licensed test source",
+        source_url="https://example.org/licensed.pdf",
+        license_note="Permission granted for reproduction under written licence.",
+    )
+    assert curriculum.may_extract_source_images(curriculum.SourceMetadata(**base)) is False
+    assert curriculum.may_extract_source_images(
+        curriculum.SourceMetadata(**base, image_reproduction_authorized=True)
+    ) is True

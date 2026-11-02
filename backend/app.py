@@ -197,6 +197,26 @@ def init_db() -> None:
             source_id TEXT PRIMARY KEY REFERENCES sources(id) ON DELETE CASCADE,
             content TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS source_pdf_assets (
+            source_id TEXT PRIMARY KEY REFERENCES sources(id) ON DELETE CASCADE,
+            pdf_bytes BYTEA NOT NULL,
+            pdf_sha256 TEXT NOT NULL,
+            byte_length INTEGER NOT NULL,
+            created_at REAL NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS source_page_images (
+            id TEXT PRIMARY KEY,
+            source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+            page_number INTEGER NOT NULL,
+            mime_type TEXT NOT NULL DEFAULT 'image/png',
+            image_bytes BYTEA NOT NULL,
+            image_sha256 TEXT NOT NULL,
+            width INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            created_at REAL NOT NULL,
+            UNIQUE(source_id, page_number)
+        );
+        CREATE INDEX IF NOT EXISTS source_page_images_source ON source_page_images(source_id, page_number);
         CREATE TABLE IF NOT EXISTS chunks (
             id TEXT PRIMARY KEY,
             source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
@@ -698,7 +718,50 @@ def save_job(source_id: str) -> str:
     return job_id
 
 
-def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_count: int | None = None) -> dict[str, str]:
+def _persist_pdf_and_page_images(source_id: str, pdf_bytes: bytes) -> int:
+    """Store the original PDF and private PNG page renders, idempotently."""
+    import fitz
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise ValueError("Original source bytes are not a PDF.")
+    pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    if doc.page_count < 1 or doc.page_count > 1000:
+        doc.close()
+        raise ValueError("PDF page count is outside the supported range.")
+    now = time.time()
+    page_rows = []
+    try:
+        for index, page in enumerate(doc, start=1):
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.25, 1.25), alpha=False)
+            png = pix.tobytes("png")
+            page_rows.append((str(uuid.uuid4()), source_id, index, "image/png", png,
+                              hashlib.sha256(png).hexdigest(), pix.width, pix.height, now))
+    finally:
+        doc.close()
+    with db() as conn:
+        source = conn.execute("SELECT sha256, page_count FROM sources WHERE id=?", (source_id,)).fetchone()
+        if source is None:
+            raise ValueError("Source record not found for PDF asset.")
+        if str(source["sha256"]) != pdf_hash:
+            raise ValueError("PDF checksum does not match source record; refusing a different edition.")
+        if source["page_count"] is not None and int(source["page_count"]) != len(page_rows):
+            raise ValueError("PDF page count does not match source record.")
+        conn.execute("""INSERT INTO source_pdf_assets(source_id, pdf_bytes, pdf_sha256, byte_length, created_at)
+            VALUES (?, ?, ?, ?, ?) ON CONFLICT(source_id) DO UPDATE SET pdf_bytes=excluded.pdf_bytes,
+            pdf_sha256=excluded.pdf_sha256, byte_length=excluded.byte_length, created_at=excluded.created_at""",
+            (source_id, pdf_bytes, pdf_hash, len(pdf_bytes), now))
+        for row in page_rows:
+            conn.execute("""INSERT INTO source_page_images
+                (id, source_id, page_number, mime_type, image_bytes, image_sha256, width, height, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(source_id, page_number) DO UPDATE SET
+                mime_type=excluded.mime_type, image_bytes=excluded.image_bytes,
+                image_sha256=excluded.image_sha256, width=excluded.width, height=excluded.height,
+                created_at=excluded.created_at""", row)
+    return len(page_rows)
+
+
+def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_count: int | None = None,
+                   pdf_bytes: bytes | None = None) -> dict[str, str]:
     source_id = str(uuid.uuid4())
     # Persist the payload in SQLite before exposing the job to the worker.
     # This survives process restarts and avoids an in-memory queue race.
@@ -711,9 +774,13 @@ def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_
              metadata.subject, metadata.medium, metadata.edition),
         ).fetchone()
         if existing:
+            source_id = str(existing["id"])
             job = conn.execute("SELECT id FROM jobs WHERE source_id=? ORDER BY created_at DESC LIMIT 1",
-                               (existing["id"],)).fetchone()
-            return {"source_id": existing["id"], "job_id": job["id"] if job else "", "status": existing["status"], "deduplicated": "true"}
+                               (source_id,)).fetchone()
+            result = {"source_id": source_id, "job_id": job["id"] if job else "",
+                      "status": existing["status"], "deduplicated": "true"}
+        else:
+            result = None
         conn.execute(
             """INSERT INTO sources(id, board, academic_year, class_level, subject, medium, term,
                edition, title, source_url, license_note, sha256, status, page_count, created_at)
@@ -722,14 +789,18 @@ def enqueue_source(metadata: SourceMetadata, text: str, content_hash: str, page_
              metadata.medium, metadata.term, metadata.edition, metadata.title, metadata.source_url,
              metadata.license_note, content_hash, page_count, now),
         )
-        conn.execute("INSERT INTO source_content(source_id, content) VALUES (?, ?)", (source_id, text))
-        conn.execute(
-            "INSERT INTO jobs(id, source_id, status, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?)",
-            (str(uuid.uuid4()), source_id, now, now),
-        )
-        job = conn.execute("SELECT id FROM jobs WHERE source_id=? ORDER BY created_at DESC LIMIT 1",
-                           (source_id,)).fetchone()
-    return {"source_id": source_id, "job_id": job["id"], "status": "queued", "deduplicated": "false"}
+        if result is None:
+            conn.execute("INSERT INTO source_content(source_id, content) VALUES (?, ?)", (source_id, text))
+            conn.execute(
+                "INSERT INTO jobs(id, source_id, status, created_at, updated_at) VALUES (?, ?, 'queued', ?, ?)",
+                (str(uuid.uuid4()), source_id, now, now),
+            )
+            job = conn.execute("SELECT id FROM jobs WHERE source_id=? ORDER BY created_at DESC LIMIT 1",
+                               (source_id,)).fetchone()
+            result = {"source_id": source_id, "job_id": job["id"], "status": "queued", "deduplicated": "false"}
+    if pdf_bytes is not None:
+        _persist_pdf_and_page_images(result["source_id"], pdf_bytes)
+    return result
 
 
 def process_one_job() -> bool:
@@ -1070,7 +1141,7 @@ async def ingest_pdf(
         raise
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Could not process PDF or metadata: {exc}") from exc
-    result = enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages))
+    result = enqueue_source(metadata, text, hashlib.sha256(raw).hexdigest(), len(reader.pages), pdf_bytes=raw)
     result["visual_reference_pages"] = str(len(visual_refs))
     return result
 
@@ -1142,7 +1213,7 @@ async def ingest_zip(metadata_json: str, file: UploadFile = File(...)) -> dict[s
                 if not chapter_title:
                     chapter_title = f"Chapter PDF ({filename})"
             metadata = base.model_copy(update={"title": f"{base.title} — {chapter_title}"})
-            result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages))
+            result = enqueue_source(metadata, extracted, hashlib.sha256(pdf_raw).hexdigest(), len(reader.pages), pdf_bytes=pdf_raw)
             result["visual_reference_pages"] = str(len(visual_refs)); results.append({"file": filename, "title": metadata.title, **result})
         except Exception as exc:
             results.append({"file": filename, "status": "failed", "error": str(exc)[:300]})

@@ -32,7 +32,7 @@ def test_pdf_ingestion_persists_original_and_each_page_image():
     }
     response = TestClient(curriculum.app).post(
         "/admin/ingest-pdf",
-        data={"metadata_json": json.dumps(metadata)},
+        params={"metadata_json": json.dumps(metadata)},
         files={"file": ("fixture.pdf", raw_pdf, "application/pdf")},
         headers={"X-Admin-Token": "test-token"},
     )

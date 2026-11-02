@@ -154,7 +154,7 @@ python3 .github/scripts/ui_smoke.py tap-topic-picker chapter-selected.xml
 sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-menu.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/concept-menu.xml concept-menu.xml
-python3 .github/scripts/ui_smoke.py tap-numbered concept-menu.xml 1
+python3 .github/scripts/ui_smoke.py tap-numbered concept-menu.xml 2
 sleep 2
 timeout 20s "${ADB[@]}" shell uiautomator dump /data/local/tmp/concept-selected.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/concept-selected.xml concept-selected.xml

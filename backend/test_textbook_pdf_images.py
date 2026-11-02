@@ -60,7 +60,7 @@ def test_pdf_ingestion_persists_original_and_each_page_image():
     for row in pages:
         image = bytes(row["image_bytes"])
         assert row["mime_type"] == "image/png"
-        assert image.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+        assert image.startswith(b"\x89PNG\r\n\x1a\n")
         assert row["image_sha256"] == hashlib.sha256(image).hexdigest()
         assert row["width"] > 0 and row["height"] > 0
 
@@ -112,4 +112,4 @@ def test_page_image_routes_require_admin_and_return_png():
     )
     assert allowed.status_code == 200
     assert allowed.headers["content-type"].startswith("image/png")
-    assert allowed.content.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+    assert allowed.content.startswith(b"\x89PNG\r\n\x1a\n")

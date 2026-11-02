@@ -630,3 +630,14 @@ Use this format:
 - **What remains unverified:** Python test suite, Postgres compatibility, real NCERT PDF ingestion, topic-to-figure matching quality, tutor UI rendering, production storage, and deployment.
 - **Difference from previous attempt:** This adds the first implementation and focused tests for textbook page assets in the same synthesis response.
 - **Next action and why:** Append this evidence and rerun the gate; then run backend tests and review the PR diff before considering merge.
+
+### 2026-11-02 — Retain original textbook PDFs during ingestion (PR #152)
+- **Branch / commit:** `fix/persist-original-textbook-pdfs`; code commit `e1d0bb4acfcea9cda965504d1208046185a6b047`.
+- **Test command or workflow URL:** [Investigation Guidance Gate run 41401715558](https://github.com/Prav1525/Padippupal/actions/runs/41401715558).
+- **Result:** **FAIL — repository ledger requirement only.**
+- **Exact failure:** `code/config changed but TEST_INVESTIGATION.md was not updated in this PR`; the workflow stopped at the investigation-record validation step.
+- **Change made:** Added a `source_pdf_assets` table and persistence of original PDF bytes, filename, SHA-256, and page count for single-PDF and ZIP ingestion in `backend/app.py`.
+- **Root cause:** CONFIRMED — this PR omitted the required append-only investigation ledger entry. The failure does not establish whether application tests pass or fail.
+- **What remains unverified:** Python/backend tests, Postgres execution, and successful re-import/retention of an actual textbook PDF. The existing Beyond Earth source record still contains extracted text only; no original PDF bytes have been recovered in the inspected database/storage.
+- **Safety:** No merge, production database change, production deployment, or public release.
+- **Next action:** Append this record, rerun the repository gate, and run relevant backend tests before considering merge.

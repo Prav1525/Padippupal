@@ -121,6 +121,17 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
 
 
+class BeyondEarthSmokeFixtureContractTests(unittest.TestCase):
+    def test_smoke_selects_the_topic_supported_by_the_synthesized_fixture(self):
+        root = Path(__file__).resolve().parents[2]
+        script = (root / ".github/scripts/android-ui-smoke.sh").read_text()
+        fixture = (root / ".github/scripts/tutor_smoke_api.py").read_text()
+        self.assertIn("tap-numbered concept-menu.xml 2", script)
+        self.assertIn('"topic": "Day and Night"', fixture)
+        self.assertIn('{"day and night", "day/night"}', fixture)
+        self.assertNotIn("tap-numbered concept-menu.xml 1", script)
+
+
 class SynthesisInlineVisualContractTests(unittest.TestCase):
     def test_smoke_api_supplies_a_source_mapped_original_2d_visual(self):
         fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()

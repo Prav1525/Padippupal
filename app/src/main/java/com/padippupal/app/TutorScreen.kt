@@ -3,6 +3,7 @@ package com.padippupal.app
 import android.graphics.BitmapFactory
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -352,8 +353,37 @@ private fun activeSubtypeForChapter(lesson: JSONObject, activeStep: JSONObject?)
 
 @Composable
 private fun TextbookFigureStrip(lesson: JSONObject, compact: Boolean) {
-    val images = lesson.optJSONArray("textbook_images") ?: return
-    if (images.length() == 0) return
+    val images = lesson.optJSONArray("textbook_images")
+    if (images == null || images.length() == 0) {
+        // NCERT figures must not be copied/hosted until reproduction rights are cleared.
+        // Never fail silently: keep the lesson compact and link learners to the official source.
+        if (!lesson.optString("chapter").equals("Beyond Earth", ignoreCase = true)) return
+        val context = LocalContext.current
+        Surface(
+            modifier = Modifier.fillMaxWidth().clickable {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ncert.nic.in/textbook/pdf/fecu112.pdf")))
+                }
+            },
+            color = Color(0xFFF4F7FB),
+            shape = RoundedCornerShape(10.dp),
+            border = BorderStroke(1.dp, Color(0xFFDCE4EE))
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("📘", fontSize = 18.sp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Open official NCERT textbook", color = TutorDeep, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Textbook figures appear here when reuse is authorised.", color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp)
+                }
+                Text("OPEN ↗", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        return
+    }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(7.dp)) {
         Text("FROM YOUR TEXTBOOK", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         for (index in 0 until images.length()) {

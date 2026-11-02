@@ -600,3 +600,12 @@ Use this format:
 - **Commit:** `2ec0209b668e1ac6b6acc73a0c88f9e700a77830`.
 - **Not yet verified:** CI has not reported runs for this exact commit at time of entry. No approved image-to-step manifest has been ingested; production tables were observed empty. Need verify that lesson JSON `id` matches the approved production `chapter_lessons.id`, that the emitted step IDs match the manifest, add route-level tests, and capture an actual tutor screenshot after owner-approved ingestion/deployment.
 - **Safety:** No production database write, merge, or deployment performed.
+
+
+### 2026-11-02 — Corrected lesson/step identifiers for embedded-image lookup
+- **Branch / PR:** `feat/beyond-earth-embedded-image-pipeline` / PR #165.
+- **Finding:** The tutor's inline visual `id` is a presentation ID (`synth-<lesson-id>`), and the live API emits the original teaching-step ID inside `steps[].id`; using `id` and guessing `step_1` would make the image request fail or select the wrong step.
+- **Fix:** Inline visual responses now expose `lesson_id` separately; Android reads that approved database key and matches the actual ID in the visual's step metadata, including one-step segment payloads.
+- **Commits:** `d62fe73780300d03dcc49ab3504e49a6674cca08` (API payload), `552292a88689cfbb503930505577d67922f3ba85` and `4479bae87569e75d3df501e74f9fcd6480998b69` (Android mapping).
+- **Verification status:** Static source inspection confirms the API manifest shape (`images[].id/module_key/step_ids/url/title/alt_text`) matches the Android parser. No exact-head CI runs or status checks were returned. Production image tables were previously observed empty, so live image rendering and screenshot remain unverified.
+- **Safety:** No production write, merge, or deployment performed.

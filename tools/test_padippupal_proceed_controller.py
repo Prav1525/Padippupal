@@ -88,34 +88,6 @@ class ProceedTargetTests(unittest.TestCase):
             resolve_target({"PROCEED_REF": "feature/no-sha"})
 
 
-class ProceedTargetTests(unittest.TestCase):
-    def test_chat_bridge_uses_exact_pr_branch_and_head_sha(self):
-        self.assertEqual(
-            resolve_target({
-                "PROCEED_REF": "feature/active-pr",
-                "PROCEED_SHA": "deadbeef",
-                "GITHUB_REF_NAME": "main",
-                "GITHUB_SHA": "mainsha",
-                "GITHUB_REF_TYPE": "branch",
-            }),
-            ("feature/active-pr", "deadbeef"),
-        )
-
-    def test_manual_workflow_dispatch_keeps_its_exact_ref_and_sha(self):
-        self.assertEqual(
-            resolve_target({
-                "GITHUB_REF_NAME": "feature/manual",
-                "GITHUB_SHA": "abc123",
-                "GITHUB_REF_TYPE": "branch",
-            }),
-            ("feature/manual", "abc123"),
-        )
-
-    def test_missing_exact_sha_is_rejected(self):
-        with self.assertRaises(ValueError):
-            resolve_target({"PROCEED_REF": "feature/no-sha"})
-
-
 class ProceedControllerTests(unittest.TestCase):
     def test_controller_sleeps_one_minute_between_status_checks(self):
         api = DelayedFakeGitHubActionsAPI()

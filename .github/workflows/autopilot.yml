@@ -24,6 +24,8 @@ on:
           - full-cycle
           - validate
         default: full-cycle
+  issue_comment:
+    types: [created]
   workflow_run:
     workflows:
       - "Android APK"
@@ -39,7 +41,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: padippupal-autopilot-${{ github.event.workflow_run.id || github.event.pull_request.number || github.ref }}
+  group: padippupal-autopilot-${{ github.event.workflow_run.id || github.event.pull_request.number || github.event.issue.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -78,6 +80,53 @@ jobs:
       - name: Run one coordinated sleep-wake engineering cycle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/padippupal_proceed_controller.py
+
+  comment-proceed-cycle:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/proceed' &&
+      github.event.comment.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    steps:
+      # This privileged job checks out only the trusted default-branch controller.
+      # It never executes code from the PR with an actions:write token.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Resolve the exact same-repository PR head
+        id: target
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const number = context.issue.number;
+            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number:number});
+            if (pr.state !== "open") {
+              core.setFailed("Proceed requires an open pull request.");
+              return;
+            }
+            if (!pr.head.repo || pr.head.repo.full_name !== context.payload.repository.full_name) {
+              core.setFailed("Proceed refuses fork-originated pull requests.");
+              return;
+            }
+            core.setOutput("ref", pr.head.ref);
+            core.setOutput("sha", pr.head.sha);
+            core.info("Proceed target: " + pr.head.ref + "@" + pr.head.sha);
+      - name: Run one coordinated sleep-wake engineering cycle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROCEED_REF: ${{ steps.target.outputs.ref }}
+          PROCEED_SHA: ${{ steps.target.outputs.sha }}
         run: python tools/padippupal_proceed_controller.py
 
   record-ci-result:

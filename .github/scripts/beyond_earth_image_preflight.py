@@ -12,7 +12,7 @@ LESSON_ID = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
 
 def fetch(url: str) -> tuple[bytes, str]:
     request = Request(url, headers={"Accept": "*/*", "User-Agent": "PadippuPal-BeyondEarth-CI/1.0"})
-    with urlopen(request, timeout=25) as response:
+    with urlopen(request, timeout=60) as response:
         return response.read(), response.headers.get("Content-Type", "")
 
 def main() -> None:

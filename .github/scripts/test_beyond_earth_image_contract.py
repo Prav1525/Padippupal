@@ -26,13 +26,13 @@ def main() -> None:
     tests = TEST.read_text(encoding="utf-8")
 
     start = screen.find("private fun BeyondEarthTextbookPageImage(")
-    end = screen.find("\nprivate fun DatabaseInteractiveLessonLab(", start)
+    end = screen.find("\n@Composable\nprivate fun DatabaseInteractiveLessonLab(", start)
     require(start >= 0 and end > start, "Beyond Earth inline image composable exists")
     renderer = screen[start:end]
 
     require('chapter.contains("beyond earth"' in renderer.lower(),
             "image renderer is restricted to the Beyond Earth chapter")
-    require('"/chapter-lessons/$encodedLessonId/images"' in renderer,
+    require('"$base/chapter-lessons/$encodedLessonId/images"' in renderer,
             "renderer fetches the lesson-specific image manifest")
     for field in ('"id"', '"url"', '"title"', '"alt_text"', '"module_key"', '"step_ids"'):
         require(field in renderer, f"manifest parser reads {field}")

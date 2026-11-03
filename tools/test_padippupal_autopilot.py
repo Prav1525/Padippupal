@@ -76,6 +76,16 @@ class ApprovalTests(unittest.TestCase):
             })
             self.assertTrue(any("lacks scope" in item for item in validate(root)))
 
+    def test_unified_trigger_contract_drift_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_validation_root(root)
+            (root / "docs/AUTOPILOT_TRIGGER_PROMPT.md").write_text(
+                "# Trigger prompt without unified contract", encoding="utf-8"
+            )
+            errors = validate(root)
+            self.assertTrue(any("unified trigger contract is missing" in item for item in errors))
+
     def test_closed_loop_contract_drift_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

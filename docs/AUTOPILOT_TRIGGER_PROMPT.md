@@ -24,8 +24,10 @@ This bridge becomes active only after this workflow change is merged into the re
 2. Select the highest-priority executable task within the approved roadmap and the founder's explicit request.
 3. Investigate from evidence; define acceptance criteria for the actual requested product path.
 4. Implement the smallest justified change; do not weaken tests or alter unrelated behavior.
-5. Run targeted diagnostics, relevant regressions, build and the real feature acceptance path.
-6. Inspect results/artifacts, repair evidence-backed failures within the shared five-generation cap, and retest.
+5. **Run one coordinated, feature-complete test pass.** Build a single test matrix from the acceptance criteria and execute all applicable independent checks together (parallelize where safe): static/unit, backend/API/integration, app build, emulator/device UI, feature-specific runtime acceptance, regression and safety-boundary checks. Do not make the founder request or approve tests one at a time, and do not split a known complete test scope into repeated sequential test sessions merely for convenience. Do not substitute a generic smoke test for the named feature.
+6. Inspect the complete result set and actual artifacts (logs, screenshots, UI hierarchy, API responses and build outputs). If any check fails, diagnose from evidence, make the smallest justified repair within the shared five-generation cap, then rerun the **complete affected acceptance matrix as one coordinated pass** so the final report reflects one consistent tested commit. Avoid duplicate or overlapping runs; do not wait for another user prompt between independent checks.
+7. Update the existing investigation and active-work records; prepare a reviewable PR when appropriate.
+8. Report one consolidated result: each layer's PASS / FAIL / BLOCKED / NOT RUN state, exact tested SHA and run/artifact links, what the combined evidence proves, remaining gaps, and the next action. Never describe a partial test subset as full feature verification.
 7. Update the existing investigation and active-work records; prepare a reviewable PR when appropriate.
 8. Report verified results, what remains unverified, blockers and the next action.
 

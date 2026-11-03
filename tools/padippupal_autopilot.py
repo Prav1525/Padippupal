@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import pathlib
-import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -90,6 +89,8 @@ def validate_repair_state(root: pathlib.Path, approved_ledger: dict) -> list[str
         state = json.loads(payload)
     except json.JSONDecodeError as exc:
         return [f"invalid repair-generation state JSON: {exc}"]
+    if not isinstance(state, dict):
+        return ["repair-generation state must be a JSON object"]
 
     if state.get("schema_version") != 1:
         errors.append("repair-generation state schema_version must be 1")
@@ -105,9 +106,10 @@ def validate_repair_state(root: pathlib.Path, approved_ledger: dict) -> list[str
             errors.append("each repair chain must be an object")
             continue
         chain_id = chain.get("id")
-        if not chain_id or chain_id in seen_ids:
-            errors.append("repair chain IDs must be present and unique")
-        seen_ids.add(chain_id)
+        if not isinstance(chain_id, str) or not chain_id or chain_id in seen_ids:
+            errors.append("repair chain IDs must be present and unique strings")
+        else:
+            seen_ids.add(chain_id)
         for field in ("originating_run", "originating_sha", "task_id"):
             if not chain.get(field):
                 errors.append(f"repair chain {chain_id or '<unknown>'} missing {field}")
@@ -136,13 +138,10 @@ def validate_repair_state(root: pathlib.Path, approved_ledger: dict) -> list[str
                 errors.append(f"repair chain {chain_id or '<unknown>'} generation lacks verification_run")
             if generation.get("outcome") != "IN_PROGRESS" and not generation.get("commit_sha"):
                 errors.append(f"repair chain {chain_id or '<unknown>'} generation lacks commit_sha")
-        if chain.get("status") == "RESOLVED" and (
-            not generations or generations[-1].get("outcome") != "PASS"
-        ):
+        last_outcome = generations[-1].get("outcome") if generations and isinstance(generations[-1], dict) else None
+        if chain.get("status") == "RESOLVED" and last_outcome != "PASS":
             errors.append(f"repair chain {chain_id or '<unknown>'} cannot resolve without a passing generation")
-        if len(generations) == MAX_REPAIR_GENERATIONS and (
-            not generations or generations[-1].get("outcome") != "PASS"
-        ) and chain.get("status") != "ESCALATED":
+        if len(generations) == MAX_REPAIR_GENERATIONS and last_outcome != "PASS" and chain.get("status") != "ESCALATED":
             errors.append(f"repair chain {chain_id or '<unknown>'} must escalate after five unsuccessful generations")
     return errors
 
@@ -177,6 +176,7 @@ def validate(root: pathlib.Path = ROOT) -> list[str]:
     except (OSError, UnicodeError):
         errors.append("missing or unreadable unified trigger prompt")
 
+    ledger: dict = {}
     ledger_path = root / "docs" / "approved-work.json"
     try:
         ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -196,11 +196,7 @@ def validate(root: pathlib.Path = ROOT) -> list[str]:
                 errors.append(f"approved task {task_id} lacks scope, acceptance criteria, or approver")
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         errors.append(f"invalid approved-work ledger: {exc}")
-    try:
-        repair_state_errors = validate_repair_state(root, ledger)
-        errors.extend(repair_state_errors)
-    except UnboundLocalError:
-        pass
+    errors.extend(validate_repair_state(root, ledger))
     return errors
 
 

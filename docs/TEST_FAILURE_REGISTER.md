@@ -320,3 +320,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `bab28a9060ae8e86db31b18141739df877d30377` shortens the capture window to 12 frames at 0.5-second intervals (about six seconds) so the highlight scan samples the active lesson sooner.
 - **Regression check:** Re-run `android-ui-smoke.sh`; it must capture the active tutor screen, find the inline visual, and detect a moving spoken-word highlight across at least two positions.
 - **Validation:** Pending fresh Android emulator run. Do not close this incident or merge until the emulator flow passes.
+
+
+## Incident: Beyond Earth image-mapping JVM tests initialized Android UI classes
+
+- **Date:** 2026-11-03
+- **Affected PR:** [#168](https://github.com/Prav1525/Padippupal/pull/168), branch `fix/beyond-earth-render-all-mapped-images`.
+- **Evidence:** Android UI smoke run [41589927143](https://github.com/Prav1525/Padippupal/actions/runs/41589927143), commit `6d4dbac3f6e98964d70dfc3930f971bbe68025d5`; 9 JVM tests completed and 4 new mapping tests failed with `ExceptionInInitializerError` followed by `NoClassDefFoundError`. APK build workflow [41589927196](https://github.com/Prav1525/Padippupal/actions/runs/41589927196) passed.
+- **Root cause:** **CONFIRMED** the pure image mapping helper was declared in `TutorScreen.kt`. Calling its file-level function from JVM tests initialized the Android/Compose-heavy Kotlin file facade, which is not safe in the local JVM test environment.
+- **Correction:** Moved `BeyondEarthImageAsset` and `matchingBeyondEarthImageAssets` into standalone `BeyondEarthImageMapping.kt`, isolating the pure logic from Compose UI initialization. Existing regression tests now exercise the standalone helper.
+- **Validation:** Fresh exact-head JVM tests and emulator run are pending. The failed run did not reach APK/emulator stages in the smoke workflow. Do not merge until the new exact-head tests and emulator checks pass. No production DB changes, merge, or deployment performed.

@@ -1,0 +1,27 @@
+name: Beyond Earth live image acceptance
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/scripts/test_beyond_earth_live_images.py"
+      - ".github/workflows/beyond-earth-live-image-acceptance.yml"
+      - "app/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-image-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify real production image manifest and blobs
+        env:
+          PADIPPUPAL_API_BASE_URL: https://padippupal-curriculum-api.onrender.com
+          PADIPPUPAL_BEYOND_EARTH_LESSON_ID: 10d13a36-87e9-5f3b-8210-f62eb95e8854
+        run: python3 .github/scripts/test_beyond_earth_live_images.py

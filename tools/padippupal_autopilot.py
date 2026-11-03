@@ -39,7 +39,16 @@ REPAIR_STATE_START = "<!-- padippupal-repair-state:start -->"
 REPAIR_STATE_END = "<!-- padippupal-repair-state:end -->"
 REPAIR_OUTCOMES = {"IN_PROGRESS", "PASS", "FAIL", "BLOCKED"}
 REPAIR_CHAIN_STATUSES = {"OPEN", "RESOLVED", "ESCALATED"}
-
+REQUIRED_PROCEED_BRIDGE_MARKERS = (
+    "  issue_comment:",
+    "  comment-proceed-cycle:",
+    "github.event.comment.body == '/proceed'",
+    "github.event.comment.user.login == github.repository_owner",
+    "pr.user.login !== context.payload.repository.owner.login",
+    "pr.head.repo.full_name !== context.payload.repository.full_name",
+    "PROCEED_REF:",
+    "PROCEED_SHA:",
+)
 
 SIGNATURES = (
     ("runner_infrastructure", ("runner lost communication", "hosted runner", "502 bad gateway", "503 service unavailable")),
@@ -71,6 +80,21 @@ def approved_task(task_id: str, ledger: dict) -> dict | None:
         if item.get("id") == task_id and item.get("status") == "APPROVED":
             return item
     return None
+
+
+def validate_proceed_bridge(root: pathlib.Path) -> list[str]:
+    path = root / ".github" / "workflows" / "autopilot.yml"
+    try:
+        workflow = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return ["missing or unreadable AutoPilot workflow for chat Proceed bridge"]
+    errors = [f"AutoPilot Proceed bridge missing: {marker}"
+              for marker in REQUIRED_PROCEED_BRIDGE_MARKERS if marker not in workflow]
+    if workflow.count("  issue_comment:") != 1:
+        errors.append("AutoPilot workflow must define exactly one issue_comment trigger")
+    if workflow.count("  comment-proceed-cycle:") != 1:
+        errors.append("AutoPilot workflow must define exactly one chat Proceed job")
+    return errors
 
 
 def validate_repair_state(root: pathlib.Path, approved_ledger: dict) -> list[str]:
@@ -197,6 +221,7 @@ def validate(root: pathlib.Path = ROOT) -> list[str]:
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         errors.append(f"invalid approved-work ledger: {exc}")
     errors.extend(validate_repair_state(root, ledger))
+    errors.extend(validate_proceed_bridge(root))
     return errors
 
 

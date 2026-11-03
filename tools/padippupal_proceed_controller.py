@@ -177,14 +177,27 @@ def write_summary(results: list[dict]) -> None:
             stream.write("\n".join(lines) + "\n")
 
 
+def resolve_target(environ: dict[str, str]) -> tuple[str, str]:
+    """Resolve an exact PR target for chat-triggered cycles or workflow_dispatch."""
+    explicit_ref = environ.get("PROCEED_REF", "")
+    explicit_sha = environ.get("PROCEED_SHA", "")
+    ref = explicit_ref or environ.get("GITHUB_REF_NAME", "")
+    sha = explicit_sha or environ.get("GITHUB_SHA", "")
+    ref_type = "branch" if explicit_ref else environ.get("GITHUB_REF_TYPE", "branch")
+    if not all((ref, sha)) or ref_type != "branch":
+        raise ValueError("A branch ref and exact commit SHA are required.")
+    return ref, sha
+
+
 def main() -> int:
     token = os.environ.get("GITHUB_TOKEN", "")
     repository = os.environ.get("GITHUB_REPOSITORY", "")
-    ref = os.environ.get("GITHUB_REF_NAME", "")
-    sha = os.environ.get("GITHUB_SHA", "")
-    ref_type = os.environ.get("GITHUB_REF_TYPE", "branch")
-    if not all((token, repository, ref, sha)) or ref_type != "branch":
-        raise SystemExit("BLOCKED: GITHUB_TOKEN, repository, branch ref and exact SHA are required.")
+    if not token or not repository:
+        raise SystemExit("BLOCKED: GITHUB_TOKEN and GITHUB_REPOSITORY are required.")
+    try:
+        ref, sha = resolve_target(os.environ)
+    except ValueError as exc:
+        raise SystemExit(f"BLOCKED: {exc}") from exc
     api = GitHubActionsAPI(token, repository)
     results = run_pipeline(api, ref, sha)
     write_summary(results)

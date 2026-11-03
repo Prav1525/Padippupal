@@ -332,3 +332,15 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `e24f782e5e22be72f371a5001b66fff61ccf51f2` updates the contract test to assert the actual summary check, accepted explanation tuple, and explicit rejection of Mathematics content. It does not weaken the runtime assertion.
 - **Regression protection:** Re-run the helper unit-test suite and full API-35 Android UI smoke on the updated exact PR head. Review the Beyond Earth live screenshot and hierarchy; do not infer visual correctness from script validation alone.
 - **Status:** Fix committed; exact-head regression and runtime visual verification **PENDING**. No merge or deployment performed.
+
+
+## Incident: Beyond Earth Android smoke rejected the correct Science chapter
+
+- **Date:** 2026-11-03
+- **Affected PR:** [#59](https://github.com/Prav1525/Padippupal/pull/59), branch `feature/beyond-earth-whiteboard-native`.
+- **Evidence:** [Android UI smoke run 41677297236](https://github.com/Prav1525/Padippupal/actions/runs/41677297236), tested head `1298b748d07e6f6489dc39dce55380fae89cbed8`; emulator artifact `13251826897`.
+- **Observed failure:** The app successfully displayed the selected subject as Science, chapter as Beyond Earth, and topic as Constellations, but the smoke test stopped before opening the tutor lesson.
+- **Root cause:** **CONFIRMED test defect.** `.github/scripts/ui_smoke.py::assert_chapter_selected` incorrectly required the old Mathematics fixture text `Patterns in Mathematics` while its failure message and test path expected Science / Beyond Earth. The captured accessibility tree shows Science checked and the selected Beyond Earth / Constellations values.
+- **Fix:** Updated the assertion to require Science, Beyond Earth, and Constellations, and explicitly reject Mathematics content. Added regression tests for the correct selection and rejection of the wrong Mathematics selection.
+- **Validation:** JVM tests, APK build, smoke-script validation, and the API fixture self-test passed on the failing run. The end-to-end emulator run failed at the stale assertion, so the drawing itself was **not yet visually validated**. Fresh exact-head tests and screenshot review are pending.
+- **Status:** Fix committed on the feature branch; do not merge or deploy until the new emulator flow passes and the inline visual is inspected.

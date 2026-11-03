@@ -23,6 +23,13 @@ The detailed, test-specific rules live in **`TESTING_GUIDANCE.md`**. Read it bef
 7. Update the existing investigation and active-work records; prepare a reviewable PR when appropriate.
 8. Report verified results, what remains unverified, blockers and the next action.
 
+## Same-invocation operating contract
+
+- **Engineering OS lane (orchestrator):** recover project context, select approved work, coordinate dependencies and own acceptance.
+- **AutoPilot lane (execution and quality subsystem):** enforce deterministic policy checks, observe CI, coordinate existing test workflows and collect evidence.
+- **One shared state:** the approved-work ledger, active-work handoff, investigation history and exact branch/PR/SHA evidence are shared across both lanes.
+- Together they execute **one coordinated cycle**. Neither lane is a separate user-facing agent or trigger.
+
 ## Single-source-of-truth map
 
 - **Behavior and authority:** `AGENTS.md`

@@ -173,6 +173,8 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         dump_function = source[source.index("dump_ui(){"):source.index("\ntap_label(){")]
         self.assertIn("for attempt in $(seq 1 4)", dump_function)
         self.assertIn("uiautomator dump", dump_function)
+        self.assertNotIn(r"\\${name}", dump_function)
+        self.assertIn('local remote="/data/local/tmp/${name}.xml"', dump_function)
         self.assertIn("waiting for Android accessibility root", dump_function)
         self.assertIn("grep -q '<hierarchy'", dump_function)
         self.assertIn("failed after 4 attempts", dump_function)

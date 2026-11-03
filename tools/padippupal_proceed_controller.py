@@ -82,9 +82,9 @@ class GitHubStatusReporter:
     def start(self) -> None:
         issue = self.api.request("POST", "/issues", {
             "title": f"[AutoPilot status] {self.ref} @ {self.sha[:12]}",
-            "body": ("## PadippuPal Proceed cycle — IN PROGRESS\\n\\n"
-                     f"- Branch: `{self.ref}`\\n- Exact SHA: `{self.sha}`\\n"
-                     f"- Started: {datetime.now(timezone.utc).isoformat()}\\n\\n"
+            "body": ("## PadippuPal Proceed cycle — IN PROGRESS\n\n"
+                     f"- Branch: `{self.ref}`\n- Exact SHA: `{self.sha}`\n"
+                     f"- Started: {datetime.now(timezone.utc).isoformat()}\n\n"
                      "This issue is the durable user-visible status channel. Updates are posted "
                      "at start, every five-minute monitor checkpoint, and completion."),
         })
@@ -102,9 +102,9 @@ class GitHubStatusReporter:
     def finish(self, results: list[dict]) -> None:
         failed = [item for item in results if item["status"] != "success"]
         outcome = "ATTENTION REQUIRED" if failed else "PASS"
-        rows = "\\n".join(f"- **{item['name']}**: {item['status']} "
+        rows = "\n".join(f"- **{item['name']}**: {item['status']} "
                            f"{item.get('url', '')}" for item in results)
-        self.post(f"## Proceed cycle completed — {outcome}\\n\\n{rows}")
+        self.post(f"## Proceed cycle completed — {outcome}\n\n{rows}")
 
 
 def _created_at(value: str) -> datetime:
@@ -214,18 +214,20 @@ def run_stage(api, stage: dict, ref: str, sha: str, *,
     run_id = run["id"]
     run_url = run.get("html_url", "")
     deadline = monotonic() + stage.get("timeout_seconds", DEFAULT_STAGE_TIMEOUT_SECONDS)
+    last_report_at = monotonic()
     while monotonic() < deadline:
         try:
             current = api.request("GET", f"/actions/runs/{run_id}")
         except Exception as exc:
             return {"name": stage["name"], "workflow": workflow, "run_id": run_id,
                     "url": run_url, "status": "status_lookup_error", "detail": str(exc)}
-        if on_poll:
-            on_poll(stage["name"], current)
         if current.get("status") == "completed":
             return {"name": stage["name"], "workflow": workflow, "run_id": run_id,
                     "url": current.get("html_url", run_url),
                     "status": current.get("conclusion") or "unknown"}
+        if on_poll and monotonic() - last_report_at >= MONITOR_INTERVAL_SECONDS:
+            on_poll(stage["name"], current)
+            last_report_at = monotonic()
         sleep(min(MONITOR_INTERVAL_SECONDS, max(0, deadline - monotonic())))
 
     return {"name": stage["name"], "workflow": workflow, "run_id": run_id,

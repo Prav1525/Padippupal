@@ -5,11 +5,33 @@ from pathlib import Path
 
 from padippupal_autopilot import (
     MAX_REPAIR_GENERATIONS,
+    REQUIRED_AGENT_CONTRACT_MARKERS,
     approved_task,
     classify_log,
     next_generation,
     validate,
 )
+
+
+def make_validation_root(root: Path, ledger: dict | None = None, agent_text: str | None = None):
+    for rel in ("TESTING_GUIDANCE.md", "TEST_INVESTIGATION.md",
+                "docs/TESTING_ERRORS.md", "docs/TEST_FAILURE_REGISTER.md",
+                "docs/AUTOPILOT_TRIGGER_PROMPT.md", ".github/testing-regression-checklist.md"):
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("guide", encoding="utf-8")
+    (root / "AGENTS.md").write_text(
+        agent_text if agent_text is not None else "\n".join(REQUIRED_AGENT_CONTRACT_MARKERS),
+        encoding="utf-8",
+    )
+    ledger_value = ledger if ledger is not None else {
+        "policy": "approved-roadmap-only",
+        "max_repair_generations": 5,
+        "tasks": [],
+    }
+    ledger_path = root / "docs/approved-work.json"
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    ledger_path.write_text(json.dumps(ledger_value), encoding="utf-8")
 
 
 class ClassificationTests(unittest.TestCase):
@@ -47,16 +69,20 @@ class ApprovalTests(unittest.TestCase):
     def test_duplicate_or_incomplete_approved_entries_are_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            for rel in ("TESTING_GUIDANCE.md", "TEST_INVESTIGATION.md",
-                        "docs/TESTING_ERRORS.md", "docs/TEST_FAILURE_REGISTER.md", "docs/AUTOPILOT_TRIGGER_PROMPT.md",
-                        ".github/testing-regression-checklist.md"):
-                path = root / rel
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text("guide", encoding="utf-8")
-            ledger = {"policy":"approved-roadmap-only", "max_repair_generations":5,
-                      "tasks":[{"id":"A","status":"APPROVED"}]}
-            (root / "docs/approved-work.json").write_text(json.dumps(ledger), encoding="utf-8")
+            make_validation_root(root, {
+                "policy": "approved-roadmap-only",
+                "max_repair_generations": 5,
+                "tasks": [{"id": "A", "status": "APPROVED"}],
+            })
             self.assertTrue(any("lacks scope" in item for item in validate(root)))
+
+    def test_closed_loop_contract_drift_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_validation_root(root, agent_text="# Agent instructions\nNo contract markers here.")
+            errors = validate(root)
+            self.assertTrue(any("AGENTS.md missing closed-loop contract requirement" in item
+                                for item in errors))
 
 
 if __name__ == "__main__":

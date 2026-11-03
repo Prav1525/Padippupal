@@ -1,4 +1,5 @@
 import unittest
+from threading import Barrier
 from datetime import datetime, timezone
 
 from padippupal_proceed_controller import PIPELINE_STAGES, resolve_target, run_pipeline
@@ -41,6 +42,17 @@ class FakeGitHubActionsAPI:
             return self.runs[run_id]
 
         raise AssertionError(f"Unexpected API call: {method} {path}")
+
+
+class DispatchBarrierAPI(FakeGitHubActionsAPI):
+    def __init__(self, participants):
+        super().__init__()
+        self.barrier = Barrier(participants)
+
+    def request(self, method, path, payload=None):
+        if method == "POST" and path.endswith("/dispatches"):
+            self.barrier.wait(timeout=5)
+        return super().request(method, path, payload)
 
 
 class DelayedFakeGitHubActionsAPI(FakeGitHubActionsAPI):
@@ -127,6 +139,21 @@ class ProceedControllerTests(unittest.TestCase):
         self.assertEqual(results[1]["status"], "failure")
         self.assertEqual(results[2]["status"], "success")
         self.assertEqual(results[-1]["status"], "success")
+
+
+    def test_independent_checks_are_dispatched_concurrently(self):
+        stages = PIPELINE_STAGES[:3]
+        api = DispatchBarrierAPI(len(stages))
+        results = run_pipeline(
+            api,
+            "feature/controller-test",
+            "abc123",
+            stages=stages,
+            sleep=lambda _seconds: None,
+            emit=lambda _message: None,
+        )
+        self.assertEqual(len(api.dispatched), len(stages))
+        self.assertTrue(all(item["status"] == "success" for item in results))
 
     def test_android_dispatch_never_requests_public_release(self):
         android = next(stage for stage in PIPELINE_STAGES if stage["workflow"] == "android.yml")

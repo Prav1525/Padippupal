@@ -107,6 +107,7 @@ jobs:
     permissions:
       actions: write
       contents: read
+      issues: write
       pull-requests: read
     steps:
       # This privileged job checks out only trusted default-branch controller code.

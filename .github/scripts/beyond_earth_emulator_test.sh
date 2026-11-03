@@ -61,7 +61,7 @@ while [ "$SECONDS" -lt "$deadline" ]; do
   timeout 8s "${ADB[@]}" shell uiautomator dump /data/local/tmp/beyond-live.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" pull /data/local/tmp/beyond-live.xml beyond-live.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/beyond-earth-inline.png || true
-  if [ -s beyond-live.xml ] && python3 .github/scripts/assert_beyond_earth_image_ui.py beyond-live.xml ui-screenshots/beyond-earth-inline.png; then
+  if [ -s beyond-live.xml ] && python3 .github/scripts/assert_beyond_earth_image_ui.py beyond-live.xml ui-screenshots/beyond-earth-inline.png beyond-earth-image-manifest.json; then
     shown=1
     break
   fi

@@ -7,8 +7,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import (assert_composer_question, assert_home, assert_live, concept_candidates, exact_color_mask,
-                       exact_text_candidates, tap, tap_input)
+from ui_smoke import (assert_chapter_selected, assert_composer_question, assert_home, assert_live,
+                       concept_candidates, exact_color_mask, exact_text_candidates, tap, tap_input)
 
 
 
@@ -119,6 +119,36 @@ class ExactSelectorTests(unittest.TestCase):
         smoke = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn('tap-exact ready-to-teach.xml "▶ Teach"', smoke)
         self.assertNotIn('tap ready-to-teach.xml "Teach"', smoke)
+
+
+class ScienceChapterSelectionRegressionTests(unittest.TestCase):
+    def test_chapter_assertion_accepts_real_beyond_earth_science_selection(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="PadippuPal"/>
+          <node text="Beyond Earth · Constellations"/>
+          <node text="Science"/>
+          <node text="Beyond Earth"/>
+          <node text="Constellations"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-beyond-earth-selected.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            assert_chapter_selected(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_chapter_assertion_rejects_mathematics_content_for_science_selection(self):
+        root = ET.fromstring("""<hierarchy>
+          <node text="Mathematics"/>
+          <node text="Patterns in Mathematics"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-wrong-math-chapter.xml"
+        try:
+            path.write_text(ET.tostring(root, encoding="unicode"))
+            with self.assertRaises(SystemExit):
+                assert_chapter_selected(str(path))
+        finally:
+            path.unlink(missing_ok=True)
 
 
 class SynthesisInlineVisualContractTests(unittest.TestCase):

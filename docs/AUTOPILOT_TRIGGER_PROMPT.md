@@ -1,6 +1,6 @@
 # PadippuPal — Unified Engineering Operating System Trigger
 
-Copy this prompt into the PadippuPal engineering session. This is the one entry point for the whole product and engineering system—not merely CI AutoPilot. When the founder says “Proceed”, recover context, choose the next approved/highest-priority action, and execute it end-to-end.
+This is PadippuPal's single trigger contract for the whole product and engineering system. The founder's “Proceed” command means recover context, select the next approved/highest-priority action, and run one coordinated cycle across Engineering OS, AutoPilot, product engineering, tests, evidence and handoff. Do not invoke separate subsystem triggers.
 
 ---
 
@@ -56,7 +56,7 @@ Perform these phases in order in this same engineering cycle:
 - Existing CI workflows remain the authoritative source of test evidence.
 - Do not introduce a second observer, another AutoPilot workflow, a parallel agent, or a new roadmap store.
 
-The current GitHub workflow records CI outcomes and validates policy. It is not, by itself, proof that an autonomous repair worker or durable cross-run repair counter is operational. Verify capabilities before claiming they are active.
+The existing `.github/workflows/autopilot.yml` is the single CI coordination entry point: it validates policy, records completed CI results, and its `full-cycle` dispatch coordinates the existing checks in order and writes one consolidated summary. `tools/padippupal_proceed_controller.py` is a CI dispatcher/poller only; it does not author or repair source code and it does not implement durable cross-run repair-generation accounting. The ChatGPT engineering session owns approved product investigation/patching/retesting in the same cycle. Do not claim unattended AI repair or persistent generation counting is operational until independently implemented and tested.
 
 ## Hard safety boundaries
 
@@ -103,6 +103,18 @@ Start now. Inspect the live repository state and proceed through the sequence wi
 ## Meaning of the single command: “Proceed”
 
 Treat “Proceed”, “continue”, or “do it” as an instruction to continue the current approved PadippuPal roadmap—not as a request to work on AutoPilot only and not as permission to perform restricted production actions.
+
+### Same-invocation operating contract — Engineering OS + AutoPilot
+
+“Proceed” starts **one coordinated cycle**, not two separate commands or projects. The Engineering Operating System and AutoPilot are both active in that cycle, with distinct responsibilities:
+
+- **Engineering OS lane (orchestrator):** recover the whole-project context, reconcile live Git/PR/CI state with the canonical records, select and sequence the highest-priority approved learner/product task, resolve dependencies, enforce scope and approval boundaries, and own the final acceptance decision and handoff.
+- **AutoPilot lane (execution and quality subsystem):** participate in that same cycle by checking the relevant CI/test evidence, applying deterministic policy and approved-task gates, investigating failures, supporting bounded repairs when the available session tools and approval permit, and retesting the exact candidate SHA.
+- **Coordination rule:** the Engineering OS chooses and directs the work; AutoPilot supplies execution/quality controls. Neither waits for the founder to invoke it separately. AutoPilot must not replace the project roadmap with a CI-only queue, and the Engineering OS must not skip AutoPilot's evidence and safety gates.
+- **One shared state:** use the same active-work record, approved-work ledger, investigation history, branch/PR state and acceptance criteria. Do not create parallel tasks, agents, ledgers or status reports.
+- **Completion rule:** both lanes report into one result. A task advances only after the Engineering OS confirms its acceptance criteria using AutoPilot/test evidence and relevant learner-facing verification. If one lane is blocked, report the shared cycle as BLOCKED for that criterion; do not silently mark it complete.
+
+**Capability boundary:** the repository's GitHub AutoPilot workflow currently observes completed CI runs, records failures and validates policy; it does not independently author code or maintain a durable cross-run repair counter. In this ChatGPT engineering session, the assistant carries out approved implementation through the available repository tools while applying both lanes above. Do not describe unattended AI repair as active until a separately tested, approved worker and persistent repair accounting actually exist.
 
 At every invocation, independently determine the next useful action from live repository evidence. Do not ask the founder to select a subsystem when the repository and prior decisions make the next step clear. Do not repeat completed work. If an active task is already underway, resume it from its exact branch, PR, commit and remaining acceptance criteria.
 

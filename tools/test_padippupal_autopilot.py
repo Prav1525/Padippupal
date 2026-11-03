@@ -11,6 +11,7 @@ from padippupal_autopilot import (
     next_generation,
     validate,
     validate_repair_state,
+    validate_proceed_bridge,
 )
 
 
@@ -27,6 +28,19 @@ def make_validation_root(root: Path, ledger: dict | None = None, agent_text: str
         "<!-- padippupal-repair-state:start -->\n"
         '{"schema_version":1,"max_generations":5,"chains":[]}\n'
         "<!-- padippupal-repair-state:end -->",
+        encoding="utf-8",
+    )
+    workflow = root / ".github/workflows/autopilot.yml"
+    workflow.parent.mkdir(parents=True, exist_ok=True)
+    workflow.write_text(
+        "  issue_comment:\\n"
+        "  comment-proceed-cycle:\\n"
+        "github.event.comment.body == '/proceed'\\n"
+        "github.event.comment.user.login == github.repository_owner\\n"
+        "pr.user.login !== context.payload.repository.owner.login\\n"
+        "pr.head.repo.full_name !== context.payload.repository.full_name\\n"
+        "PROCEED_REF:\\n"
+        "PROCEED_SHA:\\n",
         encoding="utf-8",
     )
     (root / "AGENTS.md").write_text(
@@ -63,6 +77,22 @@ class RepairLimitTests(unittest.TestCase):
     def test_negative_generation_is_rejected(self):
         with self.assertRaises(ValueError):
             next_generation(-1)
+
+
+class ProceedBridgeContractTests(unittest.TestCase):
+    def test_bridge_requires_owner_comment_and_exact_pr_head(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_validation_root(root)
+            self.assertEqual(validate_proceed_bridge(root), [])
+
+    def test_bridge_contract_drift_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_validation_root(root)
+            path = root / ".github/workflows/autopilot.yml"
+            path.write_text("name: workflow without bridge", encoding="utf-8")
+            self.assertTrue(validate_proceed_bridge(root))
 
 
 class PersistentRepairStateTests(unittest.TestCase):

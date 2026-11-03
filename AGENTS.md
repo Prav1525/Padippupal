@@ -61,6 +61,7 @@ For each distinct repair generation:
 7. Continue to the next evidence-supported action without waiting for the user to say "proceed" again, unless a stop condition below applies.
 
 A repair generation is one distinct code/configuration repair hypothesis and its verification, not each command or poll. Maximum: five distinct repair generations for the same failure chain. After five unsuccessful generations, stop automated repair and report the evidence, hypotheses exhausted, and exact decision/help needed. Never reset the count by changing branches, sessions, or task wording.
+- Persist the count in the machine-readable repair-state block in `.engineering/tasks/active-work.md`. Before a repair, add its next sequential generation with the hypothesis; after verification, record the exact commit, run and outcome. The AutoPilot validator rejects malformed/non-sequential state, unapproved task chains, and a sixth generation. Carry the block unchanged when continuing the same failure chain on another branch; never start a fresh chain ID to evade the cap.
 
 ### 4. Treat tests as a proof ladder
 Track each layer separately:

@@ -11,7 +11,7 @@
 - **Shared records:** `docs/approved-work.json`, `.engineering/tasks/active-work.md`, `TEST_INVESTIGATION.md`, existing failure registers and exact PR/SHA evidence.
 - **Controller capability:** CI dispatch/poll/summary only; no autonomous code repair and no durable cross-run repair-generation counter. ChatGPT engineering session remains responsible for approved code repair and end-to-end acceptance.
 - **Next:** validate exact PR head, inspect every check to terminal status, repair any failure without weakening tests, and leave unmerged pending explicit approval.
-- **Related older proposals:** PR #63 (unified trigger contract) and PR #65 (sleep/wake controller) are source material for this consolidation; keep them unmerged until the consolidated PR has passed checks and the founder chooses how to retire duplicates.
+- **Related older proposals:** PR #63 and PR #65 were closed as superseded by this consolidation, without merging. Their trigger-contract and controller changes are included in this branch.
 
 ## Concurrent user-requested acceptance: Beyond Earth original PDF images
 - **Feature PR:** https://github.com/Prav1525/Padippupal/pull/168

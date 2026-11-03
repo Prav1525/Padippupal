@@ -26,6 +26,7 @@ from exam_master import router as exam_master_router
 from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_fingerprint, make_run_id, validate_chapter_lesson_payload)
 from lesson_visuals import build_visual_records
 from textbook_visual_refs import describe_pdf_visual_references
+from lesson_image_ingest import router as lesson_image_ingest_router
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -42,6 +43,7 @@ app = FastAPI(
     description="Background ingestion and profile-filtered retrieval for approved curriculum sources.",
 )
 app.include_router(exam_master_router)
+app.include_router(lesson_image_ingest_router)
 
 # Allow browser-based API clients (including Swagger) to call the HTTPS API.
 # Admin endpoints remain protected by the x-admin-token dependency.
@@ -645,6 +647,7 @@ def build_inline_synthesized_visual(lesson_id: str, lesson: dict[str, Any],
         return None
     return {
         "id": "synth-" + lesson_id,
+        "lesson_id": lesson_id,
         "chapter": str(lesson.get("chapter_title") or "Synthesized lesson"),
         "topic": str(topic or lesson.get("topic") or lesson.get("chapter_title") or "Lesson concept"),
         "title": str(topic or lesson.get("chapter_title") or "Lesson visual"),

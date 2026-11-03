@@ -12,6 +12,12 @@ The complete operating contract lives in **`AGENTS.md`**. Read and follow it fir
 
 The detailed, test-specific rules live in **`TESTING_GUIDANCE.md`**. Read it before every code edit, test, build or deployment action as required by `AGENTS.md`.
 
+## Chat-to-GitHub trigger bridge
+
+When the founder says **Proceed** in ChatGPT and an active same-repository PR is the current work target, the ChatGPT session posts the exact `/proceed` command as a comment on that PR. The AutoPilot workflow listens for that command only when it is posted by the repository owner on an open PR authored by the repository owner; it resolves and records the exact PR head branch and SHA, then dispatches and polls the existing checks. The privileged bridge checks out only trusted default-branch controller code and refuses fork PRs.
+
+This bridge becomes active only after this workflow change is merged into the repository's default branch. Until then, use the existing workflow_dispatch UI. The GitHub workflow runs tests and gathers evidence; the ChatGPT engineering session remains the reasoning and code-repair actor. No unattended model worker, paid model API, or Codex integration is introduced.
+
 ## One cycle
 
 1. Recover live repository, roadmap, active-work, PR, CI and prior-investigation state.

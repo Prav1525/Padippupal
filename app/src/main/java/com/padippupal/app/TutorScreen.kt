@@ -693,10 +693,8 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
     var loadedImages by remember(lessonId, topic, moduleKey, stepId) {
         mutableStateOf<List<LoadedBeyondEarthImage>>(emptyList())
     }
-    var failed by remember(lessonId, topic, moduleKey, stepId) { mutableStateOf(false) }
     LaunchedEffect(lessonId, topic, moduleKey, stepId) {
         loadedImages = emptyList()
-        failed = false
         val loaded = withContext(Dispatchers.IO) {
             try {
                 if (lessonId.isBlank()) throw IllegalStateException("Missing approved lesson ID")
@@ -754,32 +752,32 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
             }
         }
         loadedImages = loaded
-        failed = loaded.isEmpty()
     }
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(top = if (compact) 2.dp else 4.dp, bottom = 0.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        // Presentation only: keep synthesis/module text untouched and show no instructional or provenance copy.
-        loadedImages.forEach { loaded ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFFFFCF5), RoundedCornerShape(14.dp))
-                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
-                    .padding(8.dp)
-            ) {
-                androidx.compose.foundation.Image(
-                    bitmap = loaded.bitmap.asImageBitmap(),
-                    contentDescription = loaded.label.ifBlank { lesson.optString("topic", "Relevant textbook illustration") },
+    if (loadedImages.isNotEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // Presentation only: keep synthesis/module text untouched and show no instructional or provenance copy.
+            loadedImages.forEach { loaded ->
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = if (compact) 220.dp else 300.dp),
-                    contentScale = ContentScale.Fit
-                )
+                        .background(Color(0xFFFFFCF5), RoundedCornerShape(14.dp))
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                        .padding(8.dp)
+                ) {
+                    androidx.compose.foundation.Image(
+                        bitmap = loaded.bitmap.asImageBitmap(),
+                        contentDescription = loaded.label.ifBlank { lesson.optString("topic", "Relevant textbook illustration") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = if (compact) 220.dp else 300.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
         }
-        // Empty/error states intentionally occupy no space; unrelated lesson content remains unchanged.
     }
 }
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -22,6 +23,7 @@ REQUIRED_GUIDES = (
     "docs/TESTING_ERRORS.md",
     "docs/TEST_FAILURE_REGISTER.md",
     "docs/AUTOPILOT_TRIGGER_PROMPT.md",
+    ".engineering/tasks/active-work.md",
     ".github/testing-regression-checklist.md",
 )
 REQUIRED_AGENT_CONTRACT_MARKERS = (
@@ -33,6 +35,12 @@ REQUIRED_AGENT_CONTRACT_MARKERS = (
     "A task is DONE only when its stated acceptance criteria pass and the evidence is recorded.",
     "Never merge PRs, deploy production, mutate production databases, publish/release publicly",
 )
+
+REPAIR_STATE_START = "<!-- padippupal-repair-state:start -->"
+REPAIR_STATE_END = "<!-- padippupal-repair-state:end -->"
+REPAIR_OUTCOMES = {"IN_PROGRESS", "PASS", "FAIL", "BLOCKED"}
+REPAIR_CHAIN_STATUSES = {"OPEN", "RESOLVED", "ESCALATED"}
+
 
 SIGNATURES = (
     ("runner_infrastructure", ("runner lost communication", "hosted runner", "502 bad gateway", "503 service unavailable")),
@@ -64,6 +72,79 @@ def approved_task(task_id: str, ledger: dict) -> dict | None:
         if item.get("id") == task_id and item.get("status") == "APPROVED":
             return item
     return None
+
+
+def validate_repair_state(root: pathlib.Path, approved_ledger: dict) -> list[str]:
+    """Validate the persistent five-generation ledger embedded in active-work.md."""
+    errors: list[str] = []
+    path = root / ".engineering" / "tasks" / "active-work.md"
+    try:
+        content = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return ["missing or unreadable active-work handoff for repair state"]
+
+    if content.count(REPAIR_STATE_START) != 1 or content.count(REPAIR_STATE_END) != 1:
+        return ["active-work.md must contain exactly one repair-state marker block"]
+    payload = content.split(REPAIR_STATE_START, 1)[1].split(REPAIR_STATE_END, 1)[0].strip()
+    try:
+        state = json.loads(payload)
+    except json.JSONDecodeError as exc:
+        return [f"invalid repair-generation state JSON: {exc}"]
+
+    if state.get("schema_version") != 1:
+        errors.append("repair-generation state schema_version must be 1")
+    if state.get("max_generations") != MAX_REPAIR_GENERATIONS:
+        errors.append("repair-generation state must enforce a maximum of five generations")
+    chains = state.get("chains")
+    if not isinstance(chains, list):
+        return errors + ["repair-generation state chains must be an array"]
+
+    seen_ids: set[str] = set()
+    for chain in chains:
+        if not isinstance(chain, dict):
+            errors.append("each repair chain must be an object")
+            continue
+        chain_id = chain.get("id")
+        if not chain_id or chain_id in seen_ids:
+            errors.append("repair chain IDs must be present and unique")
+        seen_ids.add(chain_id)
+        for field in ("originating_run", "originating_sha", "task_id"):
+            if not chain.get(field):
+                errors.append(f"repair chain {chain_id or '<unknown>'} missing {field}")
+        if chain.get("status") not in REPAIR_CHAIN_STATUSES:
+            errors.append(f"repair chain {chain_id or '<unknown>'} has invalid status")
+        if chain.get("task_id") and approved_task(chain["task_id"], approved_ledger) is None:
+            errors.append(f"repair chain {chain_id or '<unknown>'} is outside approved work")
+        generations = chain.get("generations")
+        if not isinstance(generations, list):
+            errors.append(f"repair chain {chain_id or '<unknown>'} generations must be an array")
+            continue
+        if len(generations) > MAX_REPAIR_GENERATIONS:
+            errors.append(f"repair chain {chain_id or '<unknown>'} exceeds five repair generations")
+        numbers = [item.get("number") for item in generations if isinstance(item, dict)]
+        if numbers != list(range(1, len(generations) + 1)):
+            errors.append(f"repair chain {chain_id or '<unknown>'} generations must be sequential from 1")
+        for generation in generations:
+            if not isinstance(generation, dict):
+                errors.append(f"repair chain {chain_id or '<unknown>'} has a malformed generation")
+                continue
+            if not generation.get("hypothesis"):
+                errors.append(f"repair chain {chain_id or '<unknown>'} generation lacks a hypothesis")
+            if generation.get("outcome") not in REPAIR_OUTCOMES:
+                errors.append(f"repair chain {chain_id or '<unknown>'} generation has invalid outcome")
+            if generation.get("outcome") != "IN_PROGRESS" and not generation.get("verification_run"):
+                errors.append(f"repair chain {chain_id or '<unknown>'} generation lacks verification_run")
+            if generation.get("outcome") != "IN_PROGRESS" and not generation.get("commit_sha"):
+                errors.append(f"repair chain {chain_id or '<unknown>'} generation lacks commit_sha")
+        if chain.get("status") == "RESOLVED" and (
+            not generations or generations[-1].get("outcome") != "PASS"
+        ):
+            errors.append(f"repair chain {chain_id or '<unknown>'} cannot resolve without a passing generation")
+        if len(generations) == MAX_REPAIR_GENERATIONS and (
+            not generations or generations[-1].get("outcome") != "PASS"
+        ) and chain.get("status") != "ESCALATED":
+            errors.append(f"repair chain {chain_id or '<unknown>'} must escalate after five unsuccessful generations")
+    return errors
 
 
 def validate(root: pathlib.Path = ROOT) -> list[str]:
@@ -115,6 +196,11 @@ def validate(root: pathlib.Path = ROOT) -> list[str]:
                 errors.append(f"approved task {task_id} lacks scope, acceptance criteria, or approver")
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         errors.append(f"invalid approved-work ledger: {exc}")
+    try:
+        repair_state_errors = validate_repair_state(root, ledger)
+        errors.extend(repair_state_errors)
+    except UnboundLocalError:
+        pass
     return errors
 
 

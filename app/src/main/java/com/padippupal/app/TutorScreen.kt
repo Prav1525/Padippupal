@@ -667,26 +667,6 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 }
 
 
-internal data class BeyondEarthImageAsset(
-    val id: String,
-    val url: String,
-    val title: String,
-    val altText: String,
-    val moduleKey: String,
-    val stepIds: Set<String>
-)
-
-internal fun matchingBeyondEarthImageAssets(
-    images: List<BeyondEarthImageAsset>,
-    stepId: String,
-    moduleKey: String
-): List<BeyondEarthImageAsset> {
-    return images.filter { image ->
-        (stepId.isNotBlank() && stepId in image.stepIds) ||
-            (moduleKey.isNotBlank() && image.moduleKey == moduleKey)
-    }.distinctBy { it.id.ifBlank { it.url } }
-}
-
 private data class LoadedBeyondEarthImage(val bitmap: Bitmap, val label: String)
 
 @Composable

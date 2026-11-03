@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Single-run coordinator for PadippuPal's existing GitHub Actions checks.
 
-The controller dispatches each independent check once, waits for its run, wakes
-at a bounded interval to inspect status, and continues to later checks even if
-an earlier check fails. It records evidence; it does not repair source code.
+The controller dispatches each independent check once, checks for newly-created
+runs during discovery, then monitors active test runs every five minutes. It
+continues to later checks even if an earlier check fails. It records evidence; it does not repair source code.
 """
 from __future__ import annotations
 
@@ -13,12 +13,14 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
 API_ROOT = "https://api.github.com"
-POLL_INTERVAL_SECONDS = 60
+POLL_INTERVAL_SECONDS = 60  # Fast lookup while waiting for a dispatched run to appear.
+MONITOR_INTERVAL_SECONDS = 5 * 60  # Recheck active test runs every five minutes.
 RUN_DISCOVERY_TIMEOUT_SECONDS = 300
 DEFAULT_STAGE_TIMEOUT_SECONDS = 25 * 60
 
@@ -71,6 +73,26 @@ def _created_at(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def _find_existing_run(api, workflow: str, ref: str, sha: str,
+                        event: str) -> dict | None:
+    """Find an exact-SHA run already started by the parent PR event."""
+    query = urllib.parse.urlencode({
+        "event": event,
+        "branch": ref,
+        "per_page": "20",
+    })
+    response = api.request(
+        "GET", f"/actions/workflows/{urllib.parse.quote(workflow, safe='')}/runs?{query}"
+    )
+    candidates = [
+        run for run in response.get("workflow_runs", [])
+        if run.get("event") == event
+        and run.get("head_sha") == sha
+        and run.get("head_branch") == ref
+    ]
+    return max(candidates, key=lambda item: item["id"]) if candidates else None
+
+
 def _find_dispatched_run(api, workflow: str, ref: str, sha: str,
                          dispatched_at: datetime) -> dict | None:
     query = urllib.parse.urlencode({
@@ -94,27 +116,40 @@ def _find_dispatched_run(api, workflow: str, ref: str, sha: str,
 def run_stage(api, stage: dict, ref: str, sha: str, *,
               sleep: Callable[[float], None] = time.sleep,
               monotonic: Callable[[], float] = time.monotonic,
-              now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> dict:
+              now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+              reuse_event: str = "") -> dict:
     workflow = stage["workflow"]
     dispatched_at = now()
-    try:
-        api.request("POST", f"/actions/workflows/{urllib.parse.quote(workflow, safe='')}/dispatches",
-                    {"ref": ref, "inputs": stage.get("inputs", {})})
-    except Exception as exc:  # keep the coordinated cycle moving for later stages
-        return {"name": stage["name"], "workflow": workflow, "status": "dispatch_error",
-                "detail": str(exc)}
-
-    discovery_deadline = monotonic() + RUN_DISCOVERY_TIMEOUT_SECONDS
     run = None
-    while monotonic() < discovery_deadline:
+    if reuse_event:
         try:
-            run = _find_dispatched_run(api, workflow, ref, sha, dispatched_at)
+            run = _find_existing_run(api, workflow, ref, sha, reuse_event)
         except Exception as exc:
             return {"name": stage["name"], "workflow": workflow, "status": "lookup_error",
+                    "detail": f"Could not inspect existing {reuse_event} run: {exc}"}
+
+    if run:
+        # Reuse the exact-commit run already triggered by the PR; never create
+        # a duplicate build/emulator job for the same SHA.
+        pass
+    else:
+        try:
+            api.request("POST", f"/actions/workflows/{urllib.parse.quote(workflow, safe='')}/dispatches",
+                        {"ref": ref, "inputs": stage.get("inputs", {})})
+        except Exception as exc:  # keep the coordinated cycle moving for later stages
+            return {"name": stage["name"], "workflow": workflow, "status": "dispatch_error",
                     "detail": str(exc)}
-        if run:
-            break
-        sleep(min(POLL_INTERVAL_SECONDS, max(0, discovery_deadline - monotonic())))
+
+        discovery_deadline = monotonic() + RUN_DISCOVERY_TIMEOUT_SECONDS
+        while monotonic() < discovery_deadline:
+            try:
+                run = _find_dispatched_run(api, workflow, ref, sha, dispatched_at)
+            except Exception as exc:
+                return {"name": stage["name"], "workflow": workflow, "status": "lookup_error",
+                        "detail": str(exc)}
+            if run:
+                break
+            sleep(min(POLL_INTERVAL_SECONDS, max(0, discovery_deadline - monotonic())))
 
     if not run:
         return {"name": stage["name"], "workflow": workflow, "status": "run_not_found",
@@ -133,7 +168,7 @@ def run_stage(api, stage: dict, ref: str, sha: str, *,
             return {"name": stage["name"], "workflow": workflow, "run_id": run_id,
                     "url": current.get("html_url", run_url),
                     "status": current.get("conclusion") or "unknown"}
-        sleep(min(POLL_INTERVAL_SECONDS, max(0, deadline - monotonic())))
+        sleep(min(MONITOR_INTERVAL_SECONDS, max(0, deadline - monotonic())))
 
     return {"name": stage["name"], "workflow": workflow, "run_id": run_id,
             "url": run_url, "status": "timed_out",
@@ -145,16 +180,30 @@ def run_pipeline(api, ref: str, sha: str, *,
                  sleep: Callable[[float], None] = time.sleep,
                  monotonic: Callable[[], float] = time.monotonic,
                  now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+                 reuse_event: str = "",
                  emit: Callable[[str], None] = print) -> list[dict]:
-    results = []
+    """Dispatch and monitor every independent workflow concurrently.
+
+    Results retain the declared matrix order even though each stage dispatches
+    and polls independently. A failed stage never cancels another stage.
+    """
+    if not stages:
+        return []
     for index, stage in enumerate(stages, start=1):
-        emit(f"[{index}/{len(stages)}] Dispatching {stage['name']} on {ref}@{sha}")
-        result = run_stage(api, stage, ref, sha, sleep=sleep, monotonic=monotonic, now=now)
-        results.append(result)
-        emit(f"[{index}/{len(stages)}] {stage['name']}: {result['status']}"
+        emit(f"[{index}/{len(stages)}] Starting {stage['name']} on {ref}@{sha}")
+
+    def execute(stage):
+        return run_stage(api, stage, ref, sha, sleep=sleep,
+                         monotonic=monotonic, now=now, reuse_event=reuse_event)
+
+    with ThreadPoolExecutor(max_workers=len(stages),
+                            thread_name_prefix="padippupal-check") as pool:
+        futures = [pool.submit(execute, stage) for stage in stages]
+        results = [future.result() for future in futures]
+
+    for index, result in enumerate(results, start=1):
+        emit(f"[{index}/{len(results)}] {result['name']}: {result['status']}"
              + (f" — {result.get('url')}" if result.get("url") else ""))
-        # Deliberately continue after failure/timeout/dispatch errors. The
-        # controller reports the complete matrix after every independent check.
     return results
 
 
@@ -199,7 +248,7 @@ def main() -> int:
     except ValueError as exc:
         raise SystemExit(f"BLOCKED: {exc}") from exc
     api = GitHubActionsAPI(token, repository)
-    results = run_pipeline(api, ref, sha)
+    results = run_pipeline(api, ref, sha, reuse_event=os.environ.get("PROCEED_REUSE_EVENT", ""))
     write_summary(results)
     return 0 if all(item["status"] == "success" for item in results) else 1
 

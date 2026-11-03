@@ -1,7 +1,9 @@
 import unittest
+from threading import Barrier
 from datetime import datetime, timezone
 
-from padippupal_proceed_controller import PIPELINE_STAGES, resolve_target, run_pipeline
+from padippupal_proceed_controller import (MONITOR_INTERVAL_SECONDS, PIPELINE_STAGES,
+                                             resolve_target, run_pipeline)
 
 
 class FakeGitHubActionsAPI:
@@ -41,6 +43,38 @@ class FakeGitHubActionsAPI:
             return self.runs[run_id]
 
         raise AssertionError(f"Unexpected API call: {method} {path}")
+
+
+class DispatchBarrierAPI(FakeGitHubActionsAPI):
+    def __init__(self, participants):
+        super().__init__()
+        self.barrier = Barrier(participants)
+
+    def request(self, method, path, payload=None):
+        if method == "POST" and path.endswith("/dispatches"):
+            self.barrier.wait(timeout=5)
+        return super().request(method, path, payload)
+
+
+class ExistingRunFakeAPI(FakeGitHubActionsAPI):
+    def request(self, method, path, payload=None):
+        if method == "GET" and "/runs?" in path:
+            workflow = path.split("/actions/workflows/", 1)[1].split("/runs?", 1)[0]
+            return {"workflow_runs": [{
+                "id": 777,
+                "event": "pull_request",
+                "head_sha": "abc123",
+                "head_branch": "feature/controller-test",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "https://github.com/example/repo/actions/runs/777",
+            }]}
+        if method == "GET" and path == "/actions/runs/777":
+            return {
+                "id": 777, "status": "completed", "conclusion": "success",
+                "html_url": "https://github.com/example/repo/actions/runs/777",
+            }
+        return super().request(method, path, payload)
 
 
 class DelayedFakeGitHubActionsAPI(FakeGitHubActionsAPI):
@@ -89,7 +123,7 @@ class ProceedTargetTests(unittest.TestCase):
 
 
 class ProceedControllerTests(unittest.TestCase):
-    def test_controller_sleeps_one_minute_between_status_checks(self):
+    def test_controller_monitors_active_test_runs_every_five_minutes(self):
         api = DelayedFakeGitHubActionsAPI()
         waits = []
         results = run_pipeline(
@@ -100,7 +134,8 @@ class ProceedControllerTests(unittest.TestCase):
             sleep=waits.append,
             emit=lambda _message: None,
         )
-        self.assertEqual(waits, [60])
+        self.assertEqual(waits, [MONITOR_INTERVAL_SECONDS])
+        self.assertEqual(MONITOR_INTERVAL_SECONDS, 300)
         self.assertEqual(results[0]["status"], "success")
 
     def test_pipeline_contains_one_ordered_entry_for_each_existing_check(self):
@@ -128,6 +163,36 @@ class ProceedControllerTests(unittest.TestCase):
         self.assertEqual(results[2]["status"], "success")
         self.assertEqual(results[-1]["status"], "success")
 
+
+    def test_independent_checks_are_dispatched_concurrently(self):
+        stages = PIPELINE_STAGES[:3]
+        api = DispatchBarrierAPI(len(stages))
+        results = run_pipeline(
+            api,
+            "feature/controller-test",
+            "abc123",
+            stages=stages,
+            sleep=lambda _seconds: None,
+            emit=lambda _message: None,
+        )
+        self.assertEqual(len(api.dispatched), len(stages))
+        self.assertTrue(all(item["status"] == "success" for item in results))
+
+    def test_pr_cycle_reuses_exact_sha_run_instead_of_dispatching_duplicate(self):
+        api = ExistingRunFakeAPI()
+        results = run_pipeline(
+            api,
+            "feature/controller-test",
+            "abc123",
+            stages=(PIPELINE_STAGES[0],),
+            reuse_event="pull_request",
+            sleep=lambda _seconds: None,
+            emit=lambda _message: None,
+        )
+        self.assertEqual(api.dispatched, [])
+        self.assertEqual(results[0]["status"], "success")
+        self.assertEqual(results[0]["run_id"], 777)
+
     def test_android_dispatch_never_requests_public_release(self):
         android = next(stage for stage in PIPELINE_STAGES if stage["workflow"] == "android.yml")
         self.assertEqual(android["inputs"], {"publish_release": "false"})
@@ -142,7 +207,8 @@ class ProceedControllerTests(unittest.TestCase):
             emit=lambda _message: None,
         )
         dispatched_workflows = [workflow for workflow, _payload in api.dispatched]
-        self.assertEqual(dispatched_workflows, [stage["workflow"] for stage in PIPELINE_STAGES])
+        self.assertCountEqual(dispatched_workflows, [stage["workflow"] for stage in PIPELINE_STAGES])
+        self.assertEqual(len(dispatched_workflows), len(PIPELINE_STAGES))
         self.assertEqual(results[-1]["status"], "failure")
 
 

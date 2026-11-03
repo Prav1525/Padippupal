@@ -46,7 +46,9 @@ permissions:
 
 concurrency:
   group: padippupal-autopilot-${{ github.event.workflow_run.id || github.event.pull_request.number || github.event.issue.number || github.ref }}
-  cancel-in-progress: false
+  # A newer PR head supersedes its stale coordinator; dispatched child runs
+  # are still tracked by their exact SHA and are never silently treated as current.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
@@ -67,7 +69,7 @@ jobs:
           git diff --check
 
   coordinated-proceed-cycle:
-    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full-cycle'
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full-cycle')
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -75,15 +77,20 @@ jobs:
       actions: write
       contents: read
     steps:
+      # Run only trusted controller code from the default branch. The target
+      # PR ref/SHA are passed as data; PR code never receives this write-capable token.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.repository.default_branch }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Run one coordinated sleep-wake engineering cycle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROCEED_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          PROCEED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PROCEED_REUSE_EVENT: ${{ github.event_name == 'pull_request' && 'pull_request' || '' }}
         run: python tools/padippupal_proceed_controller.py
 
   comment-proceed-cycle:
@@ -141,6 +148,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROCEED_REF: ${{ steps.target.outputs.ref }}
           PROCEED_SHA: ${{ steps.target.outputs.sha }}
+          PROCEED_REUSE_EVENT: pull_request
         run: python tools/padippupal_proceed_controller.py
 
   record-ci-result:

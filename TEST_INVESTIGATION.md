@@ -639,3 +639,34 @@ Use this format:
 - Consolidated candidate remains PR #186 only. Its AutoPilot validation and both Python test suites passed on SHA `9bb649e675d2e3625c899c15a07dc51df1666d66` (run [41623351556](https://github.com/Prav1525/Padippupal/actions/runs/41623351556)).
 - Android APK build and generic UI smoke remain in progress; Beyond Earth-specific emulator screenshot acceptance also remains in progress. No full-cycle dispatch has been launched from chat because the connected GitHub action set does not expose workflow dispatch.
 - No merge, production deployment, production database mutation, or public release occurred.
+
+
+### 2026-11-03 — Repair Proceed trigger and coordinated test execution
+- **Branch / PR:** `fix/proceed-coordinated-trigger` / PR #194.
+- **Exact tested head when the first gate ran:** `f282ded01c71e2d8444f01a76c7ed290709de45d`.
+- **Scope:** Make qualifying engineering PRs run the full coordinated matrix after policy validation; dispatch independent checks concurrently; reuse already-running/completed PR checks for the exact same branch and SHA instead of duplicating builds/emulator runs; keep privileged coordinator code on the trusted default branch.
+- **First verification:** Investigation Guidance Gate failed on run [41633465837](https://github.com/Prav1525/Padippupal/actions/runs/41633465837), job [125908609279](https://github.com/Prav1525/Padippupal/actions/runs/41633465837/job/125908609279).
+- **Exact failure:** `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Root cause:** **CONFIRMED** — the repository's existing gate requires an append-only investigation entry whenever code/configuration files change. The first candidate omitted that record. This is a process-gate failure, not evidence of a defect in the controller code.
+- **Change made:** Updated `.github/workflows/autopilot.yml`, `tools/padippupal_proceed_controller.py`, and `tools/test_padippupal_proceed_controller.py` to add the coordinated PR trigger, parallel dispatch/polling, exact-SHA reuse, and concurrency/reuse regression tests. Added this ledger entry before retrying the gate.
+- **What this attempt proves:** The first exact-head run exposed the mandatory ledger requirement. The new controller tests are included in AutoPilot validation but have not yet reported a terminal result for the latest head.
+- **What remains unverified:** Latest-head Python tests, actual parallel workflow execution using the new controller after merge, exact-SHA reuse against live PR workflow runs, and full matrix completion. The current PR-triggered cycle may still execute the trusted default-branch controller until the candidate is merged; do not treat that run as proof of the new controller implementation.
+- **Difference from previous attempt:** Adds implementation-level concurrency and duplicate-run avoidance rather than only documenting one-shot testing; retains the same approved-work and no-production-change boundaries.
+- **Next action and why:** Rerun the investigation gate and AutoPilot unit tests on the ledger-updated exact head; inspect all matrix results and logs. No merge, deployment, production DB write, or public release is authorized by this change.
+
+
+### 2026-11-03 — Correct concurrent-dispatch regression assertion
+- **Branch / PR:** `fix/proceed-coordinated-trigger` / PR #194.
+- **Failure evidence:** AutoPilot run [41634204369](https://github.com/Prav1525/Padippupal/actions/runs/41634204369) failed in `test_each_stage_is_dispatched_once_without_blind_retry` because the test compared dispatch completion order to the declared pipeline order while dispatch is concurrent.
+- **Root cause:** **CONFIRMED** — concurrent workers may append dispatch records in a different order; the behavior under test is exactly-once dispatch of every configured workflow, not dispatch completion ordering.
+- **Repair:** Change the regression assertion to compare the dispatched workflow collection independent of order and separately assert the expected count. This preserves the no-blind-retry guarantee without weakening coverage.
+- **Five-minute monitor:** The exact-head test `test_controller_monitors_active_test_runs_every_five_minutes` passed in the same failed run; it asserted a 300-second interval.
+- **Remaining verification:** Rerun the complete coordinated PR validation on the repaired head, including controller tests, APK, and emulator UI smoke. No merge, deployment, production DB write, or public release.
+
+
+### 2026-11-03 — Fix dispatched investigation gate base SHA
+- **Branch / PR:** `fix/proceed-coordinated-trigger` / PR #194.
+- **Failure evidence:** Investigation Guidance Gate run [41634522154](https://github.com/Prav1525/Padippupal/actions/runs/41634522154), event `workflow_dispatch`, failed with `BLOCKED: BASE_SHA and HEAD_SHA are required.`
+- **Root cause:** **CONFIRMED** — the coordinator dispatches the investigation workflow as a child `workflow_dispatch`; that event has no `pull_request.base.sha` or `github.event.before`, so BASE_SHA was empty.
+- **Repair:** For dispatched checks only, fetch trusted `origin/main` and derive the PR comparison base with `git merge-base origin/main HEAD_SHA`; retain the explicit base SHA for pull_request events.
+- **What remains:** Verify the gate on the exact repaired head and complete the controller/APK/emulator coordinated matrix. This is a validation workflow fix; no production changes, merge, or deployment.

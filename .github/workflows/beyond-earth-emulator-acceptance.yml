@@ -2,7 +2,7 @@ name: Beyond Earth original-image emulator acceptance
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "fix/beyond-earth-render-all-mapped-images"]
     paths:
       - ".github/scripts/beyond_earth_emulator_fixture.py"
       - ".github/scripts/test_beyond_earth_emulator.py"
@@ -72,6 +72,7 @@ jobs:
           emulator-boot-timeout: 420
           script: |
             "$ANDROID_HOME/emulator/emulator" -accel-check
+            bash .github/scripts/android-tts-preflight.sh
             python3 .github/scripts/test_beyond_earth_emulator.py
 
       - name: Upload Beyond Earth screenshots and diagnostic trees

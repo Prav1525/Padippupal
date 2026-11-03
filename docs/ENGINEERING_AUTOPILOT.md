@@ -18,6 +18,12 @@ The AutoPilot is not a separate agent, service, dashboard, or task queue. It ext
 
 There must be one source of truth for tasks and approvals. The Autopilot consumes existing records; it does not create a parallel product roadmap.
 
+## One trigger and one coordinated cycle
+
+The founder says **Proceed** once. The Engineering OS recovers context and selects the approved product/engineering task; the existing AutoPilot workflow supplies policy validation, CI observation, bounded check coordination and evidence recording. Both use the same `docs/approved-work.json`, `.engineering/tasks/active-work.md`, `TEST_INVESTIGATION.md`, failure registers and exact branch/PR/SHA evidence. No separate agent, task ledger, workflow family or trigger is introduced.
+
+The `full-cycle` workflow dispatch runs the existing independent checks in order and continues after a failed stage, then reports one combined result. It is a CI coordinator—not a code-repair agent. The ChatGPT engineering session still diagnoses and implements approved fixes, then uses the coordinated checks to verify them. The current system does not yet provide a durable cross-run repair-generation counter or unattended AI patching.
+
 ## Current Stage 1 behavior
 
 The existing AutoPilot workflow:
@@ -62,7 +68,7 @@ The Python helper currently validates the five-generation cap and exact approved
 
 ## Single trigger prompt — non-Codex execution
 
-Use [docs/AUTOPILOT_TRIGGER_PROMPT.md](AUTOPILOT_TRIGGER_PROMPT.md) as the one reusable trigger for a complete engineering cycle. It combines startup context recovery, CI observation, evidence collection, root-cause investigation, approved-scope checks, bounded repair, retesting, engineering-ledger updates, PR preparation and escalation.
+Use [docs/AUTOPILOT_TRIGGER_PROMPT.md](AUTOPILOT_TRIGGER_PROMPT.md) as the one reusable trigger for a complete engineering cycle. `.github/workflows/autopilot.yml` is the single CI controller entry point; its `full-cycle` mode coordinates the existing checks. It combines startup context recovery, CI observation, evidence collection, root-cause investigation, approved-scope checks, bounded repair, retesting, engineering-ledger updates, PR preparation and escalation.
 
 Codex is explicitly excluded. Do not add Codex workflows, APIs, CLI tooling, credentials or paid model calls. Use existing deterministic tools and the connected engineering capabilities available in the session. If a required repair capability is unavailable, report the limitation rather than claiming autonomous repair.
 

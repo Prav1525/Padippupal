@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
@@ -146,15 +147,28 @@ def run_pipeline(api, ref: str, sha: str, *,
                  monotonic: Callable[[], float] = time.monotonic,
                  now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
                  emit: Callable[[str], None] = print) -> list[dict]:
-    results = []
+    """Dispatch and monitor every independent workflow concurrently.
+
+    Results retain the declared matrix order even though each stage dispatches
+    and polls independently. A failed stage never cancels another stage.
+    """
+    if not stages:
+        return []
     for index, stage in enumerate(stages, start=1):
-        emit(f"[{index}/{len(stages)}] Dispatching {stage['name']} on {ref}@{sha}")
-        result = run_stage(api, stage, ref, sha, sleep=sleep, monotonic=monotonic, now=now)
-        results.append(result)
-        emit(f"[{index}/{len(stages)}] {stage['name']}: {result['status']}"
+        emit(f"[{index}/{len(stages)}] Starting {stage['name']} on {ref}@{sha}")
+
+    def execute(stage):
+        return run_stage(api, stage, ref, sha, sleep=sleep,
+                         monotonic=monotonic, now=now)
+
+    with ThreadPoolExecutor(max_workers=len(stages),
+                            thread_name_prefix="padippupal-check") as pool:
+        futures = [pool.submit(execute, stage) for stage in stages]
+        results = [future.result() for future in futures]
+
+    for index, result in enumerate(results, start=1):
+        emit(f"[{index}/{len(results)}] {result['name']}: {result['status']}"
              + (f" — {result.get('url')}" if result.get("url") else ""))
-        # Deliberately continue after failure/timeout/dispatch errors. The
-        # controller reports the complete matrix after every independent check.
     return results
 
 

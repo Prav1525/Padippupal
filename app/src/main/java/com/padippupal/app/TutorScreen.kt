@@ -757,46 +757,28 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
     }
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = if (compact) 2.dp else 4.dp, bottom = 0.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(
-            lesson.optString("title", "Beyond Earth — textbook images"),
-            color = Color(0xFF17324D),
-            fontSize = if (compact) 13.sp else 15.sp,
-            fontWeight = FontWeight.Bold
-        )
-        if (loadedImages.isNotEmpty()) {
-            loadedImages.forEachIndexed { index, loaded ->
+        // Presentation only: keep synthesis/module text untouched and show no instructional or provenance copy.
+        loadedImages.forEach { loaded ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFFFFCF5), RoundedCornerShape(14.dp))
+                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                    .padding(8.dp)
+            ) {
                 androidx.compose.foundation.Image(
                     bitmap = loaded.bitmap.asImageBitmap(),
-                    contentDescription = loaded.label.ifBlank { lesson.optString("topic", "Original Beyond Earth textbook image") },
-                    modifier = Modifier.fillMaxWidth().heightIn(max = if (compact) 180.dp else 230.dp),
+                    contentDescription = loaded.label.ifBlank { lesson.optString("topic", "Relevant textbook illustration") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = if (compact) 220.dp else 300.dp),
                     contentScale = ContentScale.Fit
                 )
-                if (loaded.label.isNotBlank()) {
-                    Text(
-                        loaded.label,
-                        color = Color(0xFF64748B),
-                        fontSize = 9.sp,
-                        lineHeight = 11.sp
-                    )
-                }
-                if (index < loadedImages.lastIndex) Spacer(Modifier.height(2.dp))
             }
-            Text(
-                "${loadedImages.size} original textbook image${if (loadedImages.size == 1) "" else "s"}",
-                color = Color(0xFF64748B),
-                fontSize = 9.sp,
-                lineHeight = 11.sp
-            )
-        } else {
-            Text(
-                if (failed) "Original textbook images for this module are not available yet." else "Loading original textbook images…",
-                color = Color(0xFF64748B),
-                fontSize = 10.sp,
-                modifier = Modifier.padding(vertical = 2.dp)
-            )
         }
+        // Empty/error states intentionally occupy no space; unrelated lesson content remains unchanged.
     }
 }
 

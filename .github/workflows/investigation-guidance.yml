@@ -19,6 +19,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+      - name: Test investigation base SHA resolution
+        run: python3 tools/test_investigation_ledger_base_sha.py
       - name: Validate guidance and investigation record
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

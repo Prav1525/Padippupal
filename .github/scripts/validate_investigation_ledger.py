@@ -20,11 +20,23 @@ CODE_PREFIXES = ("app/", "backend/", "server/", "scripts/", ".github/workflows/"
 def run(*args):
     return subprocess.check_output(args, text=True).strip()
 
+def resolve_base_sha(base, head):
+    """Use the event-provided base, or merge against the default branch on dispatch."""
+    if base:
+        return base
+    if not head:
+        return None
+    try:
+        return run("git", "merge-base", "origin/main", head)
+    except subprocess.CalledProcessError:
+        return None
+
+
 def main():
-    base = os.environ.get("BASE_SHA")
     head = os.environ.get("HEAD_SHA")
+    base = resolve_base_sha(os.environ.get("BASE_SHA"), head)
     if not base or not head:
-        print("BLOCKED: BASE_SHA and HEAD_SHA are required.")
+        print("BLOCKED: could not resolve BASE_SHA and HEAD_SHA (including origin/main merge-base fallback).")
         return 2
     changed = run("git", "diff", "--name-only", "--diff-filter=ACMR", base, head).splitlines()
     code_changed = [p for p in changed if p.endswith(tuple(CODE_SUFFIXES)) or p.startswith(CODE_PREFIXES)]

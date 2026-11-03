@@ -55,6 +55,27 @@ class DispatchBarrierAPI(FakeGitHubActionsAPI):
         return super().request(method, path, payload)
 
 
+class ExistingRunFakeAPI(FakeGitHubActionsAPI):
+    def request(self, method, path, payload=None):
+        if method == "GET" and "/runs?" in path:
+            workflow = path.split("/actions/workflows/", 1)[1].split("/runs?", 1)[0]
+            return {"workflow_runs": [{
+                "id": 777,
+                "event": "pull_request",
+                "head_sha": "abc123",
+                "head_branch": "feature/controller-test",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "https://github.com/example/repo/actions/runs/777",
+            }]}
+        if method == "GET" and path == "/actions/runs/777":
+            return {
+                "id": 777, "status": "completed", "conclusion": "success",
+                "html_url": "https://github.com/example/repo/actions/runs/777",
+            }
+        return super().request(method, path, payload)
+
+
 class DelayedFakeGitHubActionsAPI(FakeGitHubActionsAPI):
     def __init__(self):
         super().__init__()
@@ -154,6 +175,21 @@ class ProceedControllerTests(unittest.TestCase):
         )
         self.assertEqual(len(api.dispatched), len(stages))
         self.assertTrue(all(item["status"] == "success" for item in results))
+
+    def test_pr_cycle_reuses_exact_sha_run_instead_of_dispatching_duplicate(self):
+        api = ExistingRunFakeAPI()
+        results = run_pipeline(
+            api,
+            "feature/controller-test",
+            "abc123",
+            stages=(PIPELINE_STAGES[0],),
+            reuse_event="pull_request",
+            sleep=lambda _seconds: None,
+            emit=lambda _message: None,
+        )
+        self.assertEqual(api.dispatched, [])
+        self.assertEqual(results[0]["status"], "success")
+        self.assertEqual(results[0]["run_id"], 777)
 
     def test_android_dispatch_never_requests_public_release(self):
         android = next(stage for stage in PIPELINE_STAGES if stage["workflow"] == "android.yml")

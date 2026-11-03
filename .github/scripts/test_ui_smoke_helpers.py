@@ -2,12 +2,13 @@
 """Regression tests for accessibility-tree selectors; no emulator required."""
 import re
 import sys
+import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import (assert_chapter_selected, assert_composer_question, assert_home, assert_live,
+from ui_smoke import (assert_chapter_selected, assert_completed_lesson, assert_composer_question, assert_home, assert_live,
                        concept_candidates, exact_color_mask, exact_text_candidates, tap, tap_input)
 
 
@@ -398,6 +399,20 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn("if (cursor < text.length) append(text.substring(cursor))", caption)
         self.assertNotIn("sentencesInParagraph", caption)
         self.assertNotIn("separate paragraphs only after every third sentence", caption)
+
+    def test_completed_lesson_accepts_singular_constellation_topic(self):
+        xml = """<hierarchy>
+          <node text="Live lesson complete."/>
+          <node text="Ask your teacher…"/>
+          <node text="A constellation is a recognisable pattern of stars in the night sky. "
+                />
+        </hierarchy>"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "completed.xml"
+            path.write_text(xml, encoding="utf-8")
+            # The real lesson content uses the singular topic name "Constellation";
+            # the completion check must not demand the plural "Constellations".
+            assert_completed_lesson(str(path))
 
     def test_completed_lesson_is_kept_for_follow_up_chat(self):
         root = Path(__file__).resolve().parents[2]

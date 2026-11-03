@@ -5,6 +5,10 @@ on:
     branches: ["main"]
     paths:
       - "AGENTS.md"
+      - "TESTING_GUIDANCE.md"
+      - "TEST_INVESTIGATION.md"
+      - ".engineering/tasks/active-work.md"
+      - "docs/TEST_FAILURE_REGISTER.md"
       - ".github/workflows/autopilot.yml"
       - "tools/padippupal_autopilot.py"
       - "tools/padippupal_proceed_controller.py"
@@ -24,8 +28,6 @@ on:
           - full-cycle
           - validate
         default: full-cycle
-  issue_comment:
-    types: [created]
   issue_comment:
     types: [created]
   workflow_run:
@@ -97,53 +99,6 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      # This privileged job checks out only the trusted default-branch controller.
-      # It never executes code from the PR with an actions:write token.
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Resolve the exact same-repository PR head
-        id: target
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const {owner, repo} = context.repo;
-            const number = context.issue.number;
-            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number:number});
-            if (pr.state !== "open") {
-              core.setFailed("Proceed requires an open pull request.");
-              return;
-            }
-            if (!pr.head.repo || pr.head.repo.full_name !== context.payload.repository.full_name) {
-              core.setFailed("Proceed refuses fork-originated pull requests.");
-              return;
-            }
-            core.setOutput("ref", pr.head.ref);
-            core.setOutput("sha", pr.head.sha);
-            core.info("Proceed target: " + pr.head.ref + "@" + pr.head.sha);
-      - name: Run one coordinated sleep-wake engineering cycle
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PROCEED_REF: ${{ steps.target.outputs.ref }}
-          PROCEED_SHA: ${{ steps.target.outputs.sha }}
-        run: python tools/padippupal_proceed_controller.py
-
-  comment-proceed-cycle:
-    if: >-
-      github.event_name == 'issue_comment' &&
-      github.event.issue.pull_request &&
-      github.event.comment.body == '/proceed' &&
-      github.event.comment.user.login == github.repository_owner
-    runs-on: ubuntu-latest
-    timeout-minutes: 240
-    permissions:
-      actions: write
-      contents: read
-      pull-requests: read
-    steps:
       # This privileged job checks out only trusted default-branch controller code.
       - uses: actions/checkout@v4
         with:
@@ -151,6 +106,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Validate trusted engineering policy before dispatch
+        run: |
+          set -euo pipefail
+          python tools/padippupal_autopilot.py validate
+          python tools/test_padippupal_autopilot.py
+          python tools/test_padippupal_proceed_controller.py
       - name: Resolve the exact same-repository PR head
         id: target
         uses: actions/github-script@v7

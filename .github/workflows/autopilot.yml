@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: ["main"]
     paths:
+      - "AGENTS.md"
       - ".github/workflows/autopilot.yml"
       - "tools/padippupal_autopilot.py"
       - "tools/test_padippupal_autopilot.py"

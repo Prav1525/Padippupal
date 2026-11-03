@@ -71,7 +71,10 @@ jobs:
           git diff --check
 
   coordinated-proceed-cycle:
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full-cycle')
+    # PR events run validation only: their GITHUB_TOKEN must not start a write-capable
+    # lifecycle reporter from a pull_request run. Full cycles start via owner /proceed,
+    # main push, or explicit workflow_dispatch.
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full-cycle')
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -93,7 +96,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROCEED_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
           PROCEED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          PROCEED_REUSE_EVENT: ${{ github.event_name == 'pull_request' && 'pull_request' || github.event_name == 'push' && 'push' || '' }}
+          PROCEED_REUSE_EVENT: ${{ github.event_name == 'push' && 'push' || '' }}
         run: python tools/padippupal_proceed_controller.py
 
   comment-proceed-cycle:

@@ -2,7 +2,8 @@ import unittest
 from threading import Barrier
 from datetime import datetime, timezone
 
-from padippupal_proceed_controller import PIPELINE_STAGES, resolve_target, run_pipeline
+from padippupal_proceed_controller import (MONITOR_INTERVAL_SECONDS, PIPELINE_STAGES,
+                                             resolve_target, run_pipeline)
 
 
 class FakeGitHubActionsAPI:
@@ -122,7 +123,7 @@ class ProceedTargetTests(unittest.TestCase):
 
 
 class ProceedControllerTests(unittest.TestCase):
-    def test_controller_sleeps_one_minute_between_status_checks(self):
+    def test_controller_monitors_active_test_runs_every_five_minutes(self):
         api = DelayedFakeGitHubActionsAPI()
         waits = []
         results = run_pipeline(
@@ -133,7 +134,8 @@ class ProceedControllerTests(unittest.TestCase):
             sleep=waits.append,
             emit=lambda _message: None,
         )
-        self.assertEqual(waits, [60])
+        self.assertEqual(waits, [MONITOR_INTERVAL_SECONDS])
+        self.assertEqual(MONITOR_INTERVAL_SECONDS, 300)
         self.assertEqual(results[0]["status"], "success")
 
     def test_pipeline_contains_one_ordered_entry_for_each_existing_check(self):

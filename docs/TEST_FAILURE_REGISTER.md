@@ -342,3 +342,14 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `5e36dec9333d35630f9640ced58716591425b080` narrows the guard: exactly two production URL occurrences are permitted (manifest preflight and image-source proxy), and the app's `PADIPPUPAL_API_BASE_URL` is still forbidden from pointing at production.
 - **Regression check:** `python3 .github/scripts/test_ui_smoke_helpers.py` plus the full script-validation step; then the API-35 emulator flow must reach the production-image preflight and Science → Beyond Earth inline-image assertion.
 - **Validation:** Fix is committed on the PR branch. Fresh exact-head CI and the 19-image production preflight are **PENDING**. No production writes, merge, or deployment performed.
+
+## Incident: Beyond Earth emulator setup split the profile initialization command
+
+- **Date:** 2026-11-03
+- **Affected PR:** [#173](https://github.com/Prav1525/Padippupal/pull/173), branch `test/beyond-earth-emulator-fixture`.
+- **Evidence:** Android UI smoke run [41598339274](https://github.com/Prav1525/Padippupal/actions/runs/41598339274), job `125790894012`.
+- **Observed failure:** JVM tests, APK build, script validation, and the read-only production image preflight passed. The preflight fetched and decoded all 19 images. The dedicated emulator script stopped during profile setup with `mkdir: Needs 1 argument`.
+- **Root cause:** **CONFIRMED** ADB split the `sh -c` script into separate remote-shell arguments. The remote shell interpreted `mkdir -p` as the command string and did not pass `shared_prefs` to mkdir.
+- **Fix:** Quote the complete `run-as ... sh -c '...'` command as one remote command argument to `adb shell`.
+- **Regression prevention:** Added `.github/scripts/test_beyond_earth_emulator_script.py` and wired it into smoke-script validation. It checks single-argument remote quoting and the profile-file existence assertion.
+- **Validation:** Pending a fresh exact-head Android API 35 run. The prior run never reached Science → Beyond Earth → Teach, so inline image rendering remains unverified. No production writes, merge, or deployment performed.

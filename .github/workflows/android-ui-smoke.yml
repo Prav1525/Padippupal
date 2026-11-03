@@ -71,10 +71,13 @@ jobs:
           test -e /dev/kvm && ls -l /dev/kvm
           test -r /dev/kvm && test -w /dev/kvm
 
-      # Use a deterministic local API fixture rather than production Render.
-      # The emulator must test this PR's client behavior, not a separately deployed
-      # main-branch backend or mutable curriculum data.
+      # Tutor lesson content is deterministic. The Beyond Earth image routes in
+      # this fixture proxy only the 19 preflight-verified production image GETs.
+      # No production writes or mutable lesson-generation calls are made.
       - name: Start deterministic tutor smoke API
+        env:
+          PADIPPUPAL_IMAGE_SOURCE_BASE: https://padippupal-curriculum-api.onrender.com
+          PADIPPUPAL_BEYOND_EARTH_MANIFEST_FILE: beyond-earth-image-manifest.json
         run: |
           python3 .github/scripts/tutor_smoke_api.py --host 0.0.0.0 --port 8765 > /tmp/padippupal-smoke-api.log 2>&1 &
           echo $! > /tmp/padippupal-smoke-api.pid

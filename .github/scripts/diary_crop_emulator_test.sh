@@ -9,8 +9,23 @@ REPORT=ui-screenshots/diary-test/report.txt
 log(){ printf '%s\n' "$*" | tee -a "$REPORT"; }
 dump_ui(){
   local name="$1"
-  timeout 20s "${ADB[@]}" shell uiautomator dump "/data/local/tmp/${name}.xml" >/dev/null
-  timeout 10s "${ADB[@]}" pull "/data/local/tmp/${name}.xml" "ui-screenshots/diary-test/${name}.xml" >/dev/null
+  local remote="/data/local/tmp/\${name}.xml"
+  local local_path="ui-screenshots/diary-test/\${name}.xml"
+  # API 35 Photo Picker can briefly detach the accessibility root during an
+  # activity transition. Retry transient null-root dumps before failing.
+  for attempt in $(seq 1 4); do
+    rm -f "$local_path"
+    if timeout 20s "\${ADB[@]}" shell uiautomator dump "$remote" >/dev/null 2>&1 \\
+      && timeout 10s "\${ADB[@]}" pull "$remote" "$local_path" >/dev/null 2>&1 \\
+      && [ -s "$local_path" ] \\
+      && grep -q '<hierarchy' "$local_path"; then
+      return 0
+    fi
+    log "UI hierarchy dump '$name' unavailable on attempt $attempt/4; waiting for Android accessibility root"
+    sleep 1
+  done
+  log "FAIL: UI hierarchy dump '$name' failed after 4 attempts"
+  return 1
 }
 tap_label(){
   local xml="$1" label="$2"

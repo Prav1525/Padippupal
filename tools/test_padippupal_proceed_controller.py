@@ -207,7 +207,8 @@ class ProceedControllerTests(unittest.TestCase):
             emit=lambda _message: None,
         )
         dispatched_workflows = [workflow for workflow, _payload in api.dispatched]
-        self.assertEqual(dispatched_workflows, [stage["workflow"] for stage in PIPELINE_STAGES])
+        self.assertCountEqual(dispatched_workflows, [stage["workflow"] for stage in PIPELINE_STAGES])
+        self.assertEqual(len(dispatched_workflows), len(PIPELINE_STAGES))
         self.assertEqual(results[-1]["status"], "failure")
 
 

@@ -14,7 +14,7 @@ def main() -> None:
     labels = [node.attrib.get("content-desc", "").strip() for node in nodes]
     image_labels = [label for label in labels if label and "Beyond Earth" not in label]
     text = " ".join(node.attrib.get("text", "") for node in nodes)
-    match = re.search(r"(\\d+) original textbook images?", text, re.IGNORECASE)
+    match = re.search(r"(\d+) original textbook images?", text, re.IGNORECASE)
     if not match or int(match.group(1)) < 1:
         raise SystemExit("FAIL: tutor UI has no positive original textbook image count label")
     if not image_labels:

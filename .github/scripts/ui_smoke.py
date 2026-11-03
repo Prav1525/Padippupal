@@ -176,9 +176,18 @@ def assert_chapter_selected(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("SELECTED CHAPTER TEXT:", " | ".join(texts[:100]))
-    if "patterns in mathematics" not in joined:
-        raise SystemExit("Smoke test did not select Class 6 Science Chapter 1: Beyond Earth")
-    print("PASS: selected the expected Science Chapter 1")
+    # This smoke path deliberately selects Class 6 Science Chapter 1. The old
+    # Mathematics fixture guard was stale and rejected the correct live UI state.
+    required = ("science", "beyond earth", "constellations")
+    missing = [label for label in required if label not in joined]
+    if missing:
+        raise SystemExit(
+            "Smoke test did not select Class 6 Science Chapter 1: Beyond Earth; "
+            "missing: " + ", ".join(missing)
+        )
+    if "patterns in mathematics" in joined:
+        raise SystemExit("Science chapter selection incorrectly retained Mathematics content")
+    print("PASS: selected Class 6 Science Chapter 1: Beyond Earth / Constellations")
 
 def tap_numbered(path, number):
     nodes, texts = load(path)

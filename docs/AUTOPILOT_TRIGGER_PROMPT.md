@@ -34,7 +34,7 @@ This bridge becomes active only after this workflow change is merged into the re
 - **Engineering OS lane (orchestrator):** recover project context, select approved work, coordinate dependencies and own acceptance.
 - **AutoPilot lane (execution and quality subsystem):** enforce deterministic policy checks, observe CI, coordinate existing test workflows and collect evidence.
 - **One shared state:** the approved-work ledger, active-work handoff, investigation history and exact branch/PR/SHA evidence are shared across both lanes.
-- Together they execute **one coordinated cycle**. All independent existing checks are dispatched and monitored concurrently, then reported in one stable matrix. A failed check does not prevent other checks from completing. Neither lane is a separate user-facing agent or trigger.
+- Together they execute **one coordinated cycle**. All independent existing checks are dispatched and monitored concurrently, then reported in one stable matrix. While a test run is active, its status is rechecked every five minutes (best-effort; GitHub Actions scheduling/API latency can delay an observation). This is monitoring, not a blind test rerun. A failed check does not prevent other checks from completing. Neither lane is a separate user-facing agent or trigger.
 
 ## Single-source-of-truth map
 
@@ -51,7 +51,7 @@ These are components of one agent workflow, not separate triggers or competing o
 
 ## Capability honesty
 
-GitHub Actions AutoPilot validates policy and records CI evidence. The Proceed controller dispatches/polls existing checks and summarizes them; it is not an AI code-repair worker. The engineering session performs approved diagnosis and code repair. Do not claim unattended repair or persistent cross-run generation accounting unless implemented and independently verified.
+GitHub Actions AutoPilot validates policy and records CI evidence. The Proceed controller dispatches existing checks, discovers newly-created runs, monitors active runs at five-minute intervals, and summarizes them; it is not an AI code-repair worker. The engineering session performs approved diagnosis and code repair. Do not claim unattended repair or persistent cross-run generation accounting unless implemented and independently verified.
 
 Codex is excluded. Do not add paid model integrations or incur unapproved API spend.
 

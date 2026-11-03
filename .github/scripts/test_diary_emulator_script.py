@@ -168,6 +168,15 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('attempt-artifacts/', workflow)
 
+    def test_ui_hierarchy_dump_retries_transient_api35_null_root(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        dump_function = source[source.index("dump_ui(){"):source.index("\ntap_label(){")]
+        self.assertIn("for attempt in $(seq 1 4)", dump_function)
+        self.assertIn("uiautomator dump", dump_function)
+        self.assertIn("waiting for Android accessibility root", dump_function)
+        self.assertIn("grep -q '<hierarchy'", dump_function)
+        self.assertIn("failed after 4 attempts", dump_function)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

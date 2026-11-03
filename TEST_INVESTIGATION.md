@@ -622,3 +622,13 @@ Use this format:
 - **Limitations:** The new AutoPilot check validates the presence of key contract markers and includes a regression test for missing markers. It is a static drift check, not an autonomous AI repair worker and not technical enforcement of every runtime behavior.
 - **Other checks:** Android APK and generic Android UI smoke on this PR head are separate workflows; the UI smoke uses a general fixture and cannot prove Beyond Earth image acceptance.
 - **Safety:** No merge, production deployment, production DB write, or public release performed.
+
+
+### 2026-11-03 — Unified Proceed trigger + closed-loop contract consolidation
+- **Branch / PR:** `chore/closed-loop-agent-contract` / PR #186.
+- **Objective:** consolidate the previously separate Engineering OS/Proceed trigger contract (PRs #63 and #65) and the closed-loop AGENTS contract into one coherent reviewable change set.
+- **Implementation:** use one canonical `docs/AUTOPILOT_TRIGGER_PROMPT.md`; extend the existing `.github/workflows/autopilot.yml` with a `full-cycle` dispatch mode and the existing `tools/padippupal_proceed_controller.py`; run the existing five checks sequentially, poll exact dispatched runs, continue after independent failures, and produce one combined summary. Add deterministic tests for stage order, wait/poll behavior, continuation after failure, no blind retries, and `publish_release=false`.
+- **Unified policy:** validator checks both AGENTS closed-loop markers and the shared Engineering OS + AutoPilot trigger markers. No second workflow family, agent, service, or task ledger is introduced.
+- **Capability boundary:** controller is CI orchestration/evidence collection only. ChatGPT session still performs approved product repair. Durable cross-run repair generation counting and unattended AI code repair remain unimplemented.
+- **Safety:** no merge, deployment, production DB mutation, or public release. The full-cycle dispatch is only run when explicitly launched; do not claim a chat “Proceed” dispatched GitHub Actions unless a run confirms it.
+- **Required verification:** exact-head AutoPilot validation/unit tests and Investigation Guidance Gate must pass; inspect APK and UI smoke independently. A generic UI smoke is not Beyond Earth-specific acceptance evidence.

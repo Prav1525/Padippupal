@@ -3,8 +3,6 @@ name: Deployed PadippuPal API Smoke Test
 on:
   push:
     branches: ["main"]
-    paths:
-      - ".github/workflows/deployed-api-smoke.yml"
   workflow_dispatch:
 
 permissions:

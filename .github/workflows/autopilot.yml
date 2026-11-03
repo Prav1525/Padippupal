@@ -1,6 +1,8 @@
 name: PadippuPal AutoPilot
 
 on:
+  push:
+    branches: ["main"]
   pull_request:
     branches: ["main"]
     paths:
@@ -52,7 +54,7 @@ concurrency:
 
 jobs:
   validate:
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -69,7 +71,7 @@ jobs:
           git diff --check
 
   coordinated-proceed-cycle:
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full-cycle')
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'full-cycle')
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 240
@@ -90,7 +92,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROCEED_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
           PROCEED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          PROCEED_REUSE_EVENT: ${{ github.event_name == 'pull_request' && 'pull_request' || '' }}
+          PROCEED_REUSE_EVENT: ${{ github.event_name == 'pull_request' && 'pull_request' || github.event_name == 'push' && 'push' || '' }}
         run: python tools/padippupal_proceed_controller.py
 
   comment-proceed-cycle:

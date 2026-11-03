@@ -18,6 +18,15 @@ When the founder says **Proceed** in ChatGPT and an active same-repository PR is
 
 This bridge becomes active only after this workflow change is merged into the repository's default branch. Until then, use the existing workflow_dispatch UI. The GitHub workflow runs tests and gathers evidence; the ChatGPT engineering session remains the reasoning and code-repair actor. No unattended model worker, paid model API, or Codex integration is introduced.
 
+## Main-branch post-merge cycle
+
+Every push to `main` starts all five existing check workflows and the trusted
+coordinator. The coordinator waits for and reuses each workflow run matching
+the exact pushed SHA, then polls active runs every five minutes. If an exact
+push run does not appear within five minutes, it reports the gap and refuses
+to dispatch against a potentially newer branch head. This keeps post-merge
+monitoring on the same exact-commit evidence path as an explicit Proceed cycle.
+
 ## One cycle
 
 1. Recover live repository, roadmap, active-work, PR, CI and prior-investigation state.

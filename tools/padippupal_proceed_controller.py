@@ -128,6 +128,24 @@ def run_stage(api, stage: dict, ref: str, sha: str, *,
             return {"name": stage["name"], "workflow": workflow, "status": "lookup_error",
                     "detail": f"Could not inspect existing {reuse_event} run: {exc}"}
 
+        # Main-push runs are started by GitHub for every matrix workflow.
+        # Wait for the exact SHA to appear; never dispatch a duplicate or
+        # accidentally test a newer main commit when coordinating a push.
+        if not run and reuse_event == "push":
+            discovery_deadline = monotonic() + RUN_DISCOVERY_TIMEOUT_SECONDS
+            while monotonic() < discovery_deadline:
+                try:
+                    run = _find_existing_run(api, workflow, ref, sha, reuse_event)
+                except Exception as exc:
+                    return {"name": stage["name"], "workflow": workflow, "status": "lookup_error",
+                            "detail": f"Could not discover exact push run: {exc}"}
+                if run:
+                    break
+                sleep(min(POLL_INTERVAL_SECONDS, max(0, discovery_deadline - monotonic())))
+            if not run:
+                return {"name": stage["name"], "workflow": workflow, "status": "run_not_found",
+                        "detail": "No exact-SHA push run appeared within five minutes; duplicate dispatch was intentionally refused."}
+
     if run:
         # Reuse the exact-commit run already triggered by the PR; never create
         # a duplicate build/emulator job for the same SHA.

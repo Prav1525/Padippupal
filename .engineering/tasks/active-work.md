@@ -11,6 +11,14 @@ This block is the durable, machine-readable repair counter for the active work h
 {"schema_version":1,"max_generations":5,"chains":[]}
 <!-- padippupal-repair-state:end -->
 
+## Main-push Proceed monitoring — current objective
+
+- **State:** IN PROGRESS — implementation prepared on `fix/main-push-proceed-monitoring`; awaiting exact-head CI.
+- **Root cause:** Confirmed. The five-minute controller was only invoked for PR and manual full-cycle events. Main-push test runs were not coordinated; the `workflow_run` handler only records completed evidence.
+- **Change:** Route every `main` push through the existing AutoPilot coordinator. Ensure all five existing test workflows start on every `main` push, then have the coordinator reuse only runs matching the exact push SHA. It waits up to five minutes for GitHub run discovery and refuses duplicate dispatch if a push run is missing.
+- **Safety:** The deployed API smoke is read-only; APK release remains disabled. No merge, deployment, production DB write, or public release.
+- **Verification target:** AutoPilot policy/tests, controller unit tests (including exact-push reuse and no-fallback dispatch), investigation gate, YAML/workflow checks, and the full coordinated five-workflow matrix on the PR SHA. Merge requires separate founder approval.
+
 ## Unified engineering agent — PR #186
 - **PR:** https://github.com/Prav1525/Padippupal/pull/186
 - **Branch:** `chore/closed-loop-agent-contract`

@@ -77,6 +77,33 @@ class ExistingRunFakeAPI(FakeGitHubActionsAPI):
         return super().request(method, path, payload)
 
 
+class ExistingPushRunFakeAPI(ExistingRunFakeAPI):
+    def request(self, method, path, payload=None):
+        if method == "GET" and "/runs?" in path:
+            return {"workflow_runs": [{
+                "id": 778,
+                "event": "push",
+                "head_sha": "abc123",
+                "head_branch": "main",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "https://github.com/example/repo/actions/runs/778",
+            }]}
+        if method == "GET" and path == "/actions/runs/778":
+            return {
+                "id": 778, "status": "completed", "conclusion": "success",
+                "html_url": "https://github.com/example/repo/actions/runs/778",
+            }
+        return super().request(method, path, payload)
+
+
+class MissingPushRunFakeAPI(FakeGitHubActionsAPI):
+    def request(self, method, path, payload=None):
+        if method == "GET" and "/runs?" in path:
+            return {"workflow_runs": []}
+        return super().request(method, path, payload)
+
+
 class DelayedFakeGitHubActionsAPI(FakeGitHubActionsAPI):
     def __init__(self):
         super().__init__()
@@ -192,6 +219,39 @@ class ProceedControllerTests(unittest.TestCase):
         self.assertEqual(api.dispatched, [])
         self.assertEqual(results[0]["status"], "success")
         self.assertEqual(results[0]["run_id"], 777)
+
+    def test_main_push_cycle_reuses_exact_sha_run_without_dispatch(self):
+        api = ExistingPushRunFakeAPI()
+        results = run_pipeline(
+            api,
+            "main",
+            "abc123",
+            stages=(PIPELINE_STAGES[0],),
+            reuse_event="push",
+            sleep=lambda _seconds: None,
+            emit=lambda _message: None,
+        )
+        self.assertEqual(api.dispatched, [])
+        self.assertEqual(results[0]["status"], "success")
+        self.assertEqual(results[0]["run_id"], 778)
+
+    def test_main_push_missing_exact_run_does_not_dispatch_newer_commit(self):
+        api = MissingPushRunFakeAPI()
+        clock = [0.0]
+        def sleep(seconds):
+            clock[0] += seconds
+        results = run_pipeline(
+            api,
+            "main",
+            "abc123",
+            stages=(PIPELINE_STAGES[0],),
+            reuse_event="push",
+            sleep=sleep,
+            monotonic=lambda: clock[0],
+            emit=lambda _message: None,
+        )
+        self.assertEqual(api.dispatched, [])
+        self.assertEqual(results[0]["status"], "run_not_found")
 
     def test_android_dispatch_never_requests_public_release(self):
         android = next(stage for stage in PIPELINE_STAGES if stage["workflow"] == "android.yml")

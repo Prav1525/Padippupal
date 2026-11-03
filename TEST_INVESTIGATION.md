@@ -699,3 +699,11 @@ Use this format:
 - **Change proposed:** Grant `issues: write` only to the existing owner-gated `comment-proceed-cycle` job; no app runtime, database, deployment, or release change.
 - **Validation:** PR #202 exact-head workflow run [41652195114](https://github.com/Prav1525/Padippupal/actions/runs/41652195114) passed AutoPilot policy validation. Investigation Guidance Gate [41652195190](https://github.com/Prav1525/Padippupal/actions/runs/41652195190) initially failed because this investigation record was missing from the PR; append this record and rerun the gate. Android build and emulator smoke were still running at record time.
 - **Acceptance still required:** Confirm the revised PR's complete required checks pass, merge only this permission fix, then post a fresh `/proceed` comment on an open owner-authored PR and verify the coordinator creates a status issue and reaches a terminal result. Do not infer reporter success from static tests alone.
+
+
+### 2026-11-03 — Record investigation-gate failure for status-reporter permission repair
+- **Failure evidence:** Investigation Guidance Gate run [41652195190](https://github.com/Prav1525/Padippupal/actions/runs/41652195190), job [125972981371](https://github.com/Prav1525/Padippupal/actions/runs/41652195190/job/125972981371), tested head `aff8028d0e1ba4ebff93d06fcdbbac4365b8d778` and failed at `Validate guidance and investigation record`.
+- **Root cause:** **CONFIRMED** — the PR changed workflow configuration but did not modify `TEST_INVESTIGATION.md` in that PR, so the investigation ledger gate correctly rejected it. This is a required-evidence omission, not proof of a runtime controller failure.
+- **Repair:** Add this evidence record to the same PR branch, then rerun the Investigation Guidance Gate and the complete coordinated validation matrix on the updated exact head.
+- **Acceptance still required:** Verify the gate passes, controller unit tests pass, all required APK/emulator/API checks finish for the same intended SHA, and a safe owner-triggered `/proceed` run successfully creates and updates its lifecycle status issue through a terminal result.
+- **Safety:** No merge, deployment, production database write, or public release is performed by this repair. Keep the PR open pending evidence and explicit approval.

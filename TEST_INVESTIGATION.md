@@ -639,3 +639,17 @@ Use this format:
 - Consolidated candidate remains PR #186 only. Its AutoPilot validation and both Python test suites passed on SHA `9bb649e675d2e3625c899c15a07dc51df1666d66` (run [41623351556](https://github.com/Prav1525/Padippupal/actions/runs/41623351556)).
 - Android APK build and generic UI smoke remain in progress; Beyond Earth-specific emulator screenshot acceptance also remains in progress. No full-cycle dispatch has been launched from chat because the connected GitHub action set does not expose workflow dispatch.
 - No merge, production deployment, production database mutation, or public release occurred.
+
+
+### 2026-11-03 — Repair Proceed trigger and coordinated test execution
+- **Branch / PR:** `fix/proceed-coordinated-trigger` / PR #194.
+- **Exact tested head when the first gate ran:** `f282ded01c71e2d8444f01a76c7ed290709de45d`.
+- **Scope:** Make qualifying engineering PRs run the full coordinated matrix after policy validation; dispatch independent checks concurrently; reuse already-running/completed PR checks for the exact same branch and SHA instead of duplicating builds/emulator runs; keep privileged coordinator code on the trusted default branch.
+- **First verification:** Investigation Guidance Gate failed on run [41633465837](https://github.com/Prav1525/Padippupal/actions/runs/41633465837), job [125908609279](https://github.com/Prav1525/Padippupal/actions/runs/41633465837/job/125908609279).
+- **Exact failure:** `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Root cause:** **CONFIRMED** — the repository's existing gate requires an append-only investigation entry whenever code/configuration files change. The first candidate omitted that record. This is a process-gate failure, not evidence of a defect in the controller code.
+- **Change made:** Updated `.github/workflows/autopilot.yml`, `tools/padippupal_proceed_controller.py`, and `tools/test_padippupal_proceed_controller.py` to add the coordinated PR trigger, parallel dispatch/polling, exact-SHA reuse, and concurrency/reuse regression tests. Added this ledger entry before retrying the gate.
+- **What this attempt proves:** The first exact-head run exposed the mandatory ledger requirement. The new controller tests are included in AutoPilot validation but have not yet reported a terminal result for the latest head.
+- **What remains unverified:** Latest-head Python tests, actual parallel workflow execution using the new controller after merge, exact-SHA reuse against live PR workflow runs, and full matrix completion. The current PR-triggered cycle may still execute the trusted default-branch controller until the candidate is merged; do not treat that run as proof of the new controller implementation.
+- **Difference from previous attempt:** Adds implementation-level concurrency and duplicate-run avoidance rather than only documenting one-shot testing; retains the same approved-work and no-production-change boundaries.
+- **Next action and why:** Rerun the investigation gate and AutoPilot unit tests on the ledger-updated exact head; inspect all matrix results and logs. No merge, deployment, production DB write, or public release is authorized by this change.

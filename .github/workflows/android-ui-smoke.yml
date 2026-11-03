@@ -54,11 +54,15 @@ jobs:
           bash -n .github/scripts/android-ui-smoke.sh
           bash -n .github/scripts/android-tts-preflight.sh
           bash -n .github/scripts/diary_crop_emulator_test.sh
-          python3 -m py_compile .github/scripts/write_test_failure_report.py .github/scripts/test_diary_emulator_script.py .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py .github/scripts/test_diary_crop_contract.py .github/scripts/create_diary_test_fixture.py
+          python3 -m py_compile .github/scripts/test_beyond_earth_image_contract.py .github/scripts/test_beyond_earth_image_ui.py .github/scripts/test_beyond_earth_emulator_script.py .github/scripts/beyond_earth_image_preflight.py .github/scripts/assert_beyond_earth_image_ui.py .github/scripts/write_test_failure_report.py .github/scripts/test_diary_emulator_script.py .github/scripts/ui_smoke.py .github/scripts/test_ui_smoke_helpers.py .github/scripts/tutor_smoke_api.py .github/scripts/test_diary_crop_contract.py .github/scripts/create_diary_test_fixture.py
+          bash -n .github/scripts/beyond_earth_emulator_test.sh
           python3 .github/scripts/test_diary_crop_contract.py
           python3 .github/scripts/test_diary_emulator_script.py
           python3 .github/scripts/test_ui_smoke_helpers.py
+          python3 .github/scripts/test_beyond_earth_image_contract.py
+          python3 .github/scripts/test_beyond_earth_emulator_script.py
           python3 .github/scripts/tutor_smoke_api.py --self-test
+          python3 .github/scripts/beyond_earth_image_preflight.py --base-url https://padippupal-curriculum-api.onrender.com --manifest-output beyond-earth-image-manifest.json
 
       - name: Enable KVM hardware acceleration for the emulator
         run: |
@@ -68,10 +72,13 @@ jobs:
           test -e /dev/kvm && ls -l /dev/kvm
           test -r /dev/kvm && test -w /dev/kvm
 
-      # Use a deterministic local API fixture rather than production Render.
-      # The emulator must test this PR's client behavior, not a separately deployed
-      # main-branch backend or mutable curriculum data.
+      # Tutor lesson content is deterministic. The Beyond Earth image routes in
+      # this fixture proxy only the 19 preflight-verified production image GETs.
+      # No production writes or mutable lesson-generation calls are made.
       - name: Start deterministic tutor smoke API
+        env:
+          PADIPPUPAL_IMAGE_SOURCE_BASE: https://padippupal-curriculum-api.onrender.com
+          PADIPPUPAL_BEYOND_EARTH_MANIFEST_FILE: beyond-earth-image-manifest.json
         run: |
           python3 .github/scripts/tutor_smoke_api.py --host 0.0.0.0 --port 8765 > /tmp/padippupal-smoke-api.log 2>&1 &
           echo $! > /tmp/padippupal-smoke-api.pid
@@ -114,6 +121,8 @@ jobs:
             # Run diary picker acceptance first so unrelated tutor failures cannot mask it.
             bash .github/scripts/diary_crop_emulator_test.sh
             bash .github/scripts/android-ui-smoke-retry.sh
+            # Dedicated live UI proof: Science -> Beyond Earth -> production-mapped image manifest + bytes.
+            bash .github/scripts/beyond_earth_emulator_test.sh
 
       - name: Record test outcomes and failure diagnostics
         if: always()
@@ -146,5 +155,12 @@ jobs:
             live-resumed.xml
             live-complete.xml
             ui-screenshots/live-complete.png
+            ui-screenshots/beyond-earth-inline.png
+            ui-screenshots/beyond-earth-failure.png
+            ui-screenshots/beyond-earth-image-test.txt
+            beyond-live.xml
+            beyond-chapter-selected.xml
+            beyond-ready-to-teach.xml
+            beyond-earth-image-manifest.json
           if-no-files-found: warn
           retention-days: 14

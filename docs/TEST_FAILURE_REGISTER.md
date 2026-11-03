@@ -320,3 +320,44 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `bab28a9060ae8e86db31b18141739df877d30377` shortens the capture window to 12 frames at 0.5-second intervals (about six seconds) so the highlight scan samples the active lesson sooner.
 - **Regression check:** Re-run `android-ui-smoke.sh`; it must capture the active tutor screen, find the inline visual, and detect a moving spoken-word highlight across at least two positions.
 - **Validation:** Pending fresh Android emulator run. Do not close this incident or merge until the emulator flow passes.
+
+
+## Incident: Beyond Earth image-mapping JVM tests initialized Android UI classes
+
+- **Date:** 2026-11-03
+- **Affected PR:** [#168](https://github.com/Prav1525/Padippupal/pull/168), branch `fix/beyond-earth-render-all-mapped-images`.
+- **Evidence:** Android UI smoke run [41589927143](https://github.com/Prav1525/Padippupal/actions/runs/41589927143), commit `6d4dbac3f6e98964d70dfc3930f971bbe68025d5`; 9 JVM tests completed and 4 new mapping tests failed with `ExceptionInInitializerError` followed by `NoClassDefFoundError`. APK build workflow [41589927196](https://github.com/Prav1525/Padippupal/actions/runs/41589927196) passed.
+- **Root cause:** **CONFIRMED** the pure image mapping helper was declared in `TutorScreen.kt`. Calling its file-level function from JVM tests initialized the Android/Compose-heavy Kotlin file facade, which is not safe in the local JVM test environment.
+- **Correction:** Moved `BeyondEarthImageAsset` and `matchingBeyondEarthImageAssets` into standalone `BeyondEarthImageMapping.kt`, isolating the pure logic from Compose UI initialization. Existing regression tests now exercise the standalone helper.
+- **Validation:** Fresh exact-head JVM tests and emulator run are pending. The failed run did not reach APK/emulator stages in the smoke workflow. Do not merge until the new exact-head tests and emulator checks pass. No production DB changes, merge, or deployment performed.
+
+
+## Incident: production image GET allowlist conflicted with deterministic-backend workflow guard
+
+- **Date:** 2026-11-03
+- **Affected PR:** [#173](https://github.com/Prav1525/Padippupal/pull/173), branch `test/beyond-earth-emulator-fixture`.
+- **Evidence:** Android UI smoke run [41598096265](https://github.com/Prav1525/Padippupal/actions/runs/41598096265), exact tested head `a0a5409d20fa0a7069eb44de554e3709f05264d9`; script-validation step failed in `test_emulator_workflow_uses_deterministic_local_backend_fixture`.
+- **Observed failure:** JVM tests and APK build passed. Script validation failed because the existing regression test rejected every occurrence of the production API URL, including the new read-only image-manifest preflight and image-byte proxy. The emulator was skipped; no Beyond Earth UI claim can be made from this run.
+- **Root cause:** **CONFIRMED** the old guard treated any production URL as a production lesson-generation dependency. The new test intentionally uses the production API only for read-only image GETs, while the Android app and lesson-plan fixture still use the emulator-local deterministic API.
+- **Fix:** Commit `5e36dec9333d35630f9640ced58716591425b080` narrows the guard: exactly two production URL occurrences are permitted (manifest preflight and image-source proxy), and the app's `PADIPPUPAL_API_BASE_URL` is still forbidden from pointing at production.
+- **Regression check:** `python3 .github/scripts/test_ui_smoke_helpers.py` plus the full script-validation step; then the API-35 emulator flow must reach the production-image preflight and Science → Beyond Earth inline-image assertion.
+- **Validation:** Fix is committed on the PR branch. Fresh exact-head CI and the 19-image production preflight are **PENDING**. No production writes, merge, or deployment performed.
+
+## Incident: Beyond Earth emulator setup split the profile initialization command
+
+- **Date:** 2026-11-03
+- **Affected PR:** [#173](https://github.com/Prav1525/Padippupal/pull/173), branch `test/beyond-earth-emulator-fixture`.
+- **Evidence:** Android UI smoke run [41598339274](https://github.com/Prav1525/Padippupal/actions/runs/41598339274), job `125790894012`.
+- **Observed failure:** JVM tests, APK build, script validation, and the read-only production image preflight passed. The preflight fetched and decoded all 19 images. The dedicated emulator script stopped during profile setup with `mkdir: Needs 1 argument`.
+- **Root cause:** **CONFIRMED** ADB split the `sh -c` script into separate remote-shell arguments. The remote shell interpreted `mkdir -p` as the command string and did not pass `shared_prefs` to mkdir.
+- **Fix:** Quote the complete `run-as ... sh -c '...'` command as one remote command argument to `adb shell`.
+- **Regression prevention:** Added `.github/scripts/test_beyond_earth_emulator_script.py` and wired it into smoke-script validation. It checks single-argument remote quoting and the profile-file existence assertion.
+- **Validation:** Pending a fresh exact-head Android API 35 run. The prior run never reached Science → Beyond Earth → Teach, so inline image rendering remains unverified. No production writes, merge, or deployment performed.
+
+
+## Incident: Beyond Earth emulator assertion expected a nonexistent image-count label
+
+- **Symptom:** Android emulator run [41600114010](https://github.com/Prav1525/Padippupal/actions/runs/41600114010) passed JVM tests, APK build, script validation, and navigation to the Beyond Earth live tutor, but the image assertion timed out after 90 seconds.
+- **Root cause:** The assertion required a numeric UI string matching `N original textbook image(s)`. The actual Compose tutor UI renders the section heading `Beyond Earth — original textbook images` and exposes the loaded image as an `android.widget.ImageView` with a manifest-backed `content-desc`. The checker rejected the real UI contract before it evaluated the image node; this was a stale test expectation, not evidence that the app had no image.
+- **Fix:** Commit `f4ab22beea71663b7a16bd9f3d1f89acd263cee6` updates the assertion to require the actual section heading, a real ImageView whose accessible label exactly matches a title/alt_text in the production manifest, and a decodable emulator screenshot. Commit `3cc1d84f9a736e570047fb72787c9261eba6a486` adds positive and negative regression tests; the Android UI workflow runs them before emulator allocation.
+- **Validation:** Local validation against the captured failing-run XML and screenshot, followed by fresh CI on the updated PR head, is required before this incident can be closed. Keep PR #173 open and unmerged until the complete emulator acceptance test passes.

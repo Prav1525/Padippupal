@@ -243,7 +243,14 @@ class BackendWarmupRegressionTests(unittest.TestCase):
         self.assertIn("http://127.0.0.1:8765/health", workflow)
         self.assertIn("http://10.0.2.2:8765", workflow)
         self.assertIn('test "$ready" -eq 1', workflow)
-        self.assertNotIn("https://padippupal-curriculum-api.onrender.com", workflow)
+        production_image_source = "https://padippupal-curriculum-api.onrender.com"
+        # Production is permitted only for the read-only 19-image preflight and
+        # the local fixture's image-byte proxy. The Android app itself must still
+        # point at the deterministic emulator-local API, never production.
+        self.assertEqual(workflow.count(production_image_source), 2)
+        self.assertIn("--base-url " + production_image_source, workflow)
+        self.assertIn("PADIPPUPAL_IMAGE_SOURCE_BASE: " + production_image_source, workflow)
+        self.assertNotIn("PADIPPUPAL_API_BASE_URL=" + production_image_source, workflow)
         self.assertLess(workflow.index("Start deterministic tutor smoke API"), workflow.index("Launch app in Android emulator"))
 
 

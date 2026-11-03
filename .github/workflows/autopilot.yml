@@ -88,6 +88,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROCEED_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
           PROCEED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PROCEED_REUSE_EVENT: ${{ github.event_name == 'pull_request' && 'pull_request' || '' }}
         run: python tools/padippupal_proceed_controller.py
 
   comment-proceed-cycle:
@@ -145,6 +146,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROCEED_REF: ${{ steps.target.outputs.ref }}
           PROCEED_SHA: ${{ steps.target.outputs.sha }}
+          PROCEED_REUSE_EVENT: pull_request
         run: python tools/padippupal_proceed_controller.py
 
   record-ci-result:

@@ -680,3 +680,14 @@ Use this format:
 - **Expected behavior:** All five checks start from the same pushed SHA; controller polls each active run every 300 seconds and reports a consolidated result. If any exact run is not discoverable, it reports `run_not_found` rather than silently testing another commit.
 - **Safety:** No merge, deployment, production database mutation, or public release. The deployed API workflow performs read-only requests.
 - **Verification:** Pending PR CI on the exact proposed commit; do not treat the code change as proven until the coordinated matrix and regression checks finish.
+
+
+### 2026-11-03 — Add user-visible Proceed lifecycle reporting
+- **Branch / PR:** `fix/autopilot-user-visible-reporting` / PR #199.
+- **Base / tested head:** `main@c166296275c1f91e8c11e95366ee175deb522a64` / `4dba56f07b4e9914f61122d11e2ee13a36096f96`.
+- **Requirement:** A running coordinator must proactively publish a start notice, five-minute checkpoints and a terminal consolidated result, rather than leaving status only in Actions logs.
+- **Root cause:** **CONFIRMED** — the existing controller polled child runs and wrote a GitHub Actions step summary, but had no durable user-visible notification channel.
+- **Change:** Create a per-cycle GitHub status issue, post a start update, post stage/run-state checkpoints from the controller's five-minute poll loop, and post a consolidated completion result. Grant `issues:write` only to the coordinated controller job.
+- **Verification evidence:** PR #199 CI started. Investigation Guidance Gate run [41641424875](https://github.com/Prav1525/Padippupal/actions/runs/41641424875) failed because this required investigation record had not yet been appended; this is a documentation-gate failure, not a controller test result. AutoPilot validation [41641424874](https://github.com/Prav1525/Padippupal/actions/runs/41641424874), APK build [41641424754](https://github.com/Prav1525/Padippupal/actions/runs/41641424754), and emulator smoke [41641424861](https://github.com/Prav1525/Padippupal/actions/runs/41641424861) were still running at the time of this record.
+- **What remains unverified:** Controller syntax/unit tests, successful issue creation/commenting under the workflow token, actual five-minute checkpoint delivery, and terminal report delivery. No merge, deployment, production DB write, or public release is authorized by this change.
+- **Next action:** Rerun the complete PR validation after this record is included; inspect failures and logs, then verify the reporter behavior with a safe test or a real authorized coordinator run before merge.

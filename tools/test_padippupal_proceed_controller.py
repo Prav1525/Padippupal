@@ -2,8 +2,8 @@ import unittest
 from threading import Barrier
 from datetime import datetime, timezone
 
-from padippupal_proceed_controller import (MONITOR_INTERVAL_SECONDS, PIPELINE_STAGES,
-                                             resolve_target, run_pipeline)
+from padippupal_proceed_controller import (GitHubStatusReporter, MONITOR_INTERVAL_SECONDS,
+                                             PIPELINE_STAGES, resolve_target, run_pipeline)
 
 
 class FakeGitHubActionsAPI:
@@ -119,6 +119,44 @@ class DelayedFakeGitHubActionsAPI(FakeGitHubActionsAPI):
                 run["conclusion"] = None
             return run
         return super().request(method, path, payload)
+
+
+
+class FakeReporterAPI:
+    def __init__(self):
+        self.calls = []
+        self.issue = {"number": 42, "html_url": "https://github.com/example/repo/issues/42"}
+
+    def request(self, method, path, payload=None):
+        self.calls.append((method, path, payload))
+        if method == "POST" and path == "/issues":
+            return self.issue
+        if method == "POST" and path == "/issues/42/comments":
+            return {"id": len(self.calls)}
+        raise AssertionError(f"Unexpected reporter API call: {method} {path}")
+
+
+class StatusReporterTests(unittest.TestCase):
+    def test_reporter_creates_issue_and_posts_lifecycle_updates_with_real_newlines(self):
+        api = FakeReporterAPI()
+        reporter = GitHubStatusReporter(api, "feature/reporting", "deadbeef123456")
+        reporter.start()
+        reporter.post("Proceed cycle started.")
+        reporter.post("Five-minute monitor checkpoint — **Android APK**: in_progress / pending")
+        reporter.finish([
+            {"name": "Android APK", "status": "success", "url": "https://example.test/run/1"}
+        ])
+
+        self.assertEqual(api.calls[0][0:2], ("POST", "/issues"))
+        issue_body = api.calls[0][2]["body"]
+        self.assertIn("\n", issue_body)
+        self.assertNotIn("\\n", issue_body)
+        self.assertIn("Exact SHA: `deadbeef123456`", issue_body)
+        self.assertEqual(len(api.calls), 4)
+        self.assertTrue(all(call[1] == "/issues/42/comments" for call in api.calls[1:]))
+        self.assertIn("Five-minute monitor checkpoint", api.calls[2][2]["body"])
+        self.assertIn("Proceed cycle completed — PASS", api.calls[3][2]["body"])
+        self.assertIn("Android APK", api.calls[3][2]["body"])
 
 
 class ProceedTargetTests(unittest.TestCase):

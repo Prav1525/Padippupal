@@ -16,6 +16,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from threading import Lock
 from typing import Callable
 
 API_ROOT = "https://api.github.com"
@@ -69,6 +70,43 @@ class GitHubActionsAPI:
             raise RuntimeError(f"GitHub API {method} {path} returned {exc.code}: {detail}") from exc
 
 
+class GitHubStatusReporter:
+    """Publish lifecycle and five-minute heartbeat updates to a durable GitHub issue."""
+    def __init__(self, api: GitHubActionsAPI, ref: str, sha: str) -> None:
+        self.api = api
+        self.ref = ref
+        self.sha = sha
+        self.lock = Lock()
+        self.issue_number = None
+
+    def start(self) -> None:
+        issue = self.api.request("POST", "/issues", {
+            "title": f"[AutoPilot status] {self.ref} @ {self.sha[:12]}",
+            "body": ("## PadippuPal Proceed cycle — IN PROGRESS\n\n"
+                     f"- Branch: `{self.ref}`\n- Exact SHA: `{self.sha}`\n"
+                     f"- Started: {datetime.now(timezone.utc).isoformat()}\n\n"
+                     "This issue is the durable user-visible status channel. Updates are posted "
+                     "at start, every five-minute monitor checkpoint, and completion."),
+        })
+        self.issue_number = issue["number"]
+        print(f"USER_REPORT_ISSUE={issue.get('html_url', '')}")
+
+    def post(self, message: str) -> None:
+        if self.issue_number is None:
+            return
+        with self.lock:
+            self.api.request("POST", f"/issues/{self.issue_number}/comments", {
+                "body": f"**{datetime.now(timezone.utc).isoformat()}** — {message}"
+            })
+
+    def finish(self, results: list[dict]) -> None:
+        failed = [item for item in results if item["status"] != "success"]
+        outcome = "ATTENTION REQUIRED" if failed else "PASS"
+        rows = "\n".join(f"- **{item['name']}**: {item['status']} "
+                           f"{item.get('url', '')}" for item in results)
+        self.post(f"## Proceed cycle completed — {outcome}\n\n{rows}")
+
+
 def _created_at(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -117,7 +155,7 @@ def run_stage(api, stage: dict, ref: str, sha: str, *,
               sleep: Callable[[float], None] = time.sleep,
               monotonic: Callable[[], float] = time.monotonic,
               now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
-              reuse_event: str = "") -> dict:
+              reuse_event: str = "", on_poll: Callable[[str, dict], None] | None = None) -> dict:
     workflow = stage["workflow"]
     dispatched_at = now()
     run = None
@@ -176,6 +214,7 @@ def run_stage(api, stage: dict, ref: str, sha: str, *,
     run_id = run["id"]
     run_url = run.get("html_url", "")
     deadline = monotonic() + stage.get("timeout_seconds", DEFAULT_STAGE_TIMEOUT_SECONDS)
+    last_report_at = monotonic()
     while monotonic() < deadline:
         try:
             current = api.request("GET", f"/actions/runs/{run_id}")
@@ -186,6 +225,9 @@ def run_stage(api, stage: dict, ref: str, sha: str, *,
             return {"name": stage["name"], "workflow": workflow, "run_id": run_id,
                     "url": current.get("html_url", run_url),
                     "status": current.get("conclusion") or "unknown"}
+        if on_poll and monotonic() - last_report_at >= MONITOR_INTERVAL_SECONDS:
+            on_poll(stage["name"], current)
+            last_report_at = monotonic()
         sleep(min(MONITOR_INTERVAL_SECONDS, max(0, deadline - monotonic())))
 
     return {"name": stage["name"], "workflow": workflow, "run_id": run_id,
@@ -199,7 +241,8 @@ def run_pipeline(api, ref: str, sha: str, *,
                  monotonic: Callable[[], float] = time.monotonic,
                  now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
                  reuse_event: str = "",
-                 emit: Callable[[str], None] = print) -> list[dict]:
+                 emit: Callable[[str], None] = print,
+                 on_poll: Callable[[str, dict], None] | None = None) -> list[dict]:
     """Dispatch and monitor every independent workflow concurrently.
 
     Results retain the declared matrix order even though each stage dispatches
@@ -212,7 +255,8 @@ def run_pipeline(api, ref: str, sha: str, *,
 
     def execute(stage):
         return run_stage(api, stage, ref, sha, sleep=sleep,
-                         monotonic=monotonic, now=now, reuse_event=reuse_event)
+                         monotonic=monotonic, now=now, reuse_event=reuse_event,
+                         on_poll=on_poll)
 
     with ThreadPoolExecutor(max_workers=len(stages),
                             thread_name_prefix="padippupal-check") as pool:
@@ -266,8 +310,17 @@ def main() -> int:
     except ValueError as exc:
         raise SystemExit(f"BLOCKED: {exc}") from exc
     api = GitHubActionsAPI(token, repository)
-    results = run_pipeline(api, ref, sha, reuse_event=os.environ.get("PROCEED_REUSE_EVENT", ""))
+    reporter = GitHubStatusReporter(api, ref, sha)
+    reporter.start()
+    reporter.post("Proceed cycle started. Coordinated checks are being discovered and monitored.")
+    def report_poll(stage_name: str, run: dict) -> None:
+        reporter.post(f"Five-minute monitor checkpoint — **{stage_name}**: "
+                      f"{run.get('status', 'unknown')} / {run.get('conclusion') or 'pending'} "
+                      f"({run.get('html_url', 'run link unavailable')})")
+    results = run_pipeline(api, ref, sha, reuse_event=os.environ.get("PROCEED_REUSE_EVENT", ""),
+                           on_poll=report_poll)
     write_summary(results)
+    reporter.finish(results)
     return 0 if all(item["status"] == "success" for item in results) else 1
 
 

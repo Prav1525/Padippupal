@@ -3,15 +3,17 @@
 **Last updated:** 2026-11-03
 **Rule:** Live GitHub evidence supersedes historical notes. One canonical trigger and one shared state; no parallel agents or ledgers.
 
-## Unified trigger consolidation — PR #186
+## Unified engineering agent — PR #186
 - **PR:** https://github.com/Prav1525/Padippupal/pull/186
 - **Branch:** `chore/closed-loop-agent-contract`
-- **Intent:** combine the “Proceed” Engineering OS trigger, the full-cycle CI controller, and the closed-loop `AGENTS.md` contract into one coherent PR.
-- **Single entry point:** `docs/AUTOPILOT_TRIGGER_PROMPT.md`; “Proceed” recovers whole-project state and chooses the next approved task. The same existing `.github/workflows/autopilot.yml` provides policy validation, CI event recording, and manual `full-cycle` coordination.
-- **Shared records:** `docs/approved-work.json`, `.engineering/tasks/active-work.md`, `TEST_INVESTIGATION.md`, existing failure registers and exact PR/SHA evidence.
-- **Controller capability:** CI dispatch/poll/summary only; no autonomous code repair and no durable cross-run repair-generation counter. ChatGPT engineering session remains responsible for approved code repair and end-to-end acceptance.
-- **Next:** validate exact PR head, inspect every check to terminal status, repair any failure without weakening tests, and leave unmerged pending explicit approval.
-- **Related older proposals:** PR #63 and PR #65 were closed as superseded by this consolidation, without merging. Their trigger-contract and controller changes are included in this branch.
+- **Latest documentation consolidation commit:** `26f7ae6a9825d949e03ac00afc9375b8f43fabec`
+- **Intent:** one integrated PadippuPal engineering agent, one trigger (`Proceed`), one operating contract, one active-work handoff and one approved-work ledger.
+- **Canonical responsibilities:** `AGENTS.md` owns agent behavior and authority; `TESTING_GUIDANCE.md` owns test/build-specific rules; `docs/AUTOPILOT_TRIGGER_PROMPT.md` is the only reusable trigger and delegates to those two sources; `.engineering/README.md` is only an index.
+- **AutoPilot:** the existing `.github/workflows/autopilot.yml` and `tools/padippupal_autopilot.py` remain the CI/policy/evidence subsystem. `tools/padippupal_proceed_controller.py` coordinates existing checks. No second workflow family, agent, task database, or source of truth.
+- **Redundancy cleanup:** shortened the trigger to a single invocation contract, removed duplicated operating-model text from test guidance, converted Engineering OS README to a canonical index, and reduced the AutoPilot overview to an architecture note.
+- **Capability boundary:** the CI controller dispatches/polls checks; it is not an AI code-repair worker. Direct dispatch of GitHub Actions from the chat connector is not available in this session. The chat-level `Proceed` instruction resumes the integrated engineering workflow but must not claim a background Actions run was dispatched. Durable cross-run repair-generation accounting is not implemented.
+- **Verification on this latest docs-only commit:** file writes succeeded. No workflow runs were returned for exact SHA `26f7ae6a9825d949e03ac00afc9375b8f43fabec` at last check; exact-head CI validation remains pending/unverified.
+- **Next:** verify PR #186 checks on its latest head; inspect for any remaining duplicated instructions or contradictory references; leave unmerged pending explicit approval.
 
 ## Concurrent user-requested acceptance: Beyond Earth original PDF images
 - **Feature PR:** https://github.com/Prav1525/Padippupal/pull/168
@@ -23,15 +25,10 @@
 ## Historical handoff notes
 
 ## Previous Phase 1 / older visual work notes
-
 - **PR:** [#59](https://github.com/Prav1525/Padippupal/pull/59)
 - **Head at last check:** `0383b1fe9690ff3c97dcc901c64710be04ddba14`
 - **Scope:** CBSE Class 6 Science, Beyond Earth; native Compose Canvas visuals; no SVG; labelled diagrams; progressive reveal; inline tutor flow.
-- **Latest checks on that head:**
-  - [Android APK run 40989118308](https://github.com/Prav1525/Padippupal/actions/runs/40989118308): PASS.
-  - [Curriculum tests run 40989118292](https://github.com/Prav1525/Padippupal/actions/runs/40989118292): PASS.
-  - [Investigation guidance run 40989118330](https://github.com/Prav1525/Padippupal/actions/runs/40989118330): PASS.
-  - [Android UI smoke run 40989118437](https://github.com/Prav1525/Padippupal/actions/runs/40989118437): FAIL at script validation before emulator startup; runtime behavior remains UNVERIFIED.
+- **Latest checks on that head:** Android APK run 40989118308 PASS; Curriculum tests run 40989118292 PASS; Investigation guidance run 40989118330 PASS; Android UI smoke run 40989118437 FAIL before emulator startup. Runtime behavior remains UNVERIFIED.
 - **Next action:** inspect failing smoke-step logs, fix only the evidence-backed harness issue, rerun emulator validation and inspect screenshots/UI hierarchy for all eight stages.
 - **Release boundary:** do not merge PR #59, deploy or write production DB without explicit founder approval.
 

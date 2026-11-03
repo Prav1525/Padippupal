@@ -653,3 +653,12 @@ Use this format:
 - **What remains unverified:** Latest-head Python tests, actual parallel workflow execution using the new controller after merge, exact-SHA reuse against live PR workflow runs, and full matrix completion. The current PR-triggered cycle may still execute the trusted default-branch controller until the candidate is merged; do not treat that run as proof of the new controller implementation.
 - **Difference from previous attempt:** Adds implementation-level concurrency and duplicate-run avoidance rather than only documenting one-shot testing; retains the same approved-work and no-production-change boundaries.
 - **Next action and why:** Rerun the investigation gate and AutoPilot unit tests on the ledger-updated exact head; inspect all matrix results and logs. No merge, deployment, production DB write, or public release is authorized by this change.
+
+
+### 2026-11-03 — Correct concurrent-dispatch regression assertion
+- **Branch / PR:** `fix/proceed-coordinated-trigger` / PR #194.
+- **Failure evidence:** AutoPilot run [41634204369](https://github.com/Prav1525/Padippupal/actions/runs/41634204369) failed in `test_each_stage_is_dispatched_once_without_blind_retry` because the test compared dispatch completion order to the declared pipeline order while dispatch is concurrent.
+- **Root cause:** **CONFIRMED** — concurrent workers may append dispatch records in a different order; the behavior under test is exactly-once dispatch of every configured workflow, not dispatch completion ordering.
+- **Repair:** Change the regression assertion to compare the dispatched workflow collection independent of order and separately assert the expected count. This preserves the no-blind-retry guarantee without weakening coverage.
+- **Five-minute monitor:** The exact-head test `test_controller_monitors_active_test_runs_every_five_minutes` passed in the same failed run; it asserted a 300-second interval.
+- **Remaining verification:** Rerun the complete coordinated PR validation on the repaired head, including controller tests, APK, and emulator UI smoke. No merge, deployment, production DB write, or public release.

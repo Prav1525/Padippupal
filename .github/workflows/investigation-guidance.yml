@@ -23,4 +23,14 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: python3 .github/scripts/validate_investigation_ledger.py
+        run: |
+          set -euo pipefail
+          # Workflow-dispatched child checks do not carry pull_request.base.sha
+          # or github.event.before. Derive the merge base against the trusted
+          # default branch so the ledger check still compares the intended PR.
+          if [ -z "${BASE_SHA}" ]; then
+            git fetch origin main --no-tags
+            BASE_SHA="$(git merge-base origin/main "${HEAD_SHA}")"
+          fi
+          export BASE_SHA HEAD_SHA
+          python3 .github/scripts/validate_investigation_ledger.py

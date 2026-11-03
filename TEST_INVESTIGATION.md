@@ -632,3 +632,10 @@ Use this format:
 - **Capability boundary:** controller is CI orchestration/evidence collection only. ChatGPT session still performs approved product repair. Durable cross-run repair generation counting and unattended AI code repair remain unimplemented.
 - **Safety:** no merge, deployment, production DB mutation, or public release. The full-cycle dispatch is only run when explicitly launched; do not claim a chat “Proceed” dispatched GitHub Actions unless a run confirms it.
 - **Required verification:** exact-head AutoPilot validation/unit tests and Investigation Guidance Gate must pass; inspect APK and UI smoke independently. A generic UI smoke is not Beyond Earth-specific acceptance evidence.
+
+
+### 2026-11-03 — Retire duplicate Proceed proposals
+- After copying the unified trigger contract and full-cycle controller into PR #186, closed PRs #63 and #65 as superseded; neither was merged.
+- Consolidated candidate remains PR #186 only. Its AutoPilot validation and both Python test suites passed on SHA `9bb649e675d2e3625c899c15a07dc51df1666d66` (run [41623351556](https://github.com/Prav1525/Padippupal/actions/runs/41623351556)).
+- Android APK build and generic UI smoke remain in progress; Beyond Earth-specific emulator screenshot acceptance also remains in progress. No full-cycle dispatch has been launched from chat because the connected GitHub action set does not expose workflow dispatch.
+- No merge, production deployment, production database mutation, or public release occurred.

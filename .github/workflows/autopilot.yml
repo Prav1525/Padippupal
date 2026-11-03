@@ -46,7 +46,9 @@ permissions:
 
 concurrency:
   group: padippupal-autopilot-${{ github.event.workflow_run.id || github.event.pull_request.number || github.event.issue.number || github.ref }}
-  cancel-in-progress: false
+  # A newer PR head supersedes its stale coordinator; dispatched child runs
+  # are still tracked by their exact SHA and are never silently treated as current.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:

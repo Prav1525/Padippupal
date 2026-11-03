@@ -9,8 +9,24 @@ REPORT=ui-screenshots/diary-test/report.txt
 log(){ printf '%s\n' "$*" | tee -a "$REPORT"; }
 dump_ui(){
   local name="$1"
-  timeout 20s "${ADB[@]}" shell uiautomator dump "/data/local/tmp/${name}.xml" >/dev/null
-  timeout 10s "${ADB[@]}" pull "/data/local/tmp/${name}.xml" "ui-screenshots/diary-test/${name}.xml" >/dev/null
+  local remote="/data/local/tmp/${name}.xml"
+  local local_xml="ui-screenshots/diary-test/${name}.xml"
+  # API 35 can transiently return "null root node" from UiTestAutomationBridge
+  # immediately after a system Photo Picker transition. Retry only the UI dump;
+  # never reuse a stale tree, and fail with an explicit diagnostic after 3 tries.
+  for attempt in 1 2 3; do
+    rm -f "$local_xml"
+    "${ADB[@]}" shell rm -f "$remote" >/dev/null 2>&1 || true
+    if timeout 20s "${ADB[@]}" shell uiautomator dump "$remote" >/dev/null 2>&1 \
+       && timeout 10s "${ADB[@]}" pull "$remote" "$local_xml" >/dev/null 2>&1 \
+       && [ -s "$local_xml" ] && grep -q '<hierarchy' "$local_xml"; then
+      return 0
+    fi
+    log "UI hierarchy dump attempt $attempt/3 failed for $name; waiting before fresh retry"
+    sleep 1
+  done
+  log "FAIL: could not obtain a fresh non-empty UI hierarchy for $name after 3 attempts"
+  return 1
 }
 tap_label(){
   local xml="$1" label="$2"

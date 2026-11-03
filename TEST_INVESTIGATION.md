@@ -670,3 +670,13 @@ Use this format:
 - **Root cause:** **CONFIRMED** — the coordinator dispatches the investigation workflow as a child `workflow_dispatch`; that event has no `pull_request.base.sha` or `github.event.before`, so BASE_SHA was empty.
 - **Repair:** For dispatched checks only, fetch trusted `origin/main` and derive the PR comparison base with `git merge-base origin/main HEAD_SHA`; retain the explicit base SHA for pull_request events.
 - **What remains:** Verify the gate on the exact repaired head and complete the controller/APK/emulator coordinated matrix. This is a validation workflow fix; no production changes, merge, or deployment.
+
+
+### 2026-11-03 — Close main-push five-minute monitoring gap
+- **Branch / base:** `fix/main-push-proceed-monitoring` / `main@a3bf890713f131c2d6c1f2aa0e0668e595dc58e0`.
+- **Requirement:** Every post-merge main-branch test run must be tracked by the existing Proceed controller and rechecked every five minutes, without duplicate runs or drift to a newer SHA.
+- **Root cause:** **CONFIRMED** — `.github/workflows/autopilot.yml` coordinated only pull-request and manual full-cycle events. Its `workflow_run` path starts after child completion and only records evidence. In addition, the Investigation Guidance, Curriculum Engine and deployed API workflows did not all start for every main push, so a push coordinator could not reliably reuse an exact-SHA run for every matrix stage.
+- **Change proposed:** Add a main-push coordinator trigger; make all five existing checks run on every main push; reuse exact event/branch/SHA runs; wait up to five minutes for push-run discovery and refuse fallback dispatch for a missing push run. Add regression tests for exact-push reuse and missing-run no-dispatch behavior.
+- **Expected behavior:** All five checks start from the same pushed SHA; controller polls each active run every 300 seconds and reports a consolidated result. If any exact run is not discoverable, it reports `run_not_found` rather than silently testing another commit.
+- **Safety:** No merge, deployment, production database mutation, or public release. The deployed API workflow performs read-only requests.
+- **Verification:** Pending PR CI on the exact proposed commit; do not treat the code change as proven until the coordinated matrix and regression checks finish.

@@ -14,7 +14,7 @@ The detailed, test-specific rules live in **`TESTING_GUIDANCE.md`**. Read it bef
 
 ## Chat-to-GitHub trigger bridge
 
-When the founder says **Proceed** in ChatGPT and an active same-repository PR is the current work target, the ChatGPT session posts the exact `/proceed` command as a comment on that PR. The AutoPilot workflow listens for that command only when it is posted by the repository owner on an open PR authored by the repository owner; it resolves and records the exact PR head branch and SHA, then dispatches and polls the existing checks. The privileged bridge checks out only trusted default-branch controller code and refuses fork PRs.
+When the founder says **Proceed** in ChatGPT and an active same-repository PR is the current work target, the ChatGPT session posts the exact `/proceed` command as a comment on that PR. The AutoPilot workflow listens for that command only when it is posted by the repository owner on an open PR authored by the repository owner; it resolves and records the exact PR head branch and SHA, then dispatches and polls the existing checks. The privileged bridge checks out only trusted default-branch controller code and refuses fork PRs. The same coordinated matrix also runs automatically on qualifying engineering PRs after policy validation; a PR's exact head ref/SHA is passed as data, never executed with the privileged controller token.
 
 This bridge becomes active only after this workflow change is merged into the repository's default branch. Until then, use the existing workflow_dispatch UI. The GitHub workflow runs tests and gathers evidence; the ChatGPT engineering session remains the reasoning and code-repair actor. No unattended model worker, paid model API, or Codex integration is introduced.
 
@@ -34,7 +34,7 @@ This bridge becomes active only after this workflow change is merged into the re
 - **Engineering OS lane (orchestrator):** recover project context, select approved work, coordinate dependencies and own acceptance.
 - **AutoPilot lane (execution and quality subsystem):** enforce deterministic policy checks, observe CI, coordinate existing test workflows and collect evidence.
 - **One shared state:** the approved-work ledger, active-work handoff, investigation history and exact branch/PR/SHA evidence are shared across both lanes.
-- Together they execute **one coordinated cycle**. Neither lane is a separate user-facing agent or trigger.
+- Together they execute **one coordinated cycle**. All independent existing checks are dispatched and monitored concurrently, then reported in one stable matrix. A failed check does not prevent other checks from completing. Neither lane is a separate user-facing agent or trigger.
 
 ## Single-source-of-truth map
 

@@ -573,3 +573,16 @@ Use this format:
 - **What remains unverified:** Updated helper suite, exact-head Android build/emulator flow, screenshot/UI-tree review for the selected Beyond Earth scene and all eight teaching stages, and phone-size label legibility.
 - **Difference from previous attempt:** Replaces a stale exact-source substring check with assertions aligned to the actual runtime contract, without weakening the live UI acceptance checks.
 - **Next action and why:** Run the updated PR checks; if helper validation passes, inspect the uploaded emulator artifact and verify that the actual inline visual appears in the lesson flow. No merge or deployment until all acceptance checks pass and the user approves.
+
+### 2026-11-03 — Fix Science tutor smoke assertion and dispatched investigation gate
+- **Branch / commit under test:** `feature/beyond-earth-whiteboard-native`; prior head `6e8bc8c9b8610425961bc4900f1b554081b70eab`; follow-up gate fix is being committed after this entry.
+- **Test command or workflow URL:** [Android UI smoke run](https://github.com/Prav1525/Padippupal/actions/runs/41678506171); [Investigation Guidance Gate](https://github.com/Prav1525/Padippupal/actions/runs/41678507051).
+- **Result:** **BLOCKED** for visual acceptance; build, JVM tests, smoke-script validation, curriculum engine tests, and deployed API smoke passed on the prior head.
+- **Exact failure or assertion:** The guidance gate received an empty `BASE_SHA` on a dispatched run and exited with `BLOCKED: BASE_SHA and HEAD_SHA are required.` The Android emulator was still running when this record was added; no screenshot proving the tutor drawing has been inspected yet.
+- **Evidence links (logs/screenshots/XML/artifacts):** [Gate failure](https://github.com/Prav1525/Padippupal/actions/runs/41678507051); [Android run](https://github.com/Prav1525/Padippupal/actions/runs/41678506171); [PR #59](https://github.com/Prav1525/Padippupal/pull/59).
+- **Change made (files + rationale):** The chapter assertion was corrected to validate Science, Beyond Earth, and Constellations rather than the stale Mathematics selection. Regression tests cover acceptance of the Science selection and rejection of Mathematics content. The investigation workflow is now being corrected to derive a merge base against `origin/main` when dispatch metadata omits `BASE_SHA`.
+- **Root cause:** **CONFIRMED** for the gate failure by workflow logs: dispatched run supplied an empty base SHA. **CONFIRMED** for the earlier chapter-selection failure: stale Mathematics assertion rejected the selected Science chapter.
+- **What this attempt proves:** Current source changes cover both identified test-harness defects; build and fast test stages passed on the prior head.
+- **What remains unverified:** A fresh gate run, completion of emulator navigation into the actual tutor lesson, labelled inline drawing visibility, and the resulting screenshot.
+- **Difference from previous attempt:** Adds a fallback base-SHA resolution and records the Science visual test incident in the append-only ledger.
+- **Next action and why:** Re-run the gate and emulator test on the new exact head; inspect uploaded tutor screenshots/XML and fix any further navigation or visual failure before considering merge.

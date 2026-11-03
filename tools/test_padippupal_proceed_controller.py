@@ -151,7 +151,7 @@ class StatusReporterTests(unittest.TestCase):
         issue_body = api.calls[0][2]["body"]
         self.assertIn("\n", issue_body)
         self.assertNotIn("\\n", issue_body)
-        self.assertIn("Exact SHA: \`deadbeef123456\`", issue_body)
+        self.assertIn("Exact SHA: `deadbeef123456`", issue_body)
         self.assertEqual(len(api.calls), 4)
         self.assertTrue(all(call[1] == "/issues/42/comments" for call in api.calls[1:]))
         self.assertIn("Five-minute monitor checkpoint", api.calls[2][2]["body"])

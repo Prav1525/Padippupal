@@ -609,3 +609,16 @@ Use this format:
 - **Commits:** `d62fe73780300d03dcc49ab3504e49a6674cca08` (API payload), `552292a88689cfbb503930505577d67922f3ba85` and `4479bae87569e75d3df501e74f9fcd6480998b69` (Android mapping).
 - **Verification status:** Static source inspection confirms the API manifest shape (`images[].id/module_key/step_ids/url/title/alt_text`) matches the Android parser. No exact-head CI runs or status checks were returned. Production image tables were previously observed empty, so live image rendering and screenshot remain unverified.
 - **Safety:** No production write, merge, or deployment performed.
+
+
+### 2026-11-03 — Closed-loop AGENTS contract and CI drift check
+- **Branch / PR:** `chore/closed-loop-agent-contract` / PR #186.
+- **Exact tested head before this record:** `00debad0ac51553be7e8aeac8c36e4268b03d91c`.
+- **Scope:** Extend existing `AGENTS.md` with a closed-loop engineering contract; extend the existing AutoPilot validator/tests so required contract markers cannot silently disappear; run AutoPilot validation when `AGENTS.md` changes.
+- **Checks:** AutoPilot validator + Python compilation/unit-test step PASS on run [41622765004](https://github.com/Prav1525/Padippupal/actions/runs/41622765004). The Investigation Guidance Gate failed on run [41622785358](https://github.com/Prav1525/Padippupal/actions/runs/41622785358).
+- **Exact failure:** `validate_investigation_ledger.py`: `code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Root cause:** **CONFIRMED** — the implementation changed Python validation/tests and workflow configuration without the mandatory append-only investigation record. This is a process-gate failure, not a product-test failure.
+- **Repair:** Add this dated entry, then rerun the gate on the new exact head. Do not treat the earlier AutoPilot PASS as overall PR acceptance.
+- **Limitations:** The new AutoPilot check validates the presence of key contract markers and includes a regression test for missing markers. It is a static drift check, not an autonomous AI repair worker and not technical enforcement of every runtime behavior.
+- **Other checks:** Android APK and generic Android UI smoke on this PR head are separate workflows; the UI smoke uses a general fixture and cannot prove Beyond Earth image acceptance.
+- **Safety:** No merge, production deployment, production DB write, or public release performed.

@@ -16,6 +16,16 @@ WORKFLOW = ROOT / ".github" / "workflows" / "android-ui-smoke.yml"
 
 
 class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
+    def test_ui_hierarchy_dump_retries_transient_null_root_without_reusing_stale_tree(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        dump_helper = source[source.index("dump_ui(){"):source.index("\ntap_label(){")]
+        self.assertIn("for attempt in 1 2 3", dump_helper)
+        self.assertIn('rm -f "$local_xml"', dump_helper)
+        self.assertIn('grep -q \'<hierarchy\' "$local_xml"', dump_helper)
+        self.assertIn("null root node", dump_helper)
+        self.assertIn("after 3 attempts", dump_helper)
+        self.assertIn('return 1', dump_helper)
+
     def test_picker_uses_photo_picker_contract_and_selects_fixture_by_filename(self):
         app = (ROOT / "app" / "src" / "main" / "java" / "com" / "padippupal" / "app" / "StudyFeatures.kt").read_text(encoding="utf-8")
         source = SCRIPT.read_text(encoding="utf-8")

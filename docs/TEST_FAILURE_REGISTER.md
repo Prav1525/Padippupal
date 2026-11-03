@@ -353,3 +353,11 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Quote the complete `run-as ... sh -c '...'` command as one remote command argument to `adb shell`.
 - **Regression prevention:** Added `.github/scripts/test_beyond_earth_emulator_script.py` and wired it into smoke-script validation. It checks single-argument remote quoting and the profile-file existence assertion.
 - **Validation:** Pending a fresh exact-head Android API 35 run. The prior run never reached Science → Beyond Earth → Teach, so inline image rendering remains unverified. No production writes, merge, or deployment performed.
+
+
+## Incident: Beyond Earth emulator assertion expected a nonexistent image-count label
+
+- **Symptom:** Android emulator run [41600114010](https://github.com/Prav1525/Padippupal/actions/runs/41600114010) passed JVM tests, APK build, script validation, and navigation to the Beyond Earth live tutor, but the image assertion timed out after 90 seconds.
+- **Root cause:** The assertion required a numeric UI string matching `N original textbook image(s)`. The actual Compose tutor UI renders the section heading `Beyond Earth — original textbook images` and exposes the loaded image as an `android.widget.ImageView` with a manifest-backed `content-desc`. The checker rejected the real UI contract before it evaluated the image node; this was a stale test expectation, not evidence that the app had no image.
+- **Fix:** Commit `f4ab22beea71663b7a16bd9f3d1f89acd263cee6` updates the assertion to require the actual section heading, a real ImageView whose accessible label exactly matches a title/alt_text in the production manifest, and a decodable emulator screenshot. Commit `3cc1d84f9a736e570047fb72787c9261eba6a486` adds positive and negative regression tests; the Android UI workflow runs them before emulator allocation.
+- **Validation:** Local validation against the captured failing-run XML and screenshot, followed by fresh CI on the updated PR head, is required before this incident can be closed. Keep PR #173 open and unmerged until the complete emulator acceptance test passes.

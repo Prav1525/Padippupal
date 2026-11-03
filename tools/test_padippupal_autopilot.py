@@ -10,6 +10,7 @@ from padippupal_autopilot import (
     classify_log,
     next_generation,
     validate,
+    validate_repair_state,
 )
 
 
@@ -20,6 +21,14 @@ def make_validation_root(root: Path, ledger: dict | None = None, agent_text: str
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("guide", encoding="utf-8")
+    active = root / ".engineering/tasks/active-work.md"
+    active.parent.mkdir(parents=True, exist_ok=True)
+    active.write_text(
+        "<!-- padippupal-repair-state:start -->\\n"
+        '{"schema_version":1,"max_generations":5,"chains":[]}\\n'
+        "<!-- padippupal-repair-state:end -->",
+        encoding="utf-8",
+    )
     (root / "AGENTS.md").write_text(
         agent_text if agent_text is not None else "\n".join(REQUIRED_AGENT_CONTRACT_MARKERS),
         encoding="utf-8",
@@ -55,6 +64,56 @@ class RepairLimitTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             next_generation(-1)
 
+
+class PersistentRepairStateTests(unittest.TestCase):
+    def test_empty_persistent_repair_state_is_valid(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_validation_root(root)
+            ledger = {"tasks": []}
+            self.assertEqual(validate_repair_state(root, ledger), [])
+
+    def test_repair_chain_must_reference_approved_work(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_validation_root(root)
+            state = (
+                '{"schema_version":1,"max_generations":5,"chains":['
+                '{"id":"run-123","originating_run":"123","originating_sha":"abc",'
+                '"task_id":"NOT-APPROVED","status":"OPEN","generations":[]}]}'
+            )
+            path = root / ".engineering/tasks/active-work.md"
+            path.write_text(
+                "<!-- padippupal-repair-state:start -->\\n" + state + "\\n"
+                "<!-- padippupal-repair-state:end -->",
+                encoding="utf-8",
+            )
+            self.assertTrue(any("outside approved work" in item
+                                for item in validate_repair_state(root, {"tasks": []})))
+
+    def test_sixth_generation_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_validation_root(root)
+            generations = [
+                {"number": n, "hypothesis": f"hypothesis {n}", "commit_sha": f"sha{n}",
+                 "verification_run": f"run{n}", "outcome": "FAIL"}
+                for n in range(1, 7)
+            ]
+            state = {"schema_version": 1, "max_generations": 5, "chains": [{
+                "id": "run-123", "originating_run": "123", "originating_sha": "abc",
+                "task_id": "AUTOPILOT-CI-REPAIR", "status": "ESCALATED",
+                "generations": generations,
+            }]}
+            path = root / ".engineering/tasks/active-work.md"
+            path.write_text(
+                "<!-- padippupal-repair-state:start -->\\n" + json.dumps(state) + "\\n"
+                "<!-- padippupal-repair-state:end -->",
+                encoding="utf-8",
+            )
+            approved = {"tasks": [{"id": "AUTOPILOT-CI-REPAIR", "status": "APPROVED"}]}
+            self.assertTrue(any("exceeds five" in item
+                                for item in validate_repair_state(root, approved)))
 
 class ApprovalTests(unittest.TestCase):
     def test_only_exact_approved_task_is_eligible(self):

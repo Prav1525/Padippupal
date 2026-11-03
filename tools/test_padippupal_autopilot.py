@@ -24,8 +24,8 @@ def make_validation_root(root: Path, ledger: dict | None = None, agent_text: str
     active = root / ".engineering/tasks/active-work.md"
     active.parent.mkdir(parents=True, exist_ok=True)
     active.write_text(
-        "<!-- padippupal-repair-state:start -->\\n"
-        '{"schema_version":1,"max_generations":5,"chains":[]}\\n'
+        "<!-- padippupal-repair-state:start -->\n"
+        '{"schema_version":1,"max_generations":5,"chains":[]}\n'
         "<!-- padippupal-repair-state:end -->",
         encoding="utf-8",
     )
@@ -84,7 +84,7 @@ class PersistentRepairStateTests(unittest.TestCase):
             )
             path = root / ".engineering/tasks/active-work.md"
             path.write_text(
-                "<!-- padippupal-repair-state:start -->\\n" + state + "\\n"
+                "<!-- padippupal-repair-state:start -->\n" + state + "\n"
                 "<!-- padippupal-repair-state:end -->",
                 encoding="utf-8",
             )
@@ -107,7 +107,7 @@ class PersistentRepairStateTests(unittest.TestCase):
             }]}
             path = root / ".engineering/tasks/active-work.md"
             path.write_text(
-                "<!-- padippupal-repair-state:start -->\\n" + json.dumps(state) + "\\n"
+                "<!-- padippupal-repair-state:start -->\n" + json.dumps(state) + "\n"
                 "<!-- padippupal-repair-state:end -->",
                 encoding="utf-8",
             )

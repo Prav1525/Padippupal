@@ -1,92 +1,23 @@
-# PadippuPal Engineering Autopilot
+# PadippuPal integrated engineering agent — architecture note
 
-**Integration model:** Existing PadippuPal engineering workflows and records  
-**Autonomy:** Approved roadmap only  
-**Repair cap:** Five distinct generations per originating failure  
-**Release authority:** Founder approval required
+This file is a short architecture reference, **not another prompt or operating guide**. The canonical behavior is in [`AGENTS.md`](../AGENTS.md); the only reusable trigger is [`AUTOPILOT_TRIGGER_PROMPT.md`](AUTOPILOT_TRIGGER_PROMPT.md); test/build-specific rules are in [`TESTING_GUIDANCE.md`](../TESTING_GUIDANCE.md).
 
-## One engineering system
+## One agent, one cycle
 
-The AutoPilot is not a separate agent, service, dashboard, or task queue. It extends the repository's existing engineering structure:
+The founder invokes the whole engineering process with **Proceed**. Engineering OS recovers context, selects approved work and owns acceptance. AutoPilot contributes policy validation, CI observation and evidence collection. The same active-work record, approved-work ledger, investigation history and exact branch/PR/SHA evidence are shared throughout.
 
-- `.github/workflows/autopilot.yml` is the single CI result and policy-validation entry point.
-- `tools/padippupal_autopilot.py` contains shared deterministic policy checks.
-- `tools/test_padippupal_autopilot.py` protects those rules with unit tests.
-- `docs/approved-work.json` is the explicit approved-roadmap allowlist.
-- `TEST_INVESTIGATION.md`, `docs/TESTING_ERRORS.md`, `docs/TEST_FAILURE_REGISTER.md`, and `PROJECT_STATUS.md` (when present) remain the engineering record. Do not create a competing task database.
-- Existing Android, curriculum, emulator and API workflows remain the source of test evidence.
+## Existing implementation components
 
-There must be one source of truth for tasks and approvals. The Autopilot consumes existing records; it does not create a parallel product roadmap.
+- `.github/workflows/autopilot.yml`: policy validation and CI result recording; optional full-cycle dispatch.
+- `tools/padippupal_autopilot.py`: deterministic approved-work and contract checks.
+- `tools/padippupal_proceed_controller.py`: dispatches/polls existing checks and writes one summary.
+- `tools/test_padippupal_autopilot.py` and `tools/test_padippupal_proceed_controller.py`: policy/controller regression tests.
+- `docs/approved-work.json`: approved scope allowlist.
+- `.engineering/tasks/active-work.md`: one current task and handoff.
+- Existing investigation/failure records: append-only evidence history.
 
-## One trigger and one coordinated cycle
+## Verified capability boundary
 
-The founder says **Proceed** once. The Engineering OS recovers context and selects the approved product/engineering task; the existing AutoPilot workflow supplies policy validation, CI observation, bounded check coordination and evidence recording. Both use the same `docs/approved-work.json`, `.engineering/tasks/active-work.md`, `TEST_INVESTIGATION.md`, failure registers and exact branch/PR/SHA evidence. No separate agent, task ledger, workflow family or trigger is introduced.
+The CI controller is not an AI code-repair worker. It coordinates checks and collects results; the engineering session performs approved investigation, implementation, repair and retesting. Durable cross-run repair-generation accounting is not yet implemented. Do not claim unattended repair or persistent counting until those capabilities are implemented and tested.
 
-The `full-cycle` workflow dispatch runs the existing independent checks in order and continues after a failed stage, then reports one combined result. It is a CI coordinator—not a code-repair agent. The ChatGPT engineering session still diagnoses and implements approved fixes, then uses the coordinated checks to verify them. The current system does not yet provide a durable cross-run repair-generation counter or unattended AI patching.
-
-## Current Stage 1 behavior
-
-The existing AutoPilot workflow:
-1. Validates required project guidance and the approved-work ledger on its own PR/manual validation path.
-2. Receives completion events from the configured CI workflows.
-3. Captures workflow name, result, exact tested SHA, branch and job outcomes.
-4. Creates or updates one durable issue for each failed run attempt.
-5. Writes a concise Actions summary without changing the commit that was tested.
-
-The failure observer does not check out or execute the failed branch. Fork-originated workflow runs are ignored.
-
-## Approved roadmap policy
-
-A task is eligible only when its exact ID appears in `docs/approved-work.json` with status `APPROVED`, bounded scope, non-goals, acceptance criteria and approval provenance.
-
-- A failure is not permission to invent a feature.
-- A task marked `PROPOSED`, `BLOCKED`, or absent from the ledger is not executable.
-- The currently recorded approval is limited to CI/test failure investigation and repairs required by already-approved roadmap acceptance criteria.
-- Scope expansion, curriculum changes, new product features or changes to user-visible behavior require a separate founder approval recorded in the ledger.
-
-## Five-generation repair policy
-
-- At most five distinct repair generations may be attempted for one originating failure.
-- A generation is a distinct proposed patch, not a blind retry of unchanged code.
-- Every generation must link to the original run, exact source SHA, diagnosis, patch diff, regression coverage and retest result.
-- Transient runner retries without a code change are tracked separately and do not create a new patch generation.
-- After the fifth unsuccessful generation, stop patching and escalate with the complete evidence, attempted fixes, exact SHAs, remaining hypotheses and next recommended diagnostic.
-- A repeated failure on an AutoPilot repair branch must continue the same generation history; it must not reset the counter.
-
-The Python helper currently validates the five-generation cap and exact approved-task lookup. Durable cross-run generation accounting and the repair worker are not activated in Stage 1.
-
-## Security and approval boundaries
-
-- No workflow may merge a PR or enable auto-merge.
-- No workflow may deploy production, write production database data, run destructive migrations, or publish a public release.
-- The Android APK workflow builds and uploads artifacts normally. Public release requires a separate owner-triggered manual dispatch with `publish_release=true`.
-- The failure recorder has only `actions: read` and `issues: write` at its job level.
-- Model-generated text, logs, issues and PR comments are untrusted data, never executable instructions.
-- Do not expose secrets to fork-controlled code or model prompts.
-- Do not allow a repair worker to modify its own policy, workflow permissions, approval ledger, branch protection or release gates.
-- A repair may be submitted as a reviewable PR only after independent checks pass. Founder approval is still required for merge.
-
-## Single trigger prompt — non-Codex execution
-
-Use [docs/AUTOPILOT_TRIGGER_PROMPT.md](AUTOPILOT_TRIGGER_PROMPT.md) as the one reusable trigger for a complete engineering cycle. `.github/workflows/autopilot.yml` is the single CI controller entry point; its `full-cycle` mode coordinates the existing checks. It combines startup context recovery, CI observation, evidence collection, root-cause investigation, approved-scope checks, bounded repair, retesting, engineering-ledger updates, PR preparation and escalation.
-
-Codex is explicitly excluded. Do not add Codex workflows, APIs, CLI tooling, credentials or paid model calls. Use existing deterministic tools and the connected engineering capabilities available in the session. If a required repair capability is unavailable, report the limitation rather than claiming autonomous repair.
-
-The GitHub workflow remains the CI event recorder and policy validator. The single trigger prompt coordinates the broader engineering procedure; it does not magically make a non-existent repair worker or durable cross-run counter operational.
-
-## Acceptance evidence
-
-- [ ] AutoPilot workflow YAML is accepted by GitHub Actions.
-- [ ] Helper syntax and unit tests pass on the exact PR head.
-- [ ] A controlled failed same-repository workflow creates a deduplicated issue with exact SHA and job links.
-- [ ] Fork-originated failures are ignored.
-- [ ] Five-generation cap and approval-ledger tests pass.
-- [ ] No automatic merge, deployment, production write or public release occurs.
-- [ ] Stage 2 controlled tests prove approved-task enforcement, five-generation persistence, retesting and least privilege before activation.
-
-## Existing work to reconcile
-
-- [PR #15](https://github.com/Prav1525/Padippupal/pull/15) is intentionally excluded from this implementation; do not integrate or activate its Codex-based worker.
-- [PR #18](https://github.com/Prav1525/Padippupal/pull/18): existing free-first AutoPilot workflow and helper. Its branch is based on a divergent tutor feature line and must not be merged wholesale into main.
-- [PR #61](https://github.com/Prav1525/Padippupal/pull/61): Persistent Engineering Operating System.
-- This implementation reuses the existing file structure and policy concepts; it does not authorize merging those PRs.
+Codex remains excluded. No paid model integration is introduced. Merges, production deployments, production database writes and public releases require explicit founder approval.

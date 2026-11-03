@@ -320,3 +320,14 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `bab28a9060ae8e86db31b18141739df877d30377` shortens the capture window to 12 frames at 0.5-second intervals (about six seconds) so the highlight scan samples the active lesson sooner.
 - **Regression check:** Re-run `android-ui-smoke.sh`; it must capture the active tutor screen, find the inline visual, and detect a moving spoken-word highlight across at least two positions.
 - **Validation:** Pending fresh Android emulator run. Do not close this incident or merge until the emulator flow passes.
+
+
+## Incident: transient API 35 UI hierarchy dump failure after Photo Picker selection
+
+- **Date:** 2026-11-03
+- **Evidence:** Android UI smoke run [41666727090](https://github.com/Prav1525/Padippupal/actions/runs/41666727090), job [126023917871](https://github.com/Prav1525/Padippupal/actions/runs/41666727090/job/126023917871), commit `dc05f615de21f541b28ff1b24242adf0f54dc31c`.
+- **Symptom:** After tapping the only visible API 35 system Photo Picker tile, the test logged `ERROR: null root node returned by UiTestAutomationBridge`; pulling `/data/local/tmp/diary-picker-selection-result.xml` failed because the dump file was not created. The job exited with code 1 before it could determine whether the picker returned to PadippuPal.
+- **Root cause status:** The immediate failure is a transient/failed accessibility hierarchy capture at the system picker transition. Available logs do not establish whether the picker interaction itself was accepted; do not infer an app defect or claim the picker flow passed.
+- **Fix:** The shared `dump_ui` helper now removes any prior local/remote dump before each attempt, retries a fresh dump-and-pull up to three times, validates that the pulled file is non-empty and contains a hierarchy root, and then fails with a specific diagnostic. It cannot silently reuse stale accessibility XML.
+- **Regression prevention:** Added `test_ui_hierarchy_dump_retries_transient_null_root_without_reusing_stale_tree` to `.github/scripts/test_diary_emulator_script.py`.
+- **Validation:** Pending coordinated CI on the fix branch. The fix is not accepted until the regression suite and full API 35 emulator flow pass, including Photo Picker return, crop, rescan, review, and planner save. No merge or production action performed.

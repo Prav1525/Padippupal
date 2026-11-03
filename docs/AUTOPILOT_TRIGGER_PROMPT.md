@@ -28,8 +28,6 @@ This bridge becomes active only after this workflow change is merged into the re
 6. Inspect the complete result set and actual artifacts (logs, screenshots, UI hierarchy, API responses and build outputs). If any check fails, diagnose from evidence, make the smallest justified repair within the shared five-generation cap, then rerun the **complete affected acceptance matrix as one coordinated pass** so the final report reflects one consistent tested commit. Avoid duplicate or overlapping runs; do not wait for another user prompt between independent checks.
 7. Update the existing investigation and active-work records; prepare a reviewable PR when appropriate.
 8. Report one consolidated result: each layer's PASS / FAIL / BLOCKED / NOT RUN state, exact tested SHA and run/artifact links, what the combined evidence proves, remaining gaps, and the next action. Never describe a partial test subset as full feature verification.
-7. Update the existing investigation and active-work records; prepare a reviewable PR when appropriate.
-8. Report verified results, what remains unverified, blockers and the next action.
 
 ## Same-invocation operating contract
 

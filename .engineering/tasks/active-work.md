@@ -1,24 +1,27 @@
 # Active work handoff
 
 **Last updated:** 2026-11-03
-**Rule:** One primary implementation objective; keep concurrent user-requested acceptance checks on separate branches/PRs. Live GitHub evidence supersedes historical notes below.
+**Rule:** Live GitHub evidence supersedes historical notes. One canonical trigger and one shared state; no parallel agents or ledgers.
 
-## Active objective: Closed-loop engineering contract + CI drift guard
-- **Branch / PR:** `chore/closed-loop-agent-contract` / [PR #186](https://github.com/Prav1525/Padippupal/pull/186).
-- **Current head before handoff refresh:** `00debad0ac51553be7e8aeac8c36e4268b03d91c`.
-- **Scope:** Existing `AGENTS.md` closed-loop contract plus a static AutoPilot check that fails if key required contract markers disappear; unit test covers a missing-marker regression; AutoPilot workflow now triggers when `AGENTS.md` changes.
-- **Evidence:** AutoPilot validation PASS on [run 41622765004](https://github.com/Prav1525/Padippupal/actions/runs/41622765004). Investigation Guidance Gate FAIL on [run 41622785358](https://github.com/Prav1525/Padippupal/actions/runs/41622785358) because this PR had not yet updated `TEST_INVESTIGATION.md`; entry added immediately after that failure. Gate must be rechecked on the new head.
-- **Known limitation:** This is contract drift detection only. The existing AutoPilot records failed CI and validates policy but does not yet execute autonomous AI repair cycles.
-- **Next action:** Verify Investigation Guidance Gate and all checks on the latest PR head; inspect failures before any retry. Keep PR open and unmerged without explicit approval.
+## Unified trigger consolidation — PR #186
+- **PR:** https://github.com/Prav1525/Padippupal/pull/186
+- **Branch:** `chore/closed-loop-agent-contract`
+- **Intent:** combine the “Proceed” Engineering OS trigger, the full-cycle CI controller, and the closed-loop `AGENTS.md` contract into one coherent PR.
+- **Single entry point:** `docs/AUTOPILOT_TRIGGER_PROMPT.md`; “Proceed” recovers whole-project state and chooses the next approved task. The same existing `.github/workflows/autopilot.yml` provides policy validation, CI event recording, and manual `full-cycle` coordination.
+- **Shared records:** `docs/approved-work.json`, `.engineering/tasks/active-work.md`, `TEST_INVESTIGATION.md`, existing failure registers and exact PR/SHA evidence.
+- **Controller capability:** CI dispatch/poll/summary only; no autonomous code repair and no durable cross-run repair-generation counter. ChatGPT engineering session remains responsible for approved code repair and end-to-end acceptance.
+- **Next:** validate exact PR head, inspect every check to terminal status, repair any failure without weakening tests, and leave unmerged pending explicit approval.
+- **Related older proposals:** PR #63 (unified trigger contract) and PR #65 (sleep/wake controller) are source material for this consolidation; keep them unmerged until the consolidated PR has passed checks and the founder chooses how to retire duplicates.
 
 ## Concurrent user-requested acceptance: Beyond Earth original PDF images
-- **Feature PR:** [#168](https://github.com/Prav1525/Padippupal/pull/168), branch `fix/beyond-earth-render-all-mapped-images`, target base for test PR.
-- **Acceptance harness PR:** [#182](https://github.com/Prav1525/Padippupal/pull/182), branch `test-beyond-earth-emulator-acceptance`, exact head `1a762a264846c553066eda12e9fb09e02b9a3b11`.
-- **Live run:** [41622028202](https://github.com/Prav1525/Padippupal/actions/runs/41622028202) — unit/mapping validation PASS, exact debug APK build PASS, fixture loaded with original production image bytes PASS; emulator launch/screen inspection remains IN PROGRESS. No screenshot artifact exists yet.
-- **Acceptance:** Must retrieve and inspect the actual Beyond Earth tutor screenshot and diagnostic hierarchy. Generic Mathematics smoke is not a substitute.
-- **Safety:** No merge, production deployment, production DB mutation, or public release.
+- **Feature PR:** https://github.com/Prav1525/Padippupal/pull/168
+- **Acceptance harness PR:** https://github.com/Prav1525/Padippupal/pull/182
+- **Exact live run:** https://github.com/Prav1525/Padippupal/actions/runs/41622028202
+- **Required acceptance:** retrieve and inspect the actual Beyond Earth tutor screenshot and diagnostic hierarchy; generic Mathematics smoke is not a substitute.
+- **Safety:** no merge, production deployment, production DB mutation, or public release.
 
 ## Historical handoff notes
+
 ## Previous Phase 1 / older visual work notes
 
 - **PR:** [#59](https://github.com/Prav1525/Padippupal/pull/59)

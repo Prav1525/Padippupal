@@ -17,6 +17,15 @@ REQUIRED_GUIDES = (
     "docs/AUTOPILOT_TRIGGER_PROMPT.md",
     ".github/testing-regression-checklist.md",
 )
+REQUIRED_AGENT_CONTRACT_MARKERS = (
+    "## Closed-loop partner contract (mandatory)",
+    "### 3. Execute a closed loop",
+    "Maximum: five distinct repair generations",
+    "### 4. Treat tests as a proof ladder",
+    "### 6. Hard stop and approval boundaries",
+    "A task is DONE only when its stated acceptance criteria pass and the evidence is recorded.",
+    "Never merge PRs, deploy production, mutate production databases, publish/release publicly",
+)
 
 SIGNATURES = (
     ("runner_infrastructure", ("runner lost communication", "hosted runner", "502 bad gateway", "503 service unavailable")),
@@ -62,6 +71,15 @@ def validate(root: pathlib.Path = ROOT) -> list[str]:
             except (OSError, UnicodeError):
                 errors.append(f"unreadable required guide: {relative}")
 
+    agent_path = root / "AGENTS.md"
+    try:
+        agent_contract = agent_path.read_text(encoding="utf-8")
+        for marker in REQUIRED_AGENT_CONTRACT_MARKERS:
+            if marker not in agent_contract:
+                errors.append(f"AGENTS.md missing closed-loop contract requirement: {marker}")
+    except (OSError, UnicodeError):
+        errors.append("missing or unreadable required guide: AGENTS.md")
+
     ledger_path = root / "docs" / "approved-work.json"
     try:
         ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -95,6 +113,7 @@ def main() -> int:
     print(f"- Approved-roadmap-only ledger: {APPROVED_WORK.relative_to(ROOT)}")
     print(f"- Maximum distinct repair generations: {MAX_REPAIR_GENERATIONS}")
     print("- Required project guidance is present and readable")
+    print("- Closed-loop contract markers are present in AGENTS.md (drift check only; not runtime enforcement)")
     return 0
 
 

@@ -78,6 +78,7 @@ jobs:
     permissions:
       actions: write
       contents: read
+      issues: write
     steps:
       # Run only trusted controller code from the default branch. The target
       # PR ref/SHA are passed as data; PR code never receives this write-capable token.

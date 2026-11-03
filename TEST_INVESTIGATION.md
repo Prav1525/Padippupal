@@ -609,3 +609,12 @@ Use this format:
 - **Commits:** `d62fe73780300d03dcc49ab3504e49a6674cca08` (API payload), `552292a88689cfbb503930505577d67922f3ba85` and `4479bae87569e75d3df501e74f9fcd6480998b69` (Android mapping).
 - **Verification status:** Static source inspection confirms the API manifest shape (`images[].id/module_key/step_ids/url/title/alt_text`) matches the Android parser. No exact-head CI runs or status checks were returned. Production image tables were previously observed empty, so live image rendering and screenshot remain unverified.
 - **Safety:** No production write, merge, or deployment performed.
+
+
+### 2026-11-03 — Render every mapped Beyond Earth image in its tutor module
+- **Area:** Android tutor rendering for the approved Beyond Earth lesson.
+- **Root cause:** `BeyondEarthTextbookPageImage` used `firstOrNull` when matching the image manifest, so only one image per active module/step was downloaded and rendered even when several assets were mapped to that module.
+- **Change:** Replaced first-match selection with deterministic collection matching across the active step and module key, deduplicated by asset ID (URL fallback), decoded all valid mapped image assets, and rendered each image inline with its label and compact spacing. The renderer retains the individual-image endpoint and does not substitute full-page scans or generated SVGs.
+- **Regression coverage:** Added JVM unit tests for all images in a module, the union of step/module matches, duplicate removal, and unmapped modules.
+- **Validation status:** Android APK build and emulator smoke workflow are running for PR #168. The investigation-guidance gate initially failed because this ledger entry was missing; the entry is now added and the gate will be rechecked. The emulator smoke fixture is not yet a Beyond Earth production-image screenshot, so live visual confirmation remains separate.
+- **Production safety:** No production database writes, PR merge, or deployment performed.

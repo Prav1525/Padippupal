@@ -639,3 +639,15 @@ Use this format:
 - Consolidated candidate remains PR #186 only. Its AutoPilot validation and both Python test suites passed on SHA `9bb649e675d2e3625c899c15a07dc51df1666d66` (run [41623351556](https://github.com/Prav1525/Padippupal/actions/runs/41623351556)).
 - Android APK build and generic UI smoke remain in progress; Beyond Earth-specific emulator screenshot acceptance also remains in progress. No full-cycle dispatch has been launched from chat because the connected GitHub action set does not expose workflow dispatch.
 - No merge, production deployment, production database mutation, or public release occurred.
+
+
+### 2026-11-03 — Repair Proceed investigation-gate base SHA resolution
+- **Branch / originating failure:** `fix/proceed-investigation-base-sha`; Proceed run [41626707807](https://github.com/Prav1525/Padippupal/actions/runs/41626707807), failed child gate [41626724941](https://github.com/Prav1525/Padippupal/actions/runs/41626724941), exact tested SHA `1a762a264846c553066eda12e9fb09e02b9a3b11`.
+- **Result:** **BLOCKED** on the originating run; repair candidate pending exact-head CI.
+- **Exact failure:** `BLOCKED: BASE_SHA and HEAD_SHA are required.` The issue-comment-triggered controller dispatched `workflow_dispatch`; that event has no `pull_request.base.sha` or `github.event.before`, leaving BASE_SHA empty.
+- **Evidence:** [Failed investigation gate logs](https://github.com/Prav1525/Padippupal/actions/runs/41626724941); [parent Proceed run](https://github.com/Prav1525/Padippupal/actions/runs/41626707807).
+- **Change made:** Validator now falls back to `git merge-base origin/main HEAD_SHA` when the event does not supply BASE_SHA; a focused regression test covers both the supplied-base and dispatch-fallback paths, and the guidance workflow runs that test before validation.
+- **Root cause:** **CONFIRMED** — workflow_dispatch does not populate the pull_request or push event fields used by the previous BASE_SHA expression.
+- **What this proves:** The failure is an event-context/input wiring defect, not a product, curriculum, Android build, or API smoke failure.
+- **What remains unverified:** The new regression test and gate must pass on the proposed exact commit; no merge, production deployment, or production database change is authorized by this repair.
+- **Next action:** Run the focused test and exact-head Investigation Guidance Gate, then inspect all checks and request review; do not merge automatically.

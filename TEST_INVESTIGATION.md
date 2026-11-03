@@ -662,3 +662,11 @@ Use this format:
 - **Repair:** Change the regression assertion to compare the dispatched workflow collection independent of order and separately assert the expected count. This preserves the no-blind-retry guarantee without weakening coverage.
 - **Five-minute monitor:** The exact-head test `test_controller_monitors_active_test_runs_every_five_minutes` passed in the same failed run; it asserted a 300-second interval.
 - **Remaining verification:** Rerun the complete coordinated PR validation on the repaired head, including controller tests, APK, and emulator UI smoke. No merge, deployment, production DB write, or public release.
+
+
+### 2026-11-03 — Fix dispatched investigation gate base SHA
+- **Branch / PR:** `fix/proceed-coordinated-trigger` / PR #194.
+- **Failure evidence:** Investigation Guidance Gate run [41634522154](https://github.com/Prav1525/Padippupal/actions/runs/41634522154), event `workflow_dispatch`, failed with `BLOCKED: BASE_SHA and HEAD_SHA are required.`
+- **Root cause:** **CONFIRMED** — the coordinator dispatches the investigation workflow as a child `workflow_dispatch`; that event has no `pull_request.base.sha` or `github.event.before`, so BASE_SHA was empty.
+- **Repair:** For dispatched checks only, fetch trusted `origin/main` and derive the PR comparison base with `git merge-base origin/main HEAD_SHA`; retain the explicit base SHA for pull_request events.
+- **What remains:** Verify the gate on the exact repaired head and complete the controller/APK/emulator coordinated matrix. This is a validation workflow fix; no production changes, merge, or deployment.

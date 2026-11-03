@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Single-run coordinator for PadippuPal's existing GitHub Actions checks.
 
-The controller dispatches each independent check once, waits for its run, wakes
-at a bounded interval to inspect status, and continues to later checks even if
-an earlier check fails. It records evidence; it does not repair source code.
+The controller dispatches each independent check once, checks for newly-created
+runs during discovery, then monitors active test runs every five minutes. It
+continues to later checks even if an earlier check fails. It records evidence; it does not repair source code.
 """
 from __future__ import annotations
 
@@ -19,7 +19,8 @@ from pathlib import Path
 from typing import Callable
 
 API_ROOT = "https://api.github.com"
-POLL_INTERVAL_SECONDS = 60
+POLL_INTERVAL_SECONDS = 60  # Fast lookup while waiting for a dispatched run to appear.
+MONITOR_INTERVAL_SECONDS = 5 * 60  # Recheck active test runs every five minutes.
 RUN_DISCOVERY_TIMEOUT_SECONDS = 300
 DEFAULT_STAGE_TIMEOUT_SECONDS = 25 * 60
 
@@ -167,7 +168,7 @@ def run_stage(api, stage: dict, ref: str, sha: str, *,
             return {"name": stage["name"], "workflow": workflow, "run_id": run_id,
                     "url": current.get("html_url", run_url),
                     "status": current.get("conclusion") or "unknown"}
-        sleep(min(POLL_INTERVAL_SECONDS, max(0, deadline - monotonic())))
+        sleep(min(MONITOR_INTERVAL_SECONDS, max(0, deadline - monotonic())))
 
     return {"name": stage["name"], "workflow": workflow, "run_id": run_id,
             "url": run_url, "status": "timed_out",

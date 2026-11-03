@@ -707,3 +707,5 @@ Use this format:
 - **Repair:** Add this evidence record to the same PR branch, then rerun the Investigation Guidance Gate and the complete coordinated validation matrix on the updated exact head.
 - **Acceptance still required:** Verify the gate passes, controller unit tests pass, all required APK/emulator/API checks finish for the same intended SHA, and a safe owner-triggered `/proceed` run successfully creates and updates its lifecycle status issue through a terminal result.
 - **Safety:** No merge, deployment, production database write, or public release is performed by this repair. Keep the PR open pending evidence and explicit approval.
+
+- **CI follow-up:** A new PR-head commit is required to ensure the investigation ledger gate evaluates this record on the updated head; prior run evidence is attached to an earlier head and does not validate this appended entry.

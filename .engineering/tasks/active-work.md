@@ -3,6 +3,14 @@
 **Last updated:** 2026-11-03
 **Rule:** Live GitHub evidence supersedes historical notes. One canonical trigger and one shared state; no parallel agents or ledgers.
 
+## Repair generation state
+
+This block is the durable, machine-readable repair counter for the active work handoff. Keep exactly one block. Carry it forward across commits/branches for the same failure chain; do not reset an open chain.
+
+<!-- padippupal-repair-state:start -->
+{"schema_version":1,"max_generations":5,"chains":[]}
+<!-- padippupal-repair-state:end -->
+
 ## Unified engineering agent — PR #186
 - **PR:** https://github.com/Prav1525/Padippupal/pull/186
 - **Branch:** `chore/closed-loop-agent-contract`
@@ -15,7 +23,9 @@
 - **Targeted correction:** added a concise “Same-invocation operating contract” section to the sole trigger with the required Engineering OS, AutoPilot and shared-state markers. Commit `fcc8dc6086e1aa915c58157186c5d86309139793`. No test assertions were weakened.
 - **Other checks on prior exact SHA `df6e48e...`:** Investigation Guidance Gate run 41624396320 PASS; Android APK run 41624396290 was IN PROGRESS; Android UI smoke run 41624396302 was PENDING. These do not verify the corrected SHA.
 - **Next:** obtain and inspect AutoPilot validation, Investigation Guidance Gate, Android build and UI smoke on the corrected exact PR head. Leave PR unmerged.
-- **Capability boundary:** CI controller dispatches/polls checks; it is not an AI code-repair worker. Direct dispatch from chat connector unavailable. Durable cross-run repair-generation accounting not implemented.
+- **Chat trigger bridge:** the AutoPilot workflow now accepts an owner-authored `/proceed` comment on an open same-repository PR authored by the repository owner. It resolves the exact PR head and runs the existing controller. It is inactive until this PR is merged into the default branch. ChatGPT can post this comment through the connected GitHub issue-comment action once active.
+- **Repair-generation state:** the five-generation counter now lives in the machine-readable block above; AutoPilot validates its schema, approved task linkage, sequential numbering, and hard maximum. The agent must update this shared block for every distinct repair hypothesis and carry it across branches. CI validation does not independently infer whether a hypothesis is genuinely distinct.
+- **Capability boundary:** GitHub Actions executes and observes tests; the ChatGPT engineering session performs evidence-based diagnosis and code repair. No unattended model worker is present (Codex and paid model integrations remain excluded).
 - **Safety:** no merge, production deployment, production DB mutation or public release.
 
 ## Concurrent user-requested acceptance: Beyond Earth original PDF images

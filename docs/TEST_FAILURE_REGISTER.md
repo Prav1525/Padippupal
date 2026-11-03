@@ -330,3 +330,15 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** **CONFIRMED** the pure image mapping helper was declared in `TutorScreen.kt`. Calling its file-level function from JVM tests initialized the Android/Compose-heavy Kotlin file facade, which is not safe in the local JVM test environment.
 - **Correction:** Moved `BeyondEarthImageAsset` and `matchingBeyondEarthImageAssets` into standalone `BeyondEarthImageMapping.kt`, isolating the pure logic from Compose UI initialization. Existing regression tests now exercise the standalone helper.
 - **Validation:** Fresh exact-head JVM tests and emulator run are pending. The failed run did not reach APK/emulator stages in the smoke workflow. Do not merge until the new exact-head tests and emulator checks pass. No production DB changes, merge, or deployment performed.
+
+
+## Incident: production image GET allowlist conflicted with deterministic-backend workflow guard
+
+- **Date:** 2026-11-03
+- **Affected PR:** [#173](https://github.com/Prav1525/Padippupal/pull/173), branch `test/beyond-earth-emulator-fixture`.
+- **Evidence:** Android UI smoke run [41598096265](https://github.com/Prav1525/Padippupal/actions/runs/41598096265), exact tested head `a0a5409d20fa0a7069eb44de554e3709f05264d9`; script-validation step failed in `test_emulator_workflow_uses_deterministic_local_backend_fixture`.
+- **Observed failure:** JVM tests and APK build passed. Script validation failed because the existing regression test rejected every occurrence of the production API URL, including the new read-only image-manifest preflight and image-byte proxy. The emulator was skipped; no Beyond Earth UI claim can be made from this run.
+- **Root cause:** **CONFIRMED** the old guard treated any production URL as a production lesson-generation dependency. The new test intentionally uses the production API only for read-only image GETs, while the Android app and lesson-plan fixture still use the emulator-local deterministic API.
+- **Fix:** Commit `5e36dec9333d35630f9640ced58716591425b080` narrows the guard: exactly two production URL occurrences are permitted (manifest preflight and image-source proxy), and the app's `PADIPPUPAL_API_BASE_URL` is still forbidden from pointing at production.
+- **Regression check:** `python3 .github/scripts/test_ui_smoke_helpers.py` plus the full script-validation step; then the API-35 emulator flow must reach the production-image preflight and Science → Beyond Earth inline-image assertion.
+- **Validation:** Fix is committed on the PR branch. Fresh exact-head CI and the 19-image production preflight are **PENDING**. No production writes, merge, or deployment performed.

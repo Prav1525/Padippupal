@@ -41,13 +41,8 @@ python3 .github/scripts/ui_smoke.py tap-numbered beyond-chapter-menu.xml 1
 sleep 3
 dump beyond-chapter-selected
 grep -qi "Beyond Earth" beyond-chapter-selected.xml || { log "FAIL: Science chapter picker did not select Beyond Earth"; exit 1; }
-python3 .github/scripts/ui_smoke.py tap-topic-picker beyond-chapter-selected.xml
-sleep 2
-dump beyond-topic-menu
-python3 .github/scripts/ui_smoke.py tap-first-concept beyond-topic-menu.xml
-sleep 2
-dump beyond-topic-selected
-python3 .github/scripts/ui_smoke.py tap beyond-topic-selected.xml "Done"
+# Selecting the chapter preselects its first real curriculum topic.
+python3 .github/scripts/ui_smoke.py tap beyond-chapter-selected.xml "Done"
 sleep 3
 dump beyond-ready-to-teach
 python3 .github/scripts/ui_smoke.py assert-tutor beyond-ready-to-teach.xml | tee -a "$REPORT"

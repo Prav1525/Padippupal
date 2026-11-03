@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Beyond Earth emulator fixture: keeps original PDF image bytes from the live curriculum API."""
 from __future__ import annotations
-import importlib.util, json, os, sys, threading
+import importlib.util, json, os, sys, threading, time
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, unquote
@@ -16,9 +16,20 @@ sys.modules[spec.name] = base
 spec.loader.exec_module(base)
 
 def fetch(url):
-    req = Request(url, headers={"Accept": "application/json, image/*"})
-    with urlopen(req, timeout=30) as response:
-        return response.status, response.headers.get("Content-Type", ""), response.read()
+    """Fetch a live asset robustly; Render may be cold-starting after inactivity."""
+    last_error = None
+    for attempt in range(1, 5):
+        try:
+            req = Request(url, headers={"Accept": "application/json, image/*", "User-Agent": "PadippuPal-BeyondEarth-Acceptance/1.0"})
+            with urlopen(req, timeout=90) as response:
+                body = response.read()
+                return response.status, response.headers.get("Content-Type", ""), body
+        except Exception as exc:
+            last_error = exc
+            print(f"Live asset fetch attempt {attempt}/4 failed for {url}: {type(exc).__name__}: {exc}", flush=True)
+            if attempt < 4:
+                time.sleep(min(5 * attempt, 15))
+    raise RuntimeError(f"Could not fetch live asset after 4 attempts: {url}: {last_error}") from last_error
 
 status, manifest_type, manifest_bytes = fetch(f"{BASE_URL}/chapter-lessons/{LESSON_ID}/images")
 if status != 200:

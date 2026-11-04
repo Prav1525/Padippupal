@@ -1,5 +1,11 @@
 # Active work handoff
 
+## Repair generation state
+
+<!-- padippupal-repair-state:start -->
+{"schema_version":1,"max_generations":5,"chains":[{"id":"beyond-earth-tts-41774423200","originating_run":"41774423200","originating_sha":"a4baa85230e2fbaa1057214db623857380792f3d","task_id":"AUTOPILOT-CI-REPAIR","status":"OPEN","generations":[{"number":1,"hypothesis":"The API 35 default AOSP image has no Google TTS service, while the F-Droid eSpeak APK does not install usable voice data through the current preflight; use a Google Play API 35 image and select its bundled Google TTS service before attempting eSpeak.","outcome":"IN_PROGRESS"}]}]}
+<!-- padippupal-repair-state:end -->
+
 **Last updated:** 2026-10-30  
 **Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
 

@@ -31,6 +31,16 @@ collect_diagnostics() {
   cp /tmp/emulator.log "$EVIDENCE/emulator.log" 2>/dev/null || true
   cp /tmp/beyond-earth-fixture.log "$EVIDENCE/fixture.log" 2>/dev/null || true
 }
+cleanup() {
+  local status=$?
+  local emulator_pid=""
+  if [ "$status" -ne 0 ]; then collect_diagnostics "exit-$status"; fi
+  if [ -s /tmp/emulator.pid ]; then
+    emulator_pid="$(cat /tmp/emulator.pid)"
+    timeout 8s "$ADB" -s emulator-5554 emu kill >/dev/null 2>&1 || true
+    kill "$emulator_pid" 2>/dev/null || true
+  fi
+}
 trap cleanup EXIT
 
 echo "Installing Android API 35 emulator components"

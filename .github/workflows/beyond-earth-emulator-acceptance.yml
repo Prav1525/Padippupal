@@ -12,6 +12,7 @@ on:
       - "app/src/main/**"
       - "app/build.gradle*"
       - ".github/workflows/beyond-earth-emulator-acceptance.yml"
+      - "AGENTS.md"
   workflow_dispatch:
 
 permissions:
@@ -19,9 +20,10 @@ permissions:
 
 jobs:
   beyond-earth-emulator:
-    # This job needs a real hypervisor. The previous Ubuntu runner had no
-    # usable KVM and TCG software emulation caused system_server ANRs.
-    runs-on: macos-15-intel
+    # Never run Android UI acceptance on macOS or software emulation. A Linux
+    # KVM runner is required; if none is registered, keep the job queued and
+    # report the missing runtime rather than repeating known platform ANRs.
+    runs-on: [self-hosted, linux, x64, kvm]
     timeout-minutes: 55
     steps:
       - name: Checkout acceptance branch
@@ -80,7 +82,7 @@ jobs:
           cores: 4
           ram-size: 3072M
           emulator-boot-timeout: 600
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu host
           disable-animations: true
           script: python3 .github/scripts/test_beyond_earth_emulator.py
 

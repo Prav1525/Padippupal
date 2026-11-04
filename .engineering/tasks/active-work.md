@@ -3,13 +3,21 @@
 ## Repair generation state
 
 <!-- padippupal-repair-state:start -->
-{"schema_version":1,"max_generations":5,"chains":[{"id":"beyond-earth-tts-41774423200","originating_run":"41774423200","originating_sha":"a4baa85230e2fbaa1057214db623857380792f3d","task_id":"AUTOPILOT-CI-REPAIR","status":"OPEN","generations":[{"number":1,"hypothesis":"The API 35 default AOSP image has no Google TTS service, while the F-Droid eSpeak APK does not install usable voice data through the current preflight; use a Google Play API 35 image and select its bundled Google TTS service before attempting eSpeak.","outcome":"IN_PROGRESS"}]}]}
+{"schema_version":1,"max_generations":5,"chains":[{"id":"beyond-earth-tts-41774423200","originating_run":"41774423200","originating_sha":"a4baa85230e2fbaa1057214db623857380792f3d","task_id":"AUTOPILOT-CI-REPAIR","status":"OPEN","generations":[{"number":1,"hypothesis":"The API 35 default AOSP image has no Google TTS service, while the F-Droid eSpeak APK does not install usable voice data through the current preflight; use a Google Play API 35 image and select its bundled Google TTS service before attempting eSpeak.","outcome":"FAILED: Google Play image under -accel off took 784 seconds to boot, then ADB remained offline and system_server/Google services ANR'd in run 41776791694."},{"number":2,"hypothesis":"The hosted runner has no usable KVM, so the Google Play image is too expensive under software CPU emulation. Return to standard API 35 AOSP, remove unrelated local-TTS preflight from visual-only acceptance, and recover ADB offline state with one bounded reconnect/server restart.","outcome":"IN_PROGRESS"}]}]}
 <!-- padippupal-repair-state:end -->
 
-**Last updated:** 2026-10-30  
+**Last updated:** 2026-11-04  
 **Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
 
-## Active objective: Phase 1 — Persistent Engineering Operating System
+## Active objective: Beyond Earth original-image tutor-screen acceptance
+- **PR / branch:** [#182](https://github.com/Prav1525/Padippupal/pull/182) / `test-beyond-earth-emulator-acceptance`.
+- **Last tested head:** `21f9fc9491562c2cffd44966f5b229c62445f21a`.
+- **Latest result:** [Run 41776791694](https://github.com/Prav1525/Padippupal/actions/runs/41776791694) passed fast tests, APK build, and 19-image fixture; emulator failed before app launch because the Google Play image overwhelmed the no-KVM software-emulation runner.
+- **Current repair:** Generation 2 returns to AOSP API 35, removes the unnecessary local-TTS preflight, and adds bounded ADB offline recovery.
+- **Acceptance still required:** actual Science → Beyond Earth tutor screenshot, mapped original image labels, visible image detail, and inline layout inspection.
+- **Release boundary:** do not merge PR #182, deploy, or write production DB without explicit approval.
+
+## Previous engineering OS handoff: Phase 1 — Persistent Engineering Operating System
 - **Scope:** Repository-backed project memory and task handoff.
 - **Branch:** `chore/persistent-engineering-os-phase1`
 - **Base:** `main@407844ea458799eadc99b9af1e7364939902e9dd`

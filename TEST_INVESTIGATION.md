@@ -663,3 +663,15 @@ Use this format:
 - **Regression protection:** Run shell syntax validation, JVM image-mapping tests, exact debug APK build, fixture health check, and the full emulator tutor-screen acceptance. Require a non-empty actual tutor screenshot and UI hierarchy before declaring visual acceptance.
 - **Evidence:** [Run 41771408118](https://github.com/Prav1525/Padippupal/actions/runs/41771408118), job `126381701163`, artifact [13295798256](https://github.com/Prav1525/Padippupal/actions/runs/41771408118/artifacts/13295798256).
 - **Status:** Harness adjustment prepared; exact-head verification pending. No feature PR merge, production database change, or deployment.
+
+
+### 2026-11-04 — Reverted heavyweight Google Play emulator and isolated visual acceptance from TTS
+- **Branch / failed head:** `test-beyond-earth-emulator-acceptance@21f9fc9491562c2cffd44966f5b229c62445f21a`.
+- **Evidence:** [Run 41776791694](https://github.com/Prav1525/Padippupal/actions/runs/41776791694), job `126398905194`; [artifact 13297958415](https://github.com/Prav1525/Padippupal/actions/runs/41776791694/artifacts/13297958415).
+- **Exact failure:** The workflow passed script/JVM checks, debug APK build, and the production read-only image fixture (19 originals), but emulator acceptance failed before APK install/navigation with exit 255. ADB listed `emulator-5554 offline`; no tutor screenshot exists.
+- **Confirmed cause:** The runner lacks usable KVM (TE-041), forcing `-accel off`. The Google Play API 35 image used for the TTS repair took 784 seconds to boot; logcat showed `system_server` at 98–117% CPU and repeated Google service ANRs while ADB stayed offline. This points to a system-image/runner resource mismatch, not app rendering.
+- **Change for generation 2:** Use the standard API 35 AOSP x86_64 image, remove local TTS installation from this visual-only test (the active lesson caption is assigned before `speak()`), use a 2-core/3-GB software-emulation profile, and add bounded ADB offline recovery with one host-server restart. Add a regression test to prevent reintroducing the heavyweight Play image or TTS dependency.
+- **What this run proves:** Unit/JVM tests, APK build, and retrieval of all 19 original image bytes passed on the failed head.
+- **What remains unverified:** AOSP emulator boot/ADB readiness, APK install, Science → Beyond Earth navigation, mapped original image display, actual tutor screenshot, and inline spacing.
+- **Next action:** Run shell syntax and bootstrap regression tests, then the full exact-head emulator acceptance; inspect screenshot/XML and confirm the actual original images render inline.
+- **Safety:** Test-only PR #182. No merge, production DB write, or deployment.

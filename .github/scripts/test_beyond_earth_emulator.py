@@ -22,8 +22,11 @@ def dump(name):
     root=ET.parse(OUT/f"{name}.xml").getroot()
     nodes=list(root.iter("node"))
     texts=[n.attrib.get("text","").strip() for n in nodes if n.attrib.get("text","").strip()]
-    print(f"{name.upper()} TEXT: " + " | ".join(texts[:100]), flush=True)
-    return nodes,texts
+    descriptions=[n.attrib.get("content-desc","").strip() for n in nodes if n.attrib.get("content-desc","").strip()]
+    labels=list(dict.fromkeys(texts+descriptions))
+    print(f"{name.upper()} TEXT: " + " | ".join(texts[:80]), flush=True)
+    print(f"{name.upper()} CONTENT_DESC: " + " | ".join(descriptions[:80]), flush=True)
+    return nodes,labels
 def screenshot(name):
     run(ADB+["exec-out","screencap","-p"],timeout=15,stdout=open(OUT/f"{name}.png","wb"))
 def tap_node(node):

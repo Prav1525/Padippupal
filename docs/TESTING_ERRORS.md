@@ -380,3 +380,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** The engineering documentation now explicitly requires one AutoPilot workflow, one approved-work ledger, and the existing project records as the single source of truth.
 - **Verification:** Pending exact-head workflow and helper test results. The repair worker is not yet active; PR #15's Codex proposal still requires cost approval and integration into the same workflow.
 - **Status:** Architecture correction implemented; runtime verification pending.
+
+
+### TE-040 — Beyond Earth emulator acceptance timed out before Android boot
+- **Date discovered:** 2026-11-04
+- **Area:** Feature-specific Android emulator acceptance for Science → Beyond Earth original inline textbook images.
+- **Symptom/failure:** [Run 41622028202](https://github.com/Prav1525/Padippupal/actions/runs/41622028202), job `125869865852`, passed Python script validation, image-mapping JVM tests, APK build, and the live read-only image fixture setup, but the emulator-runner step failed with `Timeout waiting for emulator to boot`. The script repeatedly polled `sys.boot_completed` without receiving `1`; app installation/navigation and the target screenshot assertion did not execute. The uploaded evidence artifact `13225530984` is only 229 bytes and contains no usable screenshot.
+- **Root cause:** **UNKNOWN**. The emulator did not complete boot, but available logs do not distinguish a transient hosted-runner problem from emulator resource/system-image/configuration issues. This is not evidence of a tutor-renderer defect.
+- **Why it escaped:** The workflow had no captured emulator boot diagnostics beyond repeated `sys.boot_completed` polling, and artifact upload accepted a log-only artifact despite the expected screenshot path being empty.
+- **Corrective action:** Re-ran the failed emulator job once as a bounded retry because failure occurred before app launch and may be transient. No app/test assertions were weakened; retry job `126348637378` was queued and then started.
+- **Regression protection:** Require the feature-specific workflow to reach the actual tutor screen and upload a non-empty screenshot plus UI hierarchy; a successful APK build or live asset fetch is insufficient. If boot fails again, capture emulator process/ADB/system diagnostics before changing emulator settings.
+- **Evidence:** [Run 41622028202](https://github.com/Prav1525/Padippupal/actions/runs/41622028202); [artifact 13225530984](https://github.com/Prav1525/Padippupal/actions/runs/41622028202/artifacts/13225530984); tested feature branch head `1a762a264846c553066eda12e9fb09e02b9a3b11`; merge SHA `4c8a810f6dcb61370b75bb0a6e569a282e9200fd`.
+- **Status:** **UNVERIFIED** pending the retry. Actual tutor-screen visual acceptance remains **NOT RUN** until emulator boot, app navigation, and screenshot inspection succeed.

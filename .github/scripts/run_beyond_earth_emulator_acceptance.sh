@@ -55,14 +55,14 @@ if [ "$license_status" -ne 0 ]; then
   echo "::error::sdkmanager --licenses failed with exit $license_status"
   exit "$license_status"
 fi
-if ! timeout 12m sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;37.0.0" "emulator" "system-images;android-35;default;x86_64" > "$EVIDENCE/sdkmanager-install.log" 2>&1; then
+if ! timeout 12m sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;37.0.0" "emulator" "system-images;android-35;google_apis_playstore;x86_64" > "$EVIDENCE/sdkmanager-install.log" 2>&1; then
   cat "$EVIDENCE/sdkmanager-install.log"
   echo "::error::Android SDK component installation failed or timed out"
   exit 1
 fi
 
-echo "Creating Pixel 2 API 35 AVD"
-echo no | avdmanager create avd --force -n beyond-earth-ci --package "system-images;android-35;default;x86_64" --device "pixel_2"
+echo "Creating Pixel 2 API 35 Google Play AVD (bundled Google TTS required by tutor acceptance)"
+echo no | avdmanager create avd --force -n beyond-earth-ci --package "system-images;android-35;google_apis_playstore;x86_64" --device "pixel_2"
 printf 'hw.cpu.ncore=4\nhw.ramSize=4096\nhw.lcd.width=720\nhw.lcd.height=1280\nhw.lcd.density=320\n' >> "$ANDROID_AVD_HOME/beyond-earth-ci.avd/config.ini"
 
 "$ADB" start-server

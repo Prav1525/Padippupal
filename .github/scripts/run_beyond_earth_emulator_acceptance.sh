@@ -17,7 +17,7 @@ collect_diagnostics() {
   local reason="${1:-failure}"
   local emulator_pid=""
   echo "Collecting emulator diagnostics ($reason)" >&2
-  printf '%s\\n' "$reason" > "$EVIDENCE/failure-reason.txt"
+  printf '%s\n' "$reason" > "$EVIDENCE/failure-reason.txt"
   timeout 8s "$ADB" devices -l > "$EVIDENCE/adb-devices.txt" 2>&1 || true
   if [ -s /tmp/emulator.pid ]; then emulator_pid="$(cat /tmp/emulator.pid)"; fi
   # Never wait on adb shell when emulator provisioning failed before launch.
@@ -26,7 +26,7 @@ collect_diagnostics() {
     timeout 12s "$ADB" -s emulator-5554 shell dumpsys activity activities > "$EVIDENCE/activity.txt" 2>&1 || true
     timeout 12s "$ADB" -s emulator-5554 shell dumpsys window windows > "$EVIDENCE/windows.txt" 2>&1 || true
   else
-    printf '%s\\n' "Emulator process was not running; adb shell diagnostics skipped." > "$EVIDENCE/adb-diagnostics-skipped.txt"
+    printf '%s\n' "Emulator process was not running; adb shell diagnostics skipped." > "$EVIDENCE/adb-diagnostics-skipped.txt"
   fi
   cp /tmp/emulator.log "$EVIDENCE/emulator.log" 2>/dev/null || true
   cp /tmp/beyond-earth-fixture.log "$EVIDENCE/fixture.log" 2>/dev/null || true

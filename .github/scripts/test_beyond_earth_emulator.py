@@ -12,7 +12,23 @@ OUT.mkdir(parents=True, exist_ok=True)
 LESSON_ID = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
 
 def run(args, timeout=30, **kw):
-    return subprocess.run(args, check=True, timeout=timeout, **kw)
+    # Hosted software emulators can briefly drop the ADB shell transport while
+    # Android services start. Retry only ADB operations; never mask app/test
+    # assertion failures or retry unrelated subprocesses.
+    attempts = 6 if args and str(args[0]).endswith("adb") else 1
+    last = None
+    for attempt in range(attempts):
+        try:
+            return subprocess.run(args, check=True, timeout=timeout, **kw)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            last = exc
+            if attempt + 1 >= attempts:
+                raise
+            print(f"Transient ADB failure ({attempt + 1}/{attempts}): {exc}", file=sys.stderr, flush=True)
+            subprocess.run(["adb", "start-server"], check=False, timeout=10,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(min(2 + attempt, 6))
+    raise last
 def shell(command, timeout=30):
     return run(ADB + ["shell"] + command.split(), timeout=timeout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True).stdout
 def dump(name):
@@ -141,6 +157,23 @@ try:
     print("PASS: Android emulator selected CBSE Class 6 Science > Beyond Earth; active tutor screen exposes a module-mapped original image label; screenshot captured.",flush=True)
 except Exception as exc:
     print("FAIL: "+str(exc),file=sys.stderr,flush=True)
+    # Preserve evidence even when navigation/assertions fail before the main
+    # screenshot: screenshot, UI hierarchy, logcat and current activity.
     try: screenshot("failure")
-    except Exception: pass
+    except Exception as capture_exc: print(f"Could not capture failure screenshot: {capture_exc}",file=sys.stderr,flush=True)
+    for name, command in [
+        ("failure-hierarchy.xml", ADB+["shell","uiautomator","dump","/data/local/tmp/beyond-earth-failure.xml"]),
+        ("failure-logcat.txt", ADB+["logcat","-d","-v","threadtime"]),
+        ("failure-activity.txt", ADB+["shell","dumpsys","activity","activities"]),
+    ]:
+        try:
+            subprocess.run(command,check=False,timeout=45,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+            if name.endswith(".xml"):
+                subprocess.run(ADB+["pull","/data/local/tmp/beyond-earth-failure.xml",str(OUT/name)],
+                               check=False,timeout=20,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            else:
+                result=subprocess.run(command,check=False,timeout=45,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+                (OUT/name).write_text(result.stdout,encoding="utf-8")
+        except Exception as capture_exc:
+            print(f"Diagnostic capture {name} failed: {capture_exc}",file=sys.stderr,flush=True)
     sys.exit(1)

@@ -19,8 +19,8 @@ permissions:
 
 jobs:
   beyond-earth-emulator:
-    # The previous Ubuntu runner had no usable KVM and explicitly ran TCG
-    # software emulation. Use macOS Intel's Hypervisor.Framework instead.
+    # This job needs a real hypervisor. The previous Ubuntu runner had no
+    # usable KVM and TCG software emulation caused system_server ANRs.
     runs-on: macos-15-intel
     timeout-minutes: 55
     steps:
@@ -37,11 +37,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-
-      - name: Install macOS timeout utility
-        run: |
-          if ! command -v gtimeout >/dev/null 2>&1; then brew install coreutils; fi
-          echo "$(brew --prefix coreutils)/libexec/gnubin" >> "$GITHUB_PATH"
 
       - name: Install screenshot inspection dependency
         run: python3 -m pip install --user --disable-pip-version-check Pillow
@@ -72,8 +67,19 @@ jobs:
           done
           if [ "$ready" -ne 1 ]; then cat /tmp/beyond-earth-fixture.log; exit 1; fi
 
-      - name: Launch hardware-accelerated emulator and inspect actual tutor screenshot
-        run: bash .github/scripts/run_beyond_earth_emulator_acceptance.sh
+      - name: Launch hardware-accelerated Android emulator and inspect actual tutor screenshot
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          cores: 4
+          ram-size: 3072M
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          disable-animations: true
+          script: python3 .github/scripts/test_beyond_earth_emulator.py
 
       - name: Upload Beyond Earth screenshots and diagnostic trees
         if: always()
@@ -83,6 +89,5 @@ jobs:
           path: |
             ui-screenshots/beyond-earth/
             /tmp/beyond-earth-fixture.log
-            /tmp/emulator.log
           if-no-files-found: warn
           retention-days: 14

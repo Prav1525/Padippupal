@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/scripts/beyond_earth_emulator_fixture.py"
       - ".github/scripts/test_beyond_earth_emulator.py"
+      - ".github/scripts/run_beyond_earth_emulator_acceptance.sh"
       - "app/src/main/**"
       - "app/build.gradle*"
       - ".github/workflows/beyond-earth-emulator-acceptance.yml"
@@ -59,22 +60,8 @@ jobs:
           done
           if [ "$ready" -ne 1 ]; then cat /tmp/beyond-earth-fixture.log; exit 1; fi
 
-      - name: Launch Beyond Earth in Android emulator and inspect actual tutor screenshot
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          system-image-api-level: 35
-          target: google_apis
-          profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
-          disable-animations: true
-          emulator-boot-timeout: 420
-          script: |
-            # The hosted runner may not expose KVM; the emulator is already booted
-            # with software rendering. Do not fail on an optional acceleration probe.
-            bash .github/scripts/android-tts-preflight.sh
-            python3 .github/scripts/test_beyond_earth_emulator.py
+      - name: Launch emulator directly and inspect actual tutor screenshot
+        run: bash .github/scripts/run_beyond_earth_emulator_acceptance.sh
 
       - name: Upload Beyond Earth screenshots and diagnostic trees
         if: always()
@@ -84,5 +71,6 @@ jobs:
           path: |
             ui-screenshots/beyond-earth/
             /tmp/beyond-earth-fixture.log
+            /tmp/emulator.log
           if-no-files-found: warn
           retention-days: 14

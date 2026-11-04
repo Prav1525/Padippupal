@@ -632,3 +632,13 @@ Use this format:
 - **What remains unverified:** App installation, Science → Beyond Earth navigation, inline image rendering, accessibility label mapping, actual tutor screenshot, visual quality and spacing. Feature acceptance is **NOT RUN**.
 - **Difference from previous attempt:** A single retry was started after preserving and inspecting the first failure logs/artifact; no selector or assertion was changed and no test was weakened.
 - **Next action and why:** Inspect the retry's terminal result. If emulator boot fails again, capture emulator/ADB diagnostic output and adjust only the evidenced environment/configuration issue before another attempt; do not claim the renderer failed or passed without reaching the tutor screen.
+
+
+### 2026-11-04 — Fixed Beyond Earth acceptance harness blockers found in terminal retry
+- **Branch / source head before fixes:** `test-beyond-earth-emulator-acceptance@7a469bab12f2a64004d1532d852c96ee23eeb52f`; fixes are on the same test-only branch.
+- **Evidence:** [Run 41761216498](https://github.com/Prav1525/Padippupal/actions/runs/41761216498), job `126349109430`, terminal failure at the emulator script's first command after the emulator had booted.
+- **Confirmed root cause 1:** The workflow explicitly ran `emulator -accel-check` and treated exit code 11 as fatal. The runner log says the emulator booted, then the probe failed because this hosted runner user lacks `/dev/kvm` permissions. The emulator was configured with `-gpu swiftshader_indirect` (software rendering), so this optional probe prevented the app test from starting even though the emulator had booted.
+- **Confirmed root cause 2 (latent test-harness defects found by source inspection):** `.github/scripts/test_beyond_earth_emulator.py` used `json.loads` without importing `json`, and its UI-tree collector only read `text`, not Compose image `content-desc`; either would cause a false failure or prevent the image-label assertion once the test reached the tutor screen.
+- **Changes:** Removed the fatal acceleration probe from `.github/workflows/beyond-earth-emulator-acceptance.yml`; imported `json`; collected and printed both UI `text` and `content-desc` labels in the acceptance helper. Assertions remain strict; no acceptance criteria were skipped or weakened.
+- **Verification status:** Changes committed, but new exact-head workflow results are pending. Python syntax validation, JVM tests, APK build, TTS preflight, app navigation, screenshot inspection and label assertion must pass on the updated head before visual acceptance is considered verified.
+- **Safety:** No production DB writes, merge, or deployment performed.

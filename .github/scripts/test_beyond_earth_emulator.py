@@ -75,7 +75,7 @@ def wait_dump(name, expected, timeout=120):
                 return nodes,texts
             last=" | ".join(texts[:60])
         except Exception as exc: last=str(exc)
-        time.sleep(2)
+        time.sleep(6)
     raise RuntimeError(f"Timed out waiting for {expected}; last UI={last}")
 
 try:
@@ -92,8 +92,14 @@ try:
     # CBSE Class 6, English: seed preferences using safe adb shell argument handling.
     seed_profile_preferences(ADB, run)
     shell("am force-stop com.padippupal.app")
-    shell("am start -n com.padippupal.app/.MainActivity")
-    wait_dump("home",["YOUR LEARNING SPACE","YOUR PERSONAL TUTOR","Start learning"],60)
+    # Wait for Android to report the first activity draw before invoking UiAutomation. On the no-KVM hosted runner, an immediate uiautomator dump can contend with startup and trigger a system-server ANR.
+    launch_result = shell("am start -W -n com.padippupal.app/.MainActivity", timeout=180)
+    print("MAIN ACTIVITY LAUNCH: " + " | ".join(line.strip() for line in launch_result.splitlines() if line.strip()), flush=True)
+    if "Status: ok" not in launch_result and "Complete" not in launch_result:
+        raise RuntimeError("Android did not confirm MainActivity launch: " + launch_result[-1000:])
+    # Allow Compose and system accessibility services to settle before the first hierarchy dump.
+    time.sleep(10)
+    wait_dump("home",["YOUR LEARNING SPACE","YOUR PERSONAL TUTOR","Start learning"],90)
     screenshot("home")
     nodes,_=dump("home"); tap_text(nodes,"Start learning")
     time.sleep(4)

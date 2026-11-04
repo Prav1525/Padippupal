@@ -32,7 +32,8 @@ class BeyondEarthEmulatorBootstrapTests(unittest.TestCase):
 
     def test_legacy_manual_bootstrap_is_not_used_by_acceptance_workflow(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
-        self.assertNotIn("run_beyond_earth_emulator_acceptance.sh", workflow)
+        self.assertNotIn("run: bash .github/scripts/run_beyond_earth_emulator_acceptance.sh", workflow)
+        self.assertIn("script: python3 .github/scripts/test_beyond_earth_emulator.py", workflow)
 
     def test_profile_seed_uses_safe_adb_shell_argument_boundaries(self):
         calls = []

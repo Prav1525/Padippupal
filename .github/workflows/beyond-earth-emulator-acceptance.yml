@@ -71,7 +71,8 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 420
           script: |
-            "$ANDROID_HOME/emulator/emulator" -accel-check
+            # The hosted runner may not expose KVM; the emulator is already booted
+            # with software rendering. Do not fail on an optional acceleration probe.
             bash .github/scripts/android-tts-preflight.sh
             python3 .github/scripts/test_beyond_earth_emulator.py
 

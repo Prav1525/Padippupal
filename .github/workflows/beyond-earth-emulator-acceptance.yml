@@ -39,7 +39,8 @@ jobs:
 
       - name: Validate scripts and image mapping unit tests
         run: |
-          python3 -m py_compile .github/scripts/beyond_earth_emulator_fixture.py .github/scripts/test_beyond_earth_emulator.py
+          python3 -m py_compile .github/scripts/beyond_earth_emulator_fixture.py .github/scripts/test_beyond_earth_emulator.py .github/scripts/test_android_tts_preflight.py
+          python3 .github/scripts/test_android_tts_preflight.py
           bash -n .github/scripts/run_beyond_earth_emulator_acceptance.sh
           gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 testDebugUnitTest
 

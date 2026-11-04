@@ -1,6 +1,13 @@
 # Mandatory Agent Instructions for PadippuPal
 
-**Before every code edit, test action, build action, build/configuration change, or deployment action, read `TESTING_GUIDANCE.md` in full and follow it.** This is a per-action requirement, not a one-time setup step. If a task spans multiple edits or sessions, re-open the guidance before each new batch of edits and whenever the investigation context changes.
+**Before every code edit, test action, build action, build/configuration change, or deployment action, read `TESTING_GUIDANCE.md` in full and follow it.** This is a per-action requirement, not a one-time setup requirement. For a multi-step task, re-open the guidance before each new batch of edits and whenever investigation context changes.
+
+## Platform constraint — no macOS simulator
+
+- Do not use macOS-hosted Android emulators or any macOS/iOS Simulator for PadippuPal testing.
+- Android UI acceptance must run on a Linux x86_64 runner with working KVM/hardware acceleration, or on an explicitly authorized physical/cloud Android device.
+- If no qualifying runtime is available, mark UI acceptance **BLOCKED** and report the missing runtime. Do not silently fall back to macOS, software emulation, or claim acceptance from build/unit tests.
+- A workflow waiting for a self-hosted `linux` + `x64` + `kvm` runner is preferable to repeating known-bad simulator attempts.
 
 ## Required pre-action gate
 Before touching code or starting a consequential build/test/deploy action, state in working notes (and in the user update when meaningful):
@@ -24,7 +31,6 @@ After any change or meaningful build/test action:
 Never claim success without verification. A successful compile does not prove tests passed; a generated APK does not prove runtime behaviour. Never repeat an unchanged failed approach. Never merge a PR without the user's explicit permission.
 
 These requirements apply to all coding agents and human contributors. `TESTING_GUIDANCE.md` is the detailed source of truth.
-
 
 ## Persistent engineering memory
 Before starting or resuming any PadippuPal task, read:

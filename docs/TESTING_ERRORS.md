@@ -392,3 +392,13 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Require the feature-specific workflow to reach the actual tutor screen and upload a non-empty screenshot plus UI hierarchy; a successful APK build or live asset fetch is insufficient. If boot fails again, capture emulator process/ADB/system diagnostics before changing emulator settings.
 - **Evidence:** [Run 41622028202](https://github.com/Prav1525/Padippupal/actions/runs/41622028202); [artifact 13225530984](https://github.com/Prav1525/Padippupal/actions/runs/41622028202/artifacts/13225530984); tested feature branch head `1a762a264846c553066eda12e9fb09e02b9a3b11`; merge SHA `4c8a810f6dcb61370b75bb0a6e569a282e9200fd`.
 - **Status:** **UNVERIFIED** pending the retry. Actual tutor-screen visual acceptance remains **NOT RUN** until emulator boot, app navigation, and screenshot inspection succeed.
+
+
+### TE-041 — Beyond Earth acceptance harness failed before launching the app
+- **Date discovered:** 2026-11-04
+- **Symptom:** Retry run [41761216498](https://github.com/Prav1525/Padippupal/actions/runs/41761216498), job `126349109430`, reached `sys.boot_completed=1` but then failed at `emulator -accel-check` with exit code 11 because the hosted runner user lacked `/dev/kvm` permissions. No app screenshot was captured.
+- **Root cause:** **Confirmed** for this failure: a mandatory KVM probe was incorrectly placed before the test even though software rendering was configured and the emulator had booted. Source review also found two latent harness bugs: missing `json` import and accessibility collection ignoring Compose `content-desc`.
+- **Correction:** Removed the fatal acceleration probe; imported `json`; collect both `text` and `content-desc` in the UI hierarchy helper.
+- **Regression protection:** Keep the screenshot and mapped-image-label assertions strict. Require the workflow to install/launch the app, reach Science → Beyond Earth, capture screenshot/XML, and pass image-label/visible-detail checks.
+- **Evidence:** [Failed run](https://github.com/Prav1525/Padippupal/actions/runs/41761216498); updated acceptance branch commits after `7a469bab12f2a64004d1532d852c96ee23eeb52f`.
+- **Status:** Fix committed; exact-head end-to-end verification pending. No merge or deployment.

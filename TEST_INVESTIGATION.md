@@ -618,3 +618,17 @@ Use this format:
 - **Regression coverage:** Added JVM unit tests for all images in a module, the union of step/module matches, duplicate removal, and unmapped modules.
 - **Validation status:** Android APK build and emulator smoke workflow are running for PR #168. The investigation-guidance gate initially failed because this ledger entry was missing; the entry is now added and the gate will be rechecked. The emulator smoke fixture is not yet a Beyond Earth production-image screenshot, so live visual confirmation remains separate.
 - **Production safety:** No production database writes, PR merge, or deployment performed.
+
+
+### 2026-11-04 — Beyond Earth original-image emulator acceptance blocked before app launch
+- **Branch / commit:** `test-beyond-earth-emulator-acceptance`; source head `1a762a264846c553066eda12e9fb09e02b9a3b11`; workflow merge SHA `4c8a810f6dcb61370b75bb0a6e569a282e9200fd`.
+- **Test command or workflow URL:** [Beyond Earth original-image emulator acceptance run 41622028202](https://github.com/Prav1525/Padippupal/actions/runs/41622028202), job `125869865852`; retry job `126348637378`.
+- **Result:** First attempt **FAIL**; retry **IN PROGRESS** at time of this entry.
+- **Exact failure or assertion:** Step “Launch Beyond Earth in Android emulator and inspect actual tutor screenshot” failed with `Timeout waiting for emulator to boot`. The runner repeatedly queried `sys.boot_completed` without observing `1`; the test script never installed/launched the app. The uploaded artifact `beyond-earth-original-image-emulator-evidence` (artifact ID `13225530984`) is only 229 bytes and contains no usable screenshot.
+- **Evidence links (logs/screenshots/XML/artifacts):** [workflow run](https://github.com/Prav1525/Padippupal/actions/runs/41622028202); [artifact](https://github.com/Prav1525/Padippupal/actions/runs/41622028202/artifacts/13225530984); [job log](https://github.com/Prav1525/Padippupal/actions/runs/41622028202).
+- **Change made (files + rationale):** No application or test code changed for this attempt. Re-ran only the failed GitHub Actions job once because the observed failure occurred during emulator provisioning, before target test execution, and may be transient infrastructure.
+- **Root cause:** **UNKNOWN**. Confirmed facts are that the emulator did not report boot complete and the feature-specific test was not reached. Current logs do not include enough emulator diagnostics to attribute this to memory, system image, runner instability, or configuration.
+- **What this attempt proves:** Python syntax/script validation, image-mapping JVM tests, debug APK build, and production read-only fetching of the 19 original image assets passed before emulator startup failed.
+- **What remains unverified:** App installation, Science → Beyond Earth navigation, inline image rendering, accessibility label mapping, actual tutor screenshot, visual quality and spacing. Feature acceptance is **NOT RUN**.
+- **Difference from previous attempt:** A single retry was started after preserving and inspecting the first failure logs/artifact; no selector or assertion was changed and no test was weakened.
+- **Next action and why:** Inspect the retry's terminal result. If emulator boot fails again, capture emulator/ADB diagnostic output and adjust only the evidenced environment/configuration issue before another attempt; do not claim the renderer failed or passed without reaching the tutor screen.

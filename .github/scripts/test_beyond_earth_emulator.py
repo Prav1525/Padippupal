@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Real Android emulator acceptance test for Beyond Earth original textbook images."""
 from __future__ import annotations
-import re, subprocess, sys, time
+import json, re, subprocess, sys, time
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from PIL import Image, ImageChops, ImageStat

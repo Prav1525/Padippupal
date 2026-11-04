@@ -642,3 +642,13 @@ Use this format:
 - **Changes:** Removed the fatal acceleration probe from `.github/workflows/beyond-earth-emulator-acceptance.yml`; imported `json`; collected and printed both UI `text` and `content-desc` labels in the acceptance helper. Assertions remain strict; no acceptance criteria were skipped or weakened.
 - **Verification status:** Changes committed, but new exact-head workflow results are pending. Python syntax validation, JVM tests, APK build, TTS preflight, app navigation, screenshot inspection and label assertion must pass on the updated head before visual acceptance is considered verified.
 - **Safety:** No production DB writes, merge, or deployment performed.
+
+
+### 2026-11-04 — Fixed SDK license pipeline and unbounded pre-emulator diagnostics
+- **Branch / commit:** `test-beyond-earth-emulator-acceptance`; harness fix commit `53b39db3c23e66059bd7c41da493faa3f479e598`.
+- **Evidence:** [Cancelled run 41768123664](https://github.com/Prav1525/Padippupal/actions/runs/41768123664), job `126371216138`; job log shows `yes: standard output: Broken pipe` immediately after entering the emulator bootstrap script, followed by diagnostics and user cancellation. The run's terminal state is `completed/cancelled`.
+- **Confirmed root cause:** The runner uses `set -Eeuo pipefail` and ran `yes | sdkmanager --licenses`. Android SDK Manager exits after accepting the available licenses; the producer `yes` then receives SIGPIPE. With `pipefail`, that expected producer exit is treated as the whole pipeline failure even when `sdkmanager` succeeds. The EXIT trap then attempted unbounded ADB shell diagnostics despite no emulator process having been launched, explaining why the failed step remained active until cancellation.
+- **Corrective changes:** Capture and check `PIPESTATUS[1]` (the sdkmanager exit code) rather than treating the expected `yes` SIGPIPE as a license failure; persist license/install logs; skip emulator-shell diagnostics if no emulator process exists; bound ADB diagnostics and shutdown with `timeout`; fail explicitly if Android's package manager never becomes ready.
+- **What passed in the cancelled run:** Script/Python validation, image-mapping JVM tests, debug APK build, and read-only retrieval of all 19 original Beyond Earth image blobs.
+- **What remains unverified:** The updated bootstrap has not yet run on GitHub Actions. Emulator boot, app installation/navigation, original-image inline rendering, screenshot capture, accessibility label matching, and visual spacing are still **NOT RUN / UNVERIFIED**. The 844-byte artifact contains no tutor screenshot.
+- **Safety:** Test-only harness changes on PR #182. No feature PR merge, production DB write, deployment, or release.

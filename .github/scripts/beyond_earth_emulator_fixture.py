@@ -2,6 +2,7 @@
 """Beyond Earth emulator fixture: keeps original PDF image bytes from the live curriculum API."""
 from __future__ import annotations
 import importlib.util, json, os, sys, threading, time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, unquote
@@ -38,15 +39,29 @@ manifest = json.loads(manifest_bytes)
 images = manifest.get("images", [])
 if len(images) != 19:
     raise SystemExit(f"Expected 19 original PDF-derived images, got {len(images)}")
-blob_by_path = {}
+# Fetch independent image blobs concurrently. The previous serial loop could spend
+# up to 4 x 90 seconds per image on a cold/slow production service, while the
+# fixture's HTTP server (including /health) remained unavailable until all 19
+# downloads completed. Bound concurrency to avoid hammering the read-only API.
+image_paths = []
 for image in images:
     url_path = urlparse(image.get("url", "")).path
     if not url_path.startswith("/chapter-lessons/"):
         raise SystemExit(f"Unexpected image URL in manifest: {url_path}")
-    blob_status, mime, blob = fetch(BASE_URL + url_path)
-    if blob_status != 200 or not mime.startswith("image/") or not blob:
-        raise SystemExit(f"Original image fetch failed for {url_path}: HTTP {blob_status}, {mime}, {len(blob)} bytes")
-    blob_by_path[url_path] = (mime, blob)
+    image_paths.append(url_path)
+
+blob_by_path = {}
+with ThreadPoolExecutor(max_workers=6) as pool:
+    futures = {pool.submit(fetch, BASE_URL + path): path for path in image_paths}
+    for future in as_completed(futures):
+        url_path = futures[future]
+        blob_status, mime, blob = future.result()
+        if blob_status != 200 or not mime.startswith("image/") or not blob:
+            raise SystemExit(f"Original image fetch failed for {url_path}: HTTP {blob_status}, {mime}, {len(blob)} bytes")
+        blob_by_path[url_path] = (mime, blob)
+        print(f"Fetched original image {len(blob_by_path)}/{len(image_paths)}: {url_path} ({len(blob)} bytes)", flush=True)
+if len(blob_by_path) != 19:
+    raise SystemExit(f"Expected 19 original image blobs, fetched {len(blob_by_path)}")
 
 def interactive(module_key):
     return {

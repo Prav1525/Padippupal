@@ -402,3 +402,14 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Keep the screenshot and mapped-image-label assertions strict. Require the workflow to install/launch the app, reach Science → Beyond Earth, capture screenshot/XML, and pass image-label/visible-detail checks.
 - **Evidence:** [Failed run](https://github.com/Prav1525/Padippupal/actions/runs/41761216498); updated acceptance branch commits after `7a469bab12f2a64004d1532d852c96ee23eeb52f`.
 - **Status:** Fix committed; exact-head end-to-end verification pending. No merge or deployment.
+
+
+### TE-042 — Beyond Earth emulator bootstrap treated expected license SIGPIPE as failure and hung in diagnostics
+- **Date discovered:** 2026-11-04
+- **Area:** Android SDK license setup and failure cleanup in the Beyond Earth emulator acceptance harness.
+- **Symptom:** [Run 41768123664](https://github.com/Prav1525/Padippupal/actions/runs/41768123664), job `126371216138`, logged `yes: standard output: Broken pipe` immediately after starting emulator setup. The user cancelled the run before emulator launch; the failed step had remained active while its EXIT trap attempted ADB diagnostics.
+- **Root cause:** The script enables `set -o pipefail` and executes `yes | sdkmanager --licenses`. Once all licenses are accepted, sdkmanager closes stdin and `yes` exits with SIGPIPE; pipefail incorrectly converts that expected producer exit into a failed setup. The EXIT trap then called adb logcat/dumpsys without timeouts even though no emulator process had started, causing a long, unbounded cleanup path.
+- **Corrective action:** Check the sdkmanager pipeline's own exit status via `PIPESTATUS[1]`; retain SDK license/install logs; skip adb shell diagnostics before emulator launch; bound adb diagnostics and emulator shutdown; add an explicit package-manager readiness assertion.
+- **Regression protection:** Run shell syntax validation and the complete exact-head workflow. If SDK license setup succeeds, the workflow must proceed to AVD creation and emulator boot. If setup fails, diagnostics must terminate within bounded time and upload the recorded failure reason. Do not weaken the actual tutor screenshot/image-label assertions.
+- **Evidence:** Cancelled run [41768123664](https://github.com/Prav1525/Padippupal/actions/runs/41768123664); harness fix commit `53b39db3c23e66059bd7c41da493faa3f479e598`.
+- **Status:** Harness correction committed; exact-head workflow verification pending. Tutor-screen visual acceptance remains unverified. No merge or deployment.

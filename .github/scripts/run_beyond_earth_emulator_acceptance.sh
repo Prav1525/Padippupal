@@ -15,24 +15,41 @@ mkdir -p "$EVIDENCE" "$ANDROID_AVD_HOME"
 
 collect_diagnostics() {
   local reason="${1:-failure}"
+  local emulator_pid=""
   echo "Collecting emulator diagnostics ($reason)" >&2
-  "$ADB" devices -l > "$EVIDENCE/adb-devices.txt" 2>&1 || true
-  "$ADB" -s emulator-5554 logcat -d -v threadtime > "$EVIDENCE/logcat.txt" 2>&1 || true
-  "$ADB" -s emulator-5554 shell dumpsys activity activities > "$EVIDENCE/activity.txt" 2>&1 || true
-  "$ADB" -s emulator-5554 shell dumpsys window windows > "$EVIDENCE/windows.txt" 2>&1 || true
+  printf '%s\\n' "$reason" > "$EVIDENCE/failure-reason.txt"
+  timeout 8s "$ADB" devices -l > "$EVIDENCE/adb-devices.txt" 2>&1 || true
+  if [ -s /tmp/emulator.pid ]; then emulator_pid="$(cat /tmp/emulator.pid)"; fi
+  # Never wait on adb shell when emulator provisioning failed before launch.
+  if [ -n "$emulator_pid" ] && kill -0 "$emulator_pid" 2>/dev/null; then
+    timeout 12s "$ADB" -s emulator-5554 logcat -d -v threadtime > "$EVIDENCE/logcat.txt" 2>&1 || true
+    timeout 12s "$ADB" -s emulator-5554 shell dumpsys activity activities > "$EVIDENCE/activity.txt" 2>&1 || true
+    timeout 12s "$ADB" -s emulator-5554 shell dumpsys window windows > "$EVIDENCE/windows.txt" 2>&1 || true
+  else
+    printf '%s\\n' "Emulator process was not running; adb shell diagnostics skipped." > "$EVIDENCE/adb-diagnostics-skipped.txt"
+  fi
   cp /tmp/emulator.log "$EVIDENCE/emulator.log" 2>/dev/null || true
   cp /tmp/beyond-earth-fixture.log "$EVIDENCE/fixture.log" 2>/dev/null || true
-}
-cleanup() {
-  local status=$?
-  if [ "$status" -ne 0 ]; then collect_diagnostics "exit-$status"; fi
-  "$ADB" -s emulator-5554 emu kill >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 echo "Installing Android API 35 emulator components"
-yes | sdkmanager --licenses >/dev/null
-sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;37.0.0" "emulator" "system-images;android-35;google_apis;x86_64" >/dev/null
+# With pipefail, yes receives SIGPIPE after sdkmanager accepts all licenses.
+# Check sdkmanager's status specifically; the expected yes exit is harmless.
+set +e
+yes | sdkmanager --licenses > "$EVIDENCE/sdkmanager-licenses.log" 2>&1
+license_status=${PIPESTATUS[1]}
+set -e
+if [ "$license_status" -ne 0 ]; then
+  cat "$EVIDENCE/sdkmanager-licenses.log"
+  echo "::error::sdkmanager --licenses failed with exit $license_status"
+  exit "$license_status"
+fi
+if ! timeout 12m sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;37.0.0" "emulator" "system-images;android-35;google_apis;x86_64" > "$EVIDENCE/sdkmanager-install.log" 2>&1; then
+  cat "$EVIDENCE/sdkmanager-install.log"
+  echo "::error::Android SDK component installation failed or timed out"
+  exit 1
+fi
 
 echo "Creating Pixel 2 API 35 AVD"
 echo no | avdmanager create avd --force -n beyond-earth-ci --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
@@ -79,12 +96,19 @@ if [ "$boot_ready" -ne 1 ]; then
 fi
 
 echo "Emulator booted; verifying Android package manager"
+package_manager_ready=0
 for attempt in $(seq 1 30); do
-  if "$ADB" -s emulator-5554 shell cmd package list packages >/dev/null 2>&1; then
+  if timeout 8s "$ADB" -s emulator-5554 shell cmd package list packages >/dev/null 2>&1; then
+    package_manager_ready=1
     break
   fi
   sleep 2
 done
+if [ "$package_manager_ready" -ne 1 ]; then
+  collect_diagnostics "package-manager-timeout"
+  echo "::error::Android package manager did not become ready"
+  exit 1
+fi
 "$ADB" -s emulator-5554 shell settings put global window_animation_scale 0
 "$ADB" -s emulator-5554 shell settings put global transition_animation_scale 0
 "$ADB" -s emulator-5554 shell settings put global animator_duration_scale 0

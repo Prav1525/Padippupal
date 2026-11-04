@@ -18,7 +18,7 @@ permissions:
 jobs:
   beyond-earth-emulator:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 55
     steps:
       - name: Checkout acceptance branch
         uses: actions/checkout@v4

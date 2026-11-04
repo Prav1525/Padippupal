@@ -55,18 +55,18 @@ if [ "$license_status" -ne 0 ]; then
   echo "::error::sdkmanager --licenses failed with exit $license_status"
   exit "$license_status"
 fi
-if ! timeout 12m sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;37.0.0" "emulator" "system-images;android-35;google_apis;x86_64" > "$EVIDENCE/sdkmanager-install.log" 2>&1; then
+if ! timeout 12m sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;37.0.0" "emulator" "system-images;android-35;default;x86_64" > "$EVIDENCE/sdkmanager-install.log" 2>&1; then
   cat "$EVIDENCE/sdkmanager-install.log"
   echo "::error::Android SDK component installation failed or timed out"
   exit 1
 fi
 
 echo "Creating Pixel 2 API 35 AVD"
-echo no | avdmanager create avd --force -n beyond-earth-ci --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
-printf 'hw.cpu.ncore=2\n' >> "$ANDROID_AVD_HOME/beyond-earth-ci.avd/config.ini"
+echo no | avdmanager create avd --force -n beyond-earth-ci --package "system-images;android-35;default;x86_64" --device "pixel_2"
+printf 'hw.cpu.ncore=4\nhw.ramSize=4096\nhw.lcd.width=720\nhw.lcd.height=1280\nhw.lcd.density=320\n' >> "$ANDROID_AVD_HOME/beyond-earth-ci.avd/config.ini"
 
 "$ADB" start-server
-"$EMULATOR" -port 5554 -avd beyond-earth-ci -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2 -accel off > /tmp/emulator.log 2>&1 &
+"$EMULATOR" -port 5554 -avd beyond-earth-ci -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 4096 -cores 4 -accel off > /tmp/emulator.log 2>&1 &
 echo $! > /tmp/emulator.pid
 
 echo "Waiting for emulator transport"
@@ -101,22 +101,32 @@ for attempt in $(seq 1 180); do
 done
 if [ "$boot_ready" -ne 1 ]; then
   collect_diagnostics "boot-timeout"
-  echo "::error::Android emulator did not finish booting within 12 minutes"
+  echo "::error::Android emulator did not finish booting within the bounded boot wait"
   exit 1
 fi
 
-echo "Emulator booted; verifying Android package manager"
+echo "Emulator booted; waiting up to 10 minutes for Android PackageManagerService"
 package_manager_ready=0
-for attempt in $(seq 1 30); do
-  if timeout 8s "$ADB" -s emulator-5554 shell cmd package list packages >/dev/null 2>&1; then
-    package_manager_ready=1
-    break
+package_manager_deadline=$((SECONDS + 600))
+last_package_manager_notice=$SECONDS
+while (( SECONDS < package_manager_deadline )); do
+  package_service_state=$(timeout 6s "$ADB" -s emulator-5554 shell service check package 2>&1 || true)
+  if [[ "$package_service_state" == *"found"* ]]; then
+    if timeout 15s "$ADB" -s emulator-5554 shell cmd package list packages > /tmp/beyond-earth-packages.txt 2>/dev/null \
+      && grep -q "^package:" /tmp/beyond-earth-packages.txt; then
+      package_manager_ready=1
+      break
+    fi
   fi
-  sleep 2
+  if (( SECONDS - last_package_manager_notice >= 30 )); then
+    echo "PackageManagerService is still initializing; continuing bounded wait"
+    last_package_manager_notice=$SECONDS
+  fi
+  sleep 3
 done
 if [ "$package_manager_ready" -ne 1 ]; then
   collect_diagnostics "package-manager-timeout"
-  echo "::error::Android package manager did not become ready"
+  echo "::error::Android PackageManagerService did not become ready within 10 minutes"
   exit 1
 fi
 "$ADB" -s emulator-5554 shell settings put global window_animation_scale 0

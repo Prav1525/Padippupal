@@ -413,3 +413,13 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Run shell syntax validation and the complete exact-head workflow. If SDK license setup succeeds, the workflow must proceed to AVD creation and emulator boot. If setup fails, diagnostics must terminate within bounded time and upload the recorded failure reason. Do not weaken the actual tutor screenshot/image-label assertions.
 - **Evidence:** Cancelled run [41768123664](https://github.com/Prav1525/Padippupal/actions/runs/41768123664); harness fix commit `53b39db3c23e66059bd7c41da493faa3f479e598`.
 - **Status:** Harness correction committed; exact-head workflow verification pending. Tutor-screen visual acceptance remains unverified. No merge or deployment.
+
+ 
+## TE-043 — Beyond Earth emulator package-manager readiness timeout
+- **Date:** 2026-11-04
+- **Evidence:** [GitHub Actions run 41771408118](https://github.com/Prav1525/Padippupal/actions/runs/41771408118), artifact [13295798256](https://github.com/Prav1525/Padippupal/actions/runs/41771408118/artifacts/13295798256).
+- **Symptom:** The software-rendered Android 35 emulator reported boot completion, but `cmd package list packages` remained unavailable during the harness's short readiness window. The app was never launched; no UI screenshot was produced.
+- **Root cause:** Confirmed harness timing issue for this run: logcat shows PackageManagerService initialization occurred very late in the cold boot, after the readiness poll had begun and near its timeout.
+- **Correction:** Use the standard API 35 x86_64 system image, smaller virtual display, increased emulator CPU/RAM, and a bounded 10-minute wait that checks service registration and a successful package listing. Increase the overall workflow timeout to 55 minutes.
+- **Regression rule:** Do not weaken tutor navigation, screenshot, or mapped-image assertions. Acceptance remains unverified until the actual Beyond Earth tutor screen is captured and inspected.
+- **Status:** Harness correction committed; exact-head CI verification pending. No production changes.

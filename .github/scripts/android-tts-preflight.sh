@@ -9,6 +9,21 @@ readonly INDEX_URL="https://f-droid.org/repo/index-v1.jar"
 readonly WORK_DIR="${RUNNER_TEMP:-/tmp}/padippupal-tts"
 mkdir -p "$WORK_DIR"
 
+# Prefer the Google TTS engine shipped with Google Play emulator images.
+# The previous default AOSP image had no Google TTS service, and the eSpeak
+# APK's voice-data installer did not provision its base resources in CI.
+services="$(adb -s emulator-5554 shell cmd package query-services -a android.intent.action.TTS_SERVICE)"
+if printf '%s\n' "$services" | grep -Fq "com.google.android.tts"; then
+  adb -s emulator-5554 shell settings put secure tts_default_synth "com.google.android.tts"
+  selected="$(adb -s emulator-5554 shell settings get secure tts_default_synth | tr -d '\r')"
+  if [ "$selected" != "com.google.android.tts" ]; then
+    echo "::error::Could not select the preinstalled Google TTS engine (selected=$selected)."
+    exit 1
+  fi
+  echo "Selected preinstalled Google TTS engine: $selected"
+  exit 0
+fi
+
 curl --fail --location --silent --show-error --retry 3 "$INDEX_URL" -o "$WORK_DIR/index-v1.jar"
 unzip -p "$WORK_DIR/index-v1.jar" index-v1.json > "$WORK_DIR/index-v1.json"
 

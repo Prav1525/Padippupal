@@ -54,13 +54,15 @@ jobs:
           python3 .github/scripts/beyond_earth_emulator_fixture.py > /tmp/beyond-earth-fixture.log 2>&1 &
           echo $! > /tmp/beyond-earth-fixture.pid
           ready=0
-          # The fixture fetches all 19 original image bytes before opening its HTTP port; Render cold starts and sequential asset downloads can exceed the old 70-second window.\n          for attempt in $(seq 1 300); do
+          # The fixture fetches all 19 original image bytes before opening its HTTP port; Render cold starts and sequential asset downloads can exceed the old 70-second window.
+          for attempt in $(seq 1 300); do
             if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8765/health -o /tmp/beyond-earth-health.json; then
               cat /tmp/beyond-earth-health.json
               ready=1
               break
             fi
-            if [ $((attempt % 10)) -eq 0 ]; then echo "Waiting for live-image fixture startup: ${attempt}/300 checks"; tail -n 8 /tmp/beyond-earth-fixture.log || true; fi\n            sleep 2
+            if [ $((attempt % 10)) -eq 0 ]; then echo "Waiting for live-image fixture startup: ${attempt}/300 checks"; tail -n 8 /tmp/beyond-earth-fixture.log || true; fi
+            sleep 2
           done
           if [ "$ready" -ne 1 ]; then cat /tmp/beyond-earth-fixture.log; exit 1; fi
 

@@ -435,3 +435,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add `.github/scripts/test_beyond_earth_emulator_bootstrap.py` to assert the AOSP image, no local-TTS dependency, caption-before-speech behavior, and bounded ADB recovery. Run the exact-head workflow and require actual Science → Beyond Earth tutor screenshot plus mapped original-image accessibility evidence.
 - **Evidence:** [Run 41776791694](https://github.com/Prav1525/Padippupal/actions/runs/41776791694); [diagnostic artifact 13297958415](https://github.com/Prav1525/Padippupal/actions/runs/41776791694/artifacts/13297958415); failed head `21f9fc9491562c2cffd44966f5b229c62445f21a`.
 - **Status:** Repair generation 2 prepared; exact-head verification pending. Visual acceptance remains **UNVERIFIED**. No merge, production database write, or deployment.
+
+
+### TE-045 — Beyond Earth profile seeding broke at adb shell argument boundary
+- **Date discovered:** 2026-11-04
+- **Area:** Android emulator acceptance harness; CBSE Class 6 profile initialization.
+- **Symptom:** [Run 41779671319](https://github.com/Prav1525/Padippupal/actions/runs/41779671319), job `126408102807`, booted the AOSP emulator, reached PackageManagerService, and installed the debug APK, but failed on profile setup with repeated `mkdir: Needs 1 argument`. No tutor screen or screenshot was produced.
+- **Confirmed root cause:** The Python harness supplied `adb shell run-as PACKAGE sh -c SCRIPT` as multiple argv elements. adb shell joins these into a remote command string, so the shell program's argument boundary was lost: `sh -c` interpreted `mkdir` as its script and `-p` as `$0`. This is a test-harness serialization bug.
+- **Why it escaped:** Prior tests validated emulator bootstrap configuration, not the exact remote command contract used to seed app-private preferences. The emulator acceptance reached this line for the first time after the AOSP boot repair.
+- **Corrective action:** Use direct `run-as PACKAGE mkdir -p shared_prefs` arguments. Stream the XML through stdin to a single complete remote command string for app-private file creation. Isolate this operation in `.github/scripts/beyond_earth_emulator_profile.py`.
+- **Regression protection:** Add a mocked command-contract test checking the direct mkdir argv, single-string remote shell command, and exact stdin XML; compile the helper; include the helper and regression test in the workflow's path filter so edits trigger acceptance.
+- **Evidence:** [Run 41779671319](https://github.com/Prav1525/Padippupal/actions/runs/41779671319); job log records AOSP boot, PackageManager readiness, successful APK install, then the mkdir error. Failed head: `782db3d638052477f548786595418420ebe3a0c9`.
+- **Status:** Correction committed; exact-head regression and emulator acceptance pending. Tutor-screen image rendering and spacing remain **UNVERIFIED**. No merge, production database write, or deployment.

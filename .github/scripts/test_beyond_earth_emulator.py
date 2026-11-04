@@ -5,6 +5,7 @@ import json, re, subprocess, sys, time
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from PIL import Image, ImageChops, ImageStat
+from beyond_earth_emulator_profile import seed_profile_preferences
 
 ADB = ["adb", "-s", "emulator-5554"]
 OUT = Path("ui-screenshots/beyond-earth")
@@ -88,8 +89,8 @@ try:
     run(ADB+["install","-r","app/build/outputs/apk/debug/app-debug.apk"],timeout=90)
     shell("run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml")
     shell("run-as com.padippupal.app rm -f shared_prefs/padippupal_tutor_sessions.xml")
-    # CBSE Class 6, English: the supported curriculum profile for this acceptance flow.
-    run(ADB+["shell","run-as","com.padippupal.app","sh","-c","mkdir -p shared_prefs && echo PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiIHN0YW5kYWxvbmU9InllcyIgPz48bWFwPjxzdHJpbmcgbmFtZT0iZ3JhZGUiPjY8L3N0cmluZz48c3RyaW5nIG5hbWU9ImJvYXJkIj5DQlNFPC9zdHJpbmc+PHN0cmluZyBuYW1lPSJtZWRpdW0iPkVuZ2xpc2g8L3N0cmluZz48c3RyaW5nIG5hbWU9Imxhbmd1YWdlIj5FbmdsaXNoPC9zdHJpbmc+PC9tYXA+ | base64 -d > shared_prefs/padippupal_profile.xml"])
+    # CBSE Class 6, English: seed preferences using safe adb shell argument handling.
+    seed_profile_preferences(ADB, run)
     shell("am force-stop com.padippupal.app")
     shell("am start -n com.padippupal.app/.MainActivity")
     wait_dump("home",["YOUR LEARNING SPACE","YOUR PERSONAL TUTOR","Start learning"],60)

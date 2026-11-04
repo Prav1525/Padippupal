@@ -2,7 +2,7 @@
 
 **Decision date:** 2026-11-04  
 **Scope:** PR #182 only; Science → Beyond Earth original-image tutor acceptance.  
-**Status:** Phase 1 implemented; CI verification pending. The fixture-preparation job split remains a follow-on within this same objective, not a claimed completion.
+**Status:** Phase 1 implemented; latest verification run 41822010546 passed build/fixture preparation but failed runtime UI automation on an Android system-service ANR. Actual Science → Beyond Earth visual acceptance remains unverified. The fixture-preparation job split remains incomplete.
 
 ## Evidence driving the redesign
 

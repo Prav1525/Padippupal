@@ -9,17 +9,19 @@
 **Last updated:** 2026-11-04
 **Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
 
-## Active objective: Beyond Earth original-image tutor-screen acceptance architecture
-- **PR / branch:** [#182](https://github.com/Prav1525/Padippupal/pull/182) / `test-beyond-earth-emulator-acceptance`.
-- **Latest changes:** hardware-backed emulator workflow using `macos-15-intel` and `reactivecircus/android-emulator-runner@v2`; bootstrap regression tests now guard the runner configuration. Architecture decision recorded in [docs/BEYOND_EARTH_ACCEPTANCE_ARCHITECTURE.md](../../docs/BEYOND_EARTH_ACCEPTANCE_ARCHITECTURE.md).
-- **Evidence driving change:** [Run 41813853022](https://github.com/Prav1525/Padippupal/actions/runs/41813853022), artifact [13313714325](https://github.com/Prav1525/Padippupal/actions/runs/41813853022/artifacts/13313714325). APK build, Python/bootstrap/JVM checks, production read-only fixture, all 19 original image fetches, emulator boot and install passed. UI acceptance failed before lesson setup completed. The emulator took 336,766 ms to boot; `-accel off` forced TCG software emulation. Logcat showed `com.android.phone` ANR, system_server monitor contention and GC, plus System UI not responding.
-- **Root cause confidence:** infrastructure starvation/system-service contention is **probable** as the immediate cause, supported by system-level ANRs and TCG execution. App performance is not exonerated.
-- **Phase 1 implementation:** move UI execution to a GitHub-hosted Intel macOS runner and use the maintained Android Emulator Runner action, which uses macOS Hypervisor.Framework rather than TCG. Keep API 35 AOSP x86_64, exact APK, 19 original images, navigation and screenshot assertions. No assertion is weakened.
-- **Phase 1 verification:** **PENDING**. Latest commits: workflow `928d1930d0a84f5689f617f85b944d847bf9bb6f`, bootstrap regression test `c92ac1d492e6cd17b7f45d6ce48d7450bb53e81b`, architecture decision `6f878f1b6706dc80b3214562098d870d00803221`. Re-fetch branch head and run results before claiming CI success.
-- **Phase 2 still required:** split original-image fixture preparation into a separate job. Produce a versioned artifact containing the fetched manifest and exact 19 original image bytes; the emulator job should download the artifact and start a local fixture without production network access. This is explicitly incomplete and is required before calling the architecture fully decoupled.
-- **Acceptance still required:** Python/bootstrap tests, Kotlin/JVM tests, APK build, all 19 fixture validations, accelerated emulator readiness, Science → Beyond Earth tutor journey, actual inline mapped-image screenshot and label/detail assertions, and artifact inspection.
-- **Release boundary:** keep PR #182 open. Do not merge, deploy, write production DB, or publicly release without explicit approval.
-
+## Active objective: Beyond Earth original-image tutor-screen acceptance
+- **State:** BLOCKED — the latest Android runtime attempt reached the PadippuPal home screen but Android system services became unresponsive; a fresh non-macOS runtime is not currently available.
+- **PR / branch / exact tested head:** [#182](https://github.com/Prav1525/Padippupal/pull/182) / `test-beyond-earth-emulator-acceptance` / `c71fbab5ad08d74adbfee1dcc7d02cac17985e01`.
+- **Latest evidence:** [Run 41822010546](https://github.com/Prav1525/Padippupal/actions/runs/41822010546), job `126547198235`, [artifact 13319240864](https://github.com/Prav1525/Padippupal/actions/runs/41822010546/artifacts/13319240864).
+- **Passed layers:** Python/bootstrap tests, shell syntax, Kotlin/JVM `testDebugUnitTest`, exact debug APK build, read-only fixture with all 19 original images, APK installation.
+- **Runtime outcome:** Android emulator booted and PadippuPal MainActivity reached `RESUMED` / `reportedDrawn=true`. The inspected screenshot shows the home screen behind “System UI isn't responding”. Logcat records an ANR in `com.android.phone`; UIAutomator returned a null root. Science → Beyond Earth tutor navigation and visual assertions were **NOT RUN**.
+- **Root cause:** Immediate blocker **CONFIRMED** as Android system-service startup ANR; underlying reason for platform slowdown remains **UNKNOWN**. This does not establish a tutor-renderer defect.
+- **User environment constraint:** “no mac os simulator”. The failed run used an Android emulator hosted on `macos-15-intel`, not a macOS/iOS Simulator. Do not launch another macOS-hosted emulator run without clarification.
+- **Repair counter:** Keep the originating chain unchanged at generation 5/5. No sixth repair and no counter reset.
+- **Non-macOS limitation:** Existing Ubuntu UI workflow requires `/dev/kvm`; prior hosted-runner attempt 41761216498 failed the KVM acceleration permission check. Previous TCG software-emulation attempts produced system-service ANRs. Current isolated environment has JDK 21 but no Gradle, Android SDK, or adb.
+- **Next action:** A non-macOS Android runtime with hardware acceleration must be made available (self-hosted KVM runner or authorized physical/cloud Android device). Until then, actual tutor-screen acceptance remains **UNVERIFIED**.
+- **Safety:** PR #182 stays open. No merge, production database write, deployment, or public release.
+  
 ## Previous engineering OS handoff: Phase 1 — Persistent Engineering Operating System
 - **Branch:** `chore/persistent-engineering-os-phase1`; base `main@407844ea458799eadc99b9af1e7364939902e9dd`.
 - **PR:** [#61 — Establish PadippuPal Persistent Engineering Operating System — Phase 1](https://github.com/Prav1525/Padippupal/pull/61).

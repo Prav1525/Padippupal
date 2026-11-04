@@ -447,3 +447,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Add a mocked command-contract test checking the direct mkdir argv, single-string remote shell command, and exact stdin XML; compile the helper; include the helper and regression test in the workflow's path filter so edits trigger acceptance.
 - **Evidence:** [Run 41779671319](https://github.com/Prav1525/Padippupal/actions/runs/41779671319); job log records AOSP boot, PackageManager readiness, successful APK install, then the mkdir error. Failed head: `782db3d638052477f548786595418420ebe3a0c9`.
 - **Status:** Correction committed; exact-head regression and emulator acceptance pending. Tutor-screen image rendering and spacing remain **UNVERIFIED**. No merge, production database write, or deployment.
+
+
+## TE-046 — Beyond Earth run 42 blocked by Android system-service ANR
+- **Date:** 2026-11-04
+- **Branch / SHA:** `test-beyond-earth-emulator-acceptance@c71fbab5ad08d74adbfee1dcc7d02cac17985e01`.
+- **Failure:** [Run 41822010546](https://github.com/Prav1525/Padippupal/actions/runs/41822010546), job `126547198235`, [artifact 13319240864](https://github.com/Prav1525/Padippupal/actions/runs/41822010546/artifacts/13319240864). Build, JVM/helper tests, original-image fixture (19/19), and APK installation passed. The Android emulator displayed PadippuPal's home screen, but a system-level “System UI isn't responding” dialog blocked UIAutomator; the Science → Beyond Earth flow did not run.
+- **Evidence:** `dumpsys activity` reports MainActivity `RESUMED` and `reportedDrawn=true`; logcat records `ANR in com.android.phone` because the process failed to complete startup and reports system_server monitor contention. The screenshot was retrieved and inspected.
+- **Root cause:** **CONFIRMED** immediate blocker: Android platform/system-service ANR prevented reliable accessibility automation. Deeper resource/runner cause remains **UNKNOWN**. No app fatal exception is evidenced.
+- **Environment constraint:** Workflow used an Android emulator on `macos-15-intel`, not a macOS Simulator. User instructed “no mac os simulator”; do not repeat a macOS-hosted emulator run without clarification. The Ubuntu workflow requires `/dev/kvm`; previous hosted Linux run 41761216498 failed KVM acceleration permissions, while prior TCG software emulation produced system ANRs.
+- **Repair budget:** Existing failure chain is at 5/5. No sixth repair generation is permitted.
+- **Status:** **UNVERIFIED**. Actual Science → Beyond Earth tutor screenshot and visual acceptance were not reached.
+- **Next:** Use a non-macOS hardware-accelerated Android runner or authorized physical/cloud Android device. No merge, production DB write, deployment, or release.

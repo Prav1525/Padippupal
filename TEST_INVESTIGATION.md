@@ -698,3 +698,13 @@ Use this format:
 - **Verification status:** **UNVERIFIED** — source edits committed; no pytest, Android build, emulator run, or production data inspection has yet been performed for this feature.
 - **Safety:** No production database writes, deployment, merge or release. Translation imports require an admin action and explicit `reviewed=true`; only approved Science synthesis lessons are eligible.
 - **Next action:** Open a review PR against the existing tutor feature branch, run the full Curriculum Engine Tests workflow, fix any failures from exact logs, then inspect the approved Science lesson inventory and prepare reviewed Tamil/Tanglish payloads. Do not report language coverage complete until the DB coverage endpoint proves every selected Science lesson has both current variants.
+
+
+### 2026-11-06 — First stored-language CI run: two test failures isolated
+- **Run:** [Curriculum Engine Tests #1422](https://github.com/Prav1525/Padippupal/actions/runs/42223947029), job [127912564595](https://github.com/Prav1525/Padippupal/actions/runs/42223947029/job/127912564595).
+- **Commit:** `3f2cf42de43922ebd96de64cca0e7a1ca251b0ea`; hosted Ubuntu 26.04, CPython 3.12.16; command `pytest -q`.
+- **Result:** **FAIL** — 111 passed, 2 failed.
+- **Failure 1 / confirmed root cause:** The translation import test passed, but the coverage GET returned 404. FastAPI had already registered a dynamic admin lesson route that captured `/admin/chapter-lessons/language-coverage` as a lesson ID before the static coverage route could match. Fix: move the static inventory under a non-conflicting path, `/admin/science/chapter-lessons/language-coverage`.
+- **Failure 2 / confirmed root cause:** An existing approved-lesson test replaces the DB connection with a fake that only implements the original approved-lesson query. The new stored-translation lookup correctly issued a second query, which the stale fake asserted against the first query's parameters. Fix: update this isolated legacy test to stub the new stored-language loader as English/pass-through rather than weakening production behavior.
+- **What passed:** Python package installation, test collection, and 111 backend tests including the new import/structure checks before the coverage assertion.
+- **Next:** Apply the two narrow test/route corrections and rerun the full curriculum pytest workflow on the updated exact head. No production DB write, deployment, merge or release.

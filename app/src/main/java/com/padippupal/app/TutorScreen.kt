@@ -766,7 +766,10 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
             // No fixed-height image slot, decorative card, or cropped source image.
             loadedImages.forEach { loaded ->
                 val bitmap = loaded.bitmap
-                val aspectRatio = (bitmap.width.toFloat() / bitmap.height.toFloat()).coerceIn(0.25f, 3.2f)
+                // Keep the bitmap's exact ratio. Clamping this value changes the measured
+                // image bounds without changing the source pixels, creating apparent
+                // blank bands around unusually tall or wide textbook illustrations.
+                val aspectRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
                 BoxWithConstraints(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -2584,7 +2587,7 @@ internal fun TutorScreen(
                             // Render the complete topic as ordered explanation/image pairs.
                             // Playback highlights the active segment without removing earlier
                             // modules from the same scrollable lesson canvas.
-                            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 liveSegments.forEachIndexed { index, segment ->
                                     val segmentText = segment.optString("caption_text")
                                         .ifBlank { segment.optString("spoken_text") }

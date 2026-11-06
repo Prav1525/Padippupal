@@ -666,3 +666,12 @@ Use this format:
 - **Acceptance expansion:** The Android API-35 emulator test now scrolls through the full topic, captures each viewport, verifies all seven narration modules, checks the 19-image manifest, and requires original-image mappings and accessible image labels for all seven modules.
 - **Test status:** Pending exact-head CI execution. This entry records the implementation and test criteria, not a passing result.
 - **Production safety:** The fixture performs read-only GET requests for the existing production image manifest and blobs. No production database writes, deployment, PR merge, or public release.
+
+
+### 2026-11-06 — Yellow panels traced to loaded source assets; source-blob diagnosis
+- **Branch / starting commit:** `ui/beyond-earth-continuous-inline-images` at `fa0195a3318d0226e7f07a753012c6f24750d537`.
+- **Evidence:** Hosted Ubuntu/KVM Android API-35 run [42182625265](https://github.com/Prav1525/Padippupal/actions/runs/42182625265) passed navigation and exposed all seven modules. Actual screenshot `beyond-earth-scroll-05.png` shows a yellow paper-texture panel where the UI hierarchy labels the Compose image `Solar System`; a second yellow panel is labelled `Telescope`. The image nodes are real rendered bitmaps with full-width/tall bounds, not blank Compose spacing. This disproves the earlier whitespace-only hypothesis.
+- **Root cause status:** **CONFIRMED at the presentation/data boundary** — the manifest-to-renderer path is loading image blobs whose rendered content is visually uninformative for at least these two labels. **Unresolved:** whether the source blobs themselves are blank textures or the manifest maps the wrong blobs to those labels.
+- **Diagnostic change:** Extend the read-only emulator fixture to include exact original image bytes and manifest metadata in the workflow artifact. This is required to inspect the source pixels and mapping directly before selecting a safe fix.
+- **Safety:** fixture continues using HTTP GET only. No app data, image bytes, lesson text, production DB, deployment, or release is modified.
+- **Verification target:** script syntax/compile checks, then rerun the existing hosted Ubuntu/KVM API-35 full-topic acceptance and inspect all 19 original blobs alongside the screenshots. Do not merge PR #219 or deploy until visual acceptance is clean.

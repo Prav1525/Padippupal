@@ -60,3 +60,17 @@ def test_missing_gemini_key_fails_closed(monkeypatch):
     with pytest.raises(HTTPException) as exc:
         generator._generate_with_gemini("test")
     assert exc.value.status_code == 503
+
+
+
+def test_step_id_batches_preserves_order_and_caps_requests_at_three():
+    assert generator._step_id_batches([f"step_{i}" for i in range(1, 9)]) == [
+        ["step_1", "step_2", "step_3"],
+        ["step_4", "step_5", "step_6"],
+        ["step_7", "step_8"],
+    ]
+
+
+def test_step_id_batches_handles_empty_and_short_sequences():
+    assert generator._step_id_batches([]) == []
+    assert generator._step_id_batches(["step_1"]) == [["step_1"]]

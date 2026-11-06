@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
+import threading
 import urllib.error
 import urllib.request
 from typing import Any
@@ -300,3 +302,102 @@ def approve_generated_lesson_image(asset_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Image approval failed ({type(exc).__name__}).") from exc
     finally:
         conn.close()
+
+
+# The first unattended rollout is intentionally limited to this one approved
+# lesson. Expanding the allowlist must be an explicit code/configuration change.
+AUTO_GEMINI_LESSON_ID = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
+_AUTO_GENERATION_LOCK_KEY = (7142026, 6)
+_auto_generation_thread: threading.Thread | None = None
+_auto_generation_logger = logging.getLogger("padippupal.gemini_auto_generation")
+
+
+def _step_id_batches(step_ids: list[str], batch_size: int = MAX_STEPS_PER_REQUEST) -> list[list[str]]:
+    """Split an ordered lesson sequence into bounded Gemini requests."""
+    return [step_ids[index:index + batch_size] for index in range(0, len(step_ids), batch_size)]
+
+
+def _run_auto_generation() -> None:
+    """Generate the allowlisted lesson after startup, with a cross-instance DB lock.
+
+    The advisory lock connection stays open for the whole run. If a process exits,
+    PostgreSQL releases the lock automatically. Existing deterministic asset IDs
+    are skipped by the normal generation path, making deploy/restart retries safe.
+    """
+    lock_conn = None
+    try:
+        lock_conn = connect()
+        lock_row = lock_conn.execute(
+            "SELECT pg_try_advisory_lock(%s, %s) AS locked",
+            _AUTO_GENERATION_LOCK_KEY,
+        ).fetchone()
+        if not lock_row or not lock_row["locked"]:
+            _auto_generation_logger.info("Automatic Gemini generation skipped: another instance owns the lock")
+            return
+
+        lesson_row = lock_conn.execute(
+            "SELECT status, subject, lesson_json FROM chapter_lessons WHERE id=%s",
+            (AUTO_GEMINI_LESSON_ID,),
+        ).fetchone()
+        if not lesson_row or lesson_row["status"] != "approved" or str(lesson_row["subject"]).strip().casefold() != "science":
+            _auto_generation_logger.warning("Automatic Gemini generation skipped: allowlisted approved Science lesson not found")
+            return
+
+        lesson_json = lesson_row["lesson_json"]
+        if isinstance(lesson_json, str):
+            lesson_json = json.loads(lesson_json or "{}")
+        teaching_sequence = lesson_json.get("teaching_sequence") if isinstance(lesson_json, dict) else None
+        if not isinstance(teaching_sequence, list) or not teaching_sequence:
+            _auto_generation_logger.warning("Automatic Gemini generation skipped: lesson has no teaching_sequence")
+            return
+
+        step_ids = [
+            str(step.get("id", "")).strip()
+            for step in teaching_sequence
+            if isinstance(step, dict) and str(step.get("id", "")).strip()
+        ]
+        batches = _step_id_batches(step_ids)
+        _auto_generation_logger.info(
+            "Automatic Gemini generation starting: lesson_id=%s steps=%s batches=%s",
+            AUTO_GEMINI_LESSON_ID, len(step_ids), len(batches),
+        )
+        for batch_number, batch in enumerate(batches, start=1):
+            try:
+                result = generate_science_lesson_images(
+                    AUTO_GEMINI_LESSON_ID,
+                    GenerateLessonImagesRequest(step_ids=batch, overwrite=False),
+                )
+                _auto_generation_logger.info(
+                    "Automatic Gemini generation batch complete: lesson_id=%s batch=%s/%s stored=%s skipped=%s",
+                    AUTO_GEMINI_LESSON_ID, batch_number, len(batches),
+                    result.get("stored_count", 0), result.get("skipped_count", 0),
+                )
+            except Exception:
+                # Stop at the first failed batch. A later restart retries safely:
+                # successful assets have deterministic IDs and will be skipped.
+                _auto_generation_logger.exception(
+                    "Automatic Gemini generation batch failed: lesson_id=%s batch=%s/%s",
+                    AUTO_GEMINI_LESSON_ID, batch_number, len(batches),
+                )
+                break
+    except Exception:
+        _auto_generation_logger.exception("Automatic Gemini generation worker failed")
+    finally:
+        if lock_conn is not None:
+            lock_conn.close()
+
+
+def start_auto_generation() -> None:
+    """Start one daemon worker per process; PostgreSQL lock coordinates replicas."""
+    global _auto_generation_thread
+    if os.getenv("PADIPPUPAL_AUTO_GEMINI_IMAGE_GENERATION", "true").strip().casefold() in {"0", "false", "no", "off"}:
+        _auto_generation_logger.info("Automatic Gemini image generation disabled by configuration")
+        return
+    if _auto_generation_thread is not None and _auto_generation_thread.is_alive():
+        return
+    _auto_generation_thread = threading.Thread(
+        target=_run_auto_generation,
+        name="padippupal-gemini-image-generation",
+        daemon=True,
+    )
+    _auto_generation_thread.start()

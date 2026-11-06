@@ -641,3 +641,11 @@ Use this format:
 - **Next action:** Run the emulator acceptance workflow on this PR head and inspect the captured tutor screenshot, including the second image's whitespace.
 
 - **Workflow activation:** Acceptance workflow is now also present on the PR base branch; this commit updates the PR head to trigger pull-request validation. No test result is implied by this activation note.
+
+
+### 2026-11-06 — Acceptance harness bootstrap failure and correction
+- **Run:** [42177728867](https://github.com/Prav1525/Padippupal/actions/runs/42177728867).
+- **Result:** **FAIL** in script validation before JVM tests, APK build, KVM setup, fixture startup, or emulator launch.
+- **Exact cause:** Workflow syntax-checks `.github/scripts/run_beyond_earth_emulator_acceptance.sh`, but that helper was not restored with the other harness files; shell reported “No such file or directory”.
+- **Correction:** Restore the existing helper from the prior acceptance branch; no test assertion was weakened.
+- **Next action:** Re-run the workflow and inspect the next failing or passing stage. No production writes, merge, or deployment.

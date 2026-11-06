@@ -129,7 +129,8 @@ private fun WordByWordCaption(
     active: Boolean,
     currentWordIndex: Int,
     modifier: Modifier = Modifier,
-    expandToAvailableHeight: Boolean = false
+    expandToAvailableHeight: Boolean = false,
+    internalScroll: Boolean = true
 ) {
     // Keep the source's spaces and paragraph breaks. Word highlighting must not rewrite
     // the lesson into a new paragraph structure while speech is playing.
@@ -165,9 +166,9 @@ private fun WordByWordCaption(
             if (cursor < text.length) append(text.substring(cursor))
         }
     }
-    LaunchedEffect(currentWordIndex, layoutResult, active, text) {
+    LaunchedEffect(currentWordIndex, layoutResult, active, text, internalScroll) {
         val layout = layoutResult
-        if (active && layout != null && words.isNotEmpty() && caption.isNotEmpty()) {
+        if (internalScroll && active && layout != null && words.isNotEmpty() && caption.isNotEmpty()) {
             val index = currentWordIndex.coerceIn(0, words.lastIndex)
             val displayOffset = wordStarts.getOrElse(index) { 0 }.coerceAtMost(caption.length - 1).coerceAtLeast(0)
             val line = layout.getLineForOffset(displayOffset)
@@ -175,10 +176,12 @@ private fun WordByWordCaption(
             runCatching { scrollState.animateScrollTo(target) }
         }
     }
-    val captionModifier = if (expandToAvailableHeight) {
-        modifier.fillMaxWidth().verticalScroll(scrollState)
-    } else {
-        modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scrollState)
+    // Live lessons scroll as one page with their inline visuals. Keep the legacy
+    // bounded caption scroll only in callers that explicitly request it.
+    val captionModifier = when {
+        !internalScroll -> modifier.fillMaxWidth()
+        expandToAvailableHeight -> modifier.fillMaxWidth().verticalScroll(scrollState)
+        else -> modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scrollState)
     }
     Box(captionModifier) {
         Text(
@@ -756,23 +759,37 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
     if (loadedImages.isNotEmpty()) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Presentation only: keep synthesis/module text untouched and show no instructional or provenance copy.
+            // Use each source bitmap's own proportions. Landscape photos can breathe
+            // across the lesson width; diagrams and portrait figures stay compact.
+            // No fixed-height image slot, decorative card, or cropped source image.
             loadedImages.forEach { loaded ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFFFFCF5), RoundedCornerShape(14.dp))
-                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
-                        .padding(8.dp)
+                val bitmap = loaded.bitmap
+                // Keep the bitmap's exact ratio. Clamping this value changes the measured
+                // image bounds without changing the source pixels, creating apparent
+                // blank bands around unusually tall or wide textbook illustrations.
+                val aspectRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
+                    val widthFraction = when {
+                        aspectRatio >= 1.45f -> 1f
+                        aspectRatio <= 0.8f -> 0.68f
+                        else -> 0.78f
+                    }
+                    val preferredWidth = maxWidth * widthFraction
+                    val maxImageHeight = 360.dp
+                    val renderedWidth = if (preferredWidth / aspectRatio > maxImageHeight) {
+                        maxImageHeight * aspectRatio
+                    } else {
+                        preferredWidth
+                    }
                     androidx.compose.foundation.Image(
-                        bitmap = loaded.bitmap.asImageBitmap(),
+                        bitmap = bitmap.asImageBitmap(),
                         contentDescription = loaded.label.ifBlank { lesson.optString("topic", "Relevant textbook illustration") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = if (compact) 220.dp else 300.dp),
+                        modifier = Modifier.width(renderedWidth).aspectRatio(aspectRatio),
                         contentScale = ContentScale.Fit
                     )
                 }
@@ -2134,16 +2151,13 @@ internal fun TutorScreen(
                             )
                         }
                     }
-                    // The API segments are transport chunks, not separate learner-facing steps.
-                    // Join them into one caption/audio response so no checkpoint interrupts the explanation.
+                    // Validate completeness across the whole topic, but preserve the
+                    // ordered teaching segments for the learner-facing lesson feed.
                     val completeText = lessonSegments.map { it.optString("spoken_text").trim() }
                         .filter { it.isNotBlank() }.joinToString(" ")
                     if (completeText.length < 220) {
                         throw IllegalStateException("The lesson was too short to explain the selected topic completely. Please try again.")
                     }
-                    // Preserve exact synthesis-step timing for inline visuals. For approved
-                    // synthesized lessons, the backend visual steps mirror the ordered speech
-                    // segments, so each visual changes when its own spoken segment begins.
                     val inlineVisual = response.optJSONObject("interactive_lesson")
                     if (inlineVisual?.optString("scene_type") == "synthesis_static") {
                         val visualSteps = inlineVisual.optJSONArray("steps")
@@ -2158,14 +2172,29 @@ internal fun TutorScreen(
                             inlineVisual.put("step_word_boundaries", wordBoundaries)
                         }
                     }
-                    val completeLesson = JSONObject()
-                        .put("id", "complete-lesson")
-                        .put("spoken_text", completeText)
-                        .put("caption_text", completeText)
-                        .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-                        .put("interactive_lesson", inlineVisual ?: JSONObject.NULL)
-                        .put("checkpoint", JSONObject.NULL)
-                    listOf(completeLesson)
+                    if (chapter.contains("Beyond Earth", ignoreCase = true)) {
+                        // Beyond Earth is a real text/image feed: keep each API segment
+                        // as its own block and retain its own mapped textbook visual.
+                        lessonSegments.mapIndexed { index, sourceSegment ->
+                            val segment = JSONObject(sourceSegment.toString())
+                            if (segment.optJSONObject("interactive_lesson") == null && inlineVisual != null) {
+                                segment.put("interactive_lesson", inlineVisual)
+                                segment.put("visual_step_index", index)
+                            }
+                            segment.put("checkpoint", JSONObject.NULL)
+                            segment
+                        }
+                    } else {
+                        // Other lessons retain their uninterrupted single-caption playback.
+                        val completeLesson = JSONObject()
+                            .put("id", "complete-lesson")
+                            .put("spoken_text", completeText)
+                            .put("caption_text", completeText)
+                            .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+                            .put("interactive_lesson", inlineVisual ?: JSONObject.NULL)
+                            .put("checkpoint", JSONObject.NULL)
+                        listOf(completeLesson)
+                    }
                 } finally { connection.disconnect() }
             }
             tutorMainHandler.post {
@@ -2537,14 +2566,15 @@ internal fun TutorScreen(
 
         if (liveLessonActive) {
             // One continuous teaching canvas: no inset green card or floating lesson overlay.
+            // One scroll owner for the narration and its mapped images. This lets
+            // the student read down the lesson instead of scrolling inside a caption
+            // while a separate-looking visual area remains fixed below it.
             Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.weight(1f).fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(7.dp))
@@ -2552,67 +2582,95 @@ internal fun TutorScreen(
                             Spacer(Modifier.weight(1f))
                             if (liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                         }
-                        if (liveCaption.isNotBlank()) {
-                            WordByWordCaption(
-                                liveCaption, speechActive, liveWordIndex,
-                                // At checkpoints, don't let the caption consume all remaining height:
-                                // the compact concept animation and fixed answer card must stay visible.
-                                modifier = if (awaitingUnderstanding) {
-                                    Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
-                                } else {
-                                    Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 190.dp)
-                                },
-                                // Keep the narration caption bounded so the mapped 2D visual stays visible inline.
-                                // Word highlighting scrolls inside the caption rather than pushing the visual off-screen.
-                                expandToAvailableHeight = false
-                            )
-                        } else {
-                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = TutorGreen)
-                            }
-                        }
-                        // Keep the concept animation mounted during the checkpoint; compact it so
-                        // the student can see both the pattern and the response choices together.
-                        val liveVisualSteps = liveInteractiveLesson?.optJSONArray("steps")
-                        val totalLiveWords = liveCaption.trim().split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
-                        val stepWordBoundaries = liveInteractiveLesson?.optJSONArray("step_word_boundaries")
-                        val liveVisualStep = if (liveVisualSteps != null && liveVisualSteps.length() > 0) {
-                            if (stepWordBoundaries != null && stepWordBoundaries.length() == liveVisualSteps.length()) {
-                                val spokenWordPosition = liveWordIndex + 1
-                                (0 until stepWordBoundaries.length()).firstOrNull { spokenWordPosition <= stepWordBoundaries.optInt(it, Int.MAX_VALUE) }
-                                    ?: (liveVisualSteps.length() - 1)
-                            } else {
-                                ((liveWordIndex.toFloat() / totalLiveWords.toFloat()) * liveVisualSteps.length())
-                                    .toInt().coerceIn(0, liveVisualSteps.length() - 1)
-                            }
-                        } else 0
-                        when {
-                            liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(
-                                lesson = liveInteractiveLesson!!,
-                                sessionPrefs = sessionPrefs,
-                                sessionKey = sessionKey,
-                                todayKey = todayKey,
-                                compact = true,
-                                activeStepOverride = liveVisualStep
-                            )
-                            liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
-                                val topicKey = topic.lowercase(Locale.ROOT)
-                                val scene = when {
-                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
-                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
-                                    else -> "number_pattern"
+                        val isBeyondEarthFeed = chapter.contains("Beyond Earth", ignoreCase = true)
+                        if (isBeyondEarthFeed) {
+                            // Render the complete topic as ordered explanation/image pairs.
+                            // Playback highlights the active segment without removing earlier
+                            // modules from the same scrollable lesson canvas.
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                liveSegments.forEachIndexed { index, segment ->
+                                    val segmentText = segment.optString("caption_text")
+                                        .ifBlank { segment.optString("spoken_text") }
+                                    val isActiveSegment = index == liveSegmentIndex
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        if (segmentText.isNotBlank()) {
+                                            WordByWordCaption(
+                                                segmentText,
+                                                active = isActiveSegment && speechActive,
+                                                currentWordIndex = if (isActiveSegment) liveWordIndex else 0,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                expandToAvailableHeight = false,
+                                                internalScroll = false
+                                            )
+                                        }
+                                        val segmentVisual = segment.optJSONObject("interactive_lesson")
+                                        if (segmentVisual != null) {
+                                            DatabaseInteractiveLessonLab(
+                                                lesson = segmentVisual,
+                                                sessionPrefs = sessionPrefs,
+                                                sessionKey = sessionKey,
+                                                todayKey = todayKey,
+                                                compact = true,
+                                                activeStepOverride = segment.optInt("visual_step_index", 0)
+                                            )
+                                        }
+                                    }
                                 }
-                                ChapterOneMathAnimation(
-                                    scene = scene,
-                                    title = topic.ifBlank { "Patterns in Mathematics" },
-                                    topic = topic,
-                                    caption = "Watch the pattern change automatically as your teacher explains.",
-                                    compact = awaitingUnderstanding
+                            }
+                        } else {
+                            if (liveCaption.isNotBlank()) {
+                                WordByWordCaption(
+                                    liveCaption, speechActive, liveWordIndex,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    expandToAvailableHeight = false,
+                                    internalScroll = false
                                 )
+                            } else {
+                                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = TutorGreen)
+                                }
+                            }
+                            val liveVisualSteps = liveInteractiveLesson?.optJSONArray("steps")
+                            val totalLiveWords = liveCaption.trim().split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
+                            val stepWordBoundaries = liveInteractiveLesson?.optJSONArray("step_word_boundaries")
+                            val liveVisualStep = if (liveVisualSteps != null && liveVisualSteps.length() > 0) {
+                                if (stepWordBoundaries != null && stepWordBoundaries.length() == liveVisualSteps.length()) {
+                                    val spokenWordPosition = liveWordIndex + 1
+                                    (0 until stepWordBoundaries.length()).firstOrNull { spokenWordPosition <= stepWordBoundaries.optInt(it, Int.MAX_VALUE) }
+                                        ?: (liveVisualSteps.length() - 1)
+                                } else {
+                                    ((liveWordIndex.toFloat() / totalLiveWords.toFloat()) * liveVisualSteps.length())
+                                        .toInt().coerceIn(0, liveVisualSteps.length() - 1)
+                                }
+                            } else 0
+                            when {
+                                liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(
+                                    lesson = liveInteractiveLesson!!,
+                                    sessionPrefs = sessionPrefs,
+                                    sessionKey = sessionKey,
+                                    todayKey = todayKey,
+                                    compact = true,
+                                    activeStepOverride = liveVisualStep
+                                )
+                                liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
+                                    val topicKey = topic.lowercase(Locale.ROOT)
+                                    val scene = when {
+                                        topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                                        topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                                        else -> "number_pattern"
+                                    }
+                                    ChapterOneMathAnimation(
+                                        scene = scene,
+                                        title = topic.ifBlank { "Patterns in Mathematics" },
+                                        topic = topic,
+                                        caption = "Watch the pattern change automatically as your teacher explains.",
+                                        compact = awaitingUnderstanding
+                                    )
+                                }
                             }
                         }
-                    }
-            }
+
+        }
         }
 
         // Inline learner checkpoint: part of the teaching flow, not a floating card.

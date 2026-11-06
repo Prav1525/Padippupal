@@ -618,3 +618,70 @@ Use this format:
 - **Regression coverage:** Added JVM unit tests for all images in a module, the union of step/module matches, duplicate removal, and unmapped modules.
 - **Validation status:** Android APK build and emulator smoke workflow are running for PR #168. The investigation-guidance gate initially failed because this ledger entry was missing; the entry is now added and the gate will be rechecked. The emulator smoke fixture is not yet a Beyond Earth production-image screenshot, so live visual confirmation remains separate.
 - **Production safety:** No production database writes, PR merge, or deployment performed.
+
+### 2026-11-06 — Beyond Earth continuous inline image layout and CI gate diagnosis
+- **Branch / commit:** `ui/beyond-earth-continuous-inline-images`; tested head `d6afbfdfb51f85d59d60c207585d636ae4af04da`.
+- **Test command or workflow URL:** Investigation Guidance Gate, run [42175830748](https://github.com/Prav1525/Padippupal/actions/runs/42175830748), job 127753951893.
+- **Result:** **BLOCKED** before Android checks.
+- **Exact failure:** `validate_investigation_ledger.py`: code/config changed but `TEST_INVESTIGATION.md` was not updated in this PR.
+- **Evidence:** Job log confirms checkout succeeded and the validator failed before Android JVM tests, APK build, or emulator allocation.
+- **Change made:** This append-only ledger entry records the exact failure and the next verification path; no acceptance criteria are weakened.
+- **Root cause:** **CONFIRMED** — PR #219 changed Kotlin and test code without adding its required dated investigation entry.
+- **What this attempt proves:** CI gate failure is a missing ledger update, not an Android compile or emulator failure.
+- **What remains unverified:** Gate rerun, JVM tests, debug APK build, hosted Ubuntu/KVM API-35 tutor journey, and screenshot inspection. The second-image whitespace is also not yet visually diagnosed.
+- **Difference from previous attempt:** Uses the exact failed gate log rather than guessing at an Android failure.
+- **Next action and why:** Re-run all exact-head checks after this ledger correction; inspect the second image's bitmap margins versus Compose spacing before applying a targeted visual adjustment. No merge, deployment, or production write.
+
+
+### 2026-11-06 — Restore Beyond Earth hosted Android acceptance harness for PR #219
+- **Branch:** `ui/beyond-earth-continuous-inline-images`; harness files restored from the prior acceptance branch without changing production application data.
+- **Scope:** Read-only GET of the existing Beyond Earth image manifest and 19 image blobs; deterministic local fixture; Android API 35 hosted Ubuntu/KVM emulator; JVM tests, debug APK build, tutor navigation, mapped-image accessibility assertion, and screenshot artifact.
+- **Production safety:** Fixture performs GET requests only; it does not write to the production database. No merge or deployment is authorized or performed.
+- **Validation status:** Pending exact-head workflow execution. This entry records the test harness restoration; it is not evidence that the Android journey passed.
+- **Next action:** Run the emulator acceptance workflow on this PR head and inspect the captured tutor screenshot, including the second image's whitespace.
+
+- **Workflow activation:** Acceptance workflow is now also present on the PR base branch; this commit updates the PR head to trigger pull-request validation. No test result is implied by this activation note.
+
+
+### 2026-11-06 — Acceptance harness bootstrap failure and correction
+- **Run:** [42177728867](https://github.com/Prav1525/Padippupal/actions/runs/42177728867).
+- **Result:** **FAIL** in script validation before JVM tests, APK build, KVM setup, fixture startup, or emulator launch.
+- **Exact cause:** Workflow syntax-checks `.github/scripts/run_beyond_earth_emulator_acceptance.sh`, but that helper was not restored with the other harness files; shell reported “No such file or directory”.
+- **Correction:** Restore the existing helper from the prior acceptance branch; no test assertion was weakened.
+- **Next action:** Re-run the workflow and inspect the next failing or passing stage. No production writes, merge, or deployment.
+
+
+### 2026-11-06 — Kotlin compile failure in live lesson layout and correction
+- **Run:** [42177818115](https://github.com/Prav1525/Padippupal/actions/runs/42177818115).
+- **Result:** **FAIL** during Android JVM test task's Kotlin compilation; no APK or emulator was produced.
+- **Exact compiler error:** `TutorScreen.kt:2731:2 Syntax error: Expecting '}'`.
+- **Root cause:** The live-lesson `if` block was left unclosed after moving the caption and visual into the shared scrolling Column.
+- **Correction:** Added the missing closing brace at the verified block boundary. No layout behavior or test assertion changed.
+- **Next action:** Re-run exact-head JVM tests and continue through APK build and emulator acceptance if compilation passes.
+
+
+### 2026-11-06 — Full-topic Beyond Earth module feed and emulator acceptance
+- **Branch:** `ui/beyond-earth-continuous-inline-images`.
+- **Change:** Preserve the Beyond Earth API's ordered lesson segments instead of collapsing them into one caption. Render every segment in a single scrollable lesson column, with that segment's own mapped original textbook image directly beneath its explanation. Other topic playback remains unchanged.
+- **Acceptance expansion:** The Android API-35 emulator test now scrolls through the full topic, captures each viewport, verifies all seven narration modules, checks the 19-image manifest, and requires original-image mappings and accessible image labels for all seven modules.
+- **Test status:** Pending exact-head CI execution. This entry records the implementation and test criteria, not a passing result.
+- **Production safety:** The fixture performs read-only GET requests for the existing production image manifest and blobs. No production database writes, deployment, PR merge, or public release.
+
+
+### 2026-11-06 — Yellow panels traced to loaded source assets; source-blob diagnosis
+- **Branch / starting commit:** `ui/beyond-earth-continuous-inline-images` at `fa0195a3318d0226e7f07a753012c6f24750d537`.
+- **Evidence:** Hosted Ubuntu/KVM Android API-35 run [42182625265](https://github.com/Prav1525/Padippupal/actions/runs/42182625265) passed navigation and exposed all seven modules. Actual screenshot `beyond-earth-scroll-05.png` shows a yellow paper-texture panel where the UI hierarchy labels the Compose image `Solar System`; a second yellow panel is labelled `Telescope`. The image nodes are real rendered bitmaps with full-width/tall bounds, not blank Compose spacing. This disproves the earlier whitespace-only hypothesis.
+- **Root cause status:** **CONFIRMED at the presentation/data boundary** — the manifest-to-renderer path is loading image blobs whose rendered content is visually uninformative for at least these two labels. **Unresolved:** whether the source blobs themselves are blank textures or the manifest maps the wrong blobs to those labels.
+- **Diagnostic change:** Extend the read-only emulator fixture to include exact original image bytes and manifest metadata in the workflow artifact. This is required to inspect the source pixels and mapping directly before selecting a safe fix.
+- **Safety:** fixture continues using HTTP GET only. No app data, image bytes, lesson text, production DB, deployment, or release is modified.
+- **Verification target:** script syntax/compile checks, then rerun the existing hosted Ubuntu/KVM API-35 full-topic acceptance and inspect all 19 original blobs alongside the screenshots. Do not merge PR #219 or deploy until visual acceptance is clean.
+
+
+### 2026-11-06 — Reject invalid Beyond Earth source image blobs at ingestion and delivery
+- **Branch:** `ui/beyond-earth-continuous-inline-images`.
+- **Root cause:** The image-ingestion route validated archive path, MIME signature, byte size, source PDF hash, approved lesson and required mapping fields, but did not validate image content. The production manifest therefore accepted four bright-yellow decorative paper textures under astronomy figure titles and two records with identical image SHA-256 values.
+- **Evidence:** Hosted Android API-35 run [42189750028](https://github.com/Prav1525/Padippupal/actions/runs/42189750028) captured the rendered yellow panels. The same run's artifact preserved all 19 original blobs and manifest. Pixel inspection identified four matching warm-paper textures; SHA-256 inspection found the observatory image duplicated under two distinct records.
+- **Change:** Add a narrow PyMuPDF pixel classifier for the repeated near-uniform bright-yellow paper texture; reject that content during ingestion; reject duplicate image bytes in a single manifest; and apply the same checks at manifest delivery so legacy rows are not shown. Add self-contained regression tests for paper-texture rejection and dark low-entropy astronomy-image preservation.
+- **Scope:** Does not modify synthesis lesson text, source PDF bytes, existing production database rows, or the Android layout. It filters invalid legacy blobs at read time and prevents the same known defects from being re-ingested.
+- **Verification:** Pending exact-head backend tests, JVM tests, APK build and full-topic hosted Android API-35 acceptance. The existing 19-asset source set is expected to serve fewer than 19 entries because known invalid/redundant records are filtered; replacement illustrations still require a verified extraction/curation pass against the original PDF.
+- **Safety:** No production write, deployment, merge or public release.

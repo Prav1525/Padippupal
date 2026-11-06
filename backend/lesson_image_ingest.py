@@ -6,6 +6,8 @@ import json
 import os
 import re
 from io import BytesIO
+
+import fitz
 from zipfile import BadZipFile, ZipFile
 
 import psycopg
@@ -26,6 +28,8 @@ def require_image_admin(x_admin_token: str | None = Header(default=None)) -> Non
     if not ADMIN_TOKEN or not x_admin_token or x_admin_token != ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Admin authentication required.")
 
+
+from lesson_image_quality import is_decorative_warm_texture
 
 def connect():
     if not DATABASE_URL:
@@ -75,6 +79,7 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
         raise HTTPException(status_code=422, detail="Manifest must include 1–300 image records.")
     names = {item.filename for item in archive.infolist() if not item.is_dir()}
     seen_ids = set()
+    seen_hashes: dict[str, str] = {}
     prepared = []
     for item in records:
         if not isinstance(item, dict):
@@ -112,9 +117,15 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
         )
         if not signature_ok:
             raise HTTPException(status_code=415, detail=f"Image bytes do not match {content_type}.")
+        if is_decorative_warm_texture(payload):
+            raise HTTPException(status_code=422, detail=f"Image {asset_id} is a decorative paper texture, not a lesson illustration.")
+        digest = hashlib.sha256(payload).hexdigest()
+        if digest in seen_hashes:
+            raise HTTPException(status_code=422, detail=f"Images {seen_hashes[digest]} and {asset_id} contain identical bytes; correct the image mapping before ingestion.")
+        seen_hashes[digest] = asset_id
         prepared.append({**item, "id": asset_id, "lesson_id": lesson_id, "module_key": module_key,
                          "content_type": content_type, "step_ids": list(dict.fromkeys(steps)),
-                         "alt_text": alt, "payload": payload, "sha256": hashlib.sha256(payload).hexdigest()})
+                         "alt_text": alt, "payload": payload, "sha256": digest})
     conn = connect()
     try:
         source = conn.execute(
@@ -175,18 +186,29 @@ def list_lesson_images(lesson_id: str) -> dict:
     try:
         rows = conn.execute("""
             SELECT a.id, a.lesson_id, a.module_key, a.title, a.step_ids_json,
-                   a.content_type, a.alt_text, b.sha256, b.byte_length
+                   a.content_type, a.alt_text, b.sha256, b.byte_length, b.image_bytes
             FROM lesson_image_assets a JOIN lesson_image_asset_blobs b ON b.asset_id=a.id
             JOIN chapter_lessons l ON l.id=a.lesson_id
             WHERE a.lesson_id=%s AND a.status='ready' AND l.status='approved'
             ORDER BY a.module_key
         """, (lesson_id,)).fetchall()
-        return {"lesson_id": lesson_id, "images": [
-            {"id": row["id"], "module_key": row["module_key"], "title": row["title"],
-             "step_ids": json.loads(row["step_ids_json"]), "content_type": row["content_type"],
-             "alt_text": row["alt_text"], "sha256": row["sha256"], "byte_length": row["byte_length"],
-             "url": f"/chapter-lessons/{lesson_id}/images/{row['id']}"} for row in rows
-        ]}
+        # Fail closed at the delivery boundary too: older production rows predate
+        # the quality gate, so do not expose the known decorative texture or repeat
+        # identical blobs under multiple module titles.
+        images = []
+        seen_hashes = set()
+        for row in rows:
+            digest = row["sha256"]
+            if digest in seen_hashes or is_decorative_warm_texture(bytes(row["image_bytes"])):
+                continue
+            seen_hashes.add(digest)
+            images.append({
+                "id": row["id"], "module_key": row["module_key"], "title": row["title"],
+                "step_ids": json.loads(row["step_ids_json"]), "content_type": row["content_type"],
+                "alt_text": row["alt_text"], "sha256": digest, "byte_length": row["byte_length"],
+                "url": f"/chapter-lessons/{lesson_id}/images/{row['id']}"}
+            )
+        return {"lesson_id": lesson_id, "images": images}
     finally:
         conn.close()
 

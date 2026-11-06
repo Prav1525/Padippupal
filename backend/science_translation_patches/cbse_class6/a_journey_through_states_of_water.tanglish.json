@@ -1,0 +1,76 @@
+{
+  "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+  "chapter": "A Journey through States of Water",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Neerin Nilai Maatrangal (A Journey through States of Water)",
+  "overview": "Indha paadathula water solid, liquid, gas-nu moonu states-la irukkum. Heat kudukkumbodhum cooling pannumbodhum state eppadi maarudhu, evaporation, condensation, clouds, rain eppadi form aagudhu-nu daily-life examples moolama purinjukkolvom.",
+  "learning_objectives": [
+    "Ice, liquid water, water vapour — indha moonum water-oda states-nu solla mudiyum.",
+    "Evaporation-um condensation-um eppadi different-nu explain panna mudiyum.",
+    "Heating, cooling water-oda state-ai eppadi maathudhu-nu purinjukka mudiyum.",
+    "Exposed surface area evaporation speed-ai eppadi affect pannudhu-nu solla mudiyum.",
+    "Earthen pot water-ai yen cool-aa vechikkudhu-nu explain panna mudiyum.",
+    "Clouds, rain, water cycle eppadi nadakkudhu-nu describe panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "நீரின் மூன்று நிலைகள் — 1",
+      "caption": "Ice solid-aa irukkum; liquid water flow aagum; water vapour gas state-la irukkum. Ice melt aagi water-a maarum. Lemonade-la ice melt aaguradhai observe pannalaam.",
+      "teacher_says": "Ippo \"நீரின் மூன்று நிலைகள்\"-ai simple example-oda purinjukkolvom. Observe panni, un words-la explain pannu; doubt irundhaa source idea-vai thirumba paapom.",
+      "checkpoint": "Quick check: \"நீரின் மூன்று நிலைகள்\" pathi unakku purinjadhu enna? Oru example-oda sollu."
+    },
+    {
+      "id": "step_2",
+      "title": "குளிர்ந்த கண்ணாடியில் நீர்த்துளிகள் — 2",
+      "caption": "Ice water irukkura cold glass-oda veli surface-la droplets varum. Andha water glass-kulla irundhu leak aagala; air-la irukkura water vapour cool aagi liquid droplets-a maarudhu. Idhudhaan condensation.",
+      "teacher_says": "Ippo \"குளிர்ந்த கண்ணாடியில் நீர்த்துளிகள்\"-ai simple example-oda purinjukkolvom. Observe panni, un words-la explain pannu; doubt irundhaa source idea-vai thirumba paapom.",
+      "checkpoint": "Quick check: \"குளிர்ந்த கண்ணாடியில் நீர்த்துளிகள்\" pathi unakku purinjadhu enna? Oru example-oda sollu."
+    },
+    {
+      "id": "step_3",
+      "title": "ஆவி சுருங்குதலைச் சோதித்தல் — 3",
+      "caption": "Cold surface mela water droplets form aaguradhai activity moolama test pannalaam. Observation mattum podhaadhu; water veliya seep aagudha, illa air-la irundhu condense aagudha-nu evidence collect pannuvom.",
+      "teacher_says": "Ippo \"ஆவி சுருங்குதலைச் சோதித்தல்\"-ai simple example-oda purinjukkolvom. Observe panni, un words-la explain pannu; doubt irundhaa source idea-vai thirumba paapom.",
+      "checkpoint": "Quick check: \"ஆவி சுருங்குதலைச் சோதித்தல்\" pathi unakku purinjadhu enna? Oru example-oda sollu."
+    },
+    {
+      "id": "step_4",
+      "title": "திட, திரவ, வாயு நிலைகளின் பண்புகள் — 4",
+      "caption": "Solid-ku fixed shape irukkum; liquid container shape-ai eduthukkum; gas available space-la spread aagum. Water-oda moonu states-ai shape, flow, spreading base-la compare pannuvom.",
+      "teacher_says": "Ippo \"திட, திரவ, வாயு நிலைகளின் பண்புகள்\"-ai simple example-oda purinjukkolvom. Observe panni, un words-la explain pannu; doubt irundhaa source idea-vai thirumba paapom.",
+      "checkpoint": "Quick check: \"திட, திரவ, வாயு நிலைகளின் பண்புகள்\" pathi unakku purinjadhu enna? Oru example-oda sollu."
+    },
+    {
+      "id": "step_5",
+      "title": "உருகுதல், உறைதல், ஆவியாதல் — 5",
+      "caption": "Heat kuduthaa ice melt aagum; liquid water-ku heat kidaikkumbodhu vapour-a maarum. Cooling panninaa water freeze aagi ice-a maarum. Plate-la water cap-ai vida seekiram dry aaguradhukku exposed area adhigam.",
+      "teacher_says": "Ippo \"உருகுதல், உறைதல், ஆவியாதல்\"-ai simple example-oda purinjukkolvom. Observe panni, un words-la explain pannu; doubt irundhaa source idea-vai thirumba paapom.",
+      "checkpoint": "Quick check: \"உருகுதல், உறைதல், ஆவியாதல்\" pathi unakku purinjadhu enna? Oru example-oda sollu."
+    },
+    {
+      "id": "step_6",
+      "title": "ஆவியாதலும் குளிர்விக்கும் விளைவும் — 6",
+      "caption": "Water evaporate aagumbodhu surroundings-lirundhu heat edukkum. Earthen pot-oda tiny pores vazhiya water veliya vandhu evaporate aaguradhunaala pot-kulla water cool aagum.",
+      "teacher_says": "Ippo \"ஆவியாதலும் குளிர்விக்கும் விளைவும்\"-ai simple example-oda purinjukkolvom. Observe panni, un words-la explain pannu; doubt irundhaa source idea-vai thirumba paapom.",
+      "checkpoint": "Quick check: \"ஆவியாதலும் குளிர்விக்கும் விளைவும்\" pathi unakku purinjadhu enna? Oru example-oda sollu."
+    },
+    {
+      "id": "step_7",
+      "title": "மேகங்கள் மற்றும் மழை — 7",
+      "caption": "Water surface-lirundhu evaporate aagi air-kku pogum. Water vapour cool aagi tiny droplets-a condense aagum; droplets serndhu clouds form aagum. Conditions poruthu rain, snow, hail varalaam.",
+      "teacher_says": "Ippo \"மேகங்கள் மற்றும் மழை\"-ai simple example-oda purinjukkolvom. Observe panni, un words-la explain pannu; doubt irundhaa source idea-vai thirumba paapom.",
+      "checkpoint": "Quick check: \"மேகங்கள் மற்றும் மழை\" pathi unakku purinjadhu enna? Oru example-oda sollu."
+    },
+    {
+      "id": "step_8",
+      "title": "நீர்ச் சுழற்சி — மீள்பார்வை — 8",
+      "caption": "Ocean, rivers, soil-lirundhu water evaporate aagum; clouds-la condense aagum; rain-a thirumbi Earth-kku varum. Water flow aagi rivers moolama oceans-ai reach pannum. Idhu continuous water cycle.",
+      "teacher_says": "Ippo \"நீர்ச் சுழற்சி — மீள்பார்வை\"-ai simple example-oda purinjukkolvom. Observe panni, un words-la explain pannu; doubt irundhaa source idea-vai thirumba paapom.",
+      "checkpoint": "Quick check: \"நீர்ச் சுழற்சி — மீள்பார்வை\" pathi unakku purinjadhu enna? Oru example-oda sollu."
+    }
+  ]
+}

@@ -9,6 +9,8 @@ from urllib.parse import urlparse, unquote
 from urllib.request import urlopen, Request
 
 ROOT = Path(__file__).resolve().parents[2]
+if not (ROOT / "backend" / "lesson_image_quality.py").is_file():
+    raise RuntimeError(f"Repository root/backend quality filter not found: {ROOT}")
 sys.path.insert(0, str(ROOT / "backend"))
 from lesson_image_quality import is_decorative_warm_texture
 import hashlib

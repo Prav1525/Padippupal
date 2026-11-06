@@ -1,0 +1,76 @@
+{
+  "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+  "chapter": "Diversity in the Living World",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Uyir Ulagin Pala Vagai",
+  "overview": "Indha lesson-la plants, animals, avanga body features, habitats, adaptations matrum biodiversity-ai observe panni compare pannuvom. Oru region-la irukkura living things ellam environment-oda connect aagirukkanga-nu purinjukkolvom.",
+  "learning_objectives": [
+    "Biodiversity-na enna-nu own words-la explain panna mudiyum.",
+    "Plants-ai stem, root, leaf features base-la group panna mudiyum.",
+    "Taproot-um fibrous root-um, parallel-um reticulate venation-um compare panna mudiyum.",
+    "Animals-oda habitats matrum body features-ai compare panna mudiyum.",
+    "Adaptation living things-ku environment-la survive panna eppadi help pannudhu-nu solla mudiyum.",
+    "Local biodiversity-ai observe panni protect panna ways suggest panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Namma sutri irukkura biodiversity",
+      "caption": "Oru garden, park, illa school ground-la different plants, birds, insects-ai observe pannunga. Ella living things-um same-aa irukkaadhu; size, shape, colour, food, habitat ellam vary aagum. Oru area-la irukkura living things-oda variety-thaan biodiversity.",
+      "teacher_says": "Oru marathula birds, insects, leaves, flowers ellam irukkalaam. Nature-la variety irukkuradhu dhaan biodiversity. Neenga paatha rendu different living things-ai compare pannunga.",
+      "checkpoint": "Biodiversity-na enna? Ungal area-la paatha rendu different living things sollunga."
+    },
+    {
+      "id": "step_2",
+      "title": "Plants-oda variety",
+      "caption": "Plants-la trees, shrubs, herbs, climbers, creepers madhiri different growth forms irukku. Height, stem strength, branching pattern, growing place base-la avatrai observe panni group pannalaam.",
+      "teacher_says": "Periya maram, small shrub, soft-stem herb ellam plant-thaan; aana growth pattern different. Stem eppadi irukku-nu paarthu classify pannuvom.",
+      "checkpoint": "Tree, shrub, herb — ivatrukku oru oru example sollunga. Stem-la enna difference?"
+    },
+    {
+      "id": "step_3",
+      "title": "Root matrum stem structure",
+      "caption": "Sila plants-ku main root-lirundhu side roots varum; adhu taproot. Sila plants-ku similar size roots bunch-aa varum; adhu fibrous root. Stem plant-ai support pannum; sila stems soft, sila woody.",
+      "teacher_says": "Plant-ai careful-aa observe pannumbodhu root structure different-aa irukkum. Root plant-ai soil-la anchor pannum; water-um minerals-um absorb panna help pannum.",
+      "checkpoint": "Taproot-um fibrous root-um eppadi different? Root-oda rendu functions sollunga."
+    },
+    {
+      "id": "step_4",
+      "title": "Leaves matrum venation",
+      "caption": "Leaf-la veins arrange aagura pattern venation. Hibiscus madhiri leaves-la network pola veins irukkum; adhu reticulate venation. Grass, banana madhiri leaves-la parallel lines pola veins irukkum; adhu parallel venation.",
+      "teacher_says": "Oru leaf-ai light-kku opposite-aa pidichu veins-ai paarunga. Veins network-aa irukka, parallel-aa irukka-nu identify pannunga.",
+      "checkpoint": "Reticulate venation-ukku oru example, parallel venation-ukku oru example sollunga."
+    },
+    {
+      "id": "step_5",
+      "title": "Seeds, roots, leaves connect pannuvom",
+      "caption": "Seed-ai soak panni split pannumbodhu seed structure-ai observe pannalaam. Monocot plants-la usually fibrous roots, parallel venation; dicot plants-la usually taproot, reticulate venation. Idhu common pattern; ella plant-aiyum observe panni verify pannunga.",
+      "teacher_says": "Maize seed-um chickpea seed-um compare pannunga. Seed type, root pattern, leaf veins idaiyila irukkura relationship-ai textbook activity moolama kandupidippom.",
+      "checkpoint": "Maize-um chickpea-um root matrum leaf venation-la enna difference kaattum?"
+    },
+    {
+      "id": "step_6",
+      "title": "Animals-oda diversity",
+      "caption": "Animals-oda size, body covering, movement, food, living place ellam different. Fish water-la vaazhum; birds fly panna wings use pannum; frogs water-layum land-layum irukkum. Habitat animal-oda needs-ai support pannum.",
+      "teacher_says": "Oru fish-ai goat-oda compare pannunga. Rendu animals-um living things; aana body parts-um habitat-um different. Indha differences avanga vaazhum idathukku suit aagum.",
+      "checkpoint": "Fish-um frog-um habitat eppadi different? Animal body feature-oda habitat-ku enna connection?"
+    },
+    {
+      "id": "step_7",
+      "title": "Adaptations matrum habitats",
+      "caption": "Oru habitat-la survive panna living thing-ku help pannura body features alladhu behaviours adaptations. Mountain plants, desert plants, aquatic animals ellam avanga surroundings-kku suit aana features kondirukkum.",
+      "teacher_says": "Camel desert-la water loss-ai reduce panna help pannura features kondadhu. Mountain trees wind-ai face panna different shape irukkalaam. Adaptation-na environment-kku useful feature.",
+      "checkpoint": "Adaptation-na enna? Oru habitat-um adhukku suit aana adaptation-um example sollunga."
+    },
+    {
+      "id": "step_8",
+      "title": "Biodiversity-ai paadhukaappom",
+      "caption": "Plants, animals, soil, water, climate ellam ecosystem-la connect aagirukkum. Habitat destroy aana living things affect aagum. Local plants-ai protect pannudhal, litter avoid pannudhal, water bodies clean-aa vechikkudhal biodiversity-ai support pannum.",
+      "teacher_says": "Nature-la oru species mattum thaniya vaazhaadhu; pala living things onna depend pannum. Namma surroundings-ai care pannina biodiversity protect aagum.",
+      "checkpoint": "Biodiversity yen mukkiyam? Ungal school alladhu veettil biodiversity protect panna oru action sollunga."
+    }
+  ]
+}

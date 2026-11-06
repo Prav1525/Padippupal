@@ -720,3 +720,12 @@ Use this format:
 - **CI:** Curriculum Engine Tests run [42221728418](https://github.com/Prav1525/Padippupal/actions/runs/42221728418) — in progress at initial inspection. Android UI smoke run [42221728576](https://github.com/Prav1525/Padippupal/actions/runs/42221728576) — in progress; it is not a Tanglish/Tamil UI acceptance test. Investigation Guidance Gate run [42221728506](https://github.com/Prav1525/Padippupal/actions/runs/42221728506) — **FAIL** because the required investigation ledger was not yet updated; exact failure: `code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
 - **Status:** Infrastructure implemented; end-to-end stored-language retrieval and actual chapter content population are **not yet verified/complete**. The database is not populated by this PR. No production writes or deployment.
 - **Next:** Re-run the guidance gate after this ledger entry; inspect Curriculum Engine test results; add a read-path integration test that proves localized text overlays the exact synthesis segments; inventory approved Science chapters and author/review all Tanglish and Tamil segment content before enabling learners.
+
+### Follow-up verification — localized overlay regression and test-harness correction
+
+- **Attempt:** [Curriculum Engine Tests run 42221950006](https://github.com/Prav1525/Padippupal/actions/runs/42221950006), commit `16045f39de73ee17712c38774f71c4708c90258b`, Python 3.12, `pytest -q`.
+- **Result:** **FAIL — 108 passed, 1 failed.** The new fail-closed overlay test raised `NameError: name 'pytest' is not defined` at `with pytest.raises(...)`. This is a test import defect, not an application behavior failure.
+- **Root cause:** **CONFIRMED** from the traceback: the test used `pytest.raises` without importing pytest.
+- **Correction:** Added the missing `import pytest` in commit `ddd1dbd5b8375b53ad4ba0dc6cc1f8796b861b8d`. No production code or assertions were relaxed.
+- **Additional coverage:** Extracted `_apply_stored_lesson_language` and added a regression proving the stored language overlay changes only narration/caption while preserving original segment ID, source chunk IDs, visual action, interactive visual blueprint, checkpoint, order, and original English object.
+- **Next verification:** Await exact-head Curriculum Engine Tests for `ddd1dbd5b8375b53ad4ba0dc6cc1f8796b861b8d`; Android build/UI runs are generic regressions and do not count as Tanglish/Tamil lesson acceptance.

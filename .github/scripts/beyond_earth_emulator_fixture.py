@@ -103,6 +103,24 @@ for image in images:
     filtered_blobs[url_path] = (mime, blob)
 if not filtered_images:
     raise SystemExit("Image-quality filter removed every Beyond Earth asset")
+
+# Guard against a false-green acceptance run: these four known decorative
+# paper scans and one of the two byte-identical observatory scans are the
+# precise production defects this fixture is intended to prevent.
+expected_texture_ids = {"fig-06", "fig-09", "fig-10", "fig-13"}
+if set(rejected_texture_ids) != expected_texture_ids:
+    raise SystemExit(
+        "Image-quality gate did not reject exactly the known decorative assets: "
+        f"expected={sorted(expected_texture_ids)}, got={sorted(rejected_texture_ids)}"
+    )
+duplicate_pair = {"fig-17", "fig-18"}
+if len(rejected_duplicate_ids) != 1 or not set(rejected_duplicate_ids).issubset(duplicate_pair):
+    raise SystemExit(
+        "Image-quality gate did not remove exactly one duplicate from fig-17/fig-18: "
+        f"got={sorted(rejected_duplicate_ids)}"
+    )
+if len(images) != 14:
+    raise SystemExit(f"Expected 14 unique, non-decorative original images after filtering, got {len(images)}")
 images = filtered_images
 blob_by_path = filtered_blobs
 manifest = {**manifest, "images": images}

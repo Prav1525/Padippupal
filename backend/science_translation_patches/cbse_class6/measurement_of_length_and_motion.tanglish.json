@@ -1,0 +1,75 @@
+{
+  "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+  "chapter": "Measurement of Length and Motion",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "chapter_title": "Neelam Matrum Iyakkathai Alaviduthal",
+  "overview": "Indha lesson-la length measure panna standard units, ruler use, curved line measurement, reference point, motion types matrum SI units-ai kathukkolvom. Correct measurement-ku correct starting point, eye position, suitable unit mukkiyam.",
+  "learning_objectives": [
+    "Non-standard measures yen reliable illa-nu explain panna mudiyum.",
+    "Length-oda standard units-ai identify panna mudiyum.",
+    "Ruler-ai correct-aa use panni length measure panna mudiyum.",
+    "Curved line length-ai thread method moolama measure panna mudiyum.",
+    "Reference point base-la rest matrum motion-ai distinguish panna mudiyum.",
+    "Straight, circular, periodic madhiri motion types-ai examples-oda identify panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Length measure panna yen standard units?",
+      "caption": "Kai viral, muzham madhiri body-based measures person-ku person maarum. Adhanaala same object-ku different measurements varalaam. Standard units use panninaa ellarum same result-ai communicate panna mudiyum.",
+      "teacher_says": "Grandmother arm length-la cloth measure panninaalum, ungal arm length different-aa irukkalaam. Accurate comparison-ku common unit thevai.",
+      "checkpoint": "Body-based measurement yen person-ku person maarum? Standard unit use pannuradhoda oru benefit sollunga."
+    },
+    {
+      "id": "step_2",
+      "title": "Ancient units-lirundhu standard units varai",
+      "caption": "Pazhaiya kaalathula angula, dhanusu madhiri units use pannanga. Ippo length-ku millimetre, centimetre, metre, kilometre madhiri standard units use pannuvom. SI system measurements-ai universal-aa communicate panna help pannum.",
+      "teacher_says": "Small object-ku centimetre, pencil thickness-ku millimetre, room length-ku metre, town distance-ku kilometre suitable. Quantity-ku correct unit choose pannuvom.",
+      "checkpoint": "Pencil length-ai endha unit-la measure pannuveenga? Two towns-kku idaiyila distance-ai?"
+    },
+    {
+      "id": "step_3",
+      "title": "Ruler-ai correct-aa use pannuvom",
+      "caption": "Ruler-ai object-oda one end-kku align pannunga. Zero mark-lirundhu start pannunga; zero damaged-aa irundhaa another clear mark use panni difference calculate pannunga. Eye-ai mark-oda straight-aa vechaa parallax error kuraiyum.",
+      "teacher_says": "Ruler-ai slant-aa vechaa wrong reading varalaam. Object straight-aa align pannitu, eye directly above reading mark-la irukkanum.",
+      "checkpoint": "Ruler use pannumbodhu zero mark yen important? Eye position wrong-aa irundhaa enna error varum?"
+    },
+    {
+      "id": "step_4",
+      "title": "Curved line length measure pannuvom",
+      "caption": "Curved line-ai straight ruler-la direct-aa measure panna mudiyadhu. Flexible thread-ai curve mela follow panni mark pannunga; appuram thread-ai straight panni ruler-la measure pannunga.",
+      "teacher_says": "Verandah arch madhiri curved path-ku thread use pannalaam. Thread curve-ai follow pannum; straight pannina length read panna mudiyum.",
+      "checkpoint": "Curved line measure panna thread method-oda steps enna?"
+    },
+    {
+      "id": "step_5",
+      "title": "Reference point matrum motion",
+      "caption": "Oru object-oda position time-oda reference point compare pannumbodhu change aana, adhu motion-la irukku. Reference point specify pannaama rest/motion decide panna confusion varalaam.",
+      "teacher_says": "Moving bus-la ukkandhirukkura passenger bus-kku relative-aa rest; road-kku relative-aa motion-la irukkaar. Motion reference point-ai poruththu irukkum.",
+      "checkpoint": "Motion decide panna reference point yen thevai? Bus passenger rendu reference points base-la eppadi different-aa iruppaar?"
+    },
+    {
+      "id": "step_6",
+      "title": "Different paths of motion",
+      "caption": "Objects straight line-la, curved path-la, circular path-la move aagalaam. Oru object same motion-la multiple movement types combine pannalaam. Daily life examples-ai observe panni classify pannuvom.",
+      "teacher_says": "Straight road-la car straight motion; fan blade circular motion; swing back-and-forth periodic motion. Path-ai observe pannina type identify panna mudiyum.",
+      "checkpoint": "Fan blade-oda motion enna? Swing-oda motion enna?"
+    },
+    {
+      "id": "step_7",
+      "title": "Periodic motion matrum vibration",
+      "caption": "Equal time intervals-la repeat aagura motion periodic motion. Pendulum swing, clock hands, vibrating ruler examples. Oru motion repeated-aa nadakkudha-nu observe pannunga.",
+      "teacher_says": "Table edge-la ruler-ai safe-aa fix panni free end-ai gently move panninaa adhu vibrate aagum. Repeated movement time interval-la nadakkum.",
+      "checkpoint": "Periodic motion-na enna? Oru example sollunga."
+    },
+    {
+      "id": "step_8",
+      "title": "Measurement and motion recap",
+      "caption": "Length-ai standard units-la measure pannuvom; correct ruler technique error-ai reduce pannum. Motion reference point-ai poruththu define aagum; path base-la straight, circular, periodic motion identify pannalaam.",
+      "teacher_says": "Ippo measurement-um motion-um connect pannuvom. Oru object length measure pannitu, adhu move aagumbodhu reference point choose panni motion type sollunga.",
+      "checkpoint": "Length measurement-ku oru good practice sollunga. Motion-ai describe panna enna information thevai?"
+    }
+  ]
+}

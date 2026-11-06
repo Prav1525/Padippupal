@@ -1138,12 +1138,14 @@ def test_stored_language_overlay_preserves_synthesis_modules_and_visual_metadata
             ("overlay-lesson", "CBSE", 6, "Science", "English", "Beyond Earth",
              "Solar System", "approved", "{}", "[]", "reviewed-synthesis", "", 1.0, 1.0),
         )
-        conn.execute(
+        conn.executemany(
             """INSERT INTO chapter_lesson_language_segments
                (lesson_id, language, segment_id, spoken_text, caption_text, updated_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            ("overlay-lesson", "Tanglish", "module-1-step-1",
-             "Boomi Sun-ai suthi varudhu.", "Boomi oda orbit.", 1.0),
+            [
+                ("overlay-lesson", "Tanglish", "module-2-step-1", "Moon Earth-ai suthi varudhu.", "Moon oda orbit.", 1.0),
+                ("overlay-lesson", "Tanglish", "module-1-step-1", "Boomi Sun-ai suthi varudhu.", "Boomi oda orbit.", 1.0),
+            ],
         )
     original = [{
         "id": "module-1-step-1",

@@ -729,3 +729,11 @@ Use this format:
 - **Correction:** Added the missing `import pytest` in commit `ddd1dbd5b8375b53ad4ba0dc6cc1f8796b861b8d`. No production code or assertions were relaxed.
 - **Additional coverage:** Extracted `_apply_stored_lesson_language` and added a regression proving the stored language overlay changes only narration/caption while preserving original segment ID, source chunk IDs, visual action, interactive visual blueprint, checkpoint, order, and original English object.
 - **Next verification:** Await exact-head Curriculum Engine Tests for `ddd1dbd5b8375b53ad4ba0dc6cc1f8796b861b8d`; Android build/UI runs are generic regressions and do not count as Tanglish/Tamil lesson acceptance.
+### Exact-head backend verification after test import correction
+
+- **Tested commit:** `ddd1dbd5b8375b53ad4ba0dc6cc1f8796b861b8d` (branch `feature/stored-science-language-variants`, PR #221).
+- **Workflow:** [Curriculum Engine Tests run 42222189553](https://github.com/Prav1525/Padippupal/actions/runs/42222189553), job `test`, Ubuntu GitHub-hosted runner, Python 3.12, command `pytest -q`.
+- **Result:** **PASS — 109 passed, 0 failed** in 2.95 seconds. This includes the stored-variant API write tests, script validation, no-live-model guard, exact synthesis overlay preservation, and missing-variant fail-closed test.
+- **Guidance:** [Investigation Guidance Gate run 42222189580](https://github.com/Prav1525/Padippupal/actions/runs/42222189580) — **PASS**.
+- **Android:** APK build run [42222189877](https://github.com/Prav1525/Padippupal/actions/runs/42222189877) was still in progress at the last check. Emulator smoke run [42222189708](https://github.com/Prav1525/Padippupal/actions/runs/42222189708) was cancelled by workflow concurrency before feature-specific language UI testing; no Tanglish/Tamil tutor UI acceptance has been performed.
+- **Limits:** The passing backend suite proves the storage/overlay contract, not that every Science chapter has been localized or populated. No production database content has been written, no deploy occurred, and the PR remains unmerged.

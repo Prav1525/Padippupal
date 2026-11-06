@@ -38,7 +38,7 @@ def is_decorative_warm_texture(payload: bytes) -> bool:
     do not meet all three conditions.
     """
     try:
-        pix = fitz.Pixmap(stream=payload)
+        pix = fitz.Pixmap(payload)
         if pix.n not in (3, 4):
             pix = fitz.Pixmap(fitz.csRGB, pix)
         samples = pix.samples

@@ -5,12 +5,13 @@
 ## Active objective: DB-backed Tanglish and Tamil for approved Science synthesis lessons
 - **Branch / PR:** feat/science-stored-language-synthesis / https://github.com/Prav1525/Padippupal/pull/227
 - **Backend implementation:** Stored per-lesson translation table/import API, source-fingerprint validation, read-only Science coverage inventory, selected-language playback, and fail-closed behavior when a current reviewed translation is absent.
-- **Backend tests:** PASS — 117 passed, 5 warnings on exact head eb9131e685431a8da8ea1e1624b029722181e41c (https://github.com/Prav1525/Padippupal/actions/runs/42226920147).
-- **Content inventory:** The only approved Science profile currently in the DB is CBSE Class 6 English: 12 approved chapters.
-- **Content drafts:** Beyond Earth now has draft Tanglish and Tamil patches for its existing 8 modules. The patches alter only learner-facing text fields; step IDs, order, source chunk IDs, and visuals are preserved.
-- **Remaining content:** 11 chapters still need Tanglish and Tamil patches. Existing source lesson captions in several chapters are extractive/clipped; author concise localized teacher explanations grounded in the source chunks rather than translating clipped fragments blindly.
-- **Import safety:** Importer is dry-run by default. It requires explicit --apply and --reviewed plus reviewer note to write a translation. Do not use these flags without explicit user approval and actual content review.
-- **Verification boundary:** No DB import, Android runtime language-switch test, deployment, merge or release has occurred. Keep PR open and unmerged.
+- **Backend tests:** PASS — 140 passed, 5 warnings on exact head `384a681b77679ea2e0a9693858c4ad64cbad5101` ([run 42235922945](https://github.com/Prav1525/Padippupal/actions/runs/42235922945)).
+- **Content inventory:** Read-only DB inspection confirms 12 approved CBSE Class 6 Science lessons across 12 chapters. Draft lesson records also exist for some chapters; translation patches target only the approved IDs.
+- **Content drafts:** Tanglish and Tamil draft patches now exist for all 12 approved chapters (24 JSON files). Each patch has the expected module count and ordered step IDs; the contract suite checks all 24 files and verifies that applying patches leaves source chunk IDs, visual recipes, concept map, and module order unchanged.
+- **Content quality boundary:** These are draft teaching explanations, not human-approved translations. Full source-by-source semantic review is still required; passing structural tests does not prove every localized sentence faithfully covers its source chunks.
+- **Import safety:** Importer is dry-run by default. It requires both `--apply` and `--reviewed` plus a reviewer note before writing. Do not import until content is reviewed and the user explicitly approves the DB write.
+- **Verification boundary:** No translation DB import, Android runtime language-switch test, deployed API validation, deployment, merge or release has occurred. Keep PR open and unmerged.
+- **Next:** Review all 24 drafts against the approved lesson source passages, then request explicit approval before import. After an approved import, verify DB coverage and test Tanglish/Tamil selection on the hosted Ubuntu/KVM Android emulator (no macOS simulator).
 
 ## Parked objective: Beyond Earth continuous inline image layout
 - PR #219: https://github.com/Prav1525/Padippupal/pull/219

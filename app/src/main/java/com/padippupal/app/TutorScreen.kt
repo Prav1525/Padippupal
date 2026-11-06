@@ -2625,6 +2625,7 @@ internal fun TutorScreen(
                         }
 
         }
+        }
 
         // Inline learner checkpoint: part of the teaching flow, not a floating card.
         if (awaitingUnderstanding && liveLessonActive) {

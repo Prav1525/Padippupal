@@ -74,3 +74,14 @@ This is a working starter engine, not a production deployment. The Android app a
 ## Release and source-trust gates
 
 The lesson catalog is a teaching/visual blueprint, not an authoritative substitute for the current official textbook. `source_registry.json` currently marks all source entries as not approved for automatic ingestion. Before describing an answer as NCERT-grounded, verify the exact official syllabus/textbook edition, chapter and medium and ensure the required usage rights are in place. Gemini Live is intentionally not part of the current release; add it only after the request/response tutor, session restoration, visual lesson and speech paths pass phone testing.
+
+## Gemini-generated Science lesson images
+
+- POST /admin/visuals/generate/{lesson_id} generates up to three original illustrations per request from the exact saved chapter_lessons.lesson_json.teaching_sequence. It accepts an optional JSON body such as {"step_ids":["step_1","step_2"],"overwrite":false} and requires the x-admin-token header.
+- Only approved lessons whose subject is Science are accepted. The endpoint does not rewrite lesson text, change the synthesis engine, or invent module IDs. Each image is linked to its existing teaching-step ID.
+- The style prompt requests a child-friendly Excalidraw-inspired pencil/marker drawing, portrait mobile composition, clear arrows, and only labels grounded in that step. Tamil and Tanglish media request matching label language.
+- Configure GEMINI_API_KEY in the Render service environment. PADIPPUPAL_GEMINI_IMAGE_MODEL optionally overrides the default gemini-3.1-flash-image model. Never commit or log the key.
+- Image bytes are stored in the existing PostgreSQL BYTEA image store. New metadata rows use status pending; the existing learner image endpoint returns only ready assets.
+- After visually and scientifically reviewing an image, call POST /admin/visuals/{asset_id}/approve with the same admin header to mark it ready. This review gate prevents unverified generated labels or diagrams from appearing to learners.
+- Generation is admin-triggered only, limited to three steps per request, and skips existing assets unless overwrite=true. It does not run during student lesson reads.
+- No production generation, database write, or deployment is implied by adding this code. Configure and test the model key and production service only after the PR has been reviewed and explicitly approved for deployment.

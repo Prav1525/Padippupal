@@ -450,7 +450,7 @@ def test_reviewed_science_translation_is_stored_and_keeps_synthesis_structure():
     assert loaded["teaching_sequence"][0]["visual"]["type"] == "process"
     assert loaded["teaching_sequence"][0]["teacher_says"].startswith("Ilai sunlight")
     coverage = client.get(
-        "/admin/chapter-lessons/language-coverage",
+        "/admin/science/chapter-lessons/language-coverage",
         headers={"X-Admin-Token": "language-test-token"},
         params={"board": "CBSE", "class_level": 6},
     )

@@ -715,3 +715,14 @@ Use this format:
 - **Changes:** Renamed the static inventory route to `/admin/science/chapter-lessons/language-coverage` so it cannot be captured by the earlier dynamic lesson route; simplified its SQL to fetch the approved Science inventory and calculate current translation fingerprints per lesson. Updated the legacy approved-lesson unit test to stub the new stored-language loader for its isolated pass-through case; dedicated tests exercise the real loader.
 - **Verification:** A new exact-head Curriculum Engine Tests run is expected from the backend test-file push. **Not yet verified** at the time of this entry.
 - **No production data writes, deployment, merge or release.**
+
+
+### 2026-11-06 — Stored Tamil/Tanglish synthesis backend passes exact-head tests
+- **Branch / tested head:** `feat/science-stored-language-synthesis@66b85a4626b1218975d6d2065b5fb74fd6f26f3e`.
+- **Curriculum tests:** [run 42224477190](https://github.com/Prav1525/Padippupal/actions/runs/42224477190), job 127914389563, Ubuntu hosted runner / CPython 3.12.16, `pytest -q`: **PASS — 113 passed, 5 warnings**.
+- **Investigation guidance:** [run 42224477230](https://github.com/Prav1525/Padippupal/actions/runs/42224477230): **PASS**.
+- **Coverage scope enhancement:** Read-only inventory endpoint now accepts optional board/class filters and can enumerate all approved Science lessons across classes.
+- **Production inventory inspected read-only:** CBSE Class 6 Science currently has **12 approved lessons across 12 chapters**. `chapter_lesson_translations` does not yet exist on the production database branch; this feature has not been deployed and no production rows were written.
+- **Language regression coverage:** Stored Tanglish and Tamil are both returned from the approved lesson record; module/step IDs and source chunk IDs remain identical; the tutor tests assert that neither path calls Gemini. Missing translations return HTTP 409 rather than generating a replacement.
+- **What this proves:** Backend schema initialization, reviewed import validation, stale-source invalidation, coverage inventory, and selected-language playback contract pass in temporary SQLite tests. It does **not** prove production DB population, actual chapter translation quality, Android runtime language switching, or deployed API behavior.
+- **Next:** Complete and review Tanglish/Tamil payloads for the 12 existing approved Science lessons; after explicit approval, merge/deploy the feature and import the reviewed records. No production write, deployment, merge or release has occurred.

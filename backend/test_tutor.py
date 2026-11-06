@@ -907,7 +907,9 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     monkeypatch.setattr(curriculum, "attach_topic_visuals", lambda payload, segments, sources, fallback_visual=None: [
         {**segment, "interactive_lesson": fallback_visual} for segment in segments
     ])
-    monkeypatch.setattr(curriculum, "_translate_approved_segments", lambda segments, language: segments)
+    # This test isolates English-source lesson selection; the stored language loader
+    # is exercised separately with a real temporary SQLite translation record.
+    monkeypatch.setattr(curriculum, "_stored_lesson_translation", lambda lesson_id, lesson, language: lesson)
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
         AssertionError("approved lesson should bypass fresh retrieval")))
     client = TestClient(curriculum.app)
@@ -1178,3 +1180,111 @@ def test_approved_lesson_translation_leaves_english_unchanged(monkeypatch):
     monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_request)
     segments = [{"id": "step-1", "spoken_text": "Hello.", "caption_text": "Hello."}]
     assert curriculum._translate_approved_segments(segments, "English") is segments
+
+
+def test_science_tutor_uses_stored_tanglish_synthesis_without_gemini(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "stored-language.sqlite3")
+    curriculum.init_db()
+    monkeypatch.setattr(curriculum, "find_interactive_lesson", lambda *args: None)
+    monkeypatch.setattr(curriculum, "get_or_create_lesson_visuals", lambda lesson_id, lesson: [])
+    monkeypatch.setattr(curriculum, "build_inline_synthesized_visual", lambda *args: None)
+    monkeypatch.setattr(curriculum, "attach_topic_visuals", lambda payload, segments, refs, fallback_visual=None: segments)
+    monkeypatch.setattr(curriculum, "_lesson_segments_match_topic", lambda topic, segments: True)
+    monkeypatch.setattr(curriculum, "_lesson_segments_are_substantive", lambda segments: True)
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+
+    source_lesson = {
+        "chapter_title": "Life Processes",
+        "overview": "Leaves use sunlight to make food.",
+        "learning_objectives": ["Explain photosynthesis."],
+        "concept_map": [{"concept": "Photosynthesis", "source_chunk_ids": ["science-chunk-1"]}],
+        "teaching_sequence": [{
+            "id": "photo-step-1", "title": "Sunlight reaches leaves",
+            "teacher_says": "Leaves use sunlight to make food.",
+            "caption": "Plants make food using light.",
+            "checkpoint": "What does the leaf use?",
+            "source_chunk_ids": ["science-chunk-1"],
+            "visual": {"type": "none", "objects": [], "actions": [], "narration_sync": []},
+        }],
+    }
+    translated_lesson = json.loads(json.dumps(source_lesson))
+    translated_lesson["overview"] = "Ilai sunlight use panni food make pannum."
+    translated_lesson["learning_objectives"][0] = "Photosynthesis pathi explain pannunga."
+    translated_lesson["teaching_sequence"][0]["title"] = "Ilai-kku sunlight kidaikkiradhu"
+    translated_lesson["teaching_sequence"][0]["teacher_says"] = "Ilai sunlight use panni food make pannum."
+    translated_lesson["teaching_sequence"][0]["caption"] = "Plants light use panni food make pannum."
+    translated_lesson["teaching_sequence"][0]["checkpoint"] = "Ilai edhai use pannum?"
+
+    now = curriculum.time.time()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,source_refs_json,
+                model,review_feedback,created_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,'approved',?,?,?,?,?,?)""",
+            ("stored-science-lesson", "CBSE", 6, "Science", "English", "Life Processes", "Photosynthesis",
+             json.dumps(source_lesson), json.dumps([{"chunk_id": "science-chunk-1"}]),
+             "reviewed-synthesis", "Approved", now, now),
+        )
+    client = TestClient(curriculum.app)
+    stored = client.post(
+        "/admin/chapter-lessons/stored-science-lesson/translations",
+        headers={"X-Admin-Token": "test-token"},
+        json={"language": "Tanglish", "lesson": translated_lesson, "reviewed": True},
+    )
+    assert stored.status_code == 200, stored.text
+
+    tamil_lesson = json.loads(json.dumps(source_lesson))
+    tamil_lesson["overview"] = "இலை சூரிய ஒளியைப் பயன்படுத்தி உணவை உருவாக்குகிறது."
+    tamil_lesson["learning_objectives"][0] = "ஒளிச்சேர்க்கையை விளக்குக."
+    tamil_lesson["teaching_sequence"][0]["title"] = "இலைக்கு சூரிய ஒளி கிடைக்கிறது"
+    tamil_lesson["teaching_sequence"][0]["teacher_says"] = "இலை சூரிய ஒளியைப் பயன்படுத்தி உணவை உருவாக்குகிறது."
+    tamil_lesson["teaching_sequence"][0]["caption"] = "ஒளியைப் பயன்படுத்தி தாவரங்கள் உணவு தயாரிக்கின்றன."
+    tamil_lesson["teaching_sequence"][0]["checkpoint"] = "இலை எதைப் பயன்படுத்துகிறது?"
+    tamil_stored = client.post(
+        "/admin/chapter-lessons/stored-science-lesson/translations",
+        headers={"X-Admin-Token": "test-token"},
+        json={"language": "Tamil", "lesson": tamil_lesson, "reviewed": True},
+    )
+    assert tamil_stored.status_code == 200, tamil_stored.text
+
+    def unexpected_gemini(*args, **kwargs):
+        raise AssertionError("Stored Science Tanglish/Tamil playback must not call Gemini")
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_gemini)
+    for language, expected_prefix in (
+        ("Tanglish", "Ilai sunlight"),
+        ("Tamil", "இலை சூரிய ஒளியை"),
+    ):
+        response = client.post("/tutor/lesson-plan", json={
+            "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+            "app_language": language, "chapter": "Life Processes", "topic": "Photosynthesis",
+            "message": "Teach photosynthesis.",
+        })
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["provider"] == "approved_chapter_lesson"
+        assert body["language"] == language
+        assert body["chapter_overview"].startswith(expected_prefix)
+        assert body["segments"][0]["id"] == "photo-step-1"
+        assert body["segments"][0]["spoken_text"].startswith(expected_prefix)
+        assert body["segments"][0]["source_chunk_ids"] == ["science-chunk-1"]
+
+
+def test_science_tanglish_without_stored_translation_fails_closed_without_gemini(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "missing-language.sqlite3")
+    curriculum.init_db()
+    monkeypatch.setenv("GEMINI_API_KEY", "must-not-be-used")
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError("Science language selection must not invoke live generation")
+    monkeypatch.setattr(curriculum, "retrieve", unexpected)
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected)
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+        "app_language": "Tanglish", "chapter": "Life Processes", "topic": "Photosynthesis",
+        "message": "Teach photosynthesis.",
+    })
+    assert response.status_code == 409
+    assert "no live language generation" in response.json()["detail"].lower()

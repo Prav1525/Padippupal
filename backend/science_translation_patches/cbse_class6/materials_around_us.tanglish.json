@@ -1,0 +1,69 @@
+{
+  "lesson_id": "20b0bf32-d25c-5210-bdca-2ac203fa3c00",
+  "chapter": "Materials Around Us",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Namma Sutri Irukkum Porutkal",
+  "overview": "Indha lesson-la objects endha materials-la seyyappattirukku, materials-oda properties, hardness, flexibility, solubility, transparency matrum matter-ai compare pannuvom. Oru object-ku suitable material-ai properties base-la choose panna kathukkolvom.",
+  "learning_objectives": [
+    "Objects-ai avai seyyappatta materials base-la identify panna mudiyum.",
+    "Material properties-ai observe panni compare panna mudiyum.",
+    "Hardness, flexibility, transparency, solubility-ai explain panna mudiyum.",
+    "Different materials water-la dissolve aagudha-nu test panna mudiyum.",
+    "Matter-ku mass-um space occupy pannura property-um irukku-nu explain panna mudiyum.",
+    "Daily life-la material choice yen mukkiyam-nu example-oda solla mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Objects-um materials-um",
+      "caption": "Classroom-la irukkura tumbler, desk, book, ruler, bag-ai paarunga. Oru object oru material-la alladhu pala materials-la seyyappattirukkalaam. Object-oda use-ku suit aagura material choose pannuvanga.",
+      "teacher_says": "Tumbler glass, steel, plastic-la irukkalaam. Ellam tumbler-thaan; aana material different. Oru object-ai seyyum material adhan properties-ai decide pannum.",
+      "checkpoint": "Oru object-um adhai seyyum material-um sollunga. Oru object pala materials-la seyyappadalaamaa?"
+    },
+    {
+      "id": "step_2",
+      "title": "Material properties observe pannuvom",
+      "caption": "Materials colour, lustre, texture, hardness, flexibility, transparency madhiri properties-la differ aagum. Observation-ai table-la record panni compare pannalaam.",
+      "teacher_says": "Wood, metal, rubber, glass samples-ai safe-aa observe pannunga. Edhu smooth, rough, hard, flexible, transparent-nu classify pannunga.",
+      "checkpoint": "Hardness-um flexibility-um enna? Oru material-oda rendu properties sollunga."
+    },
+    {
+      "id": "step_3",
+      "title": "Hardness, flexibility, shape",
+      "caption": "Hard materials-ai compress panna kashtam; soft materials easy-aa shape change aagum. Flexible materials bend aagum; brittle materials sudden-aa break aagalaam. Material property use-ai affect pannum.",
+      "teacher_says": "Rubber band stretch aagum; metal spoon easy-aa bend aagadhu; chalk brittle. Indha examples-la property eppadi use-ku connect aagudhu-nu paappom.",
+      "checkpoint": "Rubber band flexible-aa? Chalk brittle-aa? Indha properties-ku evidence sollunga."
+    },
+    {
+      "id": "step_4",
+      "title": "Soluble matrum insoluble",
+      "caption": "Salt, sugar water-la dissolve aagum; sand, oil dissolve aagadhu. Dissolve aaguradhu material disappear aagiduchu-nu artham illa; particles water-la spread aagirukkum. Stirring, temperature solubility-ai affect pannalaam.",
+      "teacher_says": "Clear cups-la water eduthu konjam salt, sugar, sand add panni observe pannunga. Edhu dissolve aagudhu, edhu settle aagudhu-nu note pannunga. Edhaiyum taste panna vendaam.",
+      "checkpoint": "Salt water-la enna aagum? Sand yen dissolve aagadhu?"
+    },
+    {
+      "id": "step_5",
+      "title": "Transparency matrum material use",
+      "caption": "Transparent materials vazhiya objects clear-aa theriyum; translucent materials light-ai pass pannum aana image blur; opaque materials light-ai block pannum. Windows-ku glass use pannuradhu indha property nala.",
+      "teacher_says": "Clear glass, tracing paper, cardboard-ai light-kku opposite-aa vechu compare pannunga. Light pass aagura alavu base-la group pannunga.",
+      "checkpoint": "Transparent, translucent, opaque — ovvorondrukkum oru example sollunga."
+    },
+    {
+      "id": "step_6",
+      "title": "Mass, volume matrum matter",
+      "caption": "Matter-ku mass irukkum; space occupy pannum. Scale-la mass measure pannalaam; volume object evvalavu space occupy pannudhu-nu kaattum. Solid, liquid, gas ellam matter; air-kum mass-um volume-um irukku.",
+      "teacher_says": "Empty cup-um water fill panna cup-um weigh pannunga. Air-filled balloon-um deflated balloon-um compare pannunga. Kannukku theriyadha air-um matter-nu evidence moolama purinjukkolvom.",
+      "checkpoint": "Matter-oda rendu properties enna? Air matter-nu solla enna evidence irukku?"
+    },
+    {
+      "id": "step_7",
+      "title": "Material-ai purpose-kku choose pannuvom",
+      "caption": "Oru object design pannumbodhu strength, flexibility, transparency, water resistance, weight, safety ellam consider pannuvanga. Reuse, recycle, waste segregation environment-ai protect panna help pannum.",
+      "teacher_says": "Raincoat-ku waterproof material, window-ku transparent glass, cooking vessel-ku heat-resistant metal use pannuvom. Material choice use-oda match aaganum.",
+      "checkpoint": "Raincoat-kku endha property thevai? Window-kku glass choose pannuradhukku kaaranam enna?"
+    }
+  ]
+}

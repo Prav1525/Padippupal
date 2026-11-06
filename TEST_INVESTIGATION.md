@@ -685,3 +685,66 @@ Use this format:
 - **Scope:** Does not modify synthesis lesson text, source PDF bytes, existing production database rows, or the Android layout. It filters invalid legacy blobs at read time and prevents the same known defects from being re-ingested.
 - **Verification:** Pending exact-head backend tests, JVM tests, APK build and full-topic hosted Android API-35 acceptance. The existing 19-asset source set is expected to serve fewer than 19 entries because known invalid/redundant records are filtered; replacement illustrations still require a verified extraction/curation pass against the original PDF.
 - **Safety:** No production write, deployment, merge or public release.
+
+
+### 2026-11-06 — Store Science Tanglish/Tamil variants against the approved synthesis lesson
+- **Branch / starting point:** `feat/science-stored-language-synthesis`, based on `ui/beyond-earth-continuous-inline-images@78870a4ff5bffde1cde3e4f7b5d7ad8102c39f17`.
+- **Requirement:** Keep the existing approved synthesis engine, teaching modules, step IDs, order, source citations, and visual recipes. Serve reviewed Tanglish/Tamil lesson text from the database when the learner selects that language; do not invoke Gemini for Science lesson-language output.
+- **Confirmed code-path finding:** Android already sends its selected language to `POST /tutor/lesson-plan`. The backend's approved-lesson path built from `chapter_lessons.lesson_json` and called `_translate_approved_segments` during playback. There was no persistent per-language lesson record.
+- **Implementation added (verification pending):** A `chapter_lesson_translations` table keyed by approved lesson ID and language; admin-only import for explicitly reviewed translations; structural validation that keeps object keys, list lengths, step IDs, source chunk IDs, page references, visual types and non-text values unchanged; source-content fingerprint invalidation; read-only Science language coverage endpoint; tutor playback now maps stored localized text onto the original segment IDs. Science Tanglish/Tamil requests without a current stored translation fail closed with HTTP 409 rather than falling through to Gemini.
+- **Test additions (not yet executed):** API tests for reviewed import, structure preservation, unreviewed/altered-ID rejection, stale-source invalidation and coverage; tutor tests for stored Tanglish playback without Gemini and fail-closed behavior when a translation is absent.
+- **Workflow:** Curriculum Engine Tests workflow now includes this feature branch and PR base `ui/beyond-earth-continuous-inline-images` so the exact feature PR can trigger backend pytest.
+- **Root-cause status:** **CONFIRMED** — current runtime translation was generated at playback and not read from a persisted language-version table. No evidence yet that any production Science chapter has both reviewed language variants populated.
+- **Verification status:** **UNVERIFIED** — source edits committed; no pytest, Android build, emulator run, or production data inspection has yet been performed for this feature.
+- **Safety:** No production database writes, deployment, merge or release. Translation imports require an admin action and explicit `reviewed=true`; only approved Science synthesis lessons are eligible.
+- **Next action:** Open a review PR against the existing tutor feature branch, run the full Curriculum Engine Tests workflow, fix any failures from exact logs, then inspect the approved Science lesson inventory and prepare reviewed Tamil/Tanglish payloads. Do not report language coverage complete until the DB coverage endpoint proves every selected Science lesson has both current variants.
+
+
+### 2026-11-06 — First stored-language CI run: two test failures isolated
+- **Run:** [Curriculum Engine Tests #1422](https://github.com/Prav1525/Padippupal/actions/runs/42223947029), job [127912564595](https://github.com/Prav1525/Padippupal/actions/runs/42223947029/job/127912564595).
+- **Commit:** `3f2cf42de43922ebd96de64cca0e7a1ca251b0ea`; hosted Ubuntu 26.04, CPython 3.12.16; command `pytest -q`.
+- **Result:** **FAIL** — 111 passed, 2 failed.
+- **Failure 1 / confirmed root cause:** The translation import test passed, but the coverage GET returned 404. FastAPI had already registered a dynamic admin lesson route that captured `/admin/chapter-lessons/language-coverage` as a lesson ID before the static coverage route could match. Fix: move the static inventory under a non-conflicting path, `/admin/science/chapter-lessons/language-coverage`.
+- **Failure 2 / confirmed root cause:** An existing approved-lesson test replaces the DB connection with a fake that only implements the original approved-lesson query. The new stored-translation lookup correctly issued a second query, which the stale fake asserted against the first query's parameters. Fix: update this isolated legacy test to stub the new stored-language loader as English/pass-through rather than weakening production behavior.
+- **What passed:** Python package installation, test collection, and 111 backend tests including the new import/structure checks before the coverage assertion.
+- **Next:** Apply the two narrow test/route corrections and rerun the full curriculum pytest workflow on the updated exact head. No production DB write, deployment, merge or release.
+
+
+### 2026-11-06 — Corrected the two failures from stored-language CI run #1422
+- **Branch:** `feat/science-stored-language-synthesis`.
+- **Changes:** Renamed the static inventory route to `/admin/science/chapter-lessons/language-coverage` so it cannot be captured by the earlier dynamic lesson route; simplified its SQL to fetch the approved Science inventory and calculate current translation fingerprints per lesson. Updated the legacy approved-lesson unit test to stub the new stored-language loader for its isolated pass-through case; dedicated tests exercise the real loader.
+- **Verification:** A new exact-head Curriculum Engine Tests run is expected from the backend test-file push. **Not yet verified** at the time of this entry.
+- **No production data writes, deployment, merge or release.**
+
+
+### 2026-11-06 — Stored Tamil/Tanglish synthesis backend passes exact-head tests
+- **Branch / tested head:** `feat/science-stored-language-synthesis@66b85a4626b1218975d6d2065b5fb74fd6f26f3e`.
+- **Curriculum tests:** [run 42224477190](https://github.com/Prav1525/Padippupal/actions/runs/42224477190), job 127914389563, Ubuntu hosted runner / CPython 3.12.16, `pytest -q`: **PASS — 113 passed, 5 warnings**.
+- **Investigation guidance:** [run 42224477230](https://github.com/Prav1525/Padippupal/actions/runs/42224477230): **PASS**.
+- **Coverage scope enhancement:** Read-only inventory endpoint now accepts optional board/class filters and can enumerate all approved Science lessons across classes.
+- **Production inventory inspected read-only:** CBSE Class 6 Science currently has **12 approved lessons across 12 chapters**. `chapter_lesson_translations` does not yet exist on the production database branch; this feature has not been deployed and no production rows were written.
+- **Language regression coverage:** Stored Tanglish and Tamil are both returned from the approved lesson record; module/step IDs and source chunk IDs remain identical; the tutor tests assert that neither path calls Gemini. Missing translations return HTTP 409 rather than generating a replacement.
+- **What this proves:** Backend schema initialization, reviewed import validation, stale-source invalidation, coverage inventory, and selected-language playback contract pass in temporary SQLite tests. It does **not** prove production DB population, actual chapter translation quality, Android runtime language switching, or deployed API behavior.
+- **Next:** Complete and review Tanglish/Tamil payloads for the 12 existing approved Science lessons; after explicit approval, merge/deploy the feature and import the reviewed records. No production write, deployment, merge or release has occurred.
+
+### 2026-11-06 — Beyond Earth localization patch authored; import remains gated
+- **Source inventory:** Read-only inspection of the approved CBSE Class 6 Science database found exactly 12 approved lessons across 12 chapters. No other approved Science board/class/medium profile is currently present in this database branch.
+- **Content issue confirmed:** Existing Tanglish flags are marked available but the stored lesson has only repetitive generic learner prompts; Tamil is absent. Several English captions are extractive fragments. Existing language flags are therefore not proof of complete localized content.
+- **Pilot content:** Added learner-facing Tanglish and Tamil patches for Beyond Earth. They localize chapter overview/title/objectives and all 8 existing teaching steps' title, caption, narration, and checkpoint. Text is adapted into short teacher explanations from the same source-cited step passages; original step IDs, source chunk IDs, visual recipes, and module order are not changed.
+- **Import tooling:** Added a dry-run-first importer. It fetches the approved source lesson, overlays only permitted text fields, verifies the exact step-ID order and objective count, and requires both `--apply` and explicit `--reviewed` plus a reviewer note before any database write. It contains no translation model/API call.
+- **First CI attempt:** [run 42226848019](https://github.com/Prav1525/Padippupal/actions/runs/42226848019) failed during test collection because the test imported `backend.import_science_translations` while CI runs pytest from the `backend/` working directory. Confirmed error: `ModuleNotFoundError: No module named 'backend'`. Fixed the test import to `from import_science_translations import apply_patch`.
+- **Retest:** [run 42226920147](https://github.com/Prav1525/Padippupal/actions/runs/42226920147), exact head `eb9131e685431a8da8ea1e1624b029722181e41c`, Ubuntu / CPython 3.12.16, `pytest -q`: **PASS — 117 passed, 5 warnings**.
+- **Not yet done:** Only Beyond Earth has draft language patches. The remaining 11 chapters have not been translated. The patch has not been marked human-reviewed, imported into any database, or tested in the Android tutor. No production writes, deploy, merge or release.
+- **Next:** Continue authoring the remaining chapter patches against their own source-cited module passages; run patch structure/content checks; obtain the user's review of the pilot language style before treating any content as approved. Keep the feature PR open and unmerged.
+
+### 2026-11-06 — Complete 12-chapter Tanglish/Tamil draft patch set and validate structure
+- **Branch / tested commit:** `feat/science-stored-language-synthesis@384a681b77679ea2e0a9693858c4ad64cbad5101`.
+- **Scope:** Added or improved Tanglish and Tamil draft JSON patches for all 12 approved CBSE Class 6 Science lessons (24 files total). The read-only DB inventory confirms the lesson IDs, chapter names, six learning objectives per approved lesson, and step counts: 7 or 8 modules depending on chapter.
+- **First expanded test attempt:** [run 42235653671](https://github.com/Prav1525/Padippupal/actions/runs/42235653671), job 127952435177, exact tested commit `12de6fe1cd26a500c1107641987bb96a6fb9cb6d`, hosted Ubuntu / CPython 3.12.16, `pytest -q`: **FAIL — 136 passed, 4 failed**.
+- **Confirmed root cause:** Four newly added patches (Tamil and Tanglish for Measurement of Length and Motion, and Methods of Separation in Everyday Life) omitted the top-level `language` metadata. The new all-patch contract test caught this with `KeyError: 'language'`. No lesson content or backend playback code failed.
+- **Correction:** Added `language: Tamil` or `language: Tanglish` to those four exact patch files. No weakening of the test was made.
+- **Exact-head retest:** [Curriculum Engine Tests run 42235922945](https://github.com/Prav1525/Padippupal/actions/runs/42235922945), job 127953376231, exact head `384a681b77679ea2e0a9693858c4ad64cbad5101`, hosted Ubuntu / CPython 3.12.16, `pytest -q`: **PASS — 140 passed, 5 warnings**.
+- **What this proves:** All 24 patch files are present; each patch has the expected approved lesson ID/chapter/language metadata, six objectives, expected module count and ordered step IDs, and non-empty localized title/caption/narration/checkpoint fields. Contract tests apply each patch to a synthetic source lesson and verify source chunk IDs, visuals, concept map, module IDs and order remain unchanged.
+- **What remains unverified:** The tests use synthetic lesson fixtures for the structure-preservation assertion; they do not prove every sentence is a faithful translation of every source chunk. Full source-by-source semantic review, human approval, API dry-run against the deployed admin endpoint, database import/coverage, Android language switching, and tutor UI acceptance remain pending.
+- **Safety:** No production DB writes, deployment, merge or release. All 24 files remain drafts; PR #227 remains open and unmerged.
+- **Next action:** Review localized content against each approved lesson's cited source passages, then obtain explicit content approval before any DB import. After import approval, test stored Tanglish/Tamil selection on the hosted Ubuntu/KVM Android emulator (no macOS simulator).

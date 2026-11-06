@@ -388,3 +388,127 @@ def test_batch_synthesis_inventory_is_read_only_bounded_and_source_specific(monk
     assert result["failed_count"] == 0
     assert captured[0].source_id == "batch-source-b"
     assert captured[0].chapter == "Chapter One"
+
+
+def _approved_science_translation_fixture():
+    curriculum.DB_PATH = Path(tempfile.mkstemp(suffix=".sqlite3")[1])
+    curriculum.ADMIN_TOKEN = "language-test-token"
+    curriculum.init_db()
+    lesson = {
+        "chapter_title": "Plants",
+        "overview": "Leaves make food using sunlight.",
+        "learning_objectives": ["Explain how plants make food."],
+        "concept_map": [{"concept": "Photosynthesis", "source_chunk_ids": ["science-chunk-1"]}],
+        "teaching_sequence": [{
+            "id": "science-step-1",
+            "title": "Sunlight reaches the leaf",
+            "teacher_says": "Leaves use sunlight to make food.",
+            "caption": "Plants make food using light.",
+            "checkpoint": "What does the leaf use?",
+            "source_chunk_ids": ["science-chunk-1"],
+            "visual": {"type": "process", "objects": ["Sunlight", "Leaf"], "actions": ["reveal"],
+                       "narration_sync": ["Sunlight reaches the leaf."]},
+        }],
+    }
+    now = time.time()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id,board,class_level,subject,medium,chapter,topic,status,lesson_json,source_refs_json,
+                model,review_feedback,created_at,updated_at)
+               VALUES (?,?,?,?,?,?,?,'approved',?,?,?,?,?,?)""",
+            ("science-language-lesson", "CBSE", 6, "Science", "English", "Plants", "Photosynthesis",
+             json.dumps(lesson), json.dumps([{"chunk_id": "science-chunk-1"}]),
+             "reviewed-synthesis", "Approved source lesson", now, now),
+        )
+    return lesson
+
+
+def test_reviewed_science_translation_is_stored_and_keeps_synthesis_structure():
+    source = _approved_science_translation_fixture()
+    translated = json.loads(json.dumps(source))
+    translated["chapter_title"] = "Thaavarangal"
+    translated["overview"] = "Ilai sunlight use panni unavu uruvaakkum."
+    translated["learning_objectives"][0] = "Thaavarangal eppadi unavu uruvaakkum endru vilakku."
+    translated["teaching_sequence"][0]["title"] = "Ilai meedhu sooriya oli"
+    translated["teaching_sequence"][0]["teacher_says"] = "Ilai sunlight use panni food make pannum."
+    translated["teaching_sequence"][0]["caption"] = "Oli moolam thaavarangal unavu uruvaakkum."
+    translated["teaching_sequence"][0]["checkpoint"] = "Ilai edhai use pannum?"
+    translated["teaching_sequence"][0]["visual"]["objects"] = ["Sooriya oli", "Ilai"]
+    client = TestClient(curriculum.app)
+    response = client.post(
+        "/admin/chapter-lessons/science-language-lesson/translations",
+        headers={"X-Admin-Token": "language-test-token"},
+        json={"language": "Tanglish", "lesson": translated, "reviewed": True,
+              "reviewer_note": "Reviewed for natural spoken Tanglish."},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["structure_preserved"] is True
+    loaded = curriculum._stored_lesson_translation("science-language-lesson", source, "Tanglish")
+    assert loaded["teaching_sequence"][0]["id"] == source["teaching_sequence"][0]["id"]
+    assert loaded["teaching_sequence"][0]["source_chunk_ids"] == ["science-chunk-1"]
+    assert loaded["teaching_sequence"][0]["visual"]["type"] == "process"
+    assert loaded["teaching_sequence"][0]["teacher_says"].startswith("Ilai sunlight")
+    coverage = client.get(
+        "/admin/science/chapter-lessons/language-coverage",
+        headers={"X-Admin-Token": "language-test-token"},
+        params={"board": "CBSE", "class_level": 6},
+    )
+    assert coverage.status_code == 200
+    assert coverage.json()["approved_lesson_count"] == 1
+    assert coverage.json()["lessons"][0]["tanglish_ready"] is True
+    assert coverage.json()["lessons"][0]["tamil_ready"] is False
+    all_coverage = client.get(
+        "/admin/science/chapter-lessons/language-coverage",
+        headers={"X-Admin-Token": "language-test-token"},
+    )
+    assert all_coverage.status_code == 200
+    assert all_coverage.json()["approved_lesson_count"] == 1
+    assert all_coverage.json()["chapter_count"] == 1
+
+
+def test_science_translation_rejects_unreviewed_or_changed_module_identity():
+    source = _approved_science_translation_fixture()
+    client = TestClient(curriculum.app)
+    headers = {"X-Admin-Token": "language-test-token"}
+    unreviewed = client.post(
+        "/admin/chapter-lessons/science-language-lesson/translations",
+        headers=headers,
+        json={"language": "Tamil", "lesson": source, "reviewed": False},
+    )
+    assert unreviewed.status_code == 400
+    changed = json.loads(json.dumps(source))
+    changed["teaching_sequence"][0]["id"] = "different-step"
+    invalid = client.post(
+        "/admin/chapter-lessons/science-language-lesson/translations",
+        headers=headers,
+        json={"language": "Tamil", "lesson": changed, "reviewed": True},
+    )
+    assert invalid.status_code == 422
+    assert "protected value changed" in str(invalid.json()["detail"])
+
+
+def test_stored_science_translation_is_invalidated_when_source_synthesis_changes():
+    source = _approved_science_translation_fixture()
+    translated = json.loads(json.dumps(source))
+    translated["overview"] = "Tamil version of the overview."
+    client = TestClient(curriculum.app)
+    stored = client.post(
+        "/admin/chapter-lessons/science-language-lesson/translations",
+        headers={"X-Admin-Token": "language-test-token"},
+        json={"language": "Tamil", "lesson": translated, "reviewed": True},
+    )
+    assert stored.status_code == 200
+    changed_source = json.loads(json.dumps(source))
+    changed_source["overview"] = "A newly revised English source overview."
+    with curriculum.db() as conn:
+        conn.execute("UPDATE chapter_lessons SET lesson_json=? WHERE id=?",
+                     (json.dumps(changed_source), "science-language-lesson"))
+    from fastapi import HTTPException
+    try:
+        curriculum._stored_lesson_translation("science-language-lesson", changed_source, "Tamil")
+    except HTTPException as exc:
+        assert exc.status_code == 409
+        assert "out of date" in exc.detail
+    else:
+        raise AssertionError("A translation tied to old synthesis content must not be served.")

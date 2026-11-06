@@ -1,0 +1,69 @@
+{
+  "lesson_id": "2724ac7f-6c27-5ad0-91b4-c8cde97af506",
+  "chapter": "Nature's Treasures",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Iyarkaiyin Pokkishangal",
+  "overview": "Indha lesson-la air, water, soil, sunlight, forests, fuels matrum natural resources namma life-ku eppadi support pannudhu-nu paappom. Resources-ai responsible-aa use pannuradhu, conserve pannuradhu yen mukkiyam-nu purinjukkolvom.",
+  "learning_objectives": [
+    "Natural resources-na enna-nu examples-oda solla mudiyum.",
+    "Air, water, sunlight life-ku yen essential-nu explain panna mudiyum.",
+    "Fresh water limited resource-nu describe panna mudiyum.",
+    "Forests matrum soil-oda benefits-ai identify panna mudiyum.",
+    "Fuels-oda uses matrum pollution impact-ai compare panna mudiyum.",
+    "Natural resources conserve panna practical actions suggest panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Natural resources namakku enna tharudhu?",
+      "caption": "Water, air, soil, sunlight, forests ellam nature-lirundhu kidaikkura resources. Food, drinking water, shelter, energy, materials-ku ivai help pannum. Daily life-la use pannura natural resources-ai list pannuvom.",
+      "teacher_says": "Bhoomi-um Surya-vum Ajji veetla water, vegetables, air, sunlight eppadi use aagudhu-nu observe pannura madhiri imagine pannunga. Nature resources illama life kashtam.",
+      "checkpoint": "Natural resource-na enna? Ungal daily life-la use aagura moonu natural resources sollunga."
+    },
+    {
+      "id": "step_2",
+      "title": "Air, wind matrum water",
+      "caption": "Air breathing-kku thevai; wind firki-ai rotate panna mudiyum. Water drinking, growing crops, cleaning, living organisms-ku essential. Resources use pannumbodhu waste avoid pannanum.",
+      "teacher_says": "Firki rotate aaguradhu wind movement nala. Water-ai tap open-aa vidaama, required amount mattum use pannunga.",
+      "checkpoint": "Wind movement-ai kaattura oru example sollunga. Water-ai save panna oru habit enna?"
+    },
+    {
+      "id": "step_3",
+      "title": "Fresh water limited",
+      "caption": "Earth-la water neraya irundhaalum, adhula perumbaguthi salty ocean water. Fresh water-oda small fraction mattum easy-aa access panna mudiyum. Groundwater, rivers, lakes-ai recharge panna rain, soil, vegetation mukkiyam.",
+      "teacher_says": "Tap water namakku easy-aa kidaikkudhu; aana ella region-layum same access illa. Water use-ai plan panni, leaks fix panni, rainwater collect panna mudiyum.",
+      "checkpoint": "Earth water-la easy-aa use panna mudiyura fresh water yen limited? Water conserve panna rendu ways sollunga."
+    },
+    {
+      "id": "step_4",
+      "title": "Sunlight, forests matrum energy",
+      "caption": "Sun Earth-ku main energy source. Plants sunlight use panni food prepare pannum; forests habitat, oxygen, timber, fruits, medicines matrum soil protection provide pannum. Forests biodiversity-ai support pannum.",
+      "teacher_says": "Forest products list pannumbodhu wood mattum illa; fruits, fibres, medicines, clean air, habitat ellam consider pannunga. Trees soil erosion-ai reduce pannum.",
+      "checkpoint": "Sunlight plants-ku eppadi help pannudhu? Forests provide pannura moonu benefits sollunga."
+    },
+    {
+      "id": "step_5",
+      "title": "Soil formation matrum earthworms",
+      "caption": "Soil rocks weather aaguradhu, organic matter mix aaguradhu moolama long time-la form aagum. Earthworms soil-ai loosen panni organic matter mix panna help pannum. Healthy soil plants grow aaga essential.",
+      "teacher_says": "Earthworm soil-la tunnels create pannum; adhu air-um water-um move aaga help pannum. Earthworms natural soil helpers.",
+      "checkpoint": "Soil form aaga enna processes help pannum? Earthworms soil-ku eppadi useful?"
+    },
+    {
+      "id": "step_6",
+      "title": "Fuels matrum pollution",
+      "caption": "Wood, coal, petroleum, natural gas, LPG madhiri fuels energy provide pannum. Burning fuels pollution create pannalaam; some fuels cleaner than others, aana all fuel use-kum impact irukkum. Energy save pannuradhu pollution reduce panna help pannum.",
+      "teacher_says": "Traditional fuels-um modern fuels-um compare pannunga. LPG, natural gas use panninaalum ventilation and safety mukkiyam; fuel waste panna koodadhu.",
+      "checkpoint": "Oru fuel example sollunga. Fuel burning nala varra oru environmental impact enna?"
+    },
+    {
+      "id": "step_7",
+      "title": "Natural resources protect pannuvom",
+      "caption": "Air, water, soil, forests, rocks, fuels ellam natural resources. Renewable resources replenish aagalaam; non-renewable resources limited and form aaga long time edukum. Reduce, reuse, recycle, conserve water, plant native trees madhiri actions help pannum.",
+      "teacher_says": "Natural resources free-aa kidaikkudhu-nu waste panna koodadhu. Namma daily choices future generations-kum resources irukka help pannum.",
+      "checkpoint": "Renewable-um non-renewable-um eppadi different? Veettil resource save panna rendu actions sollunga."
+    }
+  ]
+}

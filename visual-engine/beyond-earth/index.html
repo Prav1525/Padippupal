@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#f7f4ed"><title>PadippuPal · Beyond Earth</title>
+<style>
+:root{color-scheme:light;--paper:#f7f4ed;--ink:#26364a;--muted:#718096;--accent:#d97757}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper);font-family:ui-rounded,"Trebuchet MS",system-ui,sans-serif;color:var(--ink)}
+#app{height:100%;display:flex;flex-direction:column}.top{padding:14px 18px 8px;display:flex;align-items:center;justify-content:space-between}.brand{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}.stage{font-size:12px;color:var(--muted)}#canvas{flex:1;min-height:0;position:relative;overflow:hidden}canvas{display:block;width:100%;height:100%}.bottom{padding:10px 18px max(14px,env(safe-area-inset-bottom));display:flex;gap:12px;align-items:center}.caption{font-size:14px;line-height:1.4;flex:1;color:#43536a}.nav{border:1px solid #d9d3c7;background:#fffaf1;color:var(--ink);border-radius:999px;padding:9px 15px;font-weight:650}.nav:active{transform:scale(.97)}#progress{height:3px;background:#e7e0d4}#bar{height:100%;width:12.5%;background:#d97757;transition:width .25s}
+</style></head>
+<body><main id="app"><header class="top"><div class="brand">PadippuPal · Science</div><div class="stage" id="stage">01 / 08</div></header><div id="progress"><div id="bar"></div></div><section id="canvas" aria-label="Interactive science teaching canvas"></section><footer class="bottom"><div class="caption" id="caption">Our journey begins with three neighbours in space.</div><button class="nav" id="prev" aria-label="Previous stage">←</button><button class="nav" id="next" aria-label="Next stage">Next →</button></footer></main>
+<script type="module">
+import * as PIXI from 'https://cdn.jsdelivr.net/npm/pixi.js@8.6.6/dist/pixi.min.mjs';
+const root=document.querySelector('#canvas'),caption=document.querySelector('#caption'),stageLabel=document.querySelector('#stage'),bar=document.querySelector('#bar');
+const app=new PIXI.Application(); await app.init({resizeTo:root,background:'#f7f4ed',antialias:true,autoDensity:true,resolution:Math.min(devicePixelRatio||1,2)});root.appendChild(app.canvas);
+const world=new PIXI.Container();app.stage.addChild(world);
+const palette={ink:0x34445a,muted:0x77869a,sun:0xf4bd55,earth:0x5b9eaa,land:0x83b88d,moon:0xd5d0c5,coral:0xd97757,blue:0x8ab8cf,night:0x26364a,cream:0xf7f4ed};
+let current=0, scene=null;
+function line(g,pts,color=palette.ink,width=3,alpha=1){for(let i=1;i<pts.length;i++)g.moveTo(pts[i-1][0],pts[i-1][1]).lineTo(pts[i][0],pts[i][1]);g.stroke({color,width,alpha,cap:'round',join:'round'})}
+function roughCircle(parent,x,y,r,fill,stroke=palette.ink){const g=new PIXI.Graphics();g.circle(x,y,r).fill(fill).stroke({color:stroke,width:2.6,alpha:.8});parent.addChild(g);return g}
+function label(parent,text,x,y,size=15,color=palette.ink){const t=new PIXI.Text({text,style:{fontFamily:'Trebuchet MS, system-ui',fontSize:size,fill:color,fontWeight:'600'}});t.anchor.set(.5);t.x=x;t.y=y;parent.addChild(t);return t}
+function arrow(parent,x1,y1,x2,y2,color=palette.coral){const g=new PIXI.Graphics();g.moveTo(x1,y1).lineTo(x2,y2).stroke({color,width:3,cap:'round'});const a=Math.atan2(y2-y1,x2-x1);g.moveTo(x2,y2).lineTo(x2-10*Math.cos(a-.5),y2-10*Math.sin(a-.5)).lineTo(x2-10*Math.cos(a+.5),y2-10*Math.sin(a+.5)).closePath().fill(color);parent.addChild(g)}
+function earth(parent,x,y,r){roughCircle(parent,x,y,r,palette.earth);const g=new PIXI.Graphics();g.ellipse(x-r*.22,y-r*.18,r*.28,r*.48).fill(palette.land);g.ellipse(x+r*.36,y+r*.2,r*.19,r*.28).fill(palette.land);parent.addChild(g)}
+function sun(parent,x,y,r){roughCircle(parent,x,y,r,palette.sun);const g=new PIXI.Graphics();for(let i=0;i<12;i++){const a=i*Math.PI/6;g.moveTo(x+Math.cos(a)*(r+8),y+Math.sin(a)*(r+8)).lineTo(x+Math.cos(a)*(r+18),y+Math.sin(a)*(r+18)).stroke({color:palette.sun,width:3,cap:'round'})}parent.addChild(g)}
+function moon(parent,x,y,r,phase=1){roughCircle(parent,x,y,r,palette.moon);if(phase===0){const g=new PIXI.Graphics();g.circle(x,y,r-1).fill(palette.night);parent.addChild(g)}else if(phase===.5){const g=new PIXI.Graphics();g.rect(x,y-r,r,r*2).fill(palette.night);parent.addChild(g)}else if(phase===.25){const g=new PIXI.Graphics();g.circle(x-r*.35,y,r*.88).fill(palette.night);parent.addChild(g)}}
+function clear(){world.removeChildren();world.scale.set(1);world.position.set(0)}
+function draw(s){clear();const w=root.clientWidth,h=root.clientHeight,cx=w/2,cy=h/2;const scale=Math.min(w/390,h/500);world.scale.set(scale);world.position.set((w-390*scale)/2,(h-500*scale)/2);
+const g=new PIXI.Graphics();world.addChild(g);
+switch(s.id){
+case 'space-neighbours': sun(world,76,205,34);earth(world,205,205,43);moon(world,316,205,20);label(world,'SUN',76,267,13);label(world,'EARTH',205,267,13);label(world,'MOON',316,247,13);line(g,[[112,205],[158,205]],palette.muted,2);line(g,[[250,205],[289,205]],palette.muted,2);label(world,'A tiny part of a vast universe',195,365,17);break;
+case 'scale-and-distance': sun(world,68,220,28);earth(world,190,220,25);moon(world,310,220,13);label(world,'star',68,275);label(world,'planet',190,275);label(world,'natural satellite',310,275,12);label(world,'Different sizes · very different distances',195,360,14);break;
+case 'earth-rotation': earth(world,195,230,86);arrow(world,92,130,290,130);arrow(world,295,330,100,330);label(world,'Earth spins on its axis',195,385,17);break;
+case 'day-night': sun(world,55,220,35);roughCircle(world,235,220,88,palette.earth);const shade=new PIXI.Graphics();shade.rect(235,132,88,176).fill({color:palette.night,alpha:.88});world.addChild(shade);label(world,'DAY',215,220,17,0xffffff);label(world,'NIGHT',278,220,14,0xffffff);arrow(world,105,220,130,220);label(world,'Sunlight',75,285,13);break;
+case 'sunlight-moon': sun(world,65,210,33);earth(world,315,210,42);moon(world,190,210,31);arrow(world,108,210,150,210);arrow(world,225,210,265,210);label(world,'Sunlight illuminates half the Moon',195,350,16);break;
+case 'moon-phases': {const phases=[0,.25,.5,.75,1,.75,.5,.25];phases.forEach((p,i)=>{const x=42+i*50;roughCircle(world,x,190,17,palette.moon);const sh=new PIXI.Graphics();if(p===0)sh.circle(x,190,16).fill(palette.night);else if(p<1){sh.ellipse(x+(p<.5?-8:8),190,Math.max(2,17*(1-p)),17).fill(palette.night)}world.addChild(sh)});label(world,'One changing view through the month',195,275,16);label(world,'New',42,235,11);label(world,'Full',242,235,11);break}
+case 'observe-pattern': {const phases=[0,.25,.5,.75,1,.75,.5,.25];phases.forEach((p,i)=>{const x=42+i*50;roughCircle(world,x,185,15,palette.moon);if(p===0){const sh=new PIXI.Graphics();sh.circle(x,185,14).fill(palette.night);world.addChild(sh)}});arrow(world,45,255,345,255);label(world,'Observe · record · compare',195,315,17);label(world,'The pattern repeats',195,355,14);break}
+case 'big-picture': sun(world,75,180,27);earth(world,195,180,36);moon(world,310,180,18);arrow(world,112,180,153,180);arrow(world,238,180,285,180);earth(world,195,340,53);arrow(world,195,225,195,280);label(world,'Rotation',195,415,16);label(world,'Day & night',195,445,14);break;
+}
+}
+const stages=[
+{id:'space-neighbours',caption:'Meet the Sun, Earth and Moon — three very different neighbours.'},
+{id:'scale-and-distance',caption:'Compare their roles and remember: this drawing is not to scale.'},
+{id:'earth-rotation',caption:'Earth rotates, or spins, around an imaginary axis.'},
+{id:'day-night',caption:'The side facing the Sun has day; the side turned away has night.'},
+{id:'sunlight-moon',caption:'The Moon does not make its own light. It reflects sunlight.'},
+{id:'moon-phases',caption:'As the Moon moves around Earth, we see different portions of its sunlit half.'},
+{id:'observe-pattern',caption:'Observe the changing shape over time. The sequence repeats.'},
+{id:'big-picture',caption:'Connect the three ideas: sunlight, rotation and the Moon’s changing appearance.'}
+];
+function go(n){current=Math.max(0,Math.min(stages.length-1,n));const s=stages[current];draw(s);caption.textContent=s.caption;stageLabel.textContent=String(current+1).padStart(2,'0')+' / 08';bar.style.width=((current+1)/8*100)+'%';document.querySelector('#prev').disabled=current===0;document.querySelector('#next').textContent=current===7?'Replay ↻':'Next →'}
+document.querySelector('#prev').onclick=()=>go(current-1);document.querySelector('#next').onclick=()=>go(current===7?0:current+1);window.addEventListener('resize',()=>draw(stages[current]));
+// Native tutor bridge: {type:'padippupal:setStep',step:0..7}; step changes are deterministic and narration-driven.
+window.addEventListener('message',e=>{const d=e.data;if(d?.type==='padippupal:setStep'&&Number.isInteger(d.step))go(d.step)});
+window.PadippuPalVisual={setStep:go,getStep:()=>current};
+go(0);
+</script></body></html>

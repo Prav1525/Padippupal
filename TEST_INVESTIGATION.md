@@ -733,3 +733,15 @@ Use this format:
 - **What this proves:** the stale runner assertion is corrected; deterministic checks, JVM tests, and APK packaging pass on the exact tested head. It does not prove the tutor screen renders the 19 images.
 - **Next action:** provide a Linux x86_64 runner with working KVM and the required self-hosted labels, or authorize a physical/cloud Android device. Then run the existing UI acceptance job without macOS or software emulation.
 - **Safety:** PR #182 remains open. No merge, production database write, deployment, or public release.
+
+
+### 2026-11-06 — Hosted Linux/KVM emulator reached app; local fixture address was wrong inside Android
+- **Branch / tested commit:** `test-beyond-earth-emulator-acceptance@349b3179d0e68d3c5f0b35745bafe4bb26be0576`; PR #182 remains open.
+- **Workflow evidence:** [Beyond Earth acceptance run 42172379858](https://github.com/Prav1525/Padippupal/actions/runs/42172379858), job `127742952999`, [artifact 13481938056](https://github.com/Prav1525/Padippupal/actions/runs/42172379858/artifacts/13481938056).
+- **Passed:** Hosted Ubuntu runner, readable/writable KVM, Android API 35 emulator boot, APK install, MainActivity launch, app home, Science setup navigation, fixture readiness, and retrieval of all 19 original image blobs. Python/bootstrap checks, JVM tests, and APK build also passed.
+- **Observed failure:** Science chapter picker showed “Couldn't load the chapter list”; UIAutomator reported “No chapter list is available”. The tutor lesson was not opened and no tutor-screen acceptance was achieved.
+- **Confirmed root cause:** The fixture binds on the GitHub runner at port 8765. The APK was built with `PADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765`. From Android emulator networking, 127.0.0.1 is the emulator itself, not the host runner. Android's host-gateway alias is `10.0.2.2`. The fixture log proves its server loaded 19/19 image blobs; app-side failure occurs at the chapter-outline request before lesson navigation.
+- **Correction:** Use `http://10.0.2.2:8765` only in the debug APK's `assembleDebug` build property. Keep the host-side JVM test/fixture readiness URLs on `127.0.0.1`. Add a bootstrap regression assertion protecting this distinction. No production app/API code or database is changed.
+- **What remains unverified:** Beyond Earth chapter selection, tutor rendering, inline mapped original image visibility, spacing, and module progression.
+- **Next action:** Run exact-head bootstrap/JVM/build checks and the hosted Linux/KVM emulator acceptance again; inspect its screenshot/XML and logs. Do not call the feature accepted until the actual tutor screen and mapped image are captured.
+- **Safety:** PR #182 remains open; no merge, production DB write, deployment, or release.

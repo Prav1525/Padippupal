@@ -29,6 +29,12 @@ class BeyondEarthEmulatorBootstrapTests(unittest.TestCase):
         self.assertNotIn("macos-", workflow)
         self.assertNotIn("-accel off", workflow)
 
+    def test_emulator_apk_uses_host_gateway_for_local_fixture(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("PADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 assembleDebug", workflow)
+        self.assertIn("PADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 testDebugUnitTest", workflow)
+        self.assertIn("curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8765/health", workflow)
+
     def test_visual_acceptance_does_not_depend_on_device_tts(self):
         tutor = TUTOR.read_text(encoding="utf-8")
         segment_start = tutor.index("fun playLiveSegment(index: Int)")

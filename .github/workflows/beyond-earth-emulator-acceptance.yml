@@ -52,7 +52,8 @@ jobs:
         run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 testDebugUnitTest
 
       - name: Build debug APK
-        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 assembleDebug
+        # Android's 10.0.2.2 alias reaches the host runner; 127.0.0.1 would point inside the emulator.
+        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 assembleDebug
 
       # Exact same hosted-Linux KVM setup used by successful run 41676624274.
       - name: Enable KVM hardware acceleration for the emulator

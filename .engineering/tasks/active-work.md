@@ -10,20 +10,17 @@
 **Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
 
 ## Active objective: Beyond Earth original-image tutor-screen acceptance
-- **State:** PARTIALLY TESTED; tutor-screen acceptance remains **BLOCKED / UNVERIFIED** pending a matching Linux KVM runner.
+- **State:** BLOCKED at Science chapter-list loading after emulator boot; fixture host-address correction committed, retest pending.
 - **PR / branch:** [#182](https://github.com/Prav1525/Padippupal/pull/182) / `test-beyond-earth-emulator-acceptance`.
-- **Current branch head:** `72cbb97e09d37b11f393673dcf36d9d93ec2be46` (documentation update after test evidence).
-- **Exact code/test head verified:** `530a48c51feca1bf8838d92ad8a6d6639638cbcd`.
-- **Latest evidence:** [Beyond Earth workflow run 42171684000](https://github.com/Prav1525/Padippupal/actions/runs/42171684000), validation job `127740754314`; [Investigation Guidance Gate run 42171683940](https://github.com/Prav1525/Padippupal/actions/runs/42171683940).
-- **Confirmed correction:** The bootstrap regression test incorrectly required `macos-15-intel` although the workflow was configured for Linux KVM. The test now enforces Linux KVM and rejects macOS/software-emulation configurations. Hosted Linux validation/build is now a separate job; the exact APK is transferred to the KVM-only UI job.
-- **Passed on exact code/test head:** Python compilation, Beyond Earth bootstrap regression tests, shell syntax validation, Kotlin/JVM `testDebugUnitTest`, debug APK build, and APK artifact upload. Artifact: `beyond-earth-debug-apk`, 16,300,130 bytes, SHA-256 `96d8edb81d56e1691203336f5e390795d54b96c404941184bcff63d5f61e4588`.
-- **Guidance:** Investigation Guidance Gate run 42171683940 PASS.
-- **UI job:** `127741332691` in run 42171684000 is **QUEUED** for `self-hosted, linux, x64, kvm`; no matching runner has picked it up. The emulator has not started on this run.
-- **Not verified:** Science → Beyond Earth navigation, actual tutor screenshot, original-image display, visual spacing, and module progression. Earlier fixture retrieval of all 19 image blobs is not proof of tutor rendering.
-- **Previous runtime diagnosis:** Run 41822010546 confirmed an Android system-service startup ANR before tutor navigation; the deeper platform slowdown cause remains unknown. Do not repeat macOS-hosted or software-emulated runs.
-- **Repair counter:** Originating chain remains at generation 5/5. The current work is a separate CI architecture separation and stale regression-test correction, not a sixth emulator repair. Do not reset or exceed the counter.
-- **Next action:** Provide a Linux x86_64 runner with working KVM and the required self-hosted labels, or authorize a physical/cloud Android device. Then run the existing UI acceptance without macOS or software emulation.
-- **Safety:** PR #182 stays open. No merge, production database write, deployment, or public release.
+- **Latest tested commit:** `349b3179d0e68d3c5f0b35745bafe4bb26be0576`; hosted Linux/KVM run [42172379858](https://github.com/Prav1525/Padippupal/actions/runs/42172379858), job `127742952999`, artifact [13481938056](https://github.com/Prav1525/Padippupal/actions/runs/42172379858/artifacts/13481938056).
+- **Passed:** Python/bootstrap checks, Kotlin/JVM tests, APK build, hosted Ubuntu, KVM acceleration check, API 35 emulator boot, APK install, MainActivity/home launch, fixture readiness and retrieval of all 19 original image blobs.
+- **Confirmed failure cause:** APK used `127.0.0.1:8765`; inside Android that is the emulator, not the host runner fixture. The app therefore could not load the Science chapter outline.
+- **Correction committed for retest:** Debug APK now uses Android host gateway `10.0.2.2:8765`; host-side fixture readiness and JVM test retain `127.0.0.1:8765`. A bootstrap regression assertion protects the split.
+- **Not yet verified:** Beyond Earth selection, actual tutor screenshot, inline original-image rendering, visual spacing, and module progression.
+- **Repair budget:** Original investigation chain remains at generation 5/5; do not reset or extend it. The current change corrects the host/emulator networking boundary in the separate hosted-Linux test architecture; do not weaken acceptance assertions.
+- **Next action:** Validate the exact committed host-gateway setting and inspect the next hosted Linux/KVM run. If Science outline loads, continue through tutor and require screenshot evidence of the mapped original image before acceptance.
+- **Safety:** PR #182 remains open. No merge, production DB write, deployment, or public release.
+
 ## Previous engineering OS handoff: Phase 1 — Persistent Engineering Operating System
 - **Branch:** `chore/persistent-engineering-os-phase1`; base `main@407844ea458799eadc99b9af1e7364939902e9dd`.
 - **PR:** [#61 — Establish PadippuPal Persistent Engineering Operating System — Phase 1](https://github.com/Prav1525/Padippupal/pull/61).

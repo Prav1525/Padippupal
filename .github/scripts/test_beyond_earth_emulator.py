@@ -146,7 +146,7 @@ try:
     else: raise RuntimeError("Tutor never displayed the Beyond Earth lesson text")
     manifest=json.loads(__import__("urllib.request",fromlist=["urlopen"]).urlopen("http://127.0.0.1:8765/chapter-lessons/"+LESSON_ID+"/images",timeout=10).read())
     assets=manifest.get("images",[])
-    if len(assets) != 19: raise RuntimeError(f"Expected all 19 original textbook images, got {len(assets)}")
+    if not assets or len(assets) >= 19: raise RuntimeError(f"Image-quality gate did not filter the legacy manifest: got {len(assets)} assets")
     expected_modules=[f"module-{i}" for i in range(1,8)]
     module_keys={str(a.get("module_key","")).strip() for a in assets}
     missing_modules=[key for key in expected_modules if key not in module_keys]

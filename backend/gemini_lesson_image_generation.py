@@ -21,7 +21,7 @@ from lesson_image_ingest import connect, ensure_blob_table, require_image_admin
 
 router = APIRouter(prefix="/admin/visuals", tags=["admin-visual-generation"])
 
-MAX_STEPS_PER_REQUEST = 8
+MAX_STEPS_PER_REQUEST = 3
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 STEP_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,120}$")
 DEFAULT_IMAGE_MODEL = "gemini-3.1-flash-image"
@@ -186,38 +186,40 @@ def generate_science_lesson_images(
     finally:
         conn.close()
 
-    # Generate before opening the write transaction. A provider failure cannot leave
-    # partially registered assets, and database locks are not held during generation.
+    # Skip existing assets before calling Gemini so retries do not incur duplicate
+    # generation cost. No DB transaction remains open during external model calls.
     generated = []
-    actual_model = ""
-    for step_id, title, prompt, fingerprint in prepared:
-        asset_id = "gemini-" + hashlib.sha256(f"{lesson_id}:{step_id}".encode("utf-8")).hexdigest()[:40]
-        image_bytes, actual_model = _generate_with_gemini(prompt)
-        width, height = _png_dimensions(image_bytes)
-        generated.append({
-            "id": asset_id,
-            "step_id": step_id,
-            "title": title,
-            "payload": image_bytes,
-            "sha256": hashlib.sha256(image_bytes).hexdigest(),
-            "fingerprint": fingerprint,
-            "width": width,
-            "height": height,
-        })
+    skipped = []
+    lookup = connect()
+    try:
+        for step_id, title, prompt, fingerprint in prepared:
+            asset_id = "gemini-" + hashlib.sha256(f"{lesson_id}:{step_id}".encode("utf-8")).hexdigest()[:40]
+            existing = lookup.execute(
+                "SELECT id FROM lesson_image_assets WHERE id=%s", (asset_id,)
+            ).fetchone()
+            if existing and not payload.overwrite:
+                skipped.append({"step_id": step_id, "status": "already_exists"})
+                continue
+            image_bytes, actual_model = _generate_with_gemini(prompt)
+            width, height = _png_dimensions(image_bytes)
+            generated.append({
+                "id": asset_id,
+                "step_id": step_id,
+                "title": title,
+                "payload": image_bytes,
+                "sha256": hashlib.sha256(image_bytes).hexdigest(),
+                "fingerprint": fingerprint,
+                "width": width,
+                "height": height,
+            })
+    finally:
+        lookup.close()
 
     conn = connect()
     try:
         ensure_blob_table(conn)
         stored = []
-        skipped = []
         for item in generated:
-            existing = conn.execute(
-                "SELECT id, content_fingerprint, status FROM lesson_image_assets WHERE id=%s",
-                (item["id"],),
-            ).fetchone()
-            if existing and not payload.overwrite:
-                skipped.append({"step_id": item["step_id"], "status": "already_exists"})
-                continue
             object_key = f"generated/{lesson_id}/{item['step_id']}"
             conn.execute(
                 """INSERT INTO lesson_image_assets

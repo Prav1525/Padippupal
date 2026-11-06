@@ -402,6 +402,33 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn('visualSteps.length() == lessonSegments.size', tutor)
 
 
+class InlineTutorImageLayoutTests(unittest.TestCase):
+    def test_live_tutor_uses_one_scroll_container_for_text_and_images(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        live_start = tutor.index("if (liveLessonActive) {")
+        live_end = tutor.index("// Inline learner checkpoint", live_start)
+        live = tutor[live_start:live_end]
+        self.assertIn(".verticalScroll(rememberScrollState())", live)
+        self.assertIn("internalScroll = false", live)
+        self.assertNotIn("heightIn(min = 96.dp, max = 190.dp)", live)
+
+    def test_beyond_earth_images_keep_source_ratio_without_decorative_cards(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        start = tutor.index("private fun BeyondEarthTextbookPageImage")
+        end = tutor.index("@Composable\nprivate fun DatabaseInteractiveLessonLab", start)
+        renderer = tutor[start:end]
+        self.assertIn("bitmap.width.toFloat() / bitmap.height.toFloat()", renderer)
+        self.assertIn("Modifier.width(renderedWidth).aspectRatio(aspectRatio)", renderer)
+        self.assertIn("val maxImageHeight = 360.dp", renderer)
+        self.assertIn("aspectRatio >= 1.45f -> 1f", renderer)
+        self.assertIn("aspectRatio <= 0.8f -> 0.68f", renderer)
+        self.assertNotIn(".border(", renderer)
+        self.assertNotIn(".background(", renderer)
+        self.assertNotIn("heightIn(max = if (compact)", renderer)
+
+
 class PreviousScreenSelectionTests(unittest.TestCase):
     def test_tutor_ready_screen_does_not_duplicate_selection_controls(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()

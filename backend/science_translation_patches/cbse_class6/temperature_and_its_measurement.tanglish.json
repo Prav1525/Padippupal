@@ -1,0 +1,76 @@
+{
+  "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+  "chapter": "Temperature and its Measurement",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Temperature-ai Alaviduthal",
+  "overview": "Indha lesson-la touch sense yen reliable illa, temperature meaning, thermometer types, correct thermometer use, Celsius/Fahrenheit/Kelvin scales matrum melting/boiling observations-ai kathukkolvom. Thermometer use pannumbodhu safety mukkiyam.",
+  "learning_objectives": [
+    "Touch mattum vechu hot/cold decide panna yen podhaadhu-nu explain panna mudiyum.",
+    "Temperature-na enna-nu define panna mudiyum.",
+    "Clinical matrum laboratory thermometers-ai distinguish panna mudiyum.",
+    "Thermometer reading-ai correct-aa edukkavum read pannavum mudiyum.",
+    "Celsius, Fahrenheit, Kelvin scales-ai identify panna mudiyum.",
+    "Melting/boiling process-la temperature observations-ai explain panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Touch sense mattum podhaadhu",
+      "caption": "Rendu water bowls different temperature-la irundhaalum hand touch misleading-aa irukkalaam. Same water-ai different temperature-la irundha hands different-aa feel pannum. Hotness/coldness-ai reliable-aa compare panna thermometer thevai.",
+      "teacher_says": "Oru kai cool water-la, innoru kai warm water-la konjam neram vechu, appuram rendu kaiyum room-temperature water-la vainga. Same water different-aa feel aagalaam. Teacher supervision follow pannunga.",
+      "checkpoint": "Touch sense yen always reliable illa? Temperature measure panna enna instrument use pannuvom?"
+    },
+    {
+      "id": "step_2",
+      "title": "Temperature-na enna?",
+      "caption": "Temperature oru body evvalavu hot alladhu cold-nu measure pannura quantity. Hotter body generally higher temperature kaattum. Touch sensation vida thermometer numerical reading kudukkum.",
+      "teacher_says": "Ice water-um warm water-um compare pannumbodhu, thermometer reading hotness-ai number-la kaattum. Temperature reading-ai unit-oda record pannunga.",
+      "checkpoint": "Temperature enna measure pannudhu? Thermometer reading yen touch vida reliable?"
+    },
+    {
+      "id": "step_3",
+      "title": "Clinical thermometer safety",
+      "caption": "Clinical thermometer body temperature measure panna design pannappattadhu. Digital thermometer use pannumbodhu instructions follow pannunga; use-kku munnum pinbum clean pannunga. Shared thermometer-ai hygiene rules-oda handle pannunga.",
+      "teacher_says": "Thermometer tip-ai clean pannunga; display-ai water-la immerse panna koodadhu. Fever check panna device instructions follow pannanum; adult help use pannunga.",
+      "checkpoint": "Clinical thermometer edhai measure pannum? Use-kku munnum pinbum enna care edukkanum?"
+    },
+    {
+      "id": "step_4",
+      "title": "Laboratory thermometer",
+      "caption": "Laboratory thermometer experiments-la liquids/objects temperature measure panna use pannuvom. Idhoda range clinical thermometer vida wider-aa irukkalaam. Bulb liquid-kulla irukkumbodhu container bottom/side touch pannaama reading edukkanum.",
+      "teacher_says": "Thermometer bulb-ai liquid-la immerse pannunga; scale-ai eye level-la read pannunga. Reading edukkurappo bulb liquid-kulla irukkanum.",
+      "checkpoint": "Laboratory thermometer edharku use aagum? Reading edukkumbodhu bulb enga irukkanum?"
+    },
+    {
+      "id": "step_5",
+      "title": "Thermometer reading correct-aa eduppom",
+      "caption": "Thermometer range-um smallest division-um check pannunga. Scale-ai eye level-la read pannunga; parallax avoid pannunga. Liquid thermometer-la bulb-ai correct position-la vechu, reading stable aagura vara wait pannunga.",
+      "teacher_says": "Different thermometers different ranges/least counts kondirukkum. Scale markings-ai first paarthu, appuram reading edunga. Teacher instructions-ai follow pannunga.",
+      "checkpoint": "Least count-na enna? Thermometer scale-ai eye level-la yen read pannanum?"
+    },
+    {
+      "id": "step_6",
+      "title": "Heating, cooling, melting",
+      "caption": "Ice heat aagumbodhu melting nadakkum. Pure substance melt aagura time-la temperature konja neram constant-aa irukkalaam, heat continue panninaalum. Experiments-la hot water/burner use pannumbodhu teacher supervision compulsory.",
+      "teacher_says": "Ice melt aagura activity-ai observe pannumbodhu temperature reading-ai time-oda note pannunga. Burner, boiling water, hot glassware-ai neenga thaniya handle panna koodadhu.",
+      "checkpoint": "Melting nadakkumbodhu temperature constant-aa irukka mudiyuma? Hot experiment-la safety yen mukkiyam?"
+    },
+    {
+      "id": "step_7",
+      "title": "Temperature scales",
+      "caption": "Celsius, Fahrenheit, Kelvin moonu common temperature scales. Weather reports-la Celsius common; sila places-la Fahrenheit use pannuvanga; science-la Kelvin use pannuvanga. Unit symbol-ai correct-aa write pannunga.",
+      "teacher_says": "Same temperature different scales-la different number-aa represent aagum. Celsius °C, Fahrenheit °F, Kelvin K. Kelvin symbol-kku degree sign use panna maattom.",
+      "checkpoint": "Temperature-oda moonu scales enna? Kelvin unit-ai eppadi write pannuvom?"
+    },
+    {
+      "id": "step_8",
+      "title": "Temperature recap",
+      "caption": "Temperature hotness/coldness-ai quantify pannum; thermometer reading correct-aa edukka range, least count, eye position, safety consider pannanum. Clinical/lab thermometers different purpose-ku use aagum.",
+      "teacher_says": "Lesson-la touch limitations, thermometer types, scales, melting observation ellam connect pannuvom. Oru thermometer reading-ai unit-oda explain pannunga.",
+      "checkpoint": "Clinical-um laboratory thermometer-um eppadi different? Accurate reading-kku rendu precautions sollunga."
+    }
+  ]
+}

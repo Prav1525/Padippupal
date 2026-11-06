@@ -1,0 +1,76 @@
+{
+  "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+  "chapter": "A Journey through States of Water",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Water-oda Moonu Nilai Payanam",
+  "overview": "Indha lesson-la water solid ice-aa, liquid water-aa, gas water vapour-aa eppadi irukkum-nu paappom. Heating, cooling, evaporation, condensation, matrum water cycle-ai daily-life examples moolama purinjukkolvom.",
+  "learning_objectives": [
+    "Ice-um liquid water-um ore substance-oda rendu states-nu explain panna mudiyum.",
+    "Evaporation nadakkumbodhu water vapour-a maarudhu-nu example-oda solla mudiyum.",
+    "Cold surface-la water vapour droplets-aa maaruvadhu condensation-nu identify panna mudiyum.",
+    "Solid, liquid, gas-oda shape matrum flow differences-ai compare panna mudiyum.",
+    "Heating/cooling nala melting, freezing, evaporation, condensation eppadi nadakkudhu-nu describe panna mudiyum.",
+    "Evaporation cooling effect matrum water cycle stages-ai explain panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Ice-um water-um ore substance",
+      "caption": "Oru ice cube-ai cup-la vechu konjam neram observe pannunga. Ice melt aagi liquid water-a maarum. Ice-um water-um vera vera substances illa; rendu perum water-oda different states. Ice fixed shape-la irukkum; water flow aagi container shape edukkum.",
+      "teacher_says": "Shikanji-la irukkura ice melt aaguradhai paarthiruppeenga. Ice enga pochu? Adhu disappear aagala; liquid water-a maariduchu. Ippo solid-um liquid-um eppadi different-nu serndhu paappom.",
+      "checkpoint": "Ice melt aana enna aagum? Ice-um water-um rendu different substances-aa, illa ore water-oda rendu states-aa?"
+    },
+    {
+      "id": "step_2",
+      "title": "Puddle yen disappear aagudhu?",
+      "caption": "Mazhai-kku appuram ground-la irukkura puddle konjam konjama kuraiyum. Steel plate-la vecha water-um seep aagama dry aagum. Water liquid state-lirundhu kannukku theriyadha water vapour-aa maarum. Indha process-ku evaporation-nu peru.",
+      "teacher_says": "Sunny day-la wet clothes seekiram dry aagum; shade-la konjam late aagum. Water enga pogudhu-nu yosippom. Adhu air-kulla water vapour-aa maarudhu; idhudhaan evaporation.",
+      "checkpoint": "Puddle dry aagumbodhu water enga pogudhu? Evaporation-na enna?"
+    },
+    {
+      "id": "step_3",
+      "title": "Condensation: droplets enga irundhu varudhu?",
+      "caption": "Ice water irukkura tumbler-oda veli surface-la tiny droplets form aagum. Tumbler-kulla irundhu water leak aagala. Air-la irukkura water vapour cold glass-ai touch pannumbodhu liquid droplets-aa maarum. Indha change condensation.",
+      "teacher_says": "Cold tumbler veliya water drops varumbodhu glass leak aagudhu-nu ninaikka vendaam. Air-la irukkura water vapour cold surface-la cool aagi droplets-aa maarudhu.",
+      "checkpoint": "Cold tumbler veliya droplets form aaguradhukku kaaranam enna? Indha process-oda name enna?"
+    },
+    {
+      "id": "step_4",
+      "title": "Solid, liquid, gas compare pannuvom",
+      "caption": "Ice-ku fixed shape irukkum; adhu easy-aa flow aagadhu. Liquid water-ku fixed shape illa; container shape edukkum, aana volume irukkum. Water vapour spread aagi available space-ai fill pannum. Idhu moonu states-oda mukkiya difference.",
+      "teacher_says": "Oru ice cube, oru tumbler water, water vapour-ai compare pannunga. Edhukku fixed shape irukku? Edhu flow aagum? Edhu room full-aa spread aagum?",
+      "checkpoint": "Endha state fixed shape maintain pannum? Liquid-um gas-um eppadi different?"
+    },
+    {
+      "id": "step_5",
+      "title": "Heating-um cooling-um state change pannum",
+      "caption": "Ice-ku heat kuduthaa melting nadandhu liquid water aagum. Liquid water freeze aana solid ice aagum. Water heat aagumbodhu evaporation speed adhigamaagalam; water vapour cool aana condensation nadakkum.",
+      "teacher_says": "Freezer-la water ice-a maarudhu; room temperature-la ice melt aagudhu. Heat add pannumbodhu enna change, heat remove pannumbodhu enna change-nu paappom.",
+      "checkpoint": "Melting-na endha state-lirundhu endha state-ku change? Freezing eppadi opposite?"
+    },
+    {
+      "id": "step_6",
+      "title": "Evaporation nala cooling",
+      "caption": "Earthen pot-oda chinna pores vazhiya konjam water veliya varum. Andha water evaporate aagumbodhu heat eduthukkollum; adhanaala pot-kulla irukkura water cool-aa irukkum. Wind, temperature, exposed surface area evaporation speed-ai affect pannum.",
+      "teacher_says": "Matka water summer-la cool-aa irukkum-nu theriyum. Pot surface-la irukkura water evaporate aagumbodhu surroundings-lirundhu heat edukkudhu. Adhanaala remaining water cool aagudhu.",
+      "checkpoint": "Matka water cool-aa irukka evaporation eppadi help pannudhu? Evaporation speed-ai affect pannura rendu factors sollunga."
+    },
+    {
+      "id": "step_7",
+      "title": "Clouds, rain, water cycle",
+      "caption": "Sun heat nala river, lake, sea water evaporate aagudhu. Water vapour mela poi cool aagi tiny droplets-aa condense aagum; clouds form aagum. Droplets perusaagi heavy aana rain-aa keezha vizhum. Water thirumba rivers, lakes, sea-kku serudhu; cycle continue aagudhu.",
+      "teacher_says": "Sea-la irundhu water sky-kku poi, cloud-aagi, rain-aa thirumba varudhu. Idhu one-way trip illa; continuous water cycle. Diagram-la evaporation, condensation, precipitation stages-ai follow pannunga.",
+      "checkpoint": "Cloud form aaguradhukku enna process nadakkanum? Water cycle-la rain-kku appuram water enga pogum?"
+    },
+    {
+      "id": "step_8",
+      "title": "Water states recap",
+      "caption": "Ice, liquid water, water vapour moonum ore substance-oda states. Heating/cooling nala state change nadakkum. Evaporation water-ai vapour-a maathum; condensation vapour-ai droplets-a maathum. Nature-la indha changes water cycle-ai nadathudhu.",
+      "teacher_says": "Ippo ice-lirundhu water, water-lirundhu vapour, vapour-lirundhu droplets varra journey-ai connect pannunga. Oru daily-life example solli ovvoru process-ai explain pannunga.",
+      "checkpoint": "Melting, evaporation, condensation, freezing — indha naangu processes-la ovvorondrukkum oru example sollunga."
+    }
+  ]
+}

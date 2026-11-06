@@ -1,0 +1,76 @@
+{
+  "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+  "chapter": "Beyond Earth",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Boomikku Appaal (Beyond Earth)",
+  "overview": "Indha chapter-la night sky stars, constellations, Pole Star, planets, Moon, comets, Solar System matrum Milky Way Galaxy pathi padippom. Textbook-la irukkura ideas-ai use panni, ivatrai sky-la eppadi identify pannalaam-nu purinjukkolvom.",
+  "learning_objectives": [
+    "Stars thangaloda own light-ai produce pannum; constellation-na enna-nu explain panna mudiyum.",
+    "Big Dipper, Little Dipper matrum Pole Star direction kandupidikka eppadi help pannum-nu solla mudiyum.",
+    "Adults-oda safe-aa night sky observe panni Big Dipper matrum Pole Star-ai identify panna mudiyum.",
+    "Sun-um oru star dhaan; Earth-oda rotation matrum revolution-ai distinguish panna mudiyum.",
+    "Stars, planets, natural satellites-ai compare panni telescope-oda use-ai explain panna mudiyum.",
+    "Solar System objects, comets, asteroids, Milky Way Galaxy matrum Universe pathi describe panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Night sky-la stars and patterns",
+      "caption": "Ladakh-oda Nubra region-la Yangdol-um Dorjay-um clear night sky-la neraya stars-ai paarkkiraanga. Stars thangaloda own light-ai emit pannum. Sila stars bright-aa, sila dim-aa theriyum. Sila stars-ai imaginary lines-la connect pannina familiar shapes maadhiri theriyum; indha patterns-ai constellations-nu azhaippom. Pazhaya kaalathula travellers direction kandupidikka stars-ai use panninaanga.",
+      "teacher_says": "Night sky-la neraya stars theriyum. Sila stars-ai imaginary lines-la connect pannina oru shape kidaikkum. Andha pattern dhaan constellation. Idhai innum konjam explore pannuvom.",
+      "checkpoint": "Stars thangaloda own light-ai produce pannuma? Constellation-na enna? Pazhaya travellers-ku stars eppadi help pannuchu?"
+    },
+    {
+      "id": "step_2",
+      "title": "Constellations and the Pole Star",
+      "caption": "International Astronomical Union sky-ai 88 official regions-aa divide pannirukku; indha regions constellations-nu azhaikkappadum. Orion, Big Dipper matrum Little Dipper examples. Little Dipper-la irukkura Polaris, adhaavadhu Pole Star, north direction pakkathula almost same position-la theriyum. Adhanaala Northern Hemisphere-la north direction kandupidikka adhu useful.",
+      "teacher_says": "Constellations-ku different patterns-um names-um irukku. Aana north direction kandupidikka endha star help pannum? Pole Star-oda role-ai paapom.",
+      "checkpoint": "Pole Star endha direction-ai kaatta help pannum? Big Dipper-um Little Dipper-um edharku useful?"
+    },
+    {
+      "id": "step_3",
+      "title": "Safe-aa night sky observe pannuvom",
+      "caption": "Night sky paarkka adults-oda mattum safe-aana open place-ku poganum. Street lights, tall buildings, trees kammiya irukkura idathai choose pannu. Clear night helpful. Sky map app alladhu star chart use pannalaam; dark-ku eyes adjust aaga sumaar 30 minutes wait pannina stars better-aa theriyum. Dark place-ku thaniya pogakoodadhu.",
+      "teacher_says": "Night sky observation exciting-aa irukkum; aana safety first. Adult kooda safe place choose panni, eyes dark-ku adjust aaga konjam wait pannuvom.",
+      "checkpoint": "Night sky paarkka place eppadi choose pannanum? Dark-ku eyes adjust aaga yen wait pannanum? Yaar kooda poganum?"
+    },
+    {
+      "id": "step_4",
+      "title": "Sun, stars and Earth-oda movement",
+      "caption": "Sun-um oru star dhaan. Adhu Earth-kku romba pakkathula irukkaradhunaala perusaavum bright-aa theriyudhu; matra stars dhoorathula irukkaradhunaala small dots maadhiri theriyum. Pagal-la Sun-oda brightness nala matra stars namakku theriyadhu. Earth than axis-ai sutri rotate aaguradhukku sumaar 24 hours aagum; Sun-ai sutri oru revolution mudikka sumaar oru year aagum.",
+      "teacher_says": "Sun-um oru star dhaan; namakku pakkathula irukkaradhunaala perusa theriyudhu. Ippo Earth-oda rotation-um revolution-um eppadi different-nu paapom.",
+      "checkpoint": "Sun perusa theriyuradhukku main reason enna? Earth-oda rotation-ku evlo neram aagum? Revolution-na enna?"
+    },
+    {
+      "id": "step_5",
+      "title": "Planets, Moon and telescopes",
+      "caption": "Planets-um stars maadhiri bright dots-aa theriyalaam; aana planets usually twinkle kammiya irukkum. Venus-ai sunrise-kku mun Eastern sky-layum sunset-kku pin Western sky-layum paarkka mudiyum. Telescope dim objects-ai brighter-aa, larger-aa paarkka help pannum. Planets-ai sutri move aagura objects satellites; Moon Earth-oda natural satellite.",
+      "teacher_says": "Sky-la theriyura bright object star-aa planet-aa-nu observe pannalaam. Venus dawn alladhu dusk-la theriyalaam. Telescope namakku dim objects-ai clearer-aa paarkka help pannum.",
+      "checkpoint": "Stars-um planets-um twinkling-la eppadi different? Telescope enna help pannum? Earth-oda natural satellite edhu?"
+    },
+    {
+      "id": "step_6",
+      "title": "Solar System and Milky Way",
+      "caption": "Solar System-la Sun, eight planets, avatrin moons, asteroids matrum comets irukkindrana. Sun dhaan Solar System-la largest and heaviest object. Comets-la ice-um rocky material-um irukkum; Sun-kku pakkathula varumbodhu tail develop aagalaam. Dark sky-la theriyura faint light band namma Milky Way Galaxy; namma Solar System adhan oru pagudhi.",
+      "teacher_says": "Sun, planets, moons, asteroids, comets ellam serndhadhu Solar System. Namma Solar System-um Milky Way Galaxy-oda oru small part dhaan.",
+      "checkpoint": "Solar System-la enna objects irukkum? Comet Sun-kku pakkathula varumbodhu enna nadakkalaam? Namma Solar System endha galaxy-la irukku?"
+    },
+    {
+      "id": "step_7",
+      "title": "Review and observe what you learnt",
+      "caption": "Indha stage-la planet names and order, Big Dipper, Little Dipper, Pole Star, Orion matrum Sirius-ai identify pannuvom. Daytime-la Sunlight-oda brightness nala stars theriyadhu. Big Dipper move aagura maadhiri theriyalaam; Pole Star north pakkathula almost fixed-aa theriyum. Adult guidance-oda sky observation-ai repeat panni record pannalaam.",
+      "teacher_says": "Ippo namma learning-ai check pannuvom. Planet order, constellation patterns, Pole Star direction-ai textbook figure-oda compare panni paaru.",
+      "checkpoint": "Daytime-la stars yen theriyadhu? Pole Star-oda position eppadi theriyum? Big Dipper-ai eppadi identify pannalaam?"
+    },
+    {
+      "id": "step_8",
+      "title": "Keep asking why",
+      "caption": "Science-la pala periya discoveries simple-aana 'Why?' kelviyilirundhu start aagum. Night sky-la paarkkura ovvoru object-um pudhu kelvi kekka inspire pannalaam. Observe pannu, kelvi kelu, evidence thedu, un explanation-ai test pannu — idhudhaan scientific curiosity-oda journey.",
+      "teacher_says": "Indha chapter-la stars-lirundhu galaxies varaikkum explore pannom. Inime sky-la edha paathaalum 'Idhu enna? Yen ippadi theriyudhu?' nu kelvi kelu; science journey continue aagattum.",
+      "checkpoint": "Indha chapter-la unakku pudhusa therinjadhu enna? Night sky pathi nee kekka virumbura oru scientific question enna?"
+    }
+  ]
+}

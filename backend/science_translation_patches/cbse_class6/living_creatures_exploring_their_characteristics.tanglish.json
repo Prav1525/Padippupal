@@ -1,0 +1,76 @@
+{
+  "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+  "chapter": "Living Creatures: Exploring their Characteristics",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Uyirulla Uyirinangal: Avatrin Gunangal",
+  "overview": "Indha lesson-la living things-oda characteristics, seed germination, plant life cycle, mosquito matrum frog life cycles-ai paappom. Living things grow, breathe, respond, reproduce matrum life stages moolama change aagum-nu examples-oda purinjukkolvom.",
+  "learning_objectives": [
+    "Living-um non-living-um distinguish panna mudiyum.",
+    "Living things-oda mukkiya characteristics-ai list panna mudiyum.",
+    "Seed germination-kku thevaiyana conditions-ai identify panna mudiyum.",
+    "Plant life cycle stages-ai order-la describe panna mudiyum.",
+    "Mosquito matrum frog life cycles-ai compare panna mudiyum.",
+    "Living things-oda habitat-ai protect panna ways solla mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Living-aa, non-living-aa?",
+      "caption": "Namma sutri irukkura objects-ai observe pannunga. Plants, animals grow aagum, nutrients thevai, breathe pannum, stimuli-kku respond pannum. Stone madhiri non-living objects indha life processes-ai seiyaadhu. Wooden log tree-lirundhu vandhaalum ippo grow aagadhu.",
+      "teacher_says": "Oru plant-aiyum oru stone-aiyum compare pannunga. Plant grow aagum, water thevai; stone indha processes seiyaadhu. Movement mattum living-nu decide panna podhaadhu.",
+      "checkpoint": "Living thing-ai identify panna help pannura rendu characteristics sollunga. Wooden log ippo living-aa? Yen?"
+    },
+    {
+      "id": "step_2",
+      "title": "Living things-oda characteristics",
+      "caption": "Living organisms movement, nutrition, growth, respiration, excretion, response to stimuli, reproduction matrum death kaattum. Oru characteristic mattum paathu mudivu edukkaama, full set-ai consider pannuvom.",
+      "teacher_says": "Plant sunlight pakkam bend aagalam; animals food thedi move pannum. Living things environment-kku respond pannum, energy use pannum, grow aagum.",
+      "checkpoint": "Living things-oda naangu characteristics sollunga. Stimulus-kku response-na enna?"
+    },
+    {
+      "id": "step_3",
+      "title": "Seed germination",
+      "caption": "Seed germinate aaga water, air, suitable temperature thevai. Water seed coat-ai soften pannum; embryo grow start pannum. Root usually keezha valarum; shoot mela valarum. Light/dark requirement seed type-ai poruththu maaralaam.",
+      "teacher_says": "Bean seeds-ai damp cotton-la vechu daily observe pannunga. Water mattum podhuma? Air-um suitable temperature-um yen mukkiyam-nu discuss pannuvom.",
+      "checkpoint": "Seed germination-kku thevaiyana moonu conditions enna? Root-um shoot-um endha direction-la valarum?"
+    },
+    {
+      "id": "step_4",
+      "title": "Plant life cycle",
+      "caption": "Plant life cycle seed germination-la start aagi seedling, mature plant, flowering, fruit matrum seed production stages-ai kadakkum. Pudhu seeds suitable conditions kidaikkumbodhu germinate aagi cycle continue aagum.",
+      "teacher_says": "Oru bean plant photo series-la seed-lirundhu flower, fruit varai stages-ai arrange pannunga. Ovvoru stage-la enna change nadakkudhu-nu sollunga.",
+      "checkpoint": "Plant life cycle-la flowering-kku appuram enna nadakkum? Pudhu plant eppadi start aagum?"
+    },
+    {
+      "id": "step_5",
+      "title": "Mosquito life cycle",
+      "caption": "Mosquito life cycle-la egg, larva, pupa, adult-nu naangu stages irukkum. Larva-um pupa-um water-la irukkum; surface-kku vandhu air edukkum. Stagnant water breeding place aagalam; water collect aagama vechikkaradhu mukkiyam.",
+      "teacher_says": "Stagnant water irukkura containers-ai adult supervision-oda check pannalaam. Larva-um pupa-um different shapes-la irukkum. Avatrai touch pannaama teacher-kitta report pannunga.",
+      "checkpoint": "Mosquito life cycle-oda naangu stages-ai correct order-la sollunga. Stagnant water-ai remove pannuvadhu yen help pannum?"
+    },
+    {
+      "id": "step_6",
+      "title": "Frog life cycle",
+      "caption": "Frog life cycle spawn/eggs-lirundhu embryo, tadpole, legs develop aana tadpole, froglet, adult frog varai progress aagum. Tadpole water-la vaazhum; tail swimming-kku help pannum. Froglet land-layum water-layum move panna aarambikkum.",
+      "teacher_says": "Textbook diagram-la frog stages-ai observe pannunga. Tadpole-ku tail yen thevai? Growth nadakkumbodhu legs eppadi develop aagudhu-nu trace pannunga.",
+      "checkpoint": "Tadpole-um adult frog-um body structure-la enna difference? Tail tadpole-kku eppadi help pannum?"
+    },
+    {
+      "id": "step_7",
+      "title": "Life cycles compare pannuvom",
+      "caption": "Plants, mosquitoes, frogs ellam life cycle stages moolama change aagum. Mosquito-um frog-um egg stage-la start aanaalum, stages-um habitat changes-um different. Frog tadpole water-la vaazhum; adult frog water-um land-um use pannum.",
+      "teacher_says": "Mosquito matrum frog life cycle diagrams-ai side-by-side compare pannunga. Common stages, different stages, habitat changes-ai table-la note pannunga.",
+      "checkpoint": "Mosquito-um frog-um life cycle-la oru similarity, rendu differences sollunga."
+    },
+    {
+      "id": "step_8",
+      "title": "Living world-ai protect pannuvom",
+      "caption": "Plants, animals avanga habitat-oda depend aagirukkanga. Stagnant water-ai manage pannudhal, plants-ai care pannudhal, habitats-ai disturb pannaama iruththal living things-ai protect pannum. Observe pannumbodhu safety follow pannunga.",
+      "teacher_says": "Garden-la plant growth observe pannalaam; pond animals-ai distance-la irundhu paarkkanum. Nature-ai protect pannuvadhum science learning-oda oru part.",
+      "checkpoint": "Living things-oda habitat-ai protect panna neenga seiya koodiya rendu actions sollunga."
+    }
+  ]
+}

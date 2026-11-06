@@ -1,0 +1,76 @@
+{
+  "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+  "chapter": "Methods of Separation in Everyday Life",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "chapter_title": "Daily Life-la Kalavaigalai Pirithal",
+  "overview": "Indha lesson-la mixtures-la irukkura components-ai separate panna handpicking, threshing, winnowing, sieving, sedimentation, decantation, filtration, evaporation matrum magnetic separation-ai eppadi use pannuvom-nu kathukkolvom. Method-ai mixture-oda properties base-la choose pannuvom.",
+  "learning_objectives": [
+    "Mixture-na enna-nu explain panna mudiyum.",
+    "Handpicking, threshing, winnowing, sieving methods-ai identify panna mudiyum.",
+    "Sedimentation, decantation, filtration differences-ai compare panna mudiyum.",
+    "Evaporation use panni dissolved salt-ai recover panna mudiyum.",
+    "Magnetic separation eppadi work aagudhu-nu explain panna mudiyum.",
+    "Oru mixture-kku suitable separation sequence design panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Mixtures yen separate pannanum?",
+      "caption": "Daily life-la rice-la small stones, grains-la husk, tea-la leaves madhiri mixtures irukkum. Unwanted components remove panna alladhu useful parts collect panna separation methods use pannuvom.",
+      "teacher_says": "Malli-um Valli-um travel preparation-la food items sort pannura examples-ai imagine pannunga. Mixture-la irukkura parts size, weight, magnetic property base-la separate pannalaam.",
+      "checkpoint": "Mixture-na enna? Rice-la irukkura small stones-ai eppadi remove pannuveenga?"
+    },
+    {
+      "id": "step_2",
+      "title": "Threshing, winnowing, handpicking",
+      "caption": "Threshing-la harvested plants-lirundhu grains separate pannuvom. Winnowing-la wind use panni light husk-ai heavy grains-lirundhu separate pannuvom. Handpicking-la kaiyaal visible unwanted pieces remove pannuvom.",
+      "teacher_says": "Farmer bamboo tray-ai wind direction-la move pannumbodhu light husk far-aa pogum; heavier grains keezha vizhum. Idhu winnowing.",
+      "checkpoint": "Threshing-um winnowing-um eppadi different? Winnowing-la weight-um wind-um eppadi help pannum?"
+    },
+    {
+      "id": "step_3",
+      "title": "Sieving matrum evaporation",
+      "caption": "Sieving-la different particle sizes use pannuvom; small particles sieve holes vazhiya pass aagum, large particles mela stay aagum. Salt solution-ai evaporate panninaa water vapour aagi salt remain aagum.",
+      "teacher_says": "Flour sieve pannumbodhu fine flour pass aagum; bran/large particles retain aagum. Salt water-ai safe shallow dish-la sunlight-la evaporate panna salt crystals remain aagalam.",
+      "checkpoint": "Sieving endha property base-la work aagudhu? Salt solution-la salt recover panna endha method use pannuvom?"
+    },
+    {
+      "id": "step_4",
+      "title": "Sedimentation matrum decantation",
+      "caption": "Water-la insoluble heavy particles mix panninaa rest panna keezha settle aagum; idhu sedimentation. Mela irukkura clear liquid-ai careful-aa pour pannuradhu decantation. Rendu methods full separation guarantee pannaadhu.",
+      "teacher_says": "Muddy water-ai konjam neram disturb pannaama vechaa sand keezha settle aagum. Appuram mela irukkura water-ai slow-aa vera vessel-la pour pannalaam.",
+      "checkpoint": "Sedimentation-na enna? Decantation-la enna careful-aa seiyanum?"
+    },
+    {
+      "id": "step_5",
+      "title": "Filtration matrum straining",
+      "caption": "Filter paper, cloth, sieve madhiri porous material use panni insoluble solids-ai liquid-lirundhu separate pannuvom. Tea strainer tea leaves-ai stop pannum; liquid tea pass aagum.",
+      "teacher_says": "Tea filter pannumbodhu leaves filter-la stay aagum; tea cup-kku pass aagum. Filter hole size, particle size separation-ai decide pannum.",
+      "checkpoint": "Filtration-la residue-um filtrate-um enna? Tea strainer eppadi separate pannudhu?"
+    },
+    {
+      "id": "step_6",
+      "title": "Magnetic separation",
+      "caption": "Mixture-la magnetic material irundhaa magnet use panni non-magnetic material-lirundhu separate pannalaam. Iron filings sand-oda mix aana magnet iron-ai attract pannum; sand attract aagadhu.",
+      "teacher_says": "Magnet-ai paper/cover-la wrap panni iron filings pakkam kondu poi lift pannunga. Magnet-ai clean panna cover remove pannalaam; teacher supervision follow pannunga.",
+      "checkpoint": "Magnetic separation-ku endha property use aagudhu? Iron filings-um sand-um eppadi separate pannuveenga?"
+    },
+    {
+      "id": "step_7",
+      "title": "Methods-ai choose pannuvom",
+      "caption": "Mixture-oda particle size, weight, solubility, magnetic property base-la method choose pannuvom. Sila mixtures-ku one method podhaadhu; sequence-aa methods combine panna vendiyirukkum.",
+      "teacher_says": "Potato, salt, sawdust mixture-na handpicking-la potato remove pannalaam; water add panni salt dissolve pannalaam; sawdust float aagalaam, filter/decant pannalaam; salt water-ai evaporate pannalaam. Steps-ai reason-oda plan pannuvom.",
+      "checkpoint": "Oru mixture-ku method choose panna enna properties check pannuveenga?"
+    },
+    {
+      "id": "step_8",
+      "title": "Separation recap matrum application",
+      "caption": "Handpicking, threshing, winnowing, sieving, sedimentation, decantation, filtration, evaporation, magnetic separation — ovvoru method-um different property-ai use pannum. Correct method select panna separation efficient-aa nadakkum.",
+      "teacher_says": "Kitchen, farm, water cleaning, recycling-la separation methods use aagudhu. Oru real-life mixture identify panni adhai separate panna step-by-step plan pannunga.",
+      "checkpoint": "Oru daily-life mixture-ai choose panni, adhai separate panna suitable method-um reason-um sollunga."
+    }
+  ],
+  "language": "Tanglish"
+}

@@ -121,8 +121,8 @@ if len(rejected_duplicate_ids) != 1 or not set(rejected_duplicate_ids).issubset(
         "Image-quality gate did not remove exactly one duplicate from fig-17/fig-18: "
         f"got={sorted(rejected_duplicate_ids)}"
     )
-if len(images) != 14:
-    raise SystemExit(f"Expected 14 unique, non-decorative original images after filtering, got {len(images)}")
+if len(filtered_images) != 14:
+    raise SystemExit(f"Expected 14 unique, non-decorative original images after filtering, got {len(filtered_images)}")
 images = filtered_images
 blob_by_path = filtered_blobs
 manifest = {**manifest, "images": images}

@@ -1140,11 +1140,11 @@ def test_stored_language_overlay_preserves_synthesis_modules_and_visual_metadata
         )
         conn.executemany(
             """INSERT INTO chapter_lesson_language_segments
-               (lesson_id, language, segment_id, spoken_text, caption_text, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+               (lesson_id, language, segment_id, spoken_text, caption_text, checkpoint_text, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             [
-                ("overlay-lesson", "Tanglish", "module-2-step-1", "Moon Earth-ai suthi varudhu.", "Moon oda orbit.", 1.0),
-                ("overlay-lesson", "Tanglish", "module-1-step-1", "Boomi Sun-ai suthi varudhu.", "Boomi oda orbit.", 1.0),
+                ("overlay-lesson", "Tanglish", "module-2-step-1", "Moon Earth-ai suthi varudhu.", "Moon oda orbit.", "Moon edhai suthi varudhu?", 1.0),
+                ("overlay-lesson", "Tanglish", "module-1-step-1", "Boomi Sun-ai suthi varudhu.", "Boomi oda orbit.", "Boomi edhai suthi varudhu?", 1.0),
             ],
         )
     original = [{
@@ -1159,6 +1159,7 @@ def test_stored_language_overlay_preserves_synthesis_modules_and_visual_metadata
     localized = curriculum._apply_stored_lesson_language("overlay-lesson", original, "Tanglish")
     assert localized[0]["spoken_text"] == "Boomi Sun-ai suthi varudhu."
     assert localized[0]["caption_text"] == "Boomi oda orbit."
+    assert localized[0]["checkpoint"] == "Boomi edhai suthi varudhu?"
     for key in ("id", "source_chunk_ids", "visual_action", "interactive_lesson", "checkpoint"):
         assert localized[0][key] == original[0][key]
     assert original[0]["spoken_text"] == "Earth revolves around the Sun."
@@ -1217,7 +1218,7 @@ def test_stored_lesson_language_variants_are_saved_without_model_calls(monkeypat
         "/admin/chapter-lessons/science-lesson-1/languages/Tamil",
         headers={"x-admin-token": "test-admin-token"},
         json={"segments": [{"id": "step-1", "spoken_text": "பூமி சூரியனைச் சுற்றி வருகிறது.",
-                           "caption_text": "பூமி சூரியனைச் சுற்றி வருகிறது."}]},
+                           "caption_text": "பூமி சூரியனைச் சுற்றி வருகிறது.", "checkpoint_text": "பூமி எதைச் சுற்றி வருகிறது?"}]},
     )
     assert tamil.status_code == 200, tamil.text
     with curriculum.db() as conn:

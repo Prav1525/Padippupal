@@ -1,6 +1,21 @@
 name: Beyond Earth original-image emulator acceptance
 
 on:
+  push:
+    branches: ["ui/beyond-earth-continuous-inline-images"]
+    paths:
+      - ".github/scripts/beyond_earth_emulator_fixture.py"
+      - ".github/scripts/test_beyond_earth_emulator.py"
+      - ".github/scripts/test_beyond_earth_emulator_bootstrap.py"
+      - ".github/scripts/beyond_earth_emulator_profile.py"
+      - ".github/scripts/run_beyond_earth_emulator_acceptance.sh"
+      - "app/src/main/**"
+      - "app/build.gradle*"
+      - ".github/workflows/beyond-earth-emulator-acceptance.yml"
+      - "backend/lesson_image_quality.py"
+      - "backend/lesson_image_ingest.py"
+      - "backend/test_lesson_image_quality.py"
+      - "AGENTS.md"
   pull_request:
     branches: ["main", "fix/beyond-earth-render-all-mapped-images"]
     paths:

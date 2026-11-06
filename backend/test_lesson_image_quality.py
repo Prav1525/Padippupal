@@ -1,3 +1,5 @@
+import unittest
+
 import fitz
 
 from lesson_image_quality import is_decorative_warm_texture
@@ -22,11 +24,13 @@ def _jpeg_fixture(paper: bool) -> bytes:
     return pixmap.tobytes("jpeg")
 
 
-def test_decorative_yellow_paper_texture_is_rejected():
-    assert is_decorative_warm_texture(_jpeg_fixture(paper=True))
+class ImageQualityTests(unittest.TestCase):
+    def test_decorative_yellow_paper_texture_is_rejected(self):
+        self.assertTrue(is_decorative_warm_texture(_jpeg_fixture(paper=True)))
+
+    def test_dark_low_entropy_astronomy_image_is_not_rejected(self):
+        self.assertFalse(is_decorative_warm_texture(_jpeg_fixture(paper=False)))
 
 
-def test_dark_low_entropy_astronomy_image_is_not_rejected():
-    assert not is_decorative_warm_texture(_jpeg_fixture(paper=False))
-
-
+if __name__ == "__main__":
+    unittest.main()

@@ -284,6 +284,20 @@ def init_db() -> None:
             model TEXT NOT NULL DEFAULT '', review_feedback TEXT NOT NULL DEFAULT '',
             created_at REAL NOT NULL, updated_at REAL NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS chapter_lesson_translations (
+            id TEXT PRIMARY KEY,
+            lesson_id TEXT NOT NULL REFERENCES chapter_lessons(id) ON DELETE CASCADE,
+            language TEXT NOT NULL CHECK(language IN ('Tamil','Tanglish')),
+            source_sha256 TEXT NOT NULL,
+            lesson_json TEXT NOT NULL,
+            review_status TEXT NOT NULL DEFAULT 'approved',
+            reviewer_note TEXT NOT NULL DEFAULT '',
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL,
+            UNIQUE(lesson_id, language)
+        );
+        CREATE INDEX IF NOT EXISTS chapter_lesson_translations_lookup
+          ON chapter_lesson_translations(lesson_id, language, review_status);
             CREATE TABLE IF NOT EXISTS syllabus_synthesis_rounds (
             id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
             board TEXT NOT NULL, class_level INTEGER NOT NULL, subject TEXT NOT NULL,
@@ -2923,6 +2937,156 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
     return has_relevant_speech
 
 
+def _canonical_lesson_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _lesson_source_fingerprint(lesson: dict[str, Any]) -> str:
+    return hashlib.sha256(_canonical_lesson_json(lesson).encode("utf-8")).hexdigest()
+
+
+def _validate_stored_lesson_translation(source: Any, translated: Any, path: str = "lesson", key: str = "") -> list[str]:
+    """Allow text localization only; preserve every module, step, ID, citation and visual recipe."""
+    errors: list[str] = []
+    immutable_keys = {
+        "id", "source_chunk_ids", "citation_refs", "source_refs",
+        "reference_page_numbers", "page_start", "page_end", "type",
+        "visual_kind", "scene_type", "visual_action_type",
+    }
+    if isinstance(source, dict):
+        if not isinstance(translated, dict) or set(source) != set(translated):
+            return [f"{path}: object keys differ"]
+        for child_key in source:
+            errors.extend(_validate_stored_lesson_translation(
+                source[child_key], translated[child_key], f"{path}.{child_key}", child_key
+            ))
+        return errors
+    if isinstance(source, list):
+        if not isinstance(translated, list) or len(source) != len(translated):
+            return [f"{path}: list length differs"]
+        for index, (left, right) in enumerate(zip(source, translated)):
+            errors.extend(_validate_stored_lesson_translation(left, right, f"{path}[{index}]", key))
+        return errors
+    if type(source) is not type(translated):
+        return [f"{path}: value type differs"]
+    if isinstance(source, str):
+        if key in immutable_keys and source != translated:
+            errors.append(f"{path}: protected value changed")
+        elif source.strip() and not translated.strip():
+            errors.append(f"{path}: translated text is empty")
+    elif source != translated:
+        errors.append(f"{path}: non-text value changed")
+    return errors
+
+
+def _stored_lesson_translation(lesson_id: str, source_lesson: dict[str, Any], language: str) -> dict[str, Any]:
+    target = normalize(language or "English").casefold()
+    if target in {"", "english", "en"}:
+        return source_lesson
+    if target in {"tamil", "தமிழ்", "ta"}:
+        target = "Tamil"
+    elif target in {"tanglish", "ta-latn"}:
+        target = "Tanglish"
+    else:
+        raise HTTPException(status_code=400, detail="Supported stored lesson languages are English, Tanglish and Tamil.")
+    with db() as conn:
+        row = conn.execute(
+            """SELECT source_sha256,lesson_json FROM chapter_lesson_translations
+               WHERE lesson_id=? AND language=? AND review_status='approved'""",
+            (lesson_id, target),
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=409, detail=f"Reviewed {target} content is not available for this Science lesson yet.")
+    if str(row["source_sha256"]) != _lesson_source_fingerprint(source_lesson):
+        raise HTTPException(status_code=409, detail=f"The stored {target} content is out of date for this lesson and needs review.")
+    try:
+        localized = json.loads(row["lesson_json"])
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=500, detail="Stored lesson translation is invalid.") from exc
+    errors = _validate_stored_lesson_translation(source_lesson, localized)
+    if errors:
+        logger.error("Stored lesson translation structure mismatch: lesson_id=%s language=%s errors=%s",
+                     lesson_id, target, errors[:8])
+        raise HTTPException(status_code=500, detail="Stored lesson translation no longer matches the approved lesson structure.")
+    return localized
+
+
+class ChapterLessonTranslationRequest(BaseModel):
+    language: str = Field(pattern=r"^(Tamil|Tanglish)$")
+    lesson: dict[str, Any]
+    reviewed: bool = False
+    reviewer_note: str = Field(default="", max_length=1000)
+
+
+@app.post("/admin/chapter-lessons/{lesson_id}/translations", dependencies=[Depends(require_admin)])
+def store_chapter_lesson_translation(lesson_id: str, payload: ChapterLessonTranslationRequest) -> dict[str, Any]:
+    """Store a human-reviewed language version without changing the approved synthesis."""
+    if not payload.reviewed:
+        raise HTTPException(status_code=400, detail="A translation must be reviewed before it can be stored for learners.")
+    with db() as conn:
+        source_row = conn.execute(
+            """SELECT id,subject,status,lesson_json FROM chapter_lessons WHERE id=?""",
+            (lesson_id,),
+        ).fetchone()
+        if not source_row:
+            raise HTTPException(status_code=404, detail="Approved chapter lesson not found.")
+        if str(source_row["status"]) != "approved":
+            raise HTTPException(status_code=409, detail="Only approved synthesis lessons can receive learner translations.")
+        if str(source_row["subject"]).strip().casefold() != "science":
+            raise HTTPException(status_code=400, detail="This stored-language rollout is restricted to Science lessons.")
+        source_lesson = json.loads(source_row["lesson_json"] or "{}")
+        errors = _validate_stored_lesson_translation(source_lesson, payload.lesson)
+        if errors:
+            raise HTTPException(status_code=422, detail={"message": "Translation must preserve the exact synthesis structure and source mapping.", "errors": errors[:30]})
+        now = time.time()
+        conn.execute(
+            """INSERT INTO chapter_lesson_translations
+               (id,lesson_id,language,source_sha256,lesson_json,review_status,reviewer_note,created_at,updated_at)
+               VALUES (?,?,?,?,?,'approved',?,?,?)
+               ON CONFLICT(lesson_id,language) DO UPDATE SET
+                 source_sha256=excluded.source_sha256, lesson_json=excluded.lesson_json,
+                 review_status='approved', reviewer_note=excluded.reviewer_note, updated_at=excluded.updated_at""",
+            (str(uuid.uuid4()), lesson_id, payload.language, _lesson_source_fingerprint(source_lesson),
+             _canonical_lesson_json(payload.lesson), payload.reviewer_note, now, now),
+        )
+    return {"lesson_id": lesson_id, "language": payload.language, "status": "approved",
+            "structure_preserved": True, "source_fingerprint": _lesson_source_fingerprint(source_lesson)}
+
+
+@app.get("/admin/chapter-lessons/language-coverage", dependencies=[Depends(require_admin)])
+def chapter_lesson_language_coverage(board: str = "CBSE", class_level: int = 6) -> dict[str, Any]:
+    """Read-only inventory of approved Science synthesis lessons and stored language coverage."""
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT l.id,l.board,l.class_level,l.subject,l.medium,l.chapter,l.topic,
+                      MAX(CASE WHEN t.language='Tanglish' AND t.review_status='approved'
+                               AND t.source_sha256=? THEN 1 ELSE 0 END) AS tanglish_ready,
+                      MAX(CASE WHEN t.language='Tamil' AND t.review_status='approved'
+                               AND t.source_sha256=? THEN 1 ELSE 0 END) AS tamil_ready
+               FROM chapter_lessons l LEFT JOIN chapter_lesson_translations t ON t.lesson_id=l.id
+               WHERE l.status='approved' AND LOWER(l.subject)='science'
+                 AND LOWER(l.board)=LOWER(?) AND l.class_level=?
+               GROUP BY l.id,l.board,l.class_level,l.subject,l.medium,l.chapter,l.topic
+               ORDER BY l.chapter,l.topic""",
+            ("", "", board, class_level),
+        ).fetchall()
+        lessons = []
+        for row in rows:
+            item = dict(row)
+            source = conn.execute("SELECT lesson_json FROM chapter_lessons WHERE id=?", (item["id"],)).fetchone()
+            fingerprint = _lesson_source_fingerprint(json.loads(source["lesson_json"] or "{}"))
+            for lang, field in (("Tanglish", "tanglish_ready"), ("Tamil", "tamil_ready")):
+                tr = conn.execute("SELECT source_sha256,review_status FROM chapter_lesson_translations WHERE lesson_id=? AND language=?",
+                                  (item["id"], lang)).fetchone()
+                item[field] = bool(tr and tr["review_status"] == "approved" and tr["source_sha256"] == fingerprint)
+            lessons.append(item)
+    return {"board": board, "class_level": class_level, "subject": "Science",
+            "approved_lesson_count": len(lessons),
+            "tanglish_complete": bool(lessons) and all(x["tanglish_ready"] for x in lessons),
+            "tamil_complete": bool(lessons) and all(x["tamil_ready"] for x in lessons),
+            "lessons": lessons}
+
+
 def _translate_approved_segments(segments: list[dict[str, Any]], language: str) -> list[dict[str, Any]]:
     """Translate stored approved lesson narration at playback time without changing its evidence.
 
@@ -3209,20 +3373,37 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             # because topic gates are deliberately tied to the approved source vocabulary.
             if (segments and _lesson_segments_match_topic(payload.topic, segments)
                     and _lesson_segments_are_substantive(segments)):
-                segments = _translate_approved_segments(segments, payload.app_language)
+                localized_lesson = _stored_lesson_translation(str(approved["id"]), lesson, payload.app_language)
+                if localized_lesson is not lesson:
+                    localized_steps = localized_lesson.get("teaching_sequence", [])
+                    localized_by_id = {str(item.get("id") or ""): item for item in localized_steps if isinstance(item, dict)}
+                    localized_segments = []
+                    for segment in segments:
+                        localized_step = localized_by_id.get(str(segment.get("id") or ""))
+                        if not localized_step:
+                            raise HTTPException(status_code=500, detail="Stored translation is missing a synthesis step.")
+                        localized_segment = dict(segment)
+                        localized_segment["spoken_text"] = str(localized_step.get("teacher_says") or localized_step.get("caption") or "").strip()[:500]
+                        localized_segment["caption_text"] = str(localized_step.get("caption") or localized_segment["spoken_text"]).strip()[:500]
+                        localized_segment["checkpoint"] = str(localized_step.get("checkpoint") or "")[:240] or None
+                        localized_segments.append(localized_segment)
+                    segments = localized_segments
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",
                         "model": "reviewed-curriculum", "timing_mode": "segment",
                         "word_timestamps_available": False,
-                        "chapter_overview": lesson.get("overview", ""),
-                        "learning_objectives": lesson.get("learning_objectives", []),
-                        "chapter_title": lesson.get("chapter_title", approved["chapter"]),
+                        "chapter_overview": localized_lesson.get("overview", ""),
+                        "learning_objectives": localized_lesson.get("learning_objectives", []),
+                        "chapter_title": localized_lesson.get("chapter_title", approved["chapter"]),
                         "interactive_lesson": build_inline_synthesized_visual(str(approved["id"]), lesson, synthesized_visuals, str(approved.get("topic") or "")) or matched_visual,
                         "synthesized_visuals": synthesized_visuals}
             if segments:
                 logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",
                                payload.topic, approved["id"])
+
+    if subject.strip().casefold() == "science" and normalize(payload.app_language).casefold() not in {"", "english", "en"}:
+        raise HTTPException(status_code=409, detail="This Science lesson has no approved stored translation yet. No live language generation was attempted.")
 
     # Retrieval relevance must come from the selected curriculum target, not the
     # student's long teacher-style instruction prompt. The prompt is for generation.

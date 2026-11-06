@@ -2,12 +2,12 @@ name: Curriculum Engine Tests
 
 on:
   push:
-    branches: [ "main", "feature/gentle-ai-tutor" ]
+    branches: [ "main", "feature/gentle-ai-tutor", "feat/science-stored-language-synthesis" ]
     paths:
       - "backend/**"
       - ".github/workflows/curriculum-engine.yml"
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "ui/beyond-earth-continuous-inline-images" ]
     paths:
       - "backend/**"
       - ".github/workflows/curriculum-engine.yml"

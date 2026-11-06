@@ -1,0 +1,76 @@
+{
+  "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+  "chapter": "Mindful Eating: A Path to a Healthy Body",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Mindful Eating: Aarokkiyamaana Udalukku",
+  "overview": "Indha lesson-la balanced diet, nutrients, vitamins, minerals, roughage, food tests, millets matrum mindful food choices-ai kathukkolvom. Food namma body-ku energy, growth, repair kudukkudhu; variety-ana healthy food mukkiyam.",
+  "learning_objectives": [
+    "Balanced diet-na enna-nu explain panna mudiyum.",
+    "Carbohydrates, proteins, fats, vitamins, minerals, roughage-oda roles-ai identify panna mudiyum.",
+    "Vitamin C deficiency matrum scurvy connection-ai describe panna mudiyum.",
+    "Food items-la nutrients identify panna basic tests-ai explain panna mudiyum.",
+    "Millets matrum local foods-oda nutrition value-ai solla mudiyum.",
+    "Healthy eating habits matrum mindful food choices suggest panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Healthy eating-na enna?",
+      "caption": "Healthy body-ku wholesome food, correct quantity, suitable season/time mukkiyam. Balanced diet-la different food groups irukkum; oru type food mattum saapittaa ella nutrients kidaikkaadhu.",
+      "teacher_says": "Medu-um Mishti-um saapadra food-ai compare pannunga. Taste mattum illa; body-ku enna nutrients kidaikkudhu-nu yosippom.",
+      "checkpoint": "Balanced diet-na enna? Oru meal-la different food groups yen include pannanum?"
+    },
+    {
+      "id": "step_2",
+      "title": "Food groups matrum nutrients",
+      "caption": "Carbohydrates, fats energy kudukkum; proteins growth-um repair-um help pannum. Vitamins, minerals body functions support pannum. Roughage digestion-ku help pannum; water-um essential.",
+      "teacher_says": "Rice, millets, pulses, milk, vegetables, fruits ellam different nutrients kudukkum. Variety-aa saapitta body-ku pala nutrients kidaikkum.",
+      "checkpoint": "Protein body-ku enna help pannum? Carbohydrates-oda main role enna?"
+    },
+    {
+      "id": "step_3",
+      "title": "Vitamin C matrum scurvy",
+      "caption": "Long sea voyages-la fresh fruits illaama irundha sailors-ku bleeding gums, swollen gums vandhadhu. Citrus fruits-la irukkura vitamin C scurvy-ai prevent panna help pannum. Food variety deficiency diseases-ai avoid panna help pannum.",
+      "teacher_says": "Lemon, orange madhiri fruits vitamin C sources. James Lind observations sailors-oda health-um citrus fruits-um connect pannina example.",
+      "checkpoint": "Vitamin C deficiency nala varra disease enna? Vitamin C kudukkura rendu foods sollunga."
+    },
+    {
+      "id": "step_4",
+      "title": "Vitamins, minerals, roughage",
+      "caption": "Fruits, green vegetables, milk, whole grains vitamins and minerals kudukkum. Roughage undigested food move aaga help panni bowel movement smooth-aa irukka support pannum. Water digestion-kku mukkiyam.",
+      "teacher_says": "Daily meals-la greens, fruits, whole grains include pannunga. Roughage energy kudukkaadhu; aana gut movement-ku help pannum.",
+      "checkpoint": "Roughage-oda role enna? Vitamins and minerals kidaikkura food examples sollunga."
+    },
+    {
+      "id": "step_5",
+      "title": "Food-la nutrients test pannuvom",
+      "caption": "Iodine test starch presence-ai kaattum; classroom tests protein/fat-ai identify panna help pannalaam. Tests teacher supervision-la safe-aa seiyanum; chemicals taste panna koodadhu.",
+      "teacher_says": "Textbook activity-la sample food-ai test pannumbodhu colour change observe pannuvom. Test result enna indicate pannudhu-nu record pannunga; colour mattum paathu overclaim panna vendaam.",
+      "checkpoint": "Iodine test starch irundhaa enna change kaattum? Food test-la safety yen important?"
+    },
+    {
+      "id": "step_6",
+      "title": "Millets matrum energy balance",
+      "caption": "Millets nutrition-rich cereals. Ragi, kambu, thinai madhiri local millets fibre matrum nutrients provide pannum. Excess sugar/fat high calories kudukkalaam; balanced portions mukkiyam.",
+      "teacher_says": "Local millets-ai other foods-oda compare pannunga. Oru food healthy-aa irukkaradhu portion size-um overall diet-um poruththu irukkum.",
+      "checkpoint": "Millets-oda oru nutrition benefit sollunga. High sugar/fat food-ai yen moderate-aa saapidanum?"
+    },
+    {
+      "id": "step_7",
+      "title": "Food choices across regions",
+      "caption": "India-la region, season, cultivation, culture, availability base-la food habits differ aagum. Local, seasonal foods variety-ana diet-ku contribute pannum. Food choice health-um environment-um affect pannum.",
+      "teacher_says": "Oru region-la rice common; vera place-la millet alladhu wheat common. Different food habits-ai judge pannaama nutrients, availability, balance base-la understand pannuvom.",
+      "checkpoint": "Food habits region-ku region yen maarum? Local seasonal food-oda oru benefit sollunga."
+    },
+    {
+      "id": "step_8",
+      "title": "Mindful eating recap",
+      "caption": "Mindful eating-na hunger, fullness, food quality, portion, variety-ai notice panni choose pannuradhu. Balanced meals, clean water, regular habits, junk food moderation health-ai support pannum.",
+      "teacher_says": "Saapdumbodhu screen avoid panni, food-ai slow-aa chew panni, body signals-ai notice pannunga. Healthy choice daily small decisions-la build aagum.",
+      "checkpoint": "Mindful eating-la follow panna koodiya rendu habits sollunga. Balanced diet yen mukkiyam?"
+    }
+  ]
+}

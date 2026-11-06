@@ -2844,9 +2844,9 @@ def store_chapter_lesson_language(
             raise HTTPException(status_code=422, detail="Every translated segment needs a valid original segment id.")
         if not spoken or not caption or len(spoken) > 500 or len(caption) > 500:
             raise HTTPException(status_code=422, detail="Every translated segment needs spoken text and caption text (max 500 characters each).")
-        if language_name == "Tamil" and not re.search(r"[\\u0B80-\\u0BFF]", spoken):
+        if language_name == "Tamil" and not re.search(r"[\u0B80-\u0BFF]", spoken):
             raise HTTPException(status_code=422, detail="Tamil narration must use Tamil script.")
-        if language_name == "Tanglish" and re.search(r"[\\u0B80-\\u0BFF]", spoken):
+        if language_name == "Tanglish" and re.search(r"[\u0B80-\u0BFF]", spoken):
             raise HTTPException(status_code=422, detail="Tanglish narration must use Latin letters, not Tamil script.")
         if segment_id in ids:
             raise HTTPException(status_code=422, detail="Duplicate segment ids are not allowed.")
@@ -2982,77 +2982,6 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
 
     # Require both per-segment topicality and at least one explicit topic signal.
     return has_relevant_speech
-
-
-def _translate_approved_segments(segments: list[dict[str, Any]], language: str) -> list[dict[str, Any]]:
-    """Translate stored approved lesson narration at playback time without changing its evidence.
-
-    Synthesized lessons are persisted in their reviewed source language. The selected
-    app language must still apply when a learner replays one of those lessons.
-    """
-    target = normalize(language or "English")
-    if not target or target.casefold() in {"english", "en"}:
-        return segments
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        raise HTTPException(status_code=503, detail="Language translation is not configured on the backend.")
-    compact = [{
-        "id": str(item.get("id") or ""),
-        "spoken_text": str(item.get("spoken_text") or ""),
-        "caption_text": str(item.get("caption_text") or ""),
-    } for item in segments]
-    prompt = (
-        "Translate the following approved school lesson into " + target + ". "
-        "Keep every segment id unchanged and return JSON only as {segments:[{id,spoken_text,caption_text}]}. "
-        "Preserve all scientific/mathematical facts, examples, numbers, names, and meaning exactly; "
-        "do not add, omit, or simplify away a teaching point. Keep captions concise and child-friendly. "
-        "For Tanglish, write natural spoken Tamil-English using Tamil words in Latin letters, as a kind patient "
-        "Tamil teacher would speak; do not return formal English or Tamil script. For Tamil, use natural Tamil script. "
-        "Do not translate source IDs because they are not included. Input JSON:\\n"
-        + json.dumps({"segments": compact}, ensure_ascii=False)
-    )
-    model = os.getenv("PADIPPUPAL_GEMINI_CHAT_MODEL", "gemini-2.5-flash").strip()
-    body = json.dumps({
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0, "maxOutputTokens": 1800},
-    }).encode("utf-8")
-    req = urllib.request.Request(
-        "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
-        data=body,
-        headers={"x-goog-api-key": api_key, "Content-Type": "application/json", "Accept": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=25) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        raw = " ".join(
-            part.get("text", "") for part in result["candidates"][0]["content"]["parts"]
-            if isinstance(part, dict)
-        )
-        translated = json.loads(re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", raw, flags=re.IGNORECASE))
-        items = translated.get("segments") if isinstance(translated, dict) else None
-        if not isinstance(items, list):
-            raise ValueError("translation response has no segments list")
-        by_id = {str(item.get("id") or ""): item for item in items if isinstance(item, dict)}
-        result_segments = []
-        for original in segments:
-            item = by_id.get(str(original.get("id") or ""))
-            spoken = str(item.get("spoken_text") or "").strip() if item else ""
-            caption = str(item.get("caption_text") or "").strip() if item else ""
-            if not spoken or not caption:
-                raise ValueError("translation omitted a lesson segment")
-            translated_segment = dict(original)
-            translated_segment["spoken_text"] = spoken[:500]
-            translated_segment["caption_text"] = caption[:500]
-            result_segments.append(translated_segment)
-        if len(result_segments) != len(segments):
-            raise ValueError("translation changed the lesson segment count")
-        return result_segments
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.warning("Approved lesson translation failed: language=%s error=%s", target, type(exc).__name__)
-        raise HTTPException(status_code=502, detail="This lesson could not be translated into the selected language. Please retry.") from exc
 
 
 def _lesson_segments_are_substantive(segments: list[dict[str, Any]]) -> bool:

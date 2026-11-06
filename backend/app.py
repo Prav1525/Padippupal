@@ -2984,6 +2984,34 @@ def _lesson_segments_match_topic(topic: str, segments: list[dict[str, Any]]) -> 
     return has_relevant_speech
 
 
+def _apply_stored_lesson_language(lesson_id: str, segments: list[dict[str, Any]], language: str) -> list[dict[str, Any]]:
+    """Overlay reviewed narration only; preserve the synthesis segment structure and metadata."""
+    language_key = normalize(language or "English").casefold()
+    if language_key in {"english", "en"}:
+        return segments
+    language_name = {"tanglish": "Tanglish", "tamil": "Tamil"}.get(language_key)
+    if not language_name:
+        raise HTTPException(status_code=422, detail="Unsupported lesson language.")
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT segment_id, spoken_text, caption_text
+               FROM chapter_lesson_language_segments WHERE lesson_id=? AND language=?""",
+            (lesson_id, language_name),
+        ).fetchall()
+    by_id = {str(row["segment_id"]): row for row in rows}
+    expected_ids = [str(item.get("id") or "") for item in segments]
+    if not expected_ids or len(by_id) != len(expected_ids) or set(by_id) != set(expected_ids):
+        raise HTTPException(status_code=409, detail=f"{language_name} content is not yet reviewed and stored for this lesson.")
+    localized_segments = []
+    for original in segments:
+        localized = dict(original)
+        translated = by_id[str(original["id"])]
+        localized["spoken_text"] = str(translated["spoken_text"])
+        localized["caption_text"] = str(translated["caption_text"])
+        localized_segments.append(localized)
+    return localized_segments
+
+
 def _lesson_segments_are_substantive(segments: list[dict[str, Any]]) -> bool:
     """Reject repeated lesson-template filler even when it mentions the selected chapter.
 
@@ -3195,33 +3223,13 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                     if not segment.get("interactive_lesson"):
                         segment["interactive_lesson"] = matched_visual
             # Approval verifies source provenance, not that every step still matches
-            # the learner's selected topic. Validate source-language text before translating,
+            # the learner's selected topic. Validate source-language text before applying a stored language variant,
             # because topic gates are deliberately tied to the approved source vocabulary.
             if (segments and _lesson_segments_match_topic(payload.topic, segments)
                     and _lesson_segments_are_substantive(segments)):
-                selected_language = normalize(payload.app_language or "English")
-                if selected_language.casefold() not in {"english", "en"}:
-                    language_name = {"tanglish": "Tanglish", "tamil": "Tamil"}.get(selected_language.casefold())
-                    if not language_name:
-                        raise HTTPException(status_code=422, detail="Unsupported lesson language.")
-                    with db() as conn:
-                        language_rows = conn.execute(
-                            """SELECT segment_id, spoken_text, caption_text
-                               FROM chapter_lesson_language_segments
-                               WHERE lesson_id=? AND language=?""",
-                            (str(approved["id"]), language_name),
-                        ).fetchall()
-                    language_map = {str(item["segment_id"]): item for item in language_rows}
-                    if not segments or set(language_map) != {str(item["id"]) for item in segments}:
-                        raise HTTPException(status_code=409, detail=f"{language_name} content is not yet reviewed and stored for this lesson.")
-                    localized_segments = []
-                    for original in segments:
-                        localized = dict(original)
-                        translated = language_map[str(original["id"])]
-                        localized["spoken_text"] = str(translated["spoken_text"])
-                        localized["caption_text"] = str(translated["caption_text"])
-                        localized_segments.append(localized)
-                    segments = localized_segments
+                segments = _apply_stored_lesson_language(
+                    str(approved["id"]), segments, payload.app_language
+                )
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",

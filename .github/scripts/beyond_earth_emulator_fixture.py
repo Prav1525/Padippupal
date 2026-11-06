@@ -8,6 +8,10 @@ from pathlib import Path
 from urllib.parse import urlparse, unquote
 from urllib.request import urlopen, Request
 
+sys.path.insert(0, str(ROOT / "backend"))
+from lesson_image_quality import is_decorative_warm_texture
+import hashlib
+
 ROOT = Path(__file__).resolve().parents[2]
 BASE_URL = os.environ.get("PADIPPUPAL_PRODUCTION_API", "https://padippupal-curriculum-api.onrender.com").rstrip("/")
 LESSON_ID = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
@@ -39,6 +43,7 @@ manifest = json.loads(manifest_bytes)
 images = manifest.get("images", [])
 if len(images) != 19:
     raise SystemExit(f"Expected 19 original PDF-derived images, got {len(images)}")
+original_images = list(images)
 # Fetch independent image blobs concurrently. The previous serial loop could spend
 # up to 4 x 90 seconds per image on a cold/slow production service, while the
 # fixture's HTTP server (including /health) remained unavailable until all 19
@@ -75,6 +80,35 @@ for url_path, (mime, blob) in sorted(blob_by_path.items()):
     asset_records.append({**source, "content_type": mime, "bytes": len(blob), "evidence_file": f"{asset_id}{extension}"})
 (asset_output / "manifest.json").write_text(json.dumps(asset_records, indent=2), encoding="utf-8")
 print(f"Saved {len(asset_records)} original source assets for visual diagnosis: {asset_output}", flush=True)
+
+# Production may still serve legacy rows written before the quality gate existed.
+# Apply the exact backend filter to read-only blobs before exposing them to Android.
+filtered_images = []
+filtered_blobs = {}
+seen_digests = set()
+rejected_texture_ids = []
+rejected_duplicate_ids = []
+for image in images:
+    url_path = urlparse(image.get("url", "")).path
+    mime, blob = blob_by_path[url_path]
+    asset_id = str(image.get("id") or Path(url_path).name)
+    if is_decorative_warm_texture(blob):
+        rejected_texture_ids.append(asset_id)
+        continue
+    digest = hashlib.sha256(blob).hexdigest()
+    if digest in seen_digests:
+        rejected_duplicate_ids.append(asset_id)
+        continue
+    seen_digests.add(digest)
+    filtered_images.append(image)
+    filtered_blobs[url_path] = (mime, blob)
+if not filtered_images:
+    raise SystemExit("Image-quality filter removed every Beyond Earth asset")
+images = filtered_images
+blob_by_path = filtered_blobs
+manifest = {**manifest, "images": images}
+manifest_bytes = json.dumps(manifest).encode("utf-8")
+print(f"QUALITY GATE: kept={len(images)} rejected_textures={rejected_texture_ids} rejected_duplicates={rejected_duplicate_ids}", flush=True)
 
 def interactive(module_key):
     return {
@@ -122,7 +156,7 @@ class Handler(base.Handler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/health":
-            self._send(200, {"status":"ok","service":"beyond-earth-emulator-fixture","live_original_images":len(images)})
+            self._send(200, {"status":"ok","service":"beyond-earth-emulator-fixture","live_original_images":len(images),"source_original_images":len(original_images)})
             return
         if path == "/curriculum/outline":
             from urllib.parse import parse_qs

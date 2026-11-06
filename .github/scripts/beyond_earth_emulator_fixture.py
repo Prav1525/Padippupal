@@ -8,11 +8,10 @@ from pathlib import Path
 from urllib.parse import urlparse, unquote
 from urllib.request import urlopen, Request
 
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend"))
 from lesson_image_quality import is_decorative_warm_texture
 import hashlib
-
-ROOT = Path(__file__).resolve().parents[2]
 BASE_URL = os.environ.get("PADIPPUPAL_PRODUCTION_API", "https://padippupal-curriculum-api.onrender.com").rstrip("/")
 LESSON_ID = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
 spec = importlib.util.spec_from_file_location("tutor_smoke_api", ROOT / ".github/scripts/tutor_smoke_api.py")

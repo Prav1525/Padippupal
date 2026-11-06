@@ -1,5 +1,23 @@
 # Active work handoff
 
+**Last updated:** 2026-11-06
+**Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
+
+## Active objective: DB-backed Tanglish and Tamil for approved Science synthesis lessons
+- **Branch:** `feat/science-stored-language-synthesis`
+- **Base:** `ui/beyond-earth-continuous-inline-images@78870a4ff5bffde1cde3e4f7b5d7ad8102c39f17`
+- **User requirement:** Reuse the existing synthesis engine and exact module/step structure; store Tanglish and Tamil versions in the database and load the selected version. No live Gemini lesson-language response.
+- **Implementation:** Added a reviewed per-lesson language table/import contract, structural and source-fingerprint validation, a Science language-coverage inventory, and a fail-closed tutor loading path.
+- **Verification:** UNVERIFIED. Tests have been authored but not executed. No production DB write, deployment, merge or release.
+- **Next:** Open a PR to the existing tutor branch, run curriculum pytest, fix exact-head failures, inspect current approved Science lesson inventory, then prepare and review complete Tanglish/Tamil payloads. Do not claim all chapters are ready until coverage reports both languages current for every approved Science synthesis lesson.
+
+## Parked objective: Beyond Earth continuous inline image layout
+- **PR:** [#219](https://github.com/Prav1525/Padippupal/pull/219)
+- **Status:** Keep open and unmerged; resume after the stored-language task unless the user reprioritizes it.
+- **Safety:** No merge or production deployment without explicit user approval.
+
+# Active work handoff
+
 **Last updated:** 2026-10-30  
 **Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
 

@@ -3053,22 +3053,17 @@ def store_chapter_lesson_translation(lesson_id: str, payload: ChapterLessonTrans
             "structure_preserved": True, "source_fingerprint": _lesson_source_fingerprint(source_lesson)}
 
 
-@app.get("/admin/chapter-lessons/language-coverage", dependencies=[Depends(require_admin)])
+@app.get("/admin/science/chapter-lessons/language-coverage", dependencies=[Depends(require_admin)])
 def chapter_lesson_language_coverage(board: str = "CBSE", class_level: int = 6) -> dict[str, Any]:
     """Read-only inventory of approved Science synthesis lessons and stored language coverage."""
     with db() as conn:
         rows = conn.execute(
-            """SELECT l.id,l.board,l.class_level,l.subject,l.medium,l.chapter,l.topic,
-                      MAX(CASE WHEN t.language='Tanglish' AND t.review_status='approved'
-                               AND t.source_sha256=? THEN 1 ELSE 0 END) AS tanglish_ready,
-                      MAX(CASE WHEN t.language='Tamil' AND t.review_status='approved'
-                               AND t.source_sha256=? THEN 1 ELSE 0 END) AS tamil_ready
-               FROM chapter_lessons l LEFT JOIN chapter_lesson_translations t ON t.lesson_id=l.id
+            """SELECT l.id,l.board,l.class_level,l.subject,l.medium,l.chapter,l.topic
+               FROM chapter_lessons l
                WHERE l.status='approved' AND LOWER(l.subject)='science'
                  AND LOWER(l.board)=LOWER(?) AND l.class_level=?
-               GROUP BY l.id,l.board,l.class_level,l.subject,l.medium,l.chapter,l.topic
                ORDER BY l.chapter,l.topic""",
-            ("", "", board, class_level),
+            (board, class_level),
         ).fetchall()
         lessons = []
         for row in rows:

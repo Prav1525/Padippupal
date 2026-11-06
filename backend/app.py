@@ -3054,32 +3054,46 @@ def store_chapter_lesson_translation(lesson_id: str, payload: ChapterLessonTrans
 
 
 @app.get("/admin/science/chapter-lessons/language-coverage", dependencies=[Depends(require_admin)])
-def chapter_lesson_language_coverage(board: str = "CBSE", class_level: int = 6) -> dict[str, Any]:
-    """Read-only inventory of approved Science synthesis lessons and stored language coverage."""
+def chapter_lesson_language_coverage(
+    board: str | None = None, class_level: int | None = Query(default=None, ge=1, le=12)
+) -> dict[str, Any]:
+    """Read-only inventory of all approved Science lessons, optionally profile-filtered."""
+    clauses = ["l.status='approved'", "LOWER(l.subject)='science'"]
+    params: list[Any] = []
+    if board and board.strip():
+        clauses.append("LOWER(l.board)=LOWER(?)")
+        params.append(board.strip())
+    if class_level is not None:
+        clauses.append("l.class_level=?")
+        params.append(class_level)
     with db() as conn:
         rows = conn.execute(
             """SELECT l.id,l.board,l.class_level,l.subject,l.medium,l.chapter,l.topic
-               FROM chapter_lessons l
-               WHERE l.status='approved' AND LOWER(l.subject)='science'
-                 AND LOWER(l.board)=LOWER(?) AND l.class_level=?
-               ORDER BY l.chapter,l.topic""",
-            (board, class_level),
+               FROM chapter_lessons l WHERE """ + " AND ".join(clauses) +
+            " ORDER BY l.board,l.class_level,l.chapter,l.topic",
+            params,
         ).fetchall()
         lessons = []
         for row in rows:
             item = dict(row)
-            source = conn.execute("SELECT lesson_json FROM chapter_lessons WHERE id=?", (item["id"],)).fetchone()
-            fingerprint = _lesson_source_fingerprint(json.loads(source["lesson_json"] or "{}"))
+            fingerprint = _lesson_source_fingerprint(json.loads(
+                conn.execute("SELECT lesson_json FROM chapter_lessons WHERE id=?", (item["id"],)).fetchone()["lesson_json"] or "{}"
+            ))
             for lang, field in (("Tanglish", "tanglish_ready"), ("Tamil", "tamil_ready")):
                 tr = conn.execute("SELECT source_sha256,review_status FROM chapter_lesson_translations WHERE lesson_id=? AND language=?",
                                   (item["id"], lang)).fetchone()
                 item[field] = bool(tr and tr["review_status"] == "approved" and tr["source_sha256"] == fingerprint)
             lessons.append(item)
-    return {"board": board, "class_level": class_level, "subject": "Science",
-            "approved_lesson_count": len(lessons),
-            "tanglish_complete": bool(lessons) and all(x["tanglish_ready"] for x in lessons),
-            "tamil_complete": bool(lessons) and all(x["tamil_ready"] for x in lessons),
-            "lessons": lessons}
+    return {
+        "board_filter": board, "class_level_filter": class_level, "subject": "Science",
+        "approved_lesson_count": len(lessons),
+        "chapter_count": len({(item["board"], item["class_level"], item["chapter"]) for item in lessons}),
+        "tanglish_ready_count": sum(1 for item in lessons if item["tanglish_ready"]),
+        "tamil_ready_count": sum(1 for item in lessons if item["tamil_ready"]),
+        "tanglish_complete": bool(lessons) and all(x["tanglish_ready"] for x in lessons),
+        "tamil_complete": bool(lessons) and all(x["tamil_ready"] for x in lessons),
+        "lessons": lessons,
+    }
 
 
 def _translate_approved_segments(segments: list[dict[str, Any]], language: str) -> list[dict[str, Any]]:

@@ -1,0 +1,69 @@
+{
+  "lesson_id": "24297054-ccec-55ce-8428-ac94cbe0b79f",
+  "chapter": "The Wonderful World of Science",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Science-oda Arputha Ulagam",
+  "overview": "Indha lesson-la curiosity, observation, questions, evidence, testing ideas matrum scientific method-ai daily-life examples moolama purinjukkolvom. Science-na facts memorize pannuradhu mattum illa; observe panni, question kettu, evidence base-la explain pannuradhu.",
+  "learning_objectives": [
+    "Curiosity science learning-ku eppadi start point-nu explain panna mudiyum.",
+    "Observation-um question-um distinguish panna mudiyum.",
+    "Guess/hypothesis-ai evidence moolama test panna yen mukkiyam-nu solla mudiyum.",
+    "Daily life-la scientific thinking examples identify panna mudiyum.",
+    "Scientific method-oda basic steps-ai order-la describe panna mudiyum.",
+    "New questions ask panni science learning continue panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Curiosity namma learning-ai start pannudhu",
+      "caption": "Namma surroundings-la irukkura things pathi children naturally questions kekkuraanga. Flower eppadi bloom aagudhu, rain enga irundhu varudhu, shadow yen move aagudhu madhiri questions curiosity-ai create pannum. Science observation-lirundhu start aagum.",
+      "teacher_says": "Oru flower open aaguradhai alladhu rain drops window-la flow aaguradhai observe pannunga. Enna nadakkudhu-nu first describe pannunga; reason-ai udane assume panna vendaam.",
+      "checkpoint": "Curiosity-na enna? Ungal surroundings pathi neenga kekkura oru science question sollunga."
+    },
+    {
+      "id": "step_2",
+      "title": "Science oru growing puzzle",
+      "caption": "Science-la pudhu discovery vandhaal namma existing knowledge-kku pudhu piece add aagum. Evidence collect pannumbodhu explanation improve aagum; science knowledge questions-oda grow aagikkonde irukkum.",
+      "teacher_says": "Jigsaw puzzle-la pieces serumbodhu full picture clear aagum. Adhe madhiri observations and discoveries serndhu scientific understanding-ai build pannum.",
+      "checkpoint": "Science-ai puzzle-oda compare pannuradhu yen? Pudhu discovery namma understanding-ai eppadi change pannum?"
+    },
+    {
+      "id": "step_3",
+      "title": "Objects, materials, questions",
+      "caption": "Namma daily life-la paper, metal key, plastic ruler, rubber eraser, magnet, clothes, cup madhiri pala objects irukku. Ivai different materials-la seyyappattirukkum. Oru simple observation pala science questions-ai create pannum.",
+      "teacher_says": "Classroom objects-ai list panni avai endha material-la seyyappattirukku-nu note pannunga. Yen different objects-ku different materials use pannuraanga-nu kelvi kekkalaam.",
+      "checkpoint": "Oru object-um adhan material-um sollunga. Andha material choose pannuradhukku oru possible reason enna?"
+    },
+    {
+      "id": "step_4",
+      "title": "Observation-lirundhu hypothesis varai",
+      "caption": "Oru unexpected event paathaa question varum; adhukku possible explanation guess pannuvom. Andha guess hypothesis. Hypothesis correct-aa-nu test panna evidence thevai; guess-ai fact-nu accept panna koodadhu.",
+      "teacher_says": "Pen write pannaama irundhaa ink dry aayiduchaa, tip block aayiduchaa-nu guesses varalaam. Oru explanation choose panna test design pannunga.",
+      "checkpoint": "Hypothesis-na enna? Oru guess-ai fact-aa accept pannaama yen test pannanum?"
+    },
+    {
+      "id": "step_5",
+      "title": "Scientific method daily life-la",
+      "caption": "Scientific thinking-la observe pannuvom, question form pannuvom, possible explanation suggest pannuvom, test plan panni evidence collect pannuvom, result analyze panni conclusion eduppom. Result hypothesis support pannaama irundhaalum learning nadakkum.",
+      "teacher_says": "Plant grow aagala-na sunlight, water, soil madhiri factors check pannalaam. Oru time-la one factor change panninaa reason identify panna easy-aa irukkum.",
+      "checkpoint": "Scientific investigation-la observation-kku appuram enna steps varum? Fair test-na enna?"
+    },
+    {
+      "id": "step_6",
+      "title": "Evidence, repeat and improve",
+      "caption": "Oru single observation mistake aagalaam. Repeated observations, careful measurements, clear records evidence-ai stronger aakkum. Result expected madhiri illa-na method review panni pudhu question kekkalaam.",
+      "teacher_says": "Oru experiment-ai multiple times repeat pannunga; same conditions maintain pannunga. Data table-la record panni patterns compare pannunga.",
+      "checkpoint": "Experiment repeat pannuradhu yen useful? Evidence record panna oru way sollunga."
+    },
+    {
+      "id": "step_7",
+      "title": "Science journey continue pannuvom",
+      "caption": "Science-ku ella questions-ukkum immediate answer irukkaadhu. Curiosity, patience, careful observation, evidence, collaboration moolama new knowledge build aagum. Questions kekkuradhu science-oda heart.",
+      "teacher_says": "Indha chapter mudinjalum questions mudiyadhu. Ungal daily life-la observe pannura oru mystery choose panni, adhai investigate panna first step plan pannunga.",
+      "checkpoint": "Indha lesson-la ungalukku pudhu question enna vandhadhu? Adhai investigate panna first step enna?"
+    }
+  ]
+}

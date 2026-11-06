@@ -62,6 +62,19 @@ with ThreadPoolExecutor(max_workers=6) as pool:
         print(f"Fetched original image {len(blob_by_path)}/{len(image_paths)}: {url_path} ({len(blob)} bytes)", flush=True)
 if len(blob_by_path) != 19:
     raise SystemExit(f"Expected 19 original image blobs, fetched {len(blob_by_path)}")
+# Preserve the exact read-only source blobs in the CI artifact so visual defects
+# can be traced to the source asset rather than inferred from the rendered UI.
+asset_output = ROOT / "ui-screenshots" / "beyond-earth" / "original-assets"
+asset_output.mkdir(parents=True, exist_ok=True)
+asset_records = []
+for url_path, (mime, blob) in sorted(blob_by_path.items()):
+    asset_id = Path(url_path).name
+    extension = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}.get(mime.split(";")[0].strip(), ".img")
+    (asset_output / f"{asset_id}{extension}").write_bytes(blob)
+    source = next((item for item in images if urlparse(item.get("url", "")).path == url_path), {})
+    asset_records.append({**source, "content_type": mime, "bytes": len(blob), "evidence_file": f"{asset_id}{extension}"})
+(asset_output / "manifest.json").write_text(json.dumps(asset_records, indent=2), encoding="utf-8")
+print(f"Saved {len(asset_records)} original source assets for visual diagnosis: {asset_output}", flush=True)
 
 def interactive(module_key):
     return {

@@ -3000,7 +3000,7 @@ def _apply_stored_lesson_language(lesson_id: str, segments: list[dict[str, Any]]
         ).fetchall()
     by_id = {str(row["segment_id"]): row for row in rows}
     expected_ids = [str(item.get("id") or "") for item in segments]
-    if not expected_ids or len(by_id) != len(expected_ids) or set(by_id) != set(expected_ids):
+    if not expected_ids or not set(expected_ids).issubset(by_id):
         raise HTTPException(status_code=409, detail=f"{language_name} content is not yet reviewed and stored for this lesson.")
     localized_segments = []
     for original in segments:

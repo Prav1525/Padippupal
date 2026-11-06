@@ -40,7 +40,7 @@ jobs:
           gradle-version: "8.9"
 
       - name: Install screenshot inspection dependency
-        run: python3 -m pip install --user --disable-pip-version-check Pillow
+        run: python3 -m pip install --user --disable-pip-version-check Pillow PyMuPDF
 
       - name: Validate acceptance scripts and image mapping tests
         run: |

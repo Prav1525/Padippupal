@@ -1,0 +1,69 @@
+{
+  "lesson_id": "958addf6-1ff1-54c3-934e-d8d67548759f",
+  "chapter": "Exploring Magnets",
+  "board": "CBSE",
+  "class_level": 6,
+  "subject": "Science",
+  "language": "Tanglish",
+  "chapter_title": "Magnets-ai Aaraayvom",
+  "overview": "Indha lesson-la magnets-oda properties, magnetic/non-magnetic materials, poles, compass, attraction matrum repulsion-ai activities moolama paappom. Magnet-ai safe-aa use panni direction eppadi kandupidikkalaam-nu purinjukkolvom.",
+  "learning_objectives": [
+    "Magnet attract pannura materials-ai identify panna mudiyum.",
+    "Magnet-oda poles enga irukku-nu describe panna mudiyum.",
+    "Freely suspended magnet north-south direction-la yen rest aagudhu-nu explain panna mudiyum.",
+    "Compass eppadi direction kaattudhu-nu solla mudiyum.",
+    "Like poles repel, unlike poles attract-nu demonstrate panna mudiyum.",
+    "Magnet use aagura daily-life situations-ai identify panna mudiyum."
+  ],
+  "teaching_sequence": [
+    {
+      "id": "step_1",
+      "title": "Magnets namma daily life-la",
+      "caption": "Magnet sila objects-ai attract pannum; ellaa materials-aiyum attract pannaadhu. Iron objects magnet-kitta varumbodhu attract aagum. Fridge magnet, bag clip, compass madhiri examples-la magnets use aagudhu.",
+      "teacher_says": "Oru magnet-ai paper clip, wooden stick, plastic ruler, iron nail pakkathula kondu poi observe pannunga. Edhu attract aagudhu, edhu aagala-nu note pannunga.",
+      "checkpoint": "Magnet attract pannura rendu objects sollunga. Wood-um plastic-um magnet-kitta attract aaguma?"
+    },
+    {
+      "id": "step_2",
+      "title": "Magnetic materials matrum poles",
+      "caption": "Iron, nickel, cobalt madhiri sila materials magnetic properties kaattum. Bar magnet-oda rendu ends-la magnetic effect adhigama irukkum; andha ends north pole, south pole-nu solluvom. Middle portion-la attraction comparatively kammi.",
+      "teacher_says": "Iron filings magnet-oda end pakkam adhigama gather aaguradhai diagram-la paarunga. Magnet-oda poles ends-la irukkum-nu idhu kaattudhu.",
+      "checkpoint": "Bar magnet-la magnetic effect adhigama irukkura parts edhu? Andha rendu ends-ku enna peyar?"
+    },
+    {
+      "id": "step_3",
+      "title": "Freely suspended magnet",
+      "caption": "Magnet-ai thread-la freely suspend panninaa, adhu settle aagumbodhu approximately north-south direction-la align aagum. North pakkam point pannura end north-seeking pole; opposite end south pole.",
+      "teacher_says": "Magnet-ai thread-la suspend panni, adhu swing mudinju rest aagura direction-ai observe pannunga. Idhu Earth-oda magnetic field-oda interaction nala nadakkudhu.",
+      "checkpoint": "Freely suspended magnet endha direction-la rest aagum? North-seeking pole-na enna?"
+    },
+    {
+      "id": "step_4",
+      "title": "Magnetic compass",
+      "caption": "Compass-kulla small magnetised needle irukkum. Needle freely turn aagum; adhan north-seeking end north direction-ai kaattum. Map-la direction identify panna compass use pannalaam.",
+      "teacher_says": "Compass-ai flat surface-la vechu needle settle aagattum. N end north-ai point pannum. Nearby magnet vechaa needle deflect aagalam; adhanaala careful-aa use pannunga.",
+      "checkpoint": "Compass needle-la north direction-ai kaattura end edhu? Nearby magnet irundhaa enna nadakkalaam?"
+    },
+    {
+      "id": "step_5",
+      "title": "Attraction matrum repulsion",
+      "caption": "Rendu magnets-oda same poles (N-N alladhu S-S) pakkathula kondu vandhaa repel pannum. Opposite poles (N-S) attract pannum. Idhu magnets-oda mukkiya rule.",
+      "teacher_says": "Oru magnet-oda N pole-ai innoru magnet-oda N pole-kitta kondu poi observe pannunga; appuram N-S try pannunga. Push/pull difference-ai compare pannuvom.",
+      "checkpoint": "Like poles enna pannum? Unlike poles enna pannum? N-S arrangement-la enna nadakkum?"
+    },
+    {
+      "id": "step_6",
+      "title": "Compass needle-um magnetic interaction-um",
+      "caption": "Compass needle-um oru small magnet-thaan. Adhan pakkathula vera magnet kondu vandhaa needle direction maarum. Deflection-ai observe pannina pole interaction-ai identify panna mudiyum.",
+      "teacher_says": "Compass-ai stable-aa vechu, bar magnet-ai slow-aa pakkathula kondu vaanga. Needle eppadi turn aagudhu-nu paarunga. Magnet distance-um pole direction-um result-ai affect pannum.",
+      "checkpoint": "Compass needle yen deflect aagudhu? Magnet-ai move pannumbodhu needle direction eppadi change aagudhu?"
+    },
+    {
+      "id": "step_7",
+      "title": "Magnets recap matrum uses",
+      "caption": "Magnets direction finding, toys, closures, speakers, magnetic separation madhiri pala places-la use aagudhu. Magnet-ai heat, hammer, drop repeated-aa panninaa strength kuraiyalaam. Magnet-ai safe-aa store pannunga.",
+      "teacher_says": "Namma lesson-la attraction, repulsion, poles, compass ellam connect pannuvom. Veettil alladhu school-la magnet use aagura oru example identify pannunga.",
+      "checkpoint": "Magnet-oda oru use sollunga. Magnet strength damage aagama irukka enna care edukkanum?"
+    }
+  ]
+}

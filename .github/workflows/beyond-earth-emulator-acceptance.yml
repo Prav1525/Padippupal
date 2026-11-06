@@ -19,12 +19,11 @@ permissions:
   contents: read
 
 jobs:
-  beyond-earth-emulator:
-    # Never run Android UI acceptance on macOS or software emulation. A Linux
-    # KVM runner is required; if none is registered, keep the job queued and
-    # report the missing runtime rather than repeating known platform ANRs.
-    runs-on: [self-hosted, linux, x64, kvm]
-    timeout-minutes: 55
+  # Run deterministic checks and produce the exact APK on GitHub-hosted Linux.
+  # This job must not depend on the scarce hardware-accelerated UI runner.
+  validate-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - name: Checkout acceptance branch
         uses: actions/checkout@v4
@@ -40,21 +39,47 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Validate acceptance scripts and image mapping tests
+        run: |
+          python3 -m py_compile .github/scripts/beyond_earth_emulator_fixture.py .github/scripts/test_beyond_earth_emulator.py .github/scripts/test_beyond_earth_emulator_bootstrap.py .github/scripts/beyond_earth_emulator_profile.py
+          python3 .github/scripts/test_beyond_earth_emulator_bootstrap.py
+          bash -n .github/scripts/run_beyond_earth_emulator_acceptance.sh
+
+      - name: Run Android JVM tests
+        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 testDebugUnitTest
+
+      - name: Build exact debug APK for UI acceptance
+        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 assembleDebug
+
+      - name: Preserve exact APK for the KVM UI job
+        uses: actions/upload-artifact@v4
+        with:
+          name: beyond-earth-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  # The UI job is deliberately isolated from hosted-runner build/test checks.
+  # If no Linux KVM runner is registered, only actual device acceptance waits.
+  beyond-earth-emulator:
+    needs: validate-and-build
+    runs-on: [self-hosted, linux, x64, kvm]
+    timeout-minutes: 55
+    steps:
+      - name: Checkout acceptance branch
+        uses: actions/checkout@v4
+
+      - name: Download exact debug APK built by validation job
+        uses: actions/download-artifact@v4
+        with:
+          name: beyond-earth-debug-apk
+          path: app/build/outputs/apk/debug
+
       - name: Install screenshot inspection dependency
         run: |
           python3 -m venv .venv
           .venv/bin/python -m pip install --disable-pip-version-check Pillow
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-
-      - name: Validate scripts and image mapping unit tests
-        run: |
-          python3 -m py_compile .github/scripts/beyond_earth_emulator_fixture.py .github/scripts/test_beyond_earth_emulator.py .github/scripts/test_beyond_earth_emulator_bootstrap.py .github/scripts/beyond_earth_emulator_profile.py
-          python3 .github/scripts/test_beyond_earth_emulator_bootstrap.py
-          bash -n .github/scripts/run_beyond_earth_emulator_acceptance.sh
-          gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 testDebugUnitTest
-
-      - name: Build exact debug APK for the acceptance run
-        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 assembleDebug
 
       - name: Start fixture with original image bytes fetched from production
         run: |

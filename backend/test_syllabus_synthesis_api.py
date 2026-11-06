@@ -458,6 +458,13 @@ def test_reviewed_science_translation_is_stored_and_keeps_synthesis_structure():
     assert coverage.json()["approved_lesson_count"] == 1
     assert coverage.json()["lessons"][0]["tanglish_ready"] is True
     assert coverage.json()["lessons"][0]["tamil_ready"] is False
+    all_coverage = client.get(
+        "/admin/science/chapter-lessons/language-coverage",
+        headers={"X-Admin-Token": "language-test-token"},
+    )
+    assert all_coverage.status_code == 200
+    assert all_coverage.json()["approved_lesson_count"] == 1
+    assert all_coverage.json()["chapter_count"] == 1
 
 
 def test_science_translation_rejects_unreviewed_or_changed_module_identity():

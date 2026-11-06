@@ -12,6 +12,9 @@ on:
       - "app/src/main/**"
       - "app/build.gradle*"
       - ".github/workflows/beyond-earth-emulator-acceptance.yml"
+      - "backend/lesson_image_quality.py"
+      - "backend/lesson_image_ingest.py"
+      - "backend/test_lesson_image_quality.py"
       - "AGENTS.md"
   workflow_dispatch:
 
@@ -44,7 +47,8 @@ jobs:
 
       - name: Validate acceptance scripts and image mapping tests
         run: |
-          python3 -m py_compile .github/scripts/beyond_earth_emulator_fixture.py .github/scripts/test_beyond_earth_emulator.py .github/scripts/test_beyond_earth_emulator_bootstrap.py .github/scripts/beyond_earth_emulator_profile.py
+          python3 -m py_compile backend/lesson_image_quality.py backend/lesson_image_ingest.py backend/test_lesson_image_quality.py .github/scripts/beyond_earth_emulator_fixture.py .github/scripts/test_beyond_earth_emulator.py .github/scripts/test_beyond_earth_emulator_bootstrap.py .github/scripts/beyond_earth_emulator_profile.py
+          PYTHONPATH=backend python3 -m unittest backend/test_lesson_image_quality.py
           python3 .github/scripts/test_beyond_earth_emulator_bootstrap.py
           bash -n .github/scripts/run_beyond_earth_emulator_acceptance.sh
 

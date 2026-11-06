@@ -380,3 +380,82 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** The engineering documentation now explicitly requires one AutoPilot workflow, one approved-work ledger, and the existing project records as the single source of truth.
 - **Verification:** Pending exact-head workflow and helper test results. The repair worker is not yet active; PR #15's Codex proposal still requires cost approval and integration into the same workflow.
 - **Status:** Architecture correction implemented; runtime verification pending.
+
+
+### TE-040 — Beyond Earth emulator acceptance timed out before Android boot
+- **Date discovered:** 2026-11-04
+- **Area:** Feature-specific Android emulator acceptance for Science → Beyond Earth original inline textbook images.
+- **Symptom/failure:** [Run 41622028202](https://github.com/Prav1525/Padippupal/actions/runs/41622028202), job `125869865852`, passed Python script validation, image-mapping JVM tests, APK build, and the live read-only image fixture setup, but the emulator-runner step failed with `Timeout waiting for emulator to boot`. The script repeatedly polled `sys.boot_completed` without receiving `1`; app installation/navigation and the target screenshot assertion did not execute. The uploaded evidence artifact `13225530984` is only 229 bytes and contains no usable screenshot.
+- **Root cause:** **UNKNOWN**. The emulator did not complete boot, but available logs do not distinguish a transient hosted-runner problem from emulator resource/system-image/configuration issues. This is not evidence of a tutor-renderer defect.
+- **Why it escaped:** The workflow had no captured emulator boot diagnostics beyond repeated `sys.boot_completed` polling, and artifact upload accepted a log-only artifact despite the expected screenshot path being empty.
+- **Corrective action:** Re-ran the failed emulator job once as a bounded retry because failure occurred before app launch and may be transient. No app/test assertions were weakened; retry job `126348637378` was queued and then started.
+- **Regression protection:** Require the feature-specific workflow to reach the actual tutor screen and upload a non-empty screenshot plus UI hierarchy; a successful APK build or live asset fetch is insufficient. If boot fails again, capture emulator process/ADB/system diagnostics before changing emulator settings.
+- **Evidence:** [Run 41622028202](https://github.com/Prav1525/Padippupal/actions/runs/41622028202); [artifact 13225530984](https://github.com/Prav1525/Padippupal/actions/runs/41622028202/artifacts/13225530984); tested feature branch head `1a762a264846c553066eda12e9fb09e02b9a3b11`; merge SHA `4c8a810f6dcb61370b75bb0a6e569a282e9200fd`.
+- **Status:** **UNVERIFIED** pending the retry. Actual tutor-screen visual acceptance remains **NOT RUN** until emulator boot, app navigation, and screenshot inspection succeed.
+
+
+### TE-041 — Beyond Earth acceptance harness failed before launching the app
+- **Date discovered:** 2026-11-04
+- **Symptom:** Retry run [41761216498](https://github.com/Prav1525/Padippupal/actions/runs/41761216498), job `126349109430`, reached `sys.boot_completed=1` but then failed at `emulator -accel-check` with exit code 11 because the hosted runner user lacked `/dev/kvm` permissions. No app screenshot was captured.
+- **Root cause:** **Confirmed** for this failure: a mandatory KVM probe was incorrectly placed before the test even though software rendering was configured and the emulator had booted. Source review also found two latent harness bugs: missing `json` import and accessibility collection ignoring Compose `content-desc`.
+- **Correction:** Removed the fatal acceleration probe; imported `json`; collect both `text` and `content-desc` in the UI hierarchy helper.
+- **Regression protection:** Keep the screenshot and mapped-image-label assertions strict. Require the workflow to install/launch the app, reach Science → Beyond Earth, capture screenshot/XML, and pass image-label/visible-detail checks.
+- **Evidence:** [Failed run](https://github.com/Prav1525/Padippupal/actions/runs/41761216498); updated acceptance branch commits after `7a469bab12f2a64004d1532d852c96ee23eeb52f`.
+- **Status:** Fix committed; exact-head end-to-end verification pending. No merge or deployment.
+
+
+### TE-042 — Beyond Earth emulator bootstrap treated expected license SIGPIPE as failure and hung in diagnostics
+- **Date discovered:** 2026-11-04
+- **Area:** Android SDK license setup and failure cleanup in the Beyond Earth emulator acceptance harness.
+- **Symptom:** [Run 41768123664](https://github.com/Prav1525/Padippupal/actions/runs/41768123664), job `126371216138`, logged `yes: standard output: Broken pipe` immediately after starting emulator setup. The user cancelled the run before emulator launch; the failed step had remained active while its EXIT trap attempted ADB diagnostics.
+- **Root cause:** The script enables `set -o pipefail` and executes `yes | sdkmanager --licenses`. Once all licenses are accepted, sdkmanager closes stdin and `yes` exits with SIGPIPE; pipefail incorrectly converts that expected producer exit into a failed setup. The EXIT trap then called adb logcat/dumpsys without timeouts even though no emulator process had started, causing a long, unbounded cleanup path.
+- **Corrective action:** Check the sdkmanager pipeline's own exit status via `PIPESTATUS[1]`; retain SDK license/install logs; skip adb shell diagnostics before emulator launch; bound adb diagnostics and emulator shutdown; add an explicit package-manager readiness assertion.
+- **Regression protection:** Run shell syntax validation and the complete exact-head workflow. If SDK license setup succeeds, the workflow must proceed to AVD creation and emulator boot. If setup fails, diagnostics must terminate within bounded time and upload the recorded failure reason. Do not weaken the actual tutor screenshot/image-label assertions.
+- **Evidence:** Cancelled run [41768123664](https://github.com/Prav1525/Padippupal/actions/runs/41768123664); harness fix commit `53b39db3c23e66059bd7c41da493faa3f479e598`.
+- **Status:** Harness correction committed; exact-head workflow verification pending. Tutor-screen visual acceptance remains unverified. No merge or deployment.
+
+ 
+## TE-043 — Beyond Earth emulator package-manager readiness timeout
+- **Date:** 2026-11-04
+- **Evidence:** [GitHub Actions run 41771408118](https://github.com/Prav1525/Padippupal/actions/runs/41771408118), artifact [13295798256](https://github.com/Prav1525/Padippupal/actions/runs/41771408118/artifacts/13295798256).
+- **Symptom:** The software-rendered Android 35 emulator reported boot completion, but `cmd package list packages` remained unavailable during the harness's short readiness window. The app was never launched; no UI screenshot was produced.
+- **Root cause:** Confirmed harness timing issue for this run: logcat shows PackageManagerService initialization occurred very late in the cold boot, after the readiness poll had begun and near its timeout.
+- **Correction:** Use the standard API 35 x86_64 system image, smaller virtual display, increased emulator CPU/RAM, and a bounded 10-minute wait that checks service registration and a successful package listing. Increase the overall workflow timeout to 55 minutes.
+- **Regression rule:** Do not weaken tutor navigation, screenshot, or mapped-image assertions. Acceptance remains unverified until the actual Beyond Earth tutor screen is captured and inspected.
+- **Status:** Harness correction committed; exact-head CI verification pending. No production changes.
+
+
+### TE-044 — Google Play emulator image overwhelmed the software-emulated CI runner
+- **Date discovered:** 2026-11-04
+- **Area:** Beyond Earth original-image emulator acceptance; Android SDK system-image selection and ADB transport.
+- **Symptom:** [Run 41776791694](https://github.com/Prav1525/Padippupal/actions/runs/41776791694), job `126398905194`, passed script validation, image-mapping/JVM tests, APK build, and the read-only production fixture with all 19 original images. The emulator then failed before APK installation or tutor navigation; the step exited with code 255 and ADB reported `emulator-5554 offline`. No tutor screenshot was captured. Evidence artifact: [13297958415](https://github.com/Prav1525/Padippupal/actions/runs/41776791694/artifacts/13297958415).
+- **Confirmed root cause:** The hosted runner has no usable `/dev/kvm` (see TE-041), so this script explicitly runs software CPU emulation with `-accel off`. The prior repair changed the AVD to the much heavier `google_apis_playstore` image to obtain Google TTS. Emulator logs show cold boot taking 784 seconds, repeated ADB `device offline` errors, and `system_server` consuming approximately 98–117% CPU while Google Play services and other system packages reported ANRs. PackageManager never became usable. This is a test-environment/system-image regression, not evidence of an Android tutor-renderer defect.
+- **Why it escaped:** The TTS repair optimized for engine availability without accounting for the known no-KVM runner constraint. It added a Google Play image and longer readiness waits, but did not verify that the image could boot within the software-emulation budget. The visual acceptance itself does not require local TTS: `playLiveSegment` publishes `liveCaption` before invoking optional speech playback.
+- **Corrective action:** Return to the standard Android 35 AOSP x86_64 image; keep explicit software rendering/CPU emulation; reduce emulator CPU/RAM allocation to a less contended profile; remove the local-TTS preflight from this visual-only acceptance path; add bounded ADB offline recovery (reconnect offline, restart the host ADB server once, then fail with diagnostics if still offline).
+- **Regression protection:** Add `.github/scripts/test_beyond_earth_emulator_bootstrap.py` to assert the AOSP image, no local-TTS dependency, caption-before-speech behavior, and bounded ADB recovery. Run the exact-head workflow and require actual Science → Beyond Earth tutor screenshot plus mapped original-image accessibility evidence.
+- **Evidence:** [Run 41776791694](https://github.com/Prav1525/Padippupal/actions/runs/41776791694); [diagnostic artifact 13297958415](https://github.com/Prav1525/Padippupal/actions/runs/41776791694/artifacts/13297958415); failed head `21f9fc9491562c2cffd44966f5b229c62445f21a`.
+- **Status:** Repair generation 2 prepared; exact-head verification pending. Visual acceptance remains **UNVERIFIED**. No merge, production database write, or deployment.
+
+
+### TE-045 — Beyond Earth profile seeding broke at adb shell argument boundary
+- **Date discovered:** 2026-11-04
+- **Area:** Android emulator acceptance harness; CBSE Class 6 profile initialization.
+- **Symptom:** [Run 41779671319](https://github.com/Prav1525/Padippupal/actions/runs/41779671319), job `126408102807`, booted the AOSP emulator, reached PackageManagerService, and installed the debug APK, but failed on profile setup with repeated `mkdir: Needs 1 argument`. No tutor screen or screenshot was produced.
+- **Confirmed root cause:** The Python harness supplied `adb shell run-as PACKAGE sh -c SCRIPT` as multiple argv elements. adb shell joins these into a remote command string, so the shell program's argument boundary was lost: `sh -c` interpreted `mkdir` as its script and `-p` as `$0`. This is a test-harness serialization bug.
+- **Why it escaped:** Prior tests validated emulator bootstrap configuration, not the exact remote command contract used to seed app-private preferences. The emulator acceptance reached this line for the first time after the AOSP boot repair.
+- **Corrective action:** Use direct `run-as PACKAGE mkdir -p shared_prefs` arguments. Stream the XML through stdin to a single complete remote command string for app-private file creation. Isolate this operation in `.github/scripts/beyond_earth_emulator_profile.py`.
+- **Regression protection:** Add a mocked command-contract test checking the direct mkdir argv, single-string remote shell command, and exact stdin XML; compile the helper; include the helper and regression test in the workflow's path filter so edits trigger acceptance.
+- **Evidence:** [Run 41779671319](https://github.com/Prav1525/Padippupal/actions/runs/41779671319); job log records AOSP boot, PackageManager readiness, successful APK install, then the mkdir error. Failed head: `782db3d638052477f548786595418420ebe3a0c9`.
+- **Status:** Correction committed; exact-head regression and emulator acceptance pending. Tutor-screen image rendering and spacing remain **UNVERIFIED**. No merge, production database write, or deployment.
+
+
+## TE-046 — Beyond Earth run 42 blocked by Android system-service ANR
+- **Date:** 2026-11-04
+- **Branch / SHA:** `test-beyond-earth-emulator-acceptance@c71fbab5ad08d74adbfee1dcc7d02cac17985e01`.
+- **Failure:** [Run 41822010546](https://github.com/Prav1525/Padippupal/actions/runs/41822010546), job `126547198235`, [artifact 13319240864](https://github.com/Prav1525/Padippupal/actions/runs/41822010546/artifacts/13319240864). Build, JVM/helper tests, original-image fixture (19/19), and APK installation passed. The Android emulator displayed PadippuPal's home screen, but a system-level “System UI isn't responding” dialog blocked UIAutomator; the Science → Beyond Earth flow did not run.
+- **Evidence:** `dumpsys activity` reports MainActivity `RESUMED` and `reportedDrawn=true`; logcat records `ANR in com.android.phone` because the process failed to complete startup and reports system_server monitor contention. The screenshot was retrieved and inspected.
+- **Root cause:** **CONFIRMED** immediate blocker: Android platform/system-service ANR prevented reliable accessibility automation. Deeper resource/runner cause remains **UNKNOWN**. No app fatal exception is evidenced.
+- **Environment constraint:** Workflow used an Android emulator on `macos-15-intel`, not a macOS Simulator. User instructed “no mac os simulator”; do not repeat a macOS-hosted emulator run without clarification. The Ubuntu workflow requires `/dev/kvm`; previous hosted Linux run 41761216498 failed KVM acceleration permissions, while prior TCG software emulation produced system ANRs.
+- **Repair budget:** Existing failure chain is at 5/5. No sixth repair generation is permitted.
+- **Status:** **UNVERIFIED**. Actual Science → Beyond Earth tutor screenshot and visual acceptance were not reached.
+- **Next:** Use a non-macOS hardware-accelerated Android runner or authorized physical/cloud Android device. No merge, production DB write, deployment, or release.

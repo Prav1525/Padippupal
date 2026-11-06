@@ -1,39 +1,39 @@
 # Active work handoff
 
-**Last updated:** 2026-10-30  
+## Repair generation state
+
+<!-- padippupal-repair-state:start -->
+{"schema_version":1,"max_generations":5,"chains":[{"id":"beyond-earth-tts-41774423200","originating_run":"41774423200","originating_sha":"a4baa85230e2fbaa1057214db623857380792f3d","task_id":"AUTOPILOT-CI-REPAIR","status":"OPEN","generations":[{"number":1,"hypothesis":"Google Play API 35 image provides Google TTS required by preflight.","outcome":"FAILED: run 41776791694 emulator took 784 seconds to boot under software emulation, ADB offline and system_server ANRs."},{"number":2,"hypothesis":"Use lighter AOSP image and remove unrelated TTS preflight for visual acceptance.","outcome":"FAILED run 41779671319: emulator booted and APK installed; profile seed command broke due to adb shell argument re-tokenization."},{"number":3,"hypothesis":"Fix profile seeding argv boundaries and add regression test.","outcome":"FAILED run 41781934960: all 19 original images loaded, but UIAutomator dump started before MainActivity displayed; system ANR and null hierarchy."},{"number":4,"hypothesis":"Wait for activity launch and accessibility settle before UI inspection.","outcome":"Not verified by run 41809511354, which failed earlier at fixture startup."},{"number":5,"hypothesis":"Parallelize original-image downloads and extend bounded fixture readiness wait.","outcome":"Committed in cf01fef3 and 4cff0e3; run 41813853022 confirms fixture readiness and all 19 images but UI failed under software-emulated Android with system ANRs. Five-generation repair budget exhausted; subsequent work is a materially different architecture redesign, not another retry of the same harness."}]}]}
+<!-- padippupal-repair-state:end -->
+
+**Last updated:** 2026-11-06
 **Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
 
-## Active objective: Phase 1 — Persistent Engineering Operating System
-- **Scope:** Repository-backed project memory and task handoff.
-- **Branch:** `chore/persistent-engineering-os-phase1`
-- **Base:** `main@407844ea458799eadc99b9af1e7364939902e9dd`
-- **Current head at handoff:** `b8fb0b17090b310435a88dbe7985a965ab48286f`
-- **Review PR:** [#61 — Establish PadippuPal Persistent Engineering Operating System — Phase 1](https://github.com/Prav1525/Padippupal/pull/61)
-- **Status:** Documentation implemented; all 10 PR files read back from the branch; PR diff inspected and limited to project documentation plus the AGENTS.md task-start index.
-- **Checks on exact head:**
-  - [Investigation Guidance Gate run 40990741794](https://github.com/Prav1525/Padippupal/actions/runs/40990741794): PASS.
-  - [Android APK run 40990741790](https://github.com/Prav1525/Padippupal/actions/runs/40990741790): PASS (workflow regression signal; not required to validate documentation).
-  - [Android UI smoke run 40990741779](https://github.com/Prav1525/Padippupal/actions/runs/40990741779): IN PROGRESS at last check; emulator journey had started. This workflow is not proof of Phase 1 documentation correctness.
-- **Acceptance:** Charter, status, architecture, system map, decisions, known issues, acceptance criteria, engineering index, and active-work handoff exist; repository task-start instructions point to them; claims are evidence-labelled and unknowns are explicit.
-- **Non-goals:** no application source changes, CI workflow behavior changes, deployment or production database writes.
-- **Next action:** finish checking the exact-head UI smoke run if relevant, then review PR #61. Do not merge until the founder explicitly approves.
+## Active objective: Beyond Earth original-image tutor-screen acceptance
+- **State:** BLOCKED at Science chapter-list loading after emulator boot; fixture host-address correction committed, retest pending.
+- **PR / branch:** [#182](https://github.com/Prav1525/Padippupal/pull/182) / `test-beyond-earth-emulator-acceptance`.
+- **Latest tested commit:** `349b3179d0e68d3c5f0b35745bafe4bb26be0576`; hosted Linux/KVM run [42172379858](https://github.com/Prav1525/Padippupal/actions/runs/42172379858), job `127742952999`, artifact [13481938056](https://github.com/Prav1525/Padippupal/actions/runs/42172379858/artifacts/13481938056).
+- **Passed:** Python/bootstrap checks, Kotlin/JVM tests, APK build, hosted Ubuntu, KVM acceleration check, API 35 emulator boot, APK install, MainActivity/home launch, fixture readiness and retrieval of all 19 original image blobs.
+- **Confirmed failure cause:** APK used `127.0.0.1:8765`; inside Android that is the emulator, not the host runner fixture. The app therefore could not load the Science chapter outline.
+- **Correction committed for retest:** Debug APK now uses Android host gateway `10.0.2.2:8765`; host-side fixture readiness and JVM test retain `127.0.0.1:8765`. A bootstrap regression assertion protects the split.
+- **Not yet verified:** Beyond Earth selection, actual tutor screenshot, inline original-image rendering, visual spacing, and module progression.
+- **Repair budget:** Original investigation chain remains at generation 5/5; do not reset or extend it. The current change corrects the host/emulator networking boundary in the separate hosted-Linux test architecture; do not weaken acceptance assertions.
+- **Next action:** Validate the exact committed host-gateway setting and inspect the next hosted Linux/KVM run. If Science outline loads, continue through tutor and require screenshot evidence of the mapped original image before acceptance.
+- **Safety:** PR #182 remains open. No merge, production DB write, deployment, or public release.
+
+## Previous engineering OS handoff: Phase 1 — Persistent Engineering Operating System
+- **Branch:** `chore/persistent-engineering-os-phase1`; base `main@407844ea458799eadc99b9af1e7364939902e9dd`.
+- **PR:** [#61 — Establish PadippuPal Persistent Engineering Operating System — Phase 1](https://github.com/Prav1525/Padippupal/pull/61).
+- **Status at prior handoff:** documentation implemented; PR diff limited to project documentation plus AGENTS.md task-start index. Guidance gate run 40990741794 PASS; Android APK run 40990741790 PASS; Android UI smoke run 40990741779 was in progress at last check. No merge without explicit approval.
 
 ## Next product objective: Beyond Earth native whiteboard pilot
-- **PR:** [#59](https://github.com/Prav1525/Padippupal/pull/59)
-- **Head at last check:** `0383b1fe9690ff3c97dcc901c64710be04ddba14`
-- **Scope:** CBSE Class 6 Science, Beyond Earth; native Compose Canvas visuals; no SVG; labelled diagrams; progressive reveal; inline tutor flow.
-- **Latest checks on that head:**
-  - [Android APK run 40989118308](https://github.com/Prav1525/Padippupal/actions/runs/40989118308): PASS.
-  - [Curriculum tests run 40989118292](https://github.com/Prav1525/Padippupal/actions/runs/40989118292): PASS.
-  - [Investigation guidance run 40989118330](https://github.com/Prav1525/Padippupal/actions/runs/40989118330): PASS.
-  - [Android UI smoke run 40989118437](https://github.com/Prav1525/Padippupal/actions/runs/40989118437): FAIL at script validation before emulator startup; runtime behavior remains UNVERIFIED.
-- **Next action:** inspect failing smoke-step logs, fix only the evidence-backed harness issue, rerun emulator validation and inspect screenshots/UI hierarchy for all eight stages.
-- **Release boundary:** do not merge PR #59, deploy or write production DB without explicit founder approval.
+- **PR:** [#59](https://github.com/Prav1525/Padippupal/pull/59); head at prior handoff `0383b1fe9690ff3c97dcc901c64710be04ddba14`.
+- **Scope:** CBSE Class 6 Science, Beyond Earth; native Compose Canvas visuals, no SVG, labelled diagrams, progressive reveal, inline tutor flow.
+- **Prior checks:** Android APK run 40989118308 PASS; Curriculum Engine run 40989118292 PASS; Investigation Guidance run 40989118330 PASS; Android UI smoke run 40989118437 FAIL at script validation before emulator startup. Runtime behavior remains unverified.
 
 ## Resume checklist
-- Re-fetch main and working branch heads; do not assume this handoff is current.
-- Re-fetch active PR state and latest checks for its exact head SHA.
-- Re-read `AGENTS.md` and `TESTING_GUIDANCE.md` before edits/tests/builds/deploys.
-- For tutor/UI tests, re-read `.github/testing-regression-checklist.md` and `docs/TESTING_ERRORS.md`.
+- Re-fetch main and working branch heads, PR state, and exact-head CI runs.
+- Re-read AGENTS.md and TESTING_GUIDANCE.md before edits/tests/builds/deploys.
+- For tutor/UI work, re-read .github/testing-regression-checklist.md and docs/TESTING_ERRORS.md.
 - Inspect failure logs/artifacts before retrying; do not repeat an unchanged failed approach.
 - Update this file with exact evidence and one next action.

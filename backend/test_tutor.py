@@ -1124,6 +1124,65 @@ def test_tutor_accepts_topic_specific_teaching_segments():
     assert curriculum._lesson_segments_are_substantive(segments)
 
 
+def test_stored_language_overlay_preserves_synthesis_modules_and_visual_metadata(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "overlay.sqlite3")
+    curriculum.init_db()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id, board, class_level, subject, medium, chapter, topic, status,
+                lesson_json, source_refs_json, model, review_feedback, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("overlay-lesson", "CBSE", 6, "Science", "English", "Beyond Earth",
+             "Solar System", "approved", "{}", "[]", "reviewed-synthesis", "", 1.0, 1.0),
+        )
+        conn.execute(
+            """INSERT INTO chapter_lesson_language_segments
+               (lesson_id, language, segment_id, spoken_text, caption_text, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            ("overlay-lesson", "Tanglish", "module-1-step-1",
+             "Boomi Sun-ai suthi varudhu.", "Boomi oda orbit.", 1.0),
+        )
+    original = [{
+        "id": "module-1-step-1",
+        "spoken_text": "Earth revolves around the Sun.",
+        "caption_text": "Earth's orbit",
+        "source_chunk_ids": ["source-42"],
+        "visual_action": {"type": "reveal", "target": "earth-orbit", "value": "orbit"},
+        "interactive_lesson": {"title": "Orbit", "steps": [{"label": "Earth"}]},
+        "checkpoint": "What does Earth orbit?",
+    }]
+    localized = curriculum._apply_stored_lesson_language("overlay-lesson", original, "Tanglish")
+    assert localized[0]["spoken_text"] == "Boomi Sun-ai suthi varudhu."
+    assert localized[0]["caption_text"] == "Boomi oda orbit."
+    for key in ("id", "source_chunk_ids", "visual_action", "interactive_lesson", "checkpoint"):
+        assert localized[0][key] == original[0][key]
+    assert original[0]["spoken_text"] == "Earth revolves around the Sun."
+
+
+def test_stored_language_overlay_fails_closed_when_variant_is_incomplete(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "overlay-missing.sqlite3")
+    curriculum.init_db()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id, board, class_level, subject, medium, chapter, topic, status,
+                lesson_json, source_refs_json, model, review_feedback, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("overlay-missing", "CBSE", 6, "Science", "English", "Beyond Earth",
+             "Solar System", "approved", "{}", "[]", "reviewed-synthesis", "", 1.0, 1.0),
+        )
+    with pytest.raises(curriculum.HTTPException) as error:
+        curriculum._apply_stored_lesson_language(
+            "overlay-missing",
+            [{"id": "module-1-step-1", "spoken_text": "Original", "caption_text": "Original"}],
+            "Tamil",
+        )
+    assert error.value.status_code == 409
+
+
 def test_stored_lesson_language_variants_are_saved_without_model_calls(monkeypatch, tmp_path):
     monkeypatch.setattr(curriculum, "DATABASE_URL", "")
     monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "stored-languages.sqlite3")

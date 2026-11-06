@@ -129,7 +129,8 @@ private fun WordByWordCaption(
     active: Boolean,
     currentWordIndex: Int,
     modifier: Modifier = Modifier,
-    expandToAvailableHeight: Boolean = false
+    expandToAvailableHeight: Boolean = false,
+    internalScroll: Boolean = true
 ) {
     // Keep the source's spaces and paragraph breaks. Word highlighting must not rewrite
     // the lesson into a new paragraph structure while speech is playing.
@@ -165,9 +166,9 @@ private fun WordByWordCaption(
             if (cursor < text.length) append(text.substring(cursor))
         }
     }
-    LaunchedEffect(currentWordIndex, layoutResult, active, text) {
+    LaunchedEffect(currentWordIndex, layoutResult, active, text, internalScroll) {
         val layout = layoutResult
-        if (active && layout != null && words.isNotEmpty() && caption.isNotEmpty()) {
+        if (internalScroll && active && layout != null && words.isNotEmpty() && caption.isNotEmpty()) {
             val index = currentWordIndex.coerceIn(0, words.lastIndex)
             val displayOffset = wordStarts.getOrElse(index) { 0 }.coerceAtMost(caption.length - 1).coerceAtLeast(0)
             val line = layout.getLineForOffset(displayOffset)
@@ -175,10 +176,12 @@ private fun WordByWordCaption(
             runCatching { scrollState.animateScrollTo(target) }
         }
     }
-    val captionModifier = if (expandToAvailableHeight) {
-        modifier.fillMaxWidth().verticalScroll(scrollState)
-    } else {
-        modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scrollState)
+    // Live lessons scroll as one page with their inline visuals. Keep the legacy
+    // bounded caption scroll only in callers that explicitly request it.
+    val captionModifier = when {
+        !internalScroll -> modifier.fillMaxWidth()
+        expandToAvailableHeight -> modifier.fillMaxWidth().verticalScroll(scrollState)
+        else -> modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scrollState)
     }
     Box(captionModifier) {
         Text(
@@ -756,23 +759,34 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
     if (loadedImages.isNotEmpty()) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Presentation only: keep synthesis/module text untouched and show no instructional or provenance copy.
+            // Use each source bitmap's own proportions. Landscape photos can breathe
+            // across the lesson width; diagrams and portrait figures stay compact.
+            // No fixed-height image slot, decorative card, or cropped source image.
             loadedImages.forEach { loaded ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFFFFCF5), RoundedCornerShape(14.dp))
-                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
-                        .padding(8.dp)
+                val bitmap = loaded.bitmap
+                val aspectRatio = (bitmap.width.toFloat() / bitmap.height.toFloat()).coerceIn(0.25f, 3.2f)
+                BoxWithConstraints(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
+                    val widthFraction = when {
+                        aspectRatio >= 1.45f -> 1f
+                        aspectRatio <= 0.8f -> 0.68f
+                        else -> 0.78f
+                    }
+                    val preferredWidth = maxWidth * widthFraction
+                    val maxImageHeight = 360.dp
+                    val renderedWidth = if (preferredWidth / aspectRatio > maxImageHeight) {
+                        maxImageHeight * aspectRatio
+                    } else {
+                        preferredWidth
+                    }
                     androidx.compose.foundation.Image(
-                        bitmap = loaded.bitmap.asImageBitmap(),
+                        bitmap = bitmap.asImageBitmap(),
                         contentDescription = loaded.label.ifBlank { lesson.optString("topic", "Relevant textbook illustration") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = if (compact) 220.dp else 300.dp),
+                        modifier = Modifier.width(renderedWidth).aspectRatio(aspectRatio),
                         contentScale = ContentScale.Fit
                     )
                 }
@@ -2537,14 +2551,15 @@ internal fun TutorScreen(
 
         if (liveLessonActive) {
             // One continuous teaching canvas: no inset green card or floating lesson overlay.
+            // One scroll owner for the narration and its mapped images. This lets
+            // the student read down the lesson instead of scrolling inside a caption
+            // while a separate-looking visual area remains fixed below it.
             Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.weight(1f).fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(7.dp))
@@ -2557,14 +2572,11 @@ internal fun TutorScreen(
                                 liveCaption, speechActive, liveWordIndex,
                                 // At checkpoints, don't let the caption consume all remaining height:
                                 // the compact concept animation and fixed answer card must stay visible.
-                                modifier = if (awaitingUnderstanding) {
-                                    Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
-                                } else {
-                                    Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 190.dp)
-                                },
-                                // Keep the narration caption bounded so the mapped 2D visual stays visible inline.
-                                // Word highlighting scrolls inside the caption rather than pushing the visual off-screen.
-                                expandToAvailableHeight = false
+                                modifier = Modifier.fillMaxWidth(),
+                                // The parent lesson column owns vertical scrolling so text and
+                                // its relevant image move together as one continuous explanation.
+                                expandToAvailableHeight = false,
+                                internalScroll = false
                             )
                         } else {
                             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -2611,8 +2623,7 @@ internal fun TutorScreen(
                                 )
                             }
                         }
-                    }
-            }
+
         }
 
         // Inline learner checkpoint: part of the teaching flow, not a floating card.

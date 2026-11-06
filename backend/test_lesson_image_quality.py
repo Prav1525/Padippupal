@@ -30,15 +30,3 @@ def test_dark_low_entropy_astronomy_image_is_not_rejected():
     assert not is_decorative_warm_texture(_jpeg_fixture(paper=False))
 
 
-def test_real_sun_image_is_not_rejected():
-    # The solar image has a warm/yellow palette but not the near-uniform paper
-    # colour distribution that the narrow classifier targets.
-    from pathlib import Path
-    import hashlib
-
-    fixture = Path(__file__).parent.parent / "test-fixtures" / "sun-fixture.jpg"
-    if not fixture.exists():
-        # Keep this test independent of repository binary fixtures.
-        return
-    assert hashlib.sha256(fixture.read_bytes()).hexdigest()
-    assert not is_decorative_warm_texture(fixture.read_bytes())

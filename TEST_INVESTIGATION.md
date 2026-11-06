@@ -675,3 +675,13 @@ Use this format:
 - **Diagnostic change:** Extend the read-only emulator fixture to include exact original image bytes and manifest metadata in the workflow artifact. This is required to inspect the source pixels and mapping directly before selecting a safe fix.
 - **Safety:** fixture continues using HTTP GET only. No app data, image bytes, lesson text, production DB, deployment, or release is modified.
 - **Verification target:** script syntax/compile checks, then rerun the existing hosted Ubuntu/KVM API-35 full-topic acceptance and inspect all 19 original blobs alongside the screenshots. Do not merge PR #219 or deploy until visual acceptance is clean.
+
+
+### 2026-11-06 — Reject invalid Beyond Earth source image blobs at ingestion and delivery
+- **Branch:** `ui/beyond-earth-continuous-inline-images`.
+- **Root cause:** The image-ingestion route validated archive path, MIME signature, byte size, source PDF hash, approved lesson and required mapping fields, but did not validate image content. The production manifest therefore accepted four bright-yellow decorative paper textures under astronomy figure titles and two records with identical image SHA-256 values.
+- **Evidence:** Hosted Android API-35 run [42189750028](https://github.com/Prav1525/Padippupal/actions/runs/42189750028) captured the rendered yellow panels. The same run's artifact preserved all 19 original blobs and manifest. Pixel inspection identified four matching warm-paper textures; SHA-256 inspection found the observatory image duplicated under two distinct records.
+- **Change:** Add a narrow PyMuPDF pixel classifier for the repeated near-uniform bright-yellow paper texture; reject that content during ingestion; reject duplicate image bytes in a single manifest; and apply the same checks at manifest delivery so legacy rows are not shown. Add self-contained regression tests for paper-texture rejection and dark low-entropy astronomy-image preservation.
+- **Scope:** Does not modify synthesis lesson text, source PDF bytes, existing production database rows, or the Android layout. It filters invalid legacy blobs at read time and prevents the same known defects from being re-ingested.
+- **Verification:** Pending exact-head backend tests, JVM tests, APK build and full-topic hosted Android API-35 acceptance. The existing 19-asset source set is expected to serve fewer than 19 entries because known invalid/redundant records are filtered; replacement illustrations still require a verified extraction/curation pass against the original PDF.
+- **Safety:** No production write, deployment, merge or public release.

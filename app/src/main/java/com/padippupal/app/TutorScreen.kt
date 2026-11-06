@@ -2579,11 +2579,7 @@ internal fun TutorScreen(
                             Spacer(Modifier.weight(1f))
                             if (liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
                         }
-                        val isBeyondEarthFeed = liveSegments.any { segment ->
-                            segment.optJSONObject("interactive_lesson")
-                                ?.optString("chapter")
-                                ?.contains("Beyond Earth", ignoreCase = true) == true
-                        }
+                        val isBeyondEarthFeed = chapter.contains("Beyond Earth", ignoreCase = true)
                         if (isBeyondEarthFeed) {
                             // Render the complete topic as ordered explanation/image pairs.
                             // Playback highlights the active segment without removing earlier

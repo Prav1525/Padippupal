@@ -6,6 +6,8 @@ import json
 import os
 import re
 from io import BytesIO
+
+import fitz
 from zipfile import BadZipFile, ZipFile
 
 import psycopg
@@ -25,6 +27,47 @@ SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,240}$")
 def require_image_admin(x_admin_token: str | None = Header(default=None)) -> None:
     if not ADMIN_TOKEN or not x_admin_token or x_admin_token != ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Admin authentication required.")
+
+
+def is_decorative_warm_texture(payload: bytes) -> bool:
+    """Reject the repeated pale-yellow paper texture mistakenly mapped as lesson art.
+
+    This is deliberately a narrow pixel heuristic: it only flags images that are
+    overwhelmingly bright yellow, have a yellow-paper mean colour, and have low
+    luminance variation. Dark star fields and real yellow/orange astronomy photos
+    do not meet all three conditions.
+    """
+    try:
+        pix = fitz.Pixmap(stream=payload)
+        if pix.n not in (3, 4):
+            pix = fitz.Pixmap(fitz.csRGB, pix)
+        samples = pix.samples
+        channels = pix.n
+        count = len(samples) // channels
+        if count == 0:
+            return False
+        # Bound the work for large uploads while sampling across the whole image.
+        step = max(1, count // 4096)
+        red = green = blue = luminance = luminance_sq = yellow = sampled = 0
+        for index in range(0, count, step):
+            offset = index * channels
+            r, g, b = samples[offset], samples[offset + 1], samples[offset + 2]
+            y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            red += r; green += g; blue += b
+            luminance += y; luminance_sq += y * y
+            if r > 220 and g > 165 and b < 155 and r - g > 20 and g - b > 30:
+                yellow += 1
+            sampled += 1
+        mean_r, mean_g, mean_b = red / sampled, green / sampled, blue / sampled
+        mean_y = luminance / sampled
+        variance = max(0.0, luminance_sq / sampled - mean_y * mean_y)
+        luminance_std = variance ** 0.5
+        return (yellow / sampled >= 0.75 and mean_r >= 220 and
+                mean_g >= 170 and mean_b <= 155 and luminance_std <= 45)
+    except Exception:
+        # Unsupported/corrupt decoders must not turn a valid signature into a
+        # false quality verdict; MIME/signature checks remain authoritative.
+        return False
 
 
 def connect():
@@ -75,6 +118,7 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
         raise HTTPException(status_code=422, detail="Manifest must include 1–300 image records.")
     names = {item.filename for item in archive.infolist() if not item.is_dir()}
     seen_ids = set()
+    seen_hashes: dict[str, str] = {}
     prepared = []
     for item in records:
         if not isinstance(item, dict):
@@ -112,9 +156,15 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
         )
         if not signature_ok:
             raise HTTPException(status_code=415, detail=f"Image bytes do not match {content_type}.")
+        if is_decorative_warm_texture(payload):
+            raise HTTPException(status_code=422, detail=f"Image {asset_id} is a decorative paper texture, not a lesson illustration.")
+        digest = hashlib.sha256(payload).hexdigest()
+        if digest in seen_hashes:
+            raise HTTPException(status_code=422, detail=f"Images {seen_hashes[digest]} and {asset_id} contain identical bytes; correct the image mapping before ingestion.")
+        seen_hashes[digest] = asset_id
         prepared.append({**item, "id": asset_id, "lesson_id": lesson_id, "module_key": module_key,
                          "content_type": content_type, "step_ids": list(dict.fromkeys(steps)),
-                         "alt_text": alt, "payload": payload, "sha256": hashlib.sha256(payload).hexdigest()})
+                         "alt_text": alt, "payload": payload, "sha256": digest})
     conn = connect()
     try:
         source = conn.execute(
@@ -175,18 +225,29 @@ def list_lesson_images(lesson_id: str) -> dict:
     try:
         rows = conn.execute("""
             SELECT a.id, a.lesson_id, a.module_key, a.title, a.step_ids_json,
-                   a.content_type, a.alt_text, b.sha256, b.byte_length
+                   a.content_type, a.alt_text, b.sha256, b.byte_length, b.image_bytes
             FROM lesson_image_assets a JOIN lesson_image_asset_blobs b ON b.asset_id=a.id
             JOIN chapter_lessons l ON l.id=a.lesson_id
             WHERE a.lesson_id=%s AND a.status='ready' AND l.status='approved'
             ORDER BY a.module_key
         """, (lesson_id,)).fetchall()
-        return {"lesson_id": lesson_id, "images": [
-            {"id": row["id"], "module_key": row["module_key"], "title": row["title"],
-             "step_ids": json.loads(row["step_ids_json"]), "content_type": row["content_type"],
-             "alt_text": row["alt_text"], "sha256": row["sha256"], "byte_length": row["byte_length"],
-             "url": f"/chapter-lessons/{lesson_id}/images/{row['id']}"} for row in rows
-        ]}
+        # Fail closed at the delivery boundary too: older production rows predate
+        # the quality gate, so do not expose the known decorative texture or repeat
+        # identical blobs under multiple module titles.
+        images = []
+        seen_hashes = set()
+        for row in rows:
+            digest = row["sha256"]
+            if digest in seen_hashes or is_decorative_warm_texture(bytes(row["image_bytes"])):
+                continue
+            seen_hashes.add(digest)
+            images.append({
+                "id": row["id"], "module_key": row["module_key"], "title": row["title"],
+                "step_ids": json.loads(row["step_ids_json"]), "content_type": row["content_type"],
+                "alt_text": row["alt_text"], "sha256": digest, "byte_length": row["byte_length"],
+                "url": f"/chapter-lessons/{lesson_id}/images/{row['id']}"}
+            )
+        return {"lesson_id": lesson_id, "images": images}
     finally:
         conn.close()
 

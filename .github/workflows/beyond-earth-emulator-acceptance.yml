@@ -1,0 +1,112 @@
+name: Beyond Earth original-image emulator acceptance
+
+on:
+  pull_request:
+    branches: ["main", "fix/beyond-earth-render-all-mapped-images"]
+    paths:
+      - ".github/scripts/beyond_earth_emulator_fixture.py"
+      - ".github/scripts/test_beyond_earth_emulator.py"
+      - ".github/scripts/test_beyond_earth_emulator_bootstrap.py"
+      - ".github/scripts/beyond_earth_emulator_profile.py"
+      - ".github/scripts/run_beyond_earth_emulator_acceptance.sh"
+      - "app/src/main/**"
+      - "app/build.gradle*"
+      - ".github/workflows/beyond-earth-emulator-acceptance.yml"
+      - "AGENTS.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  beyond-earth-emulator:
+    # Reuse the repository's last proven Android UI runtime: GitHub-hosted
+    # Ubuntu x86_64 with KVM enabled. This is an Android emulator, not macOS.
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - name: Checkout acceptance branch
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Install screenshot inspection dependency
+        run: python3 -m pip install --user --disable-pip-version-check Pillow
+
+      - name: Validate acceptance scripts and image mapping tests
+        run: |
+          python3 -m py_compile .github/scripts/beyond_earth_emulator_fixture.py .github/scripts/test_beyond_earth_emulator.py .github/scripts/test_beyond_earth_emulator_bootstrap.py .github/scripts/beyond_earth_emulator_profile.py
+          python3 .github/scripts/test_beyond_earth_emulator_bootstrap.py
+          bash -n .github/scripts/run_beyond_earth_emulator_acceptance.sh
+
+      - name: Run Android JVM tests
+        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 testDebugUnitTest
+
+      - name: Build debug APK
+        # Android's 10.0.2.2 alias reaches the host runner; 127.0.0.1 would point inside the emulator.
+        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 assembleDebug
+
+      # Exact same hosted-Linux KVM setup used by successful run 41676624274.
+      - name: Enable KVM hardware acceleration for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -e /dev/kvm && ls -l /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+
+      # Fetch and validate the 19 original production image blobs read-only.
+      # Keep the fixture on this same hosted runner for the emulator's lifetime.
+      - name: Start Beyond Earth fixture with original textbook images
+        run: |
+          python3 .github/scripts/beyond_earth_emulator_fixture.py > /tmp/beyond-earth-fixture.log 2>&1 &
+          echo $! > /tmp/beyond-earth-fixture.pid
+          ready=0
+          for attempt in $(seq 1 300); do
+            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8765/health -o /tmp/beyond-earth-health.json; then
+              cat /tmp/beyond-earth-health.json
+              ready=1
+              break
+            fi
+            if [ $((attempt % 10)) -eq 0 ]; then
+              echo "Waiting for original-image fixture: ${attempt}/300 checks"
+              tail -n 8 /tmp/beyond-earth-fixture.log || true
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then cat /tmp/beyond-earth-fixture.log; exit 1; fi
+
+      - name: Launch API 35 Android emulator and inspect actual Beyond Earth tutor screen
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          system-image-api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-boot-timeout: 420
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
+          disable-animations: true
+          script: |
+            "$ANDROID_HOME/emulator/emulator" -accel-check
+            python3 .github/scripts/test_beyond_earth_emulator.py
+
+      - name: Upload Beyond Earth screenshots and diagnostic trees
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beyond-earth-original-image-emulator-evidence
+          path: |
+            ui-screenshots/beyond-earth/
+            /tmp/beyond-earth-fixture.log
+          if-no-files-found: warn
+          retention-days: 14

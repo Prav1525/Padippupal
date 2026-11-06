@@ -109,17 +109,25 @@ if not filtered_images:
 # Guard against a false-green acceptance run: these four known decorative
 # paper scans and one of the two byte-identical observatory scans are the
 # precise production defects this fixture is intended to prevent.
+def canonical_asset_id(value):
+    """Normalize the API's lesson-prefixed IDs to their source PDF figure IDs."""
+    return str(value).removeprefix("beyond-earth-")
+
+
 expected_texture_ids = {"fig-06", "fig-09", "fig-10", "fig-13"}
-if set(rejected_texture_ids) != expected_texture_ids:
+actual_texture_ids = {canonical_asset_id(asset_id) for asset_id in rejected_texture_ids}
+if actual_texture_ids != expected_texture_ids:
     raise SystemExit(
         "Image-quality gate did not reject exactly the known decorative assets: "
-        f"expected={sorted(expected_texture_ids)}, got={sorted(rejected_texture_ids)}"
+        f"expected={sorted(expected_texture_ids)}, got={sorted(actual_texture_ids)} "
+        f"(raw IDs: {sorted(rejected_texture_ids)})"
     )
 duplicate_pair = {"fig-17", "fig-18"}
-if len(rejected_duplicate_ids) != 1 or not set(rejected_duplicate_ids).issubset(duplicate_pair):
+actual_duplicate_ids = {canonical_asset_id(asset_id) for asset_id in rejected_duplicate_ids}
+if len(actual_duplicate_ids) != 1 or not actual_duplicate_ids.issubset(duplicate_pair):
     raise SystemExit(
         "Image-quality gate did not remove exactly one duplicate from fig-17/fig-18: "
-        f"got={sorted(rejected_duplicate_ids)}"
+        f"got={sorted(actual_duplicate_ids)} (raw IDs: {sorted(rejected_duplicate_ids)})"
     )
 if len(filtered_images) != 14:
     raise SystemExit(f"Expected 14 unique, non-decorative original images after filtering, got {len(filtered_images)}")

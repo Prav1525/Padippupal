@@ -2148,16 +2148,13 @@ internal fun TutorScreen(
                             )
                         }
                     }
-                    // The API segments are transport chunks, not separate learner-facing steps.
-                    // Join them into one caption/audio response so no checkpoint interrupts the explanation.
+                    // Validate completeness across the whole topic, but preserve the
+                    // ordered teaching segments for the learner-facing lesson feed.
                     val completeText = lessonSegments.map { it.optString("spoken_text").trim() }
                         .filter { it.isNotBlank() }.joinToString(" ")
                     if (completeText.length < 220) {
                         throw IllegalStateException("The lesson was too short to explain the selected topic completely. Please try again.")
                     }
-                    // Preserve exact synthesis-step timing for inline visuals. For approved
-                    // synthesized lessons, the backend visual steps mirror the ordered speech
-                    // segments, so each visual changes when its own spoken segment begins.
                     val inlineVisual = response.optJSONObject("interactive_lesson")
                     if (inlineVisual?.optString("scene_type") == "synthesis_static") {
                         val visualSteps = inlineVisual.optJSONArray("steps")
@@ -2172,14 +2169,29 @@ internal fun TutorScreen(
                             inlineVisual.put("step_word_boundaries", wordBoundaries)
                         }
                     }
-                    val completeLesson = JSONObject()
-                        .put("id", "complete-lesson")
-                        .put("spoken_text", completeText)
-                        .put("caption_text", completeText)
-                        .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-                        .put("interactive_lesson", inlineVisual ?: JSONObject.NULL)
-                        .put("checkpoint", JSONObject.NULL)
-                    listOf(completeLesson)
+                    if (chapter.contains("Beyond Earth", ignoreCase = true)) {
+                        // Beyond Earth is a real text/image feed: keep each API segment
+                        // as its own block and retain its own mapped textbook visual.
+                        lessonSegments.mapIndexed { index, sourceSegment ->
+                            val segment = JSONObject(sourceSegment.toString())
+                            if (segment.optJSONObject("interactive_lesson") == null && inlineVisual != null) {
+                                segment.put("interactive_lesson", inlineVisual)
+                                segment.put("visual_step_index", index)
+                            }
+                            segment.put("checkpoint", JSONObject.NULL)
+                            segment
+                        }
+                    } else {
+                        // Other lessons retain their uninterrupted single-caption playback.
+                        val completeLesson = JSONObject()
+                            .put("id", "complete-lesson")
+                            .put("spoken_text", completeText)
+                            .put("caption_text", completeText)
+                            .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+                            .put("interactive_lesson", inlineVisual ?: JSONObject.NULL)
+                            .put("checkpoint", JSONObject.NULL)
+                        listOf(completeLesson)
+                    }
                 } finally { connection.disconnect() }
             }
             tutorMainHandler.post {

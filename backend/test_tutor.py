@@ -1227,29 +1227,48 @@ def test_science_tutor_uses_stored_tanglish_synthesis_without_gemini(monkeypatch
              json.dumps(source_lesson), json.dumps([{"chunk_id": "science-chunk-1"}]),
              "reviewed-synthesis", "Approved", now, now),
         )
-    stored = TestClient(curriculum.app).post(
+    client = TestClient(curriculum.app)
+    stored = client.post(
         "/admin/chapter-lessons/stored-science-lesson/translations",
         headers={"X-Admin-Token": "test-token"},
         json={"language": "Tanglish", "lesson": translated_lesson, "reviewed": True},
     )
     assert stored.status_code == 200, stored.text
 
+    tamil_lesson = json.loads(json.dumps(source_lesson))
+    tamil_lesson["overview"] = "இலை சூரிய ஒளியைப் பயன்படுத்தி உணவை உருவாக்குகிறது."
+    tamil_lesson["learning_objectives"][0] = "ஒளிச்சேர்க்கையை விளக்குக."
+    tamil_lesson["teaching_sequence"][0]["title"] = "இலைக்கு சூரிய ஒளி கிடைக்கிறது"
+    tamil_lesson["teaching_sequence"][0]["teacher_says"] = "இலை சூரிய ஒளியைப் பயன்படுத்தி உணவை உருவாக்குகிறது."
+    tamil_lesson["teaching_sequence"][0]["caption"] = "ஒளியைப் பயன்படுத்தி தாவரங்கள் உணவு தயாரிக்கின்றன."
+    tamil_lesson["teaching_sequence"][0]["checkpoint"] = "இலை எதைப் பயன்படுத்துகிறது?"
+    tamil_stored = client.post(
+        "/admin/chapter-lessons/stored-science-lesson/translations",
+        headers={"X-Admin-Token": "test-token"},
+        json={"language": "Tamil", "lesson": tamil_lesson, "reviewed": True},
+    )
+    assert tamil_stored.status_code == 200, tamil_stored.text
+
     def unexpected_gemini(*args, **kwargs):
-        raise AssertionError("Stored Science Tanglish playback must not call Gemini")
+        raise AssertionError("Stored Science Tanglish/Tamil playback must not call Gemini")
     monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_gemini)
-    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
-        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
-        "app_language": "Tanglish", "chapter": "Life Processes", "topic": "Photosynthesis",
-        "message": "Teach photosynthesis.",
-    })
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["provider"] == "approved_chapter_lesson"
-    assert body["language"] == "Tanglish"
-    assert body["chapter_overview"].startswith("Ilai sunlight")
-    assert body["segments"][0]["id"] == "photo-step-1"
-    assert body["segments"][0]["spoken_text"].startswith("Ilai sunlight")
-    assert body["segments"][0]["source_chunk_ids"] == ["science-chunk-1"]
+    for language, expected_prefix in (
+        ("Tanglish", "Ilai sunlight"),
+        ("Tamil", "இலை சூரிய ஒளியை"),
+    ):
+        response = client.post("/tutor/lesson-plan", json={
+            "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+            "app_language": language, "chapter": "Life Processes", "topic": "Photosynthesis",
+            "message": "Teach photosynthesis.",
+        })
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["provider"] == "approved_chapter_lesson"
+        assert body["language"] == language
+        assert body["chapter_overview"].startswith(expected_prefix)
+        assert body["segments"][0]["id"] == "photo-step-1"
+        assert body["segments"][0]["spoken_text"].startswith(expected_prefix)
+        assert body["segments"][0]["source_chunk_ids"] == ["science-chunk-1"]
 
 
 def test_science_tanglish_without_stored_translation_fails_closed_without_gemini(monkeypatch, tmp_path):

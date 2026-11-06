@@ -4,12 +4,15 @@
 **Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
 
 ## Active objective: DB-backed Tanglish and Tamil for approved Science synthesis lessons
-- **Branch:** `feat/science-stored-language-synthesis`
-- **Base:** `ui/beyond-earth-continuous-inline-images@78870a4ff5bffde1cde3e4f7b5d7ad8102c39f17`
-- **User requirement:** Reuse the existing synthesis engine and exact module/step structure; store Tanglish and Tamil versions in the database and load the selected version. No live Gemini lesson-language response.
-- **Implementation:** Added a reviewed per-lesson language table/import contract, structural and source-fingerprint validation, a Science language-coverage inventory, and a fail-closed tutor loading path.
-- **Verification:** UNVERIFIED. Tests have been authored but not executed. No production DB write, deployment, merge or release.
-- **Next:** Open a PR to the existing tutor branch, run curriculum pytest, fix exact-head failures, inspect current approved Science lesson inventory, then prepare and review complete Tanglish/Tamil payloads. Do not claim all chapters are ready until coverage reports both languages current for every approved Science synthesis lesson.
+- Branch / PR: feat/science-stored-language-synthesis / https://github.com/Prav1525/Padippupal/pull/227
+- Latest documentation head: 8e41681e43c517a748bc53d127df776a47b28954; code/test head verified at 66b85a4626b1218975d6d2065b5fb74fd6f26f3e.
+- User requirement: Reuse the existing approved synthesis engine and exact module/step structure; store Tanglish and Tamil versions in the database and load the selected version. No live Gemini lesson-language response.
+- Implemented: Reviewed per-lesson language storage/import; recursive structure and source-fingerprint validation; read-only coverage inventory across Science classes; selected-language tutor playback using the same existing segment IDs and visual mappings; fail-closed behavior when a stored translation is absent or stale.
+- Verification: Curriculum pytest PASS — 113 passed, 5 warnings (https://github.com/Prav1525/Padippupal/actions/runs/42224477190); investigation-guidance gate PASS (https://github.com/Prav1525/Padippupal/actions/runs/42224477230).
+- Data inventory: Read-only production DB inspection found 12 approved CBSE Class 6 Science lessons across 12 chapters. The translation table is not yet deployed and no translation rows have been populated.
+- Still required: Prepare and review the 24 language payloads (12 chapters × Tanglish/Tamil), then after explicit approval merge/deploy and import them. Android runtime language switching and production coverage remain UNVERIFIED.
+- Safety: No production DB writes, deployment, merge or release.
+
 
 ## Parked objective: Beyond Earth continuous inline image layout
 - **PR:** [#219](https://github.com/Prav1525/Padippupal/pull/219)

@@ -631,3 +631,11 @@ Use this format:
 - **What remains unverified:** Gate rerun, JVM tests, debug APK build, hosted Ubuntu/KVM API-35 tutor journey, and screenshot inspection. The second-image whitespace is also not yet visually diagnosed.
 - **Difference from previous attempt:** Uses the exact failed gate log rather than guessing at an Android failure.
 - **Next action and why:** Re-run all exact-head checks after this ledger correction; inspect the second image's bitmap margins versus Compose spacing before applying a targeted visual adjustment. No merge, deployment, or production write.
+
+
+### 2026-11-06 — Restore Beyond Earth hosted Android acceptance harness for PR #219
+- **Branch:** `ui/beyond-earth-continuous-inline-images`; harness files restored from the prior acceptance branch without changing production application data.
+- **Scope:** Read-only GET of the existing Beyond Earth image manifest and 19 image blobs; deterministic local fixture; Android API 35 hosted Ubuntu/KVM emulator; JVM tests, debug APK build, tutor navigation, mapped-image accessibility assertion, and screenshot artifact.
+- **Production safety:** Fixture performs GET requests only; it does not write to the production database. No merge or deployment is authorized or performed.
+- **Validation status:** Pending exact-head workflow execution. This entry records the test harness restoration; it is not evidence that the Android journey passed.
+- **Next action:** Run the emulator acceptance workflow on this PR head and inspect the captured tutor screenshot, including the second image's whitespace.

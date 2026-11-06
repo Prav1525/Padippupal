@@ -649,3 +649,12 @@ Use this format:
 - **Exact cause:** Workflow syntax-checks `.github/scripts/run_beyond_earth_emulator_acceptance.sh`, but that helper was not restored with the other harness files; shell reported “No such file or directory”.
 - **Correction:** Restore the existing helper from the prior acceptance branch; no test assertion was weakened.
 - **Next action:** Re-run the workflow and inspect the next failing or passing stage. No production writes, merge, or deployment.
+
+
+### 2026-11-06 — Kotlin compile failure in live lesson layout and correction
+- **Run:** [42177818115](https://github.com/Prav1525/Padippupal/actions/runs/42177818115).
+- **Result:** **FAIL** during Android JVM test task's Kotlin compilation; no APK or emulator was produced.
+- **Exact compiler error:** `TutorScreen.kt:2731:2 Syntax error: Expecting '}'`.
+- **Root cause:** The live-lesson `if` block was left unclosed after moving the caption and visual into the shared scrolling Column.
+- **Correction:** Added the missing closing brace at the verified block boundary. No layout behavior or test assertion changed.
+- **Next action:** Re-run exact-head JVM tests and continue through APK build and emulator acceptance if compilation passes.

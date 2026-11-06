@@ -1192,7 +1192,10 @@ def test_stored_lesson_language_rejects_wrong_script(monkeypatch, tmp_path):
     assert response.status_code == 422
 
 
-def test_non_english_lesson_plan_never_falls_back_to_live_translation(monkeypatch):
+def test_non_english_lesson_plan_never_falls_back_to_live_translation(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "no-live-translation.sqlite3")
+    curriculum.init_db()
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
         AssertionError("Non-English lesson must not enter the live synthesis fallback")))
     response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={

@@ -149,16 +149,30 @@ try:
     if not assets or len(assets) >= 19: raise RuntimeError(f"Image-quality gate did not filter the legacy manifest: got {len(assets)} assets")
     expected_modules=[f"module-{i}" for i in range(1,8)]
     module_keys={str(a.get("module_key","")).strip() for a in assets}
+    # The only module without a surviving source image is module-4: its sole
+    # mapped source (fig-09, titled "Solar System") is actually a blank warm
+    # paper texture. The quality gate correctly removes it. Do not weaken that
+    # gate or substitute an unrelated/generated image just to make coverage green.
     missing_modules=[key for key in expected_modules if key not in module_keys]
-    if missing_modules:
-        raise RuntimeError("Original-image manifest has no mapped images for topic modules: "+", ".join(missing_modules))
+    if missing_modules != ["module-4"]:
+        raise RuntimeError(
+            "Unexpected original-image module coverage after quality filtering: "
+            f"expected only module-4 to be image-free, got {missing_modules}"
+        )
+    if any(str(a.get("id","")).endswith("fig-09") for a in assets):
+        raise RuntimeError("Decorative fig-09 texture incorrectly survived the image-quality gate")
     expected_labels={}
     for key in expected_modules:
         candidates=[str(a.get("title","")).strip() or str(a.get("alt_text","")).strip()
                     for a in assets if str(a.get("module_key","")).strip()==key]
         expected_labels[key]=[label for label in candidates if label]
-        if not expected_labels[key]:
-            raise RuntimeError(f"{key} has no labelled original image")
+        if key != "module-4" and not expected_labels[key]:
+            raise RuntimeError(f"{key} has mapped assets but no labelled original image")
+    print(
+        "IMAGE COVERAGE: modules 1-3 and 5-7 have relevant original images; "
+        "module-4 remains text-only because its only mapped source is a rejected blank texture.",
+        flush=True
+    )
     # Scroll through the whole non-lazy lesson column, collecting accessibility
     # labels and a real device screenshot at each viewport (not just the first).
     observed=set(lesson_texts)

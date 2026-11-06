@@ -290,6 +290,7 @@ def init_db() -> None:
             segment_id TEXT NOT NULL,
             spoken_text TEXT NOT NULL,
             caption_text TEXT NOT NULL,
+            checkpoint_text TEXT NOT NULL DEFAULT '',
             updated_at REAL NOT NULL,
             PRIMARY KEY (lesson_id, language, segment_id)
         );
@@ -2840,9 +2841,10 @@ def store_chapter_lesson_language(
         segment_id = str(item.get("id") or "").strip()
         spoken = str(item.get("spoken_text") or "").strip()
         caption = str(item.get("caption_text") or "").strip()
+        checkpoint_text = str(item.get("checkpoint_text") or "").strip()
         if not segment_id or len(segment_id) > 40 or not re.fullmatch(r"[a-zA-Z0-9_-]+", segment_id):
             raise HTTPException(status_code=422, detail="Every translated segment needs a valid original segment id.")
-        if not spoken or not caption or len(spoken) > 500 or len(caption) > 500:
+        if not spoken or not caption or len(spoken) > 500 or len(caption) > 500 or len(checkpoint_text) > 240:
             raise HTTPException(status_code=422, detail="Every translated segment needs spoken text and caption text (max 500 characters each).")
         if language_name == "Tamil" and not re.search(r"[\u0B80-\u0BFF]", spoken):
             raise HTTPException(status_code=422, detail="Tamil narration must use Tamil script.")
@@ -2851,7 +2853,7 @@ def store_chapter_lesson_language(
         if segment_id in ids:
             raise HTTPException(status_code=422, detail="Duplicate segment ids are not allowed.")
         ids.append(segment_id)
-        normalized.append((segment_id, spoken, caption))
+        normalized.append((segment_id, spoken, caption, checkpoint_text))
     with db() as conn:
         lesson_row = conn.execute("SELECT status FROM chapter_lessons WHERE id=?", (lesson_id,)).fetchone()
         if not lesson_row or str(lesson_row["status"]).lower() != "approved":
@@ -2859,12 +2861,12 @@ def store_chapter_lesson_language(
         conn.execute("DELETE FROM chapter_lesson_language_segments WHERE lesson_id=? AND language=?",
                      (lesson_id, language_name))
         now = time.time()
-        for segment_id, spoken, caption in normalized:
+        for segment_id, spoken, caption, checkpoint_text in normalized:
             conn.execute(
                 """INSERT INTO chapter_lesson_language_segments
-                   (lesson_id, language, segment_id, spoken_text, caption_text, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (lesson_id, language_name, segment_id, spoken, caption, now),
+                   (lesson_id, language, segment_id, spoken_text, caption_text, checkpoint_text, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (lesson_id, language_name, segment_id, spoken, caption, checkpoint_text, now),
             )
     return {"lesson_id": lesson_id, "language": language_name, "segment_count": len(normalized), "stored": True}
 
@@ -2994,7 +2996,7 @@ def _apply_stored_lesson_language(lesson_id: str, segments: list[dict[str, Any]]
         raise HTTPException(status_code=422, detail="Unsupported lesson language.")
     with db() as conn:
         rows = conn.execute(
-            """SELECT segment_id, spoken_text, caption_text
+            """SELECT segment_id, spoken_text, caption_text, checkpoint_text
                FROM chapter_lesson_language_segments WHERE lesson_id=? AND language=?""",
             (lesson_id, language_name),
         ).fetchall()
@@ -3008,6 +3010,11 @@ def _apply_stored_lesson_language(lesson_id: str, segments: list[dict[str, Any]]
         translated = by_id[str(original["id"])]
         localized["spoken_text"] = str(translated["spoken_text"])
         localized["caption_text"] = str(translated["caption_text"])
+        if original.get("checkpoint"):
+            checkpoint_text = str(translated["checkpoint_text"] or "").strip()
+            if not checkpoint_text:
+                raise HTTPException(status_code=409, detail=f"{language_name} checkpoint text is not yet reviewed and stored for this lesson.")
+            localized["checkpoint"] = checkpoint_text
         localized_segments.append(localized)
     return localized_segments
 

@@ -1,6 +1,6 @@
 import fitz
 
-from lesson_image_ingest import is_decorative_warm_texture
+from lesson_image_quality import is_decorative_warm_texture
 
 
 def _jpeg_fixture(paper: bool) -> bytes:

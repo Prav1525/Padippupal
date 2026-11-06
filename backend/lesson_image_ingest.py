@@ -7,7 +7,6 @@ import os
 import re
 from io import BytesIO
 
-import fitz
 from zipfile import BadZipFile, ZipFile
 
 import psycopg

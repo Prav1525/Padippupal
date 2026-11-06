@@ -708,3 +708,10 @@ Use this format:
 - **Failure 2 / confirmed root cause:** An existing approved-lesson test replaces the DB connection with a fake that only implements the original approved-lesson query. The new stored-translation lookup correctly issued a second query, which the stale fake asserted against the first query's parameters. Fix: update this isolated legacy test to stub the new stored-language loader as English/pass-through rather than weakening production behavior.
 - **What passed:** Python package installation, test collection, and 111 backend tests including the new import/structure checks before the coverage assertion.
 - **Next:** Apply the two narrow test/route corrections and rerun the full curriculum pytest workflow on the updated exact head. No production DB write, deployment, merge or release.
+
+
+### 2026-11-06 — Corrected the two failures from stored-language CI run #1422
+- **Branch:** `feat/science-stored-language-synthesis`.
+- **Changes:** Renamed the static inventory route to `/admin/science/chapter-lessons/language-coverage` so it cannot be captured by the earlier dynamic lesson route; simplified its SQL to fetch the approved Science inventory and calculate current translation fingerprints per lesson. Updated the legacy approved-lesson unit test to stub the new stored-language loader for its isolated pass-through case; dedicated tests exercise the real loader.
+- **Verification:** A new exact-head Curriculum Engine Tests run is expected from the backend test-file push. **Not yet verified** at the time of this entry.
+- **No production data writes, deployment, merge or release.**

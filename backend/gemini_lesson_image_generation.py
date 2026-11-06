@@ -190,6 +190,7 @@ def generate_science_lesson_images(
     # generation cost. No DB transaction remains open during external model calls.
     generated = []
     skipped = []
+    actual_model = os.getenv("PADIPPUPAL_GEMINI_IMAGE_MODEL", DEFAULT_IMAGE_MODEL).strip()
     lookup = connect()
     try:
         for step_id, title, prompt, fingerprint in prepared:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for the Beyond Earth hardware-accelerated emulator bootstrap."""
+"""Regression checks for the proven hosted-Linux Android emulator bootstrap."""
 from pathlib import Path
 import sys
 import unittest
@@ -9,25 +9,25 @@ from beyond_earth_emulator_profile import PROFILE_XML, seed_profile_preferences
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/beyond-earth-emulator-acceptance.yml"
-BOOTSTRAP = ROOT / ".github/scripts/run_beyond_earth_emulator_acceptance.sh"
 TUTOR = ROOT / "app/src/main/java/com/padippupal/app/TutorScreen.kt"
 
 
 class BeyondEarthEmulatorBootstrapTests(unittest.TestCase):
-    def test_ui_acceptance_requires_linux_kvm_and_separate_hosted_validation(self):
+    def test_ui_acceptance_reuses_last_successful_hosted_linux_kvm_runtime(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("validate-and-build:", workflow)
         self.assertIn("runs-on: ubuntu-latest", workflow)
-        ui_job = workflow.split("  beyond-earth-emulator:", 1)[1]
-        self.assertIn("needs: validate-and-build", ui_job)
-        self.assertIn("runs-on: [self-hosted, linux, x64, kvm]", ui_job)
-        self.assertIn("reactivecircus/android-emulator-runner@v2", ui_job)
-        self.assertIn("api-level: 35", ui_job)
-        self.assertIn("arch: x86_64", ui_job)
-        self.assertIn("-gpu host", ui_job)
-        self.assertIn("script: python3 .github/scripts/test_beyond_earth_emulator.py", ui_job)
+        self.assertIn("Enable KVM hardware acceleration for the emulator", workflow)
+        self.assertIn("test -r /dev/kvm && test -w /dev/kvm", workflow)
+        self.assertIn("reactivecircus/android-emulator-runner@v2", workflow)
+        self.assertIn("api-level: 35", workflow)
+        self.assertIn("target: google_apis", workflow)
+        self.assertIn("arch: x86_64", workflow)
+        self.assertIn("-gpu swiftshader_indirect", workflow)
+        self.assertIn('emulator" -accel-check', workflow)
+        self.assertIn("python3 .github/scripts/test_beyond_earth_emulator.py", workflow)
+        self.assertNotIn("self-hosted", workflow)
         self.assertNotIn("macos-", workflow)
-        self.assertNotIn("swiftshader", ui_job)
+        self.assertNotIn("-accel off", workflow)
 
     def test_visual_acceptance_does_not_depend_on_device_tts(self):
         tutor = TUTOR.read_text(encoding="utf-8")
@@ -35,11 +35,6 @@ class BeyondEarthEmulatorBootstrapTests(unittest.TestCase):
         caption_published = tutor.index("liveCaption = words", segment_start)
         speech_started = tutor.index("speak(words", segment_start)
         self.assertLess(caption_published, speech_started)
-
-    def test_legacy_manual_bootstrap_is_not_used_by_acceptance_workflow(self):
-        workflow = WORKFLOW.read_text(encoding="utf-8")
-        self.assertNotIn("run: bash .github/scripts/run_beyond_earth_emulator_acceptance.sh", workflow)
-        self.assertIn("script: python3 .github/scripts/test_beyond_earth_emulator.py", workflow)
 
     def test_profile_seed_uses_safe_adb_shell_argument_boundaries(self):
         calls = []

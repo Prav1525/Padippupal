@@ -19,11 +19,11 @@ permissions:
   contents: read
 
 jobs:
-  # Run deterministic checks and produce the exact APK on GitHub-hosted Linux.
-  # This job must not depend on the scarce hardware-accelerated UI runner.
-  validate-and-build:
+  beyond-earth-emulator:
+    # Reuse the repository's last proven Android UI runtime: GitHub-hosted
+    # Ubuntu x86_64 with KVM enabled. This is an Android emulator, not macOS.
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 65
     steps:
       - name: Checkout acceptance branch
         uses: actions/checkout@v4
@@ -39,6 +39,9 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Install screenshot inspection dependency
+        run: python3 -m pip install --user --disable-pip-version-check Pillow
+
       - name: Validate acceptance scripts and image mapping tests
         run: |
           python3 -m py_compile .github/scripts/beyond_earth_emulator_fixture.py .github/scripts/test_beyond_earth_emulator.py .github/scripts/test_beyond_earth_emulator_bootstrap.py .github/scripts/beyond_earth_emulator_profile.py
@@ -48,40 +51,21 @@ jobs:
       - name: Run Android JVM tests
         run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 testDebugUnitTest
 
-      - name: Build exact debug APK for UI acceptance
+      - name: Build debug APK
         run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://127.0.0.1:8765 assembleDebug
 
-      - name: Preserve exact APK for the KVM UI job
-        uses: actions/upload-artifact@v4
-        with:
-          name: beyond-earth-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 1
-
-  # The UI job is deliberately isolated from hosted-runner build/test checks.
-  # If no Linux KVM runner is registered, only actual device acceptance waits.
-  beyond-earth-emulator:
-    needs: validate-and-build
-    runs-on: [self-hosted, linux, x64, kvm]
-    timeout-minutes: 55
-    steps:
-      - name: Checkout acceptance branch
-        uses: actions/checkout@v4
-
-      - name: Download exact debug APK built by validation job
-        uses: actions/download-artifact@v4
-        with:
-          name: beyond-earth-debug-apk
-          path: app/build/outputs/apk/debug
-
-      - name: Install screenshot inspection dependency
+      # Exact same hosted-Linux KVM setup used by successful run 41676624274.
+      - name: Enable KVM hardware acceleration for the emulator
         run: |
-          python3 -m venv .venv
-          .venv/bin/python -m pip install --disable-pip-version-check Pillow
-          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -e /dev/kvm && ls -l /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
 
-      - name: Start fixture with original image bytes fetched from production
+      # Fetch and validate the 19 original production image blobs read-only.
+      # Keep the fixture on this same hosted runner for the emulator's lifetime.
+      - name: Start Beyond Earth fixture with original textbook images
         run: |
           python3 .github/scripts/beyond_earth_emulator_fixture.py > /tmp/beyond-earth-fixture.log 2>&1 &
           echo $! > /tmp/beyond-earth-fixture.pid
@@ -92,24 +76,28 @@ jobs:
               ready=1
               break
             fi
-            if [ $((attempt % 10)) -eq 0 ]; then echo "Waiting for original-image fixture: ${attempt}/300 checks"; tail -n 8 /tmp/beyond-earth-fixture.log || true; fi
+            if [ $((attempt % 10)) -eq 0 ]; then
+              echo "Waiting for original-image fixture: ${attempt}/300 checks"
+              tail -n 8 /tmp/beyond-earth-fixture.log || true
+            fi
             sleep 2
           done
           if [ "$ready" -ne 1 ]; then cat /tmp/beyond-earth-fixture.log; exit 1; fi
 
-      - name: Launch hardware-accelerated Android emulator and inspect actual tutor screenshot
+      - name: Launch API 35 Android emulator and inspect actual Beyond Earth tutor screen
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
-          target: default
+          system-image-api-level: 35
+          target: google_apis
           arch: x86_64
           profile: pixel_2
-          cores: 4
-          ram-size: 3072M
-          emulator-boot-timeout: 600
-          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu host
+          emulator-boot-timeout: 420
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
           disable-animations: true
-          script: python3 .github/scripts/test_beyond_earth_emulator.py
+          script: |
+            "$ANDROID_HOME/emulator/emulator" -accel-check
+            python3 .github/scripts/test_beyond_earth_emulator.py
 
       - name: Upload Beyond Earth screenshots and diagnostic trees
         if: always()

@@ -146,22 +146,58 @@ try:
     else: raise RuntimeError("Tutor never displayed the Beyond Earth lesson text")
     manifest=json.loads(__import__("urllib.request",fromlist=["urlopen"]).urlopen("http://127.0.0.1:8765/chapter-lessons/"+LESSON_ID+"/images",timeout=10).read())
     assets=manifest.get("images",[])
-    mapped=[a for a in assets if a.get("module_key")=="module-1"]
-    if not mapped: raise RuntimeError("Live image manifest has no module-1 mapped original")
-    alt_candidates=[str(a.get("title","")).strip() or str(a.get("alt_text","")).strip() for a in mapped]
-    joined="\n".join(lesson_texts).casefold()
-    exposed=[label for label in alt_candidates if label and label.casefold() in joined]
-    if not exposed:
-        raise RuntimeError("No mapped original image contentDescription was exposed in the tutor accessibility tree; image data exists but inline rendering is not proven")
-    # Verify screenshot has substantial non-background detail in the central teaching viewport.
-    img=Image.open(OUT/"beyond-earth-live.png").convert("RGB")
+    if len(assets) != 19: raise RuntimeError(f"Expected all 19 original textbook images, got {len(assets)}")
+    expected_modules=[f"module-{i}" for i in range(1,8)]
+    module_keys={str(a.get("module_key","")).strip() for a in assets}
+    missing_modules=[key for key in expected_modules if key not in module_keys]
+    if missing_modules:
+        raise RuntimeError("Original-image manifest has no mapped images for topic modules: "+", ".join(missing_modules))
+    expected_labels={}
+    for key in expected_modules:
+        candidates=[str(a.get("title","")).strip() or str(a.get("alt_text","")).strip()
+                    for a in assets if str(a.get("module_key","")).strip()==key]
+        expected_labels[key]=[label for label in candidates if label]
+        if not expected_labels[key]:
+            raise RuntimeError(f"{key} has no labelled original image")
+    # Scroll through the whole non-lazy lesson column, collecting accessibility
+    # labels and a real device screenshot at each viewport (not just the first).
+    observed=set(lesson_texts)
+    for page in range(1,11):
+        shell("input swipe 540 1600 540 500 450")
+        time.sleep(1.2)
+        screenshot(f"beyond-earth-scroll-{page:02d}")
+        _,page_labels=dump(f"beyond-earth-scroll-{page:02d}")
+        observed.update(page_labels)
+    all_labels="\n".join(observed).casefold()
+    missing_text=[]
+    for i,text in enumerate([
+        "Our universe contains many objects beyond Earth.",
+        "Stars are huge, hot objects that produce their own light.",
+        "The Moon is Earth's natural satellite.",
+        "Planets travel around stars.",
+        "Constellations are patterns of stars",
+        "Telescopes collect light",
+        "Space exploration uses spacecraft"
+    ],1):
+        if text.casefold() not in all_labels:
+            missing_text.append(f"module-{i} narration")
+    if missing_text:
+        raise RuntimeError("Full topic narration not exposed after scrolling: "+", ".join(missing_text))
+    missing_images=[]
+    for module,labels in expected_labels.items():
+        if not any(label.casefold() in all_labels for label in labels):
+            missing_images.append(module)
+    if missing_images:
+        raise RuntimeError("Full-topic tutor feed did not expose mapped original image labels for: "+", ".join(missing_images))
+    # Confirm the final viewport is not an empty tail after the last module.
+    img=Image.open(OUT/"beyond-earth-scroll-10.png").convert("RGB")
     w,h=img.size
     crop=img.crop((int(w*.06),int(h*.18),int(w*.94),int(h*.83)))
     colors=len(crop.getcolors(maxcolors=2_000_000) or [])
     stat=ImageStat.Stat(crop)
-    print(f"SCREENSHOT dimensions={w}x{h}; viewport unique_colors={colors}; stddev={stat.stddev}",flush=True)
-    if colors < 120: raise RuntimeError("Tutor screenshot teaching viewport lacks visible image/detail; possible blank image region")
-    print("PASS: Android emulator selected CBSE Class 6 Science > Beyond Earth; active tutor screen exposes a module-mapped original image label; screenshot captured.",flush=True)
+    print(f"FULL TOPIC EVIDENCE: {len(assets)} original images; modules={expected_modules}; screenshots=11; final viewport={w}x{h}; unique_colors={colors}; stddev={stat.stddev}",flush=True)
+    if colors < 120: raise RuntimeError("Final topic viewport lacks visible content; possible blank image region")
+    print("PASS: Android emulator traversed the complete Beyond Earth topic; all seven narration modules and each module's mapped original textbook images were exposed while scrolling.",flush=True)
 except Exception as exc:
     print("FAIL: "+str(exc),file=sys.stderr,flush=True)
     # Preserve evidence even when navigation/assertions fail before the main

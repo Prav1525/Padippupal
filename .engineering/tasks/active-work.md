@@ -1,60 +1,17 @@
 # Active work handoff
 
 **Last updated:** 2026-11-06
-**Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
 
 ## Active objective: DB-backed Tanglish and Tamil for approved Science synthesis lessons
-- Branch / PR: feat/science-stored-language-synthesis / https://github.com/Prav1525/Padippupal/pull/227
-- Latest documentation head: 8e41681e43c517a748bc53d127df776a47b28954; code/test head verified at 66b85a4626b1218975d6d2065b5fb74fd6f26f3e.
-- User requirement: Reuse the existing approved synthesis engine and exact module/step structure; store Tanglish and Tamil versions in the database and load the selected version. No live Gemini lesson-language response.
-- Implemented: Reviewed per-lesson language storage/import; recursive structure and source-fingerprint validation; read-only coverage inventory across Science classes; selected-language tutor playback using the same existing segment IDs and visual mappings; fail-closed behavior when a stored translation is absent or stale.
-- Verification: Curriculum pytest PASS — 113 passed, 5 warnings (https://github.com/Prav1525/Padippupal/actions/runs/42224477190); investigation-guidance gate PASS (https://github.com/Prav1525/Padippupal/actions/runs/42224477230).
-- Data inventory: Read-only production DB inspection found 12 approved CBSE Class 6 Science lessons across 12 chapters. The translation table is not yet deployed and no translation rows have been populated.
-- Still required: Prepare and review the 24 language payloads (12 chapters × Tanglish/Tamil), then after explicit approval merge/deploy and import them. Android runtime language switching and production coverage remain UNVERIFIED.
-- Safety: No production DB writes, deployment, merge or release.
-
+- **Branch / PR:** feat/science-stored-language-synthesis / https://github.com/Prav1525/Padippupal/pull/227
+- **Backend implementation:** Stored per-lesson translation table/import API, source-fingerprint validation, read-only Science coverage inventory, selected-language playback, and fail-closed behavior when a current reviewed translation is absent.
+- **Backend tests:** PASS — 117 passed, 5 warnings on exact head eb9131e685431a8da8ea1e1624b029722181e41c (https://github.com/Prav1525/Padippupal/actions/runs/42226920147).
+- **Content inventory:** The only approved Science profile currently in the DB is CBSE Class 6 English: 12 approved chapters.
+- **Content drafts:** Beyond Earth now has draft Tanglish and Tamil patches for its existing 8 modules. The patches alter only learner-facing text fields; step IDs, order, source chunk IDs, and visuals are preserved.
+- **Remaining content:** 11 chapters still need Tanglish and Tamil patches. Existing source lesson captions in several chapters are extractive/clipped; author concise localized teacher explanations grounded in the source chunks rather than translating clipped fragments blindly.
+- **Import safety:** Importer is dry-run by default. It requires explicit --apply and --reviewed plus reviewer note to write a translation. Do not use these flags without explicit user approval and actual content review.
+- **Verification boundary:** No DB import, Android runtime language-switch test, deployment, merge or release has occurred. Keep PR open and unmerged.
 
 ## Parked objective: Beyond Earth continuous inline image layout
-- **PR:** [#219](https://github.com/Prav1525/Padippupal/pull/219)
-- **Status:** Keep open and unmerged; resume after the stored-language task unless the user reprioritizes it.
-- **Safety:** No merge or production deployment without explicit user approval.
-
-# Active work handoff
-
-**Last updated:** 2026-10-30  
-**Rule:** Keep one primary implementation objective. Park unrelated discoveries in the known-issues register.
-
-## Active objective: Phase 1 — Persistent Engineering Operating System
-- **Scope:** Repository-backed project memory and task handoff.
-- **Branch:** `chore/persistent-engineering-os-phase1`
-- **Base:** `main@407844ea458799eadc99b9af1e7364939902e9dd`
-- **Current head at handoff:** `b8fb0b17090b310435a88dbe7985a965ab48286f`
-- **Review PR:** [#61 — Establish PadippuPal Persistent Engineering Operating System — Phase 1](https://github.com/Prav1525/Padippupal/pull/61)
-- **Status:** Documentation implemented; all 10 PR files read back from the branch; PR diff inspected and limited to project documentation plus the AGENTS.md task-start index.
-- **Checks on exact head:**
-  - [Investigation Guidance Gate run 40990741794](https://github.com/Prav1525/Padippupal/actions/runs/40990741794): PASS.
-  - [Android APK run 40990741790](https://github.com/Prav1525/Padippupal/actions/runs/40990741790): PASS (workflow regression signal; not required to validate documentation).
-  - [Android UI smoke run 40990741779](https://github.com/Prav1525/Padippupal/actions/runs/40990741779): IN PROGRESS at last check; emulator journey had started. This workflow is not proof of Phase 1 documentation correctness.
-- **Acceptance:** Charter, status, architecture, system map, decisions, known issues, acceptance criteria, engineering index, and active-work handoff exist; repository task-start instructions point to them; claims are evidence-labelled and unknowns are explicit.
-- **Non-goals:** no application source changes, CI workflow behavior changes, deployment or production database writes.
-- **Next action:** finish checking the exact-head UI smoke run if relevant, then review PR #61. Do not merge until the founder explicitly approves.
-
-## Next product objective: Beyond Earth native whiteboard pilot
-- **PR:** [#59](https://github.com/Prav1525/Padippupal/pull/59)
-- **Head at last check:** `0383b1fe9690ff3c97dcc901c64710be04ddba14`
-- **Scope:** CBSE Class 6 Science, Beyond Earth; native Compose Canvas visuals; no SVG; labelled diagrams; progressive reveal; inline tutor flow.
-- **Latest checks on that head:**
-  - [Android APK run 40989118308](https://github.com/Prav1525/Padippupal/actions/runs/40989118308): PASS.
-  - [Curriculum tests run 40989118292](https://github.com/Prav1525/Padippupal/actions/runs/40989118292): PASS.
-  - [Investigation guidance run 40989118330](https://github.com/Prav1525/Padippupal/actions/runs/40989118330): PASS.
-  - [Android UI smoke run 40989118437](https://github.com/Prav1525/Padippupal/actions/runs/40989118437): FAIL at script validation before emulator startup; runtime behavior remains UNVERIFIED.
-- **Next action:** inspect failing smoke-step logs, fix only the evidence-backed harness issue, rerun emulator validation and inspect screenshots/UI hierarchy for all eight stages.
-- **Release boundary:** do not merge PR #59, deploy or write production DB without explicit founder approval.
-
-## Resume checklist
-- Re-fetch main and working branch heads; do not assume this handoff is current.
-- Re-fetch active PR state and latest checks for its exact head SHA.
-- Re-read `AGENTS.md` and `TESTING_GUIDANCE.md` before edits/tests/builds/deploys.
-- For tutor/UI tests, re-read `.github/testing-regression-checklist.md` and `docs/TESTING_ERRORS.md`.
-- Inspect failure logs/artifacts before retrying; do not repeat an unchanged failed approach.
-- Update this file with exact evidence and one next action.
+- PR #219: https://github.com/Prav1525/Padippupal/pull/219
+- Keep open and unmerged until user visually accepts the tutor UI.

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.import_science_translations import apply_patch
+from import_science_translations import apply_patch
 
 
 PATCH_DIR = Path(__file__).with_name("science_translation_patches") / "cbse_class6"

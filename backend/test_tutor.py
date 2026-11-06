@@ -907,7 +907,9 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     monkeypatch.setattr(curriculum, "attach_topic_visuals", lambda payload, segments, sources, fallback_visual=None: [
         {**segment, "interactive_lesson": fallback_visual} for segment in segments
     ])
-    monkeypatch.setattr(curriculum, "_translate_approved_segments", lambda segments, language: segments)
+    # This test isolates English-source lesson selection; the stored language loader
+    # is exercised separately with a real temporary SQLite translation record.
+    monkeypatch.setattr(curriculum, "_stored_lesson_translation", lambda lesson_id, lesson, language: lesson)
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
         AssertionError("approved lesson should bypass fresh retrieval")))
     client = TestClient(curriculum.app)

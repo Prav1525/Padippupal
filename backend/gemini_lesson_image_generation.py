@@ -138,7 +138,7 @@ def _generate_with_gemini(prompt: str) -> tuple[bytes, str]:
 @router.post("/generate/{lesson_id}", dependencies=[Depends(require_image_admin)])
 def generate_science_lesson_images(
     lesson_id: str,
-    payload: GenerateLessonImagesRequest,
+    payload: GenerateLessonImagesRequest = GenerateLessonImagesRequest(),
 ) -> dict[str, Any]:
     """Generate images for selected teaching steps of one approved Science lesson."""
     if not lesson_id or len(lesson_id) > 160:

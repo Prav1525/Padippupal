@@ -658,3 +658,11 @@ Use this format:
 - **Root cause:** The live-lesson `if` block was left unclosed after moving the caption and visual into the shared scrolling Column.
 - **Correction:** Added the missing closing brace at the verified block boundary. No layout behavior or test assertion changed.
 - **Next action:** Re-run exact-head JVM tests and continue through APK build and emulator acceptance if compilation passes.
+
+
+### 2026-11-06 — Full-topic Beyond Earth module feed and emulator acceptance
+- **Branch:** `ui/beyond-earth-continuous-inline-images`.
+- **Change:** Preserve the Beyond Earth API's ordered lesson segments instead of collapsing them into one caption. Render every segment in a single scrollable lesson column, with that segment's own mapped original textbook image directly beneath its explanation. Other topic playback remains unchanged.
+- **Acceptance expansion:** The Android API-35 emulator test now scrolls through the full topic, captures each viewport, verifies all seven narration modules, checks the 19-image manifest, and requires original-image mappings and accessible image labels for all seven modules.
+- **Test status:** Pending exact-head CI execution. This entry records the implementation and test criteria, not a passing result.
+- **Production safety:** The fixture performs read-only GET requests for the existing production image manifest and blobs. No production database writes, deployment, PR merge, or public release.

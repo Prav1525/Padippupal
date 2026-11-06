@@ -639,3 +639,5 @@ Use this format:
 - **Production safety:** Fixture performs GET requests only; it does not write to the production database. No merge or deployment is authorized or performed.
 - **Validation status:** Pending exact-head workflow execution. This entry records the test harness restoration; it is not evidence that the Android journey passed.
 - **Next action:** Run the emulator acceptance workflow on this PR head and inspect the captured tutor screenshot, including the second image's whitespace.
+
+- **Workflow activation:** Acceptance workflow is now also present on the PR base branch; this commit updates the PR head to trigger pull-request validation. No test result is implied by this activation note.

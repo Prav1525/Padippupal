@@ -1,4 +1,5 @@
 import json
+import pytest
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -907,13 +908,12 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     monkeypatch.setattr(curriculum, "attach_topic_visuals", lambda payload, segments, sources, fallback_visual=None: [
         {**segment, "interactive_lesson": fallback_visual} for segment in segments
     ])
-    monkeypatch.setattr(curriculum, "_translate_approved_segments", lambda segments, language: segments)
     monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
         AssertionError("approved lesson should bypass fresh retrieval")))
     client = TestClient(curriculum.app)
     response = client.post("/tutor/lesson-plan", json={
         "board": "CBSE", "class_level": 6, "subject": "Science",
-        "medium": "English", "app_language": "Tanglish",
+        "medium": "English", "app_language": "English",
         "chapter": "Life Processes", "message": "Continue the lesson",
         "max_segments": 5,
     })
@@ -1125,56 +1125,147 @@ def test_tutor_accepts_topic_specific_teaching_segments():
     assert curriculum._lesson_segments_are_substantive(segments)
 
 
-def test_approved_lesson_translation_preserves_segment_identity_and_visuals(monkeypatch):
-    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
-    captured = {}
-
-    class FakeResponse:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return False
-
-        def read(self):
-            return json.dumps({
-                "candidates": [{"content": {"parts": [{"text": json.dumps({
-                    "segments": [{
-                        "id": "step-1",
-                        "spoken_text": "Ippo leaf sunlight use panni food make pannum.",
-                        "caption_text": "Leaf food make pannum.",
-                    }]
-                })}]}}]
-            }).encode("utf-8")
-
-    def fake_urlopen(request, timeout):
-        captured["payload"] = json.loads(request.data.decode("utf-8"))
-        captured["timeout"] = timeout
-        return FakeResponse()
-
-    monkeypatch.setattr(curriculum.urllib.request, "urlopen", fake_urlopen)
+def test_stored_language_overlay_preserves_synthesis_modules_and_visual_metadata(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "overlay.sqlite3")
+    curriculum.init_db()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id, board, class_level, subject, medium, chapter, topic, status,
+                lesson_json, source_refs_json, model, review_feedback, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("overlay-lesson", "CBSE", 6, "Science", "English", "Beyond Earth",
+             "Solar System", "approved", "{}", "[]", "reviewed-synthesis", "", 1.0, 1.0),
+        )
+        conn.executemany(
+            """INSERT INTO chapter_lesson_language_segments
+               (lesson_id, language, segment_id, spoken_text, caption_text, checkpoint_text, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            [
+                ("overlay-lesson", "Tanglish", "module-2-step-1", "Moon Earth-ai suthi varudhu.", "Moon oda orbit.", "Moon edhai suthi varudhu?", 1.0),
+                ("overlay-lesson", "Tanglish", "module-1-step-1", "Boomi Sun-ai suthi varudhu.", "Boomi oda orbit.", "Boomi edhai suthi varudhu?", 1.0),
+            ],
+        )
     original = [{
-        "id": "step-1",
-        "spoken_text": "Leaves use sunlight to make food.",
-        "caption_text": "How leaves make food.",
-        "source_chunk_ids": ["chunk-12"],
-        "interactive_lesson": {"title": "Photosynthesis", "steps": [{"label": "Sunlight"}]},
+        "id": "module-1-step-1",
+        "spoken_text": "Earth revolves around the Sun.",
+        "caption_text": "Earth's orbit",
+        "source_chunk_ids": ["source-42"],
+        "visual_action": {"type": "reveal", "target": "earth-orbit", "value": "orbit"},
+        "interactive_lesson": {"title": "Orbit", "steps": [{"label": "Earth"}]},
+        "checkpoint": "What does Earth orbit?",
     }]
-    translated = curriculum._translate_approved_segments(original, "Tanglish")
-    assert translated[0]["spoken_text"].startswith("Ippo leaf")
-    assert translated[0]["caption_text"] == "Leaf food make pannum."
-    assert translated[0]["source_chunk_ids"] == ["chunk-12"]
-    assert translated[0]["interactive_lesson"] == original[0]["interactive_lesson"]
-    assert captured["timeout"] == 25
-    prompt = captured["payload"]["contents"][0]["parts"][0]["text"]
-    assert "natural spoken Tamil-English" in prompt
-    assert "do not return formal English" in prompt
+    localized = curriculum._apply_stored_lesson_language("overlay-lesson", original, "Tanglish")
+    assert localized[0]["spoken_text"] == "Boomi Sun-ai suthi varudhu."
+    assert localized[0]["caption_text"] == "Boomi oda orbit."
+    assert localized[0]["checkpoint"] == "Boomi edhai suthi varudhu?"
+    for key in ("id", "source_chunk_ids", "visual_action", "interactive_lesson"):
+        assert localized[0][key] == original[0][key]
+    assert original[0]["spoken_text"] == "Earth revolves around the Sun."
 
 
-def test_approved_lesson_translation_leaves_english_unchanged(monkeypatch):
-    def unexpected_request(*args, **kwargs):
-        raise AssertionError("English approved lessons should not call translation")
+def test_stored_language_overlay_fails_closed_when_variant_is_incomplete(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "overlay-missing.sqlite3")
+    curriculum.init_db()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id, board, class_level, subject, medium, chapter, topic, status,
+                lesson_json, source_refs_json, model, review_feedback, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("overlay-missing", "CBSE", 6, "Science", "English", "Beyond Earth",
+             "Solar System", "approved", "{}", "[]", "reviewed-synthesis", "", 1.0, 1.0),
+        )
+    with pytest.raises(curriculum.HTTPException) as error:
+        curriculum._apply_stored_lesson_language(
+            "overlay-missing",
+            [{"id": "module-1-step-1", "spoken_text": "Original", "caption_text": "Original"}],
+            "Tamil",
+        )
+    assert error.value.status_code == 409
 
-    monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_request)
-    segments = [{"id": "step-1", "spoken_text": "Hello.", "caption_text": "Hello."}]
-    assert curriculum._translate_approved_segments(segments, "English") is segments
+
+def test_stored_lesson_language_variants_are_saved_without_model_calls(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "stored-languages.sqlite3")
+    monkeypatch.setattr(curriculum, "ADMIN_TOKEN", "test-admin-token")
+    curriculum.init_db()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id, board, class_level, subject, medium, chapter, topic, status,
+                lesson_json, source_refs_json, model, review_feedback, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("science-lesson-1", "CBSE", 6, "Science", "English", "Beyond Earth",
+             "Solar System", "approved", json.dumps({"teaching_sequence": [{"id": "step-1"}]}),
+             "[]", "reviewed-synthesis", "", 1.0, 1.0),
+        )
+    def unexpected_model_call(*args, **kwargs):
+        raise AssertionError("Stored lesson localization must never call a model")
+    monkeypatch.setattr(curriculum.urllib.request, "urlopen", unexpected_model_call)
+    client = TestClient(curriculum.app)
+    tanglish = client.put(
+        "/admin/chapter-lessons/science-lesson-1/languages/Tanglish",
+        headers={"x-admin-token": "test-admin-token"},
+        json={"segments": [{"id": "step-1", "spoken_text": "Boomi Sun-ai suthi varudhu.",
+                           "caption_text": "Boomi Sun-ai suthi varudhu.", "checkpoint_text": "Boomi edhai suthi varudhu?"}]},
+    )
+    assert tanglish.status_code == 200, tanglish.text
+    assert tanglish.json()["segment_count"] == 1
+    tamil = client.put(
+        "/admin/chapter-lessons/science-lesson-1/languages/Tamil",
+        headers={"x-admin-token": "test-admin-token"},
+        json={"segments": [{"id": "step-1", "spoken_text": "பூமி சூரியனைச் சுற்றி வருகிறது.",
+                           "caption_text": "பூமி சூரியனைச் சுற்றி வருகிறது.", "checkpoint_text": "பூமி எதைச் சுற்றி வருகிறது?"}]},
+    )
+    assert tamil.status_code == 200, tamil.text
+    with curriculum.db() as conn:
+        rows = conn.execute(
+            "SELECT language, segment_id, spoken_text FROM chapter_lesson_language_segments ORDER BY language"
+        ).fetchall()
+    assert [(row["language"], row["segment_id"]) for row in rows] == [
+        ("Tamil", "step-1"), ("Tanglish", "step-1")
+    ]
+    assert rows[0]["spoken_text"].startswith("பூமி")
+    assert rows[1]["spoken_text"].startswith("Boomi")
+
+
+def test_stored_lesson_language_rejects_wrong_script(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "stored-language-validation.sqlite3")
+    monkeypatch.setattr(curriculum, "ADMIN_TOKEN", "test-admin-token")
+    curriculum.init_db()
+    with curriculum.db() as conn:
+        conn.execute(
+            """INSERT INTO chapter_lessons
+               (id, board, class_level, subject, medium, chapter, topic, status,
+                lesson_json, source_refs_json, model, review_feedback, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("science-lesson-2", "CBSE", 6, "Science", "English", "Beyond Earth",
+             "Solar System", "approved", "{}", "[]", "reviewed-synthesis", "", 1.0, 1.0),
+        )
+    response = TestClient(curriculum.app).put(
+        "/admin/chapter-lessons/science-lesson-2/languages/Tamil",
+        headers={"x-admin-token": "test-admin-token"},
+        json={"segments": [{"id": "step-1", "spoken_text": "Boomi suttri varudhu.",
+                           "caption_text": "Boomi suttri varudhu."}]},
+    )
+    assert response.status_code == 422
+
+
+def test_non_english_lesson_plan_never_falls_back_to_live_translation(monkeypatch, tmp_path):
+    monkeypatch.setattr(curriculum, "DATABASE_URL", "")
+    monkeypatch.setattr(curriculum, "DB_PATH", tmp_path / "no-live-translation.sqlite3")
+    curriculum.init_db()
+    monkeypatch.setattr(curriculum, "retrieve", lambda payload: (_ for _ in ()).throw(
+        AssertionError("Non-English lesson must not enter the live synthesis fallback")))
+    response = TestClient(curriculum.app).post("/tutor/lesson-plan", json={
+        "board": "CBSE", "class_level": 6, "subject": "Science", "medium": "English",
+        "app_language": "Tanglish", "chapter": "Missing Chapter", "topic": "Missing Topic",
+        "message": "Teach this topic.",
+    })
+    assert response.status_code == 409
+    assert "database-stored" in response.json()["detail"]
+

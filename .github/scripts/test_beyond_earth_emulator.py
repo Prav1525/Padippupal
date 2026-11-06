@@ -199,6 +199,13 @@ try:
         raise RuntimeError("Full topic narration not exposed after scrolling: "+", ".join(missing_text))
     missing_images=[]
     for module,labels in expected_labels.items():
+        # Module 4 is deliberately text-only: its sole legacy mapping is the
+        # rejected blank-paper texture. Check rendered image labels only for
+        # modules that still have quality-approved original assets.
+        if not labels:
+            if module != "module-4":
+                missing_images.append(module + " (unexpectedly has no approved image)")
+            continue
         if not any(label.casefold() in all_labels for label in labels):
             missing_images.append(module)
     if missing_images:

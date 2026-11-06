@@ -284,6 +284,17 @@ def init_db() -> None:
             model TEXT NOT NULL DEFAULT '', review_feedback TEXT NOT NULL DEFAULT '',
             created_at REAL NOT NULL, updated_at REAL NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS chapter_lesson_language_segments (
+            lesson_id TEXT NOT NULL REFERENCES chapter_lessons(id) ON DELETE CASCADE,
+            language TEXT NOT NULL,
+            segment_id TEXT NOT NULL,
+            spoken_text TEXT NOT NULL,
+            caption_text TEXT NOT NULL,
+            updated_at REAL NOT NULL,
+            PRIMARY KEY (lesson_id, language, segment_id)
+        );
+        CREATE INDEX IF NOT EXISTS chapter_lesson_language_lookup
+          ON chapter_lesson_language_segments(lesson_id, language);
             CREATE TABLE IF NOT EXISTS syllabus_synthesis_rounds (
             id TEXT PRIMARY KEY, source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
             board TEXT NOT NULL, class_level INTEGER NOT NULL, subject TEXT NOT NULL,
@@ -2652,6 +2663,9 @@ class ChapterLessonContentUpdateRequest(BaseModel):
     lesson: dict[str, Any]
     feedback: str = Field(default="Content updated; source review required.", max_length=2000)
 
+class StoredLessonLanguageRequest(BaseModel):
+    segments: list[dict[str, Any]] = Field(min_length=1, max_length=80)
+
 
 @app.put("/admin/chapter-lessons/{lesson_id}/content", dependencies=[Depends(require_admin)])
 def update_chapter_lesson_content(
@@ -2806,6 +2820,53 @@ def review_chapter_lesson(lesson_id: str, payload: ChapterLessonReviewRequest) -
         visual_count = len(get_or_create_lesson_visuals(lesson_id, lesson_payload))
     return {"lesson_id":lesson_id,"status":status,"feedback":payload.feedback,"visual_count":visual_count}
 
+
+
+@app.put("/admin/chapter-lessons/{lesson_id}/languages/{language}", dependencies=[Depends(require_admin)])
+def store_chapter_lesson_language(
+    lesson_id: str, language: str, payload: StoredLessonLanguageRequest
+) -> dict[str, Any]:
+    """Store human-reviewed narration text while preserving the approved synthesis structure."""
+    lesson_id = _normalize_detail_id(lesson_id, "lesson_id")
+    language_key = normalize(language).casefold()
+    language_name = {"tanglish": "Tanglish", "tamil": "Tamil"}.get(language_key)
+    if not language_name:
+        raise HTTPException(status_code=422, detail="Only Tanglish and Tamil lesson variants are supported.")
+    ids: list[str] = []
+    normalized: list[tuple[str, str, str]] = []
+    for item in payload.segments:
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=422, detail="Each translated segment must be an object.")
+        segment_id = str(item.get("id") or "").strip()
+        spoken = str(item.get("spoken_text") or "").strip()
+        caption = str(item.get("caption_text") or "").strip()
+        if not segment_id or len(segment_id) > 40 or not re.fullmatch(r"[a-zA-Z0-9_-]+", segment_id):
+            raise HTTPException(status_code=422, detail="Every translated segment needs a valid original segment id.")
+        if not spoken or not caption or len(spoken) > 500 or len(caption) > 500:
+            raise HTTPException(status_code=422, detail="Every translated segment needs spoken text and caption text (max 500 characters each).")
+        if language_name == "Tamil" and not re.search(r"[\\u0B80-\\u0BFF]", spoken):
+            raise HTTPException(status_code=422, detail="Tamil narration must use Tamil script.")
+        if language_name == "Tanglish" and re.search(r"[\\u0B80-\\u0BFF]", spoken):
+            raise HTTPException(status_code=422, detail="Tanglish narration must use Latin letters, not Tamil script.")
+        if segment_id in ids:
+            raise HTTPException(status_code=422, detail="Duplicate segment ids are not allowed.")
+        ids.append(segment_id)
+        normalized.append((segment_id, spoken, caption))
+    with db() as conn:
+        lesson_row = conn.execute("SELECT status FROM chapter_lessons WHERE id=?", (lesson_id,)).fetchone()
+        if not lesson_row or str(lesson_row["status"]).lower() != "approved":
+            raise HTTPException(status_code=404, detail="Approved synthesis lesson not found.")
+        conn.execute("DELETE FROM chapter_lesson_language_segments WHERE lesson_id=? AND language=?",
+                     (lesson_id, language_name))
+        now = time.time()
+        for segment_id, spoken, caption in normalized:
+            conn.execute(
+                """INSERT INTO chapter_lesson_language_segments
+                   (lesson_id, language, segment_id, spoken_text, caption_text, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (lesson_id, language_name, segment_id, spoken, caption, now),
+            )
+    return {"lesson_id": lesson_id, "language": language_name, "segment_count": len(normalized), "stored": True}
 
 @app.get("/chapter-lessons/approved")
 def get_approved_chapter_lesson(board: str, class_level: int, subject: str, medium: str, chapter: str) -> dict[str, Any]:
@@ -3209,7 +3270,29 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             # because topic gates are deliberately tied to the approved source vocabulary.
             if (segments and _lesson_segments_match_topic(payload.topic, segments)
                     and _lesson_segments_are_substantive(segments)):
-                segments = _translate_approved_segments(segments, payload.app_language)
+                selected_language = normalize(payload.app_language or "English")
+                if selected_language.casefold() not in {"english", "en"}:
+                    language_name = {"tanglish": "Tanglish", "tamil": "Tamil"}.get(selected_language.casefold())
+                    if not language_name:
+                        raise HTTPException(status_code=422, detail="Unsupported lesson language.")
+                    with db() as conn:
+                        language_rows = conn.execute(
+                            """SELECT segment_id, spoken_text, caption_text
+                               FROM chapter_lesson_language_segments
+                               WHERE lesson_id=? AND language=?""",
+                            (str(approved["id"]), language_name),
+                        ).fetchall()
+                    language_map = {str(item["segment_id"]): item for item in language_rows}
+                    if not segments or set(language_map) != {str(item["id"]) for item in segments}:
+                        raise HTTPException(status_code=409, detail=f"{language_name} content is not yet reviewed and stored for this lesson.")
+                    localized_segments = []
+                    for original in segments:
+                        localized = dict(original)
+                        translated = language_map[str(original["id"])]
+                        localized["spoken_text"] = str(translated["spoken_text"])
+                        localized["caption_text"] = str(translated["caption_text"])
+                        localized_segments.append(localized)
+                    segments = localized_segments
                 return {"lesson_id": str(approved["id"]), "segments": segments,
                         "grounded": True, "sources": refs, "language": payload.app_language,
                         "subject": subject, "provider": "approved_chapter_lesson",
@@ -3223,6 +3306,9 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
             if segments:
                 logger.warning("Approved lesson content does not match selected topic=%s lesson_id=%s; rejecting stored sequence",
                                payload.topic, approved["id"])
+
+    if normalize(payload.app_language or "English").casefold() not in {"english", "en"}:
+        raise HTTPException(status_code=409, detail="This language requires reviewed, database-stored lesson content; live translation is disabled.")
 
     # Retrieval relevance must come from the selected curriculum target, not the
     # student's long teacher-style instruction prompt. The prompt is for generation.

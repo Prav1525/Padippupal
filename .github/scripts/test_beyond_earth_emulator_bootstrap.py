@@ -14,14 +14,20 @@ TUTOR = ROOT / "app/src/main/java/com/padippupal/app/TutorScreen.kt"
 
 
 class BeyondEarthEmulatorBootstrapTests(unittest.TestCase):
-    def test_ui_acceptance_uses_hypervisor_backed_macos_runner(self):
+    def test_ui_acceptance_requires_linux_kvm_and_separate_hosted_validation(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("runs-on: macos-15-intel", workflow)
-        self.assertIn("reactivecircus/android-emulator-runner@v2", workflow)
-        self.assertIn("api-level: 35", workflow)
-        self.assertIn("arch: x86_64", workflow)
-        self.assertIn("script: python3 .github/scripts/test_beyond_earth_emulator.py", workflow)
-        self.assertNotIn("runs-on: ubuntu-latest", workflow)
+        self.assertIn("validate-and-build:", workflow)
+        self.assertIn("runs-on: ubuntu-latest", workflow)
+        ui_job = workflow.split("  beyond-earth-emulator:", 1)[1]
+        self.assertIn("needs: validate-and-build", ui_job)
+        self.assertIn("runs-on: [self-hosted, linux, x64, kvm]", ui_job)
+        self.assertIn("reactivecircus/android-emulator-runner@v2", ui_job)
+        self.assertIn("api-level: 35", ui_job)
+        self.assertIn("arch: x86_64", ui_job)
+        self.assertIn("-gpu host", ui_job)
+        self.assertIn("script: python3 .github/scripts/test_beyond_earth_emulator.py", ui_job)
+        self.assertNotIn("macos-", workflow)
+        self.assertNotIn("swiftshader", ui_job)
 
     def test_visual_acceptance_does_not_depend_on_device_tts(self):
         tutor = TUTOR.read_text(encoding="utf-8")

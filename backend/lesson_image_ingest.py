@@ -39,8 +39,9 @@ def is_decorative_warm_texture(payload: bytes) -> bool:
     """
     try:
         pix = fitz.Pixmap(payload)
-        if pix.n not in (3, 4):
-            pix = fitz.Pixmap(fitz.csRGB, pix)
+        # Embedded PDF JPEGs are frequently CMYK (four channels); convert every
+        # decoded source to RGB before applying channel-based quality checks.
+        pix = fitz.Pixmap(fitz.csRGB, pix)
         samples = pix.samples
         channels = pix.n
         count = len(samples) // channels

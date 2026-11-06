@@ -618,3 +618,16 @@ Use this format:
 - **Regression coverage:** Added JVM unit tests for all images in a module, the union of step/module matches, duplicate removal, and unmapped modules.
 - **Validation status:** Android APK build and emulator smoke workflow are running for PR #168. The investigation-guidance gate initially failed because this ledger entry was missing; the entry is now added and the gate will be rechecked. The emulator smoke fixture is not yet a Beyond Earth production-image screenshot, so live visual confirmation remains separate.
 - **Production safety:** No production database writes, PR merge, or deployment performed.
+
+### 2026-11-06 — Beyond Earth continuous inline image layout and CI gate diagnosis
+- **Branch / commit:** `ui/beyond-earth-continuous-inline-images`; tested head `d6afbfdfb51f85d59d60c207585d636ae4af04da`.
+- **Test command or workflow URL:** Investigation Guidance Gate, run [42175830748](https://github.com/Prav1525/Padippupal/actions/runs/42175830748), job 127753951893.
+- **Result:** **BLOCKED** before Android checks.
+- **Exact failure:** `validate_investigation_ledger.py`: code/config changed but `TEST_INVESTIGATION.md` was not updated in this PR.
+- **Evidence:** Job log confirms checkout succeeded and the validator failed before Android JVM tests, APK build, or emulator allocation.
+- **Change made:** This append-only ledger entry records the exact failure and the next verification path; no acceptance criteria are weakened.
+- **Root cause:** **CONFIRMED** — PR #219 changed Kotlin and test code without adding its required dated investigation entry.
+- **What this attempt proves:** CI gate failure is a missing ledger update, not an Android compile or emulator failure.
+- **What remains unverified:** Gate rerun, JVM tests, debug APK build, hosted Ubuntu/KVM API-35 tutor journey, and screenshot inspection. The second-image whitespace is also not yet visually diagnosed.
+- **Difference from previous attempt:** Uses the exact failed gate log rather than guessing at an Android failure.
+- **Next action and why:** Re-run all exact-head checks after this ledger correction; inspect the second image's bitmap margins versus Compose spacing before applying a targeted visual adjustment. No merge, deployment, or production write.

@@ -1160,7 +1160,7 @@ def test_stored_language_overlay_preserves_synthesis_modules_and_visual_metadata
     assert localized[0]["spoken_text"] == "Boomi Sun-ai suthi varudhu."
     assert localized[0]["caption_text"] == "Boomi oda orbit."
     assert localized[0]["checkpoint"] == "Boomi edhai suthi varudhu?"
-    for key in ("id", "source_chunk_ids", "visual_action", "interactive_lesson", "checkpoint"):
+    for key in ("id", "source_chunk_ids", "visual_action", "interactive_lesson"):
         assert localized[0][key] == original[0][key]
     assert original[0]["spoken_text"] == "Earth revolves around the Sun."
 
@@ -1210,7 +1210,7 @@ def test_stored_lesson_language_variants_are_saved_without_model_calls(monkeypat
         "/admin/chapter-lessons/science-lesson-1/languages/Tanglish",
         headers={"x-admin-token": "test-admin-token"},
         json={"segments": [{"id": "step-1", "spoken_text": "Boomi Sun-ai suthi varudhu.",
-                           "caption_text": "Boomi Sun-ai suthi varudhu."}]},
+                           "caption_text": "Boomi Sun-ai suthi varudhu.", "checkpoint_text": "Boomi edhai suthi varudhu?"}]},
     )
     assert tanglish.status_code == 200, tanglish.text
     assert tanglish.json()["segment_count"] == 1

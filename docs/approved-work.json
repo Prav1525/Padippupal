@@ -25,6 +25,33 @@
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "CURATED-BEYOND-EARTH-IMAGE-URL-INGESTION",
+      "status": "APPROVED",
+      "approved_by": "Founder request in ChatGPT conversation on 2026-11-07 to implement automatic curated web-image ingestion into production DB; merge/deploy approval is conditional on required checks passing.",
+      "scope": [
+        "Implement secure server-side fetching of curator-reviewed direct image URLs for the approved Beyond Earth lesson.",
+        "Retain source URL, creator, reuse licence and attribution with image bytes in existing PostgreSQL BYTEA image tables.",
+        "Validate allowed source hosts, HTTPS, redirects, public DNS answers, response size, MIME and image signatures.",
+        "Validate approved lesson and exact teaching-step mappings; store assets pending review.",
+        "Add regression tests and evidence-led PR changes."
+      ],
+      "non_goals": [
+        "Modify synthesis lesson text or teaching sequence.",
+        "Automatically mark unreviewed images ready or learner-visible.",
+        "Fetch arbitrary user-supplied hosts or bypass source licensing.",
+        "Merge, deploy, or write production data before the conditional release gates pass."
+      ],
+      "acceptance_criteria": [
+        "Backend URL-ingestion route fetches images server-side without ZIP/manual local upload.",
+        "SSRF, redirect, size, MIME, licence/provenance and lesson/step validation are covered by tests.",
+        "Exact-head required CI checks pass.",
+        "Production deployment and DB ingestion are separately verified before claiming completion.",
+        "Learner-facing visibility remains gated by review and is verified only after approval."
+      ],
+      "risk": "high",
+      "approval_expires": "Until revoked by founder"
     }
   ]
 }

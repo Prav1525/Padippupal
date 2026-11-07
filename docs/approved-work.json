@@ -39,7 +39,8 @@
         "Add a fixed, founder-approved NASA Space Place manifest and a Render startup worker so the initial batch fetches automatically without an admin ZIP or API trigger.",
         "Use a PostgreSQL advisory lock and preserve already-reviewed ready assets on idempotent retries.",
         "Disable the existing Gemini auto-generation startup trigger for this Beyond Earth rollout to avoid duplicate generation and Gemini quota use; retain the Gemini admin router.",
-        "Require the exact approved CBSE Class 6 Science lesson profile and enforce module-N to step_N mapping before committing images."
+        "Require the exact approved CBSE Class 6 Science lesson profile and enforce module-N to step_N mapping before committing images.",
+        "When a curated replacement is approved, supersede only explicitly named ready assets on the exact same teaching step, in the same database transaction."
       ],
       "non_goals": [
         "Modify synthesis lesson text or teaching sequence.",
@@ -58,7 +59,8 @@
         "The approved manifest is fetched automatically on production startup without a user API call or ZIP upload.",
         "Repeated startup does not downgrade unchanged ready assets.",
         "Lesson profile and every module-to-step mapping are validated against the approved lesson.",
-        "The startup worker runs only against PostgreSQL-backed production deployments."
+        "The startup worker runs only against PostgreSQL-backed production deployments.",
+        "Replacement approval atomically marks the new asset ready and only its validated same-step targets superseded."
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"

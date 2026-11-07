@@ -806,3 +806,11 @@ Use this format:
 - **Change:** Corrected the star-size diagram creator attribution to NASA Space Place (the image itself has no separate ESA/NASA credit on the source page; ESA/NASA credit applies to the separate Sun photograph). The worker now starts only when \`DATABASE_URL\` is explicitly a PostgreSQL URL, not merely any non-empty database setting.
 - **Implementation commits:** manifest attribution \`35d2fb916749cf7c3da0e3a6f6ee464a83fca1bb\`; PostgreSQL-only worker guard \`4664fc340d5398376eac82e538843e28e756a7a7\`.
 - **Verification:** Exact-head CI pending. Previous head passed 120 backend tests.
+
+
+### 2026-11-07 — Supersede only verified blank placeholders after approval
+- **Production evidence:** The live \`lesson_image_assets_status_check\` constraint permits only \`pending\`, \`uploaded\`, \`ready\`, and \`failed\`; it has no semantic \`superseded\` state. Blindly changing a placeholder to an invented status would fail.
+- **Change:** Added the explicit \`superseded\` status through an idempotent PostgreSQL constraint migration and added \`supersedes_asset_ids_json\` metadata. The curated manifest identifies exact same-step replacement targets only: step 2 replaces \`beyond-earth-fig-04\` and \`beyond-earth-fig-06\`; step 4 replaces \`beyond-earth-fig-09\`; step 5 replaces \`beyond-earth-fig-10\`; step 6 replaces \`beyond-earth-fig-13\`.
+- **Safety:** Ingestion validates each target belongs to the same approved lesson, is currently \`ready\`, and has exactly the same teaching-step mapping. The existing admin approval endpoint rechecks those conditions and only then marks the new image \`ready\` and the named old assets \`superseded\` in the same transaction. If validation fails, neither status change commits.
+- **Implementation commits:** metadata and validation \`41b81a3d82cd26e95e53846c2ed804cae5a5c9cb\`; manifest replacement targets \`03f47a546360c2eba97b3a53dbbb76fe8578a89e\`; approval workflow \`60150dcb0b3c5c65b1726ebebbcc3af102198a8e\`; exact replacement-map test \`872ef21ca49adaed504e81083fe28cb8be871e7b\`.
+- **Verification:** Exact-head CI pending. Production DB remains unchanged by this code change; the migration runs only when the curated ingestion route is executed on the deployed service.

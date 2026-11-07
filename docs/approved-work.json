@@ -37,14 +37,16 @@
         "Validate approved lesson and exact teaching-step mappings; store assets pending review.",
         "Add regression tests and evidence-led PR changes.",
         "Add a fixed, founder-approved NASA Space Place manifest and a Render startup worker so the initial batch fetches automatically without an admin ZIP or API trigger.",
-        "Use a PostgreSQL advisory lock and preserve already-reviewed ready assets on idempotent retries."
+        "Use a PostgreSQL advisory lock and preserve already-reviewed ready assets on idempotent retries.",
+        "Disable the existing Gemini auto-generation startup trigger for this Beyond Earth rollout to avoid duplicate generation and Gemini quota use; retain the Gemini admin router."
       ],
       "non_goals": [
         "Modify synthesis lesson text or teaching sequence.",
         "Automatically mark unreviewed images ready or learner-visible.",
         "Fetch arbitrary user-supplied hosts or bypass source licensing.",
         "Merge, deploy, or write production data before the conditional release gates pass.",
-        "Do not automatically publish pending assets; review each fetched image and approve only after visual/provenance verification."
+        "Do not automatically publish pending assets; review each fetched image and approve only after visual/provenance verification.",
+        "Do not run automatic Gemini image generation in parallel with the curated NASA web-image rollout."
       ],
       "acceptance_criteria": [
         "Backend URL-ingestion route fetches images server-side without ZIP/manual local upload.",

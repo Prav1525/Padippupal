@@ -814,3 +814,10 @@ Use this format:
 - **Safety:** Ingestion validates each target belongs to the same approved lesson, is currently \`ready\`, and has exactly the same teaching-step mapping. The existing admin approval endpoint rechecks those conditions and only then marks the new image \`ready\` and the named old assets \`superseded\` in the same transaction. If validation fails, neither status change commits.
 - **Implementation commits:** metadata and validation \`41b81a3d82cd26e95e53846c2ed804cae5a5c9cb\`; manifest replacement targets \`03f47a546360c2eba97b3a53dbbb76fe8578a89e\`; approval workflow \`60150dcb0b3c5c65b1726ebebbcc3af102198a8e\`; exact replacement-map test \`872ef21ca49adaed504e81083fe28cb8be871e7b\`.
 - **Verification:** Exact-head CI pending. Production DB remains unchanged by this code change; the migration runs only when the curated ingestion route is executed on the deployed service.
+
+
+### 2026-11-07 — Make startup retries safe after assets are approved
+- **Change:** The ingestion route now permits a replacement target already marked \`superseded\` only when the corresponding new asset is already \`ready\` with the exact same content fingerprint. This allows Render restarts after approval without failing the batch or downgrading the ready image.
+- **Safety:** A changed fingerprint or a pending replacement cannot pass this retry exception. Existing ready targets still require exact same-step mapping.
+- **Implementation commits:** retry guard \`c0926be24748f212dd29daf69a3e9bae4fa479cd\`; regression tests \`8352bd33aabd82f1793ecf46bb922ec425088b9a\`.
+- **Verification:** Exact-head CI pending.

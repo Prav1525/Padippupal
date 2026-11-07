@@ -735,3 +735,17 @@ Use this format:
 - **Tests added:** Unit tests cover ordered batching into 3, 3, and 2 steps for an eight-step lesson and empty/short sequences. No local test execution is claimed.
 - **CI evidence:** Initial Investigation Guidance Gate run `42256510964` failed only because this investigation record was missing; the job log explicitly reported that requirement. Curriculum Engine Tests, Android UI smoke test, and Android APK build were still in progress at the time of inspection. Recheck exact-head CI after this record commit; do not merge until all required checks pass.
 - **Production status:** PR only. No merge, Render deployment, Gemini API call, production DB write, or learner-visible image approval has occurred.
+
+
+### 2026-11-07 — Add curated web-image ingestion endpoint
+- **Branch / commit:** `feat/curated-web-image-ingestion`; tested head `b031b46c54090cf4560298ed7a3f9a4c7a4681b2`.
+- **Test command or workflow URL:** [Investigation Guidance Gate run 42320929382](https://github.com/Prav1525/Padippupal/actions/runs/42320929382); [Curriculum Engine Tests run 42320929384](https://github.com/Prav1525/Padippupal/actions/runs/42320929384); [Android UI smoke run 42320929389](https://github.com/Prav1525/Padippupal/actions/runs/42320929389); [Android APK run 42320929412](https://github.com/Prav1525/Padippupal/actions/runs/42320929412).
+- **Result:** **FAIL** for the guidance gate; **PASS** for curriculum engine tests and APK build; Android UI smoke test **IN PROGRESS** at inspection time.
+- **Exact failure or assertion:** Guidance job 128245024334 reported: `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence links (logs/screenshots/XML/artifacts):** [Guidance gate job log](https://github.com/Prav1525/Padippupal/actions/runs/42320929382); [curriculum tests](https://github.com/Prav1525/Padippupal/actions/runs/42320929384); [Android smoke](https://github.com/Prav1525/Padippupal/actions/runs/42320929389); [APK build](https://github.com/Prav1525/Padippupal/actions/runs/42320929412).
+- **Change made (files + rationale):** Append this dated, evidence-based record so the repository's append-only investigation gate can validate the code change and its current verification state.
+- **Root cause:** **CONFIRMED** for the guidance failure: the PR changed backend code but omitted the mandatory ledger update. This is a process-gate failure, not an ingestion endpoint runtime failure.
+- **What this attempt proves:** The backend curriculum tests and Android APK build passed on the recorded head; the guidance gate failure is specifically due to the missing ledger entry.
+- **What remains unverified:** A fresh guidance-gate run, completion of the Android UI smoke test, code review of the full route, mergeability, deployment, production ingestion, review/approval, and learner-facing rendering.
+- **Difference from previous attempt:** Records this PR's actual checks and corrects the missing append-only investigation record rather than bypassing the gate.
+- **Next action and why:** Re-run exact-head CI after this ledger commit; inspect all results and the route's production safety before merge or deployment.

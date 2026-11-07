@@ -57,7 +57,8 @@
         "Learner-facing visibility remains gated by review and is verified only after approval.",
         "The approved manifest is fetched automatically on production startup without a user API call or ZIP upload.",
         "Repeated startup does not downgrade unchanged ready assets.",
-        "Lesson profile and every module-to-step mapping are validated against the approved lesson."
+        "Lesson profile and every module-to-step mapping are validated against the approved lesson.",
+        "The startup worker runs only against PostgreSQL-backed production deployments."
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"

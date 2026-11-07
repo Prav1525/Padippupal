@@ -763,3 +763,25 @@ Use this format:
 - **What remains unverified:** Exact-head tests, DNS-rebinding resistance beyond allowlisting/public-answer checks, live NASA image availability/licensing for each curated item, deployment, production DB insertion, pending-to-ready review workflow, and Android learner rendering.
 - **Difference from previous attempt:** Adds the missing URL-fetch capability rather than asking the admin to upload a ZIP.
 - **Next action:** Run the curriculum backend tests and all PR checks on the exact final head; fix any failures, then inspect production deployment/review workflow before requesting or executing release-impacting steps.
+
+
+### 2026-11-07 — Remove manual trigger and curate the first production image batch
+- **Branch:** \`feat/curated-web-image-ingestion\`.
+- **Implementation commits:** startup fetch worker \`75233d053f6e3c166a42307e7c63faf31b18afdb\`; NASA manifest \`3ec912cdd48d5da3eda40065c9b0cd94d935889e\`; Render startup hook \`954f2d6c5f31e67014ae79720e5772faa03f730a\`; preserve-ready idempotency \`64f730895963115abd2498e4bff11b9ed6322432\`; manifest regression test \`882b5de567be24b4b3051cf0a0a30de91d96ae82\`.
+- **Requirement:** No manual ZIP upload or admin API trigger. On production startup, the backend should fetch a founder-approved, fixed manifest directly from the source sites and store bytes in production PostgreSQL.
+- **Result:** **IMPLEMENTED IN CODE — exact-head CI and production verification pending.**
+- **Automatic path:** Added \`backend/curated_beyond_earth_manifest.json\` and a background startup worker. The worker runs only when \`DATABASE_URL\` is configured, checks the exact approved lesson ID, uses a PostgreSQL advisory lock across Render instances, calls the server-side fetch/store path, and logs the result without blocking API startup. No user API token or ZIP is required.
+- **Curated batch:** Five NASA Space Place direct image URLs, mapped to actual lesson steps:
+  - \`step_1\`: Big Dipper star pattern — NASA/Donald R. Pettit.
+  - \`step_2\`: labeled constellations-through-the-year chart — NASA/JPL-Caltech.
+  - \`step_4\`: labeled Sun/other-star size comparison — ESA/NASA.
+  - \`step_5\`: labeled Solar System planets image — credits recorded from NASA Space Place.
+  - \`step_6\`: labeled comet anatomy (nucleus, coma, ion tail, dust tail) — NASA/JPL-Caltech.
+  - No image is added to \`step_3\`, \`step_7\`, or \`step_8\` by this batch because existing relevant visuals are retained or the module does not need a new visual.
+- **Reuse metadata:** Each manifest record includes the direct source URL, creator/credit, Public Domain designation under NASA's published media-use guidance, and source-page attribution. Source pages: \`https://spaceplace.nasa.gov/constellations/en/\`, \`https://spaceplace.nasa.gov/sun-compare/en/\`, \`https://spaceplace.nasa.gov/gallery-solar-system/en/\`, and \`https://spaceplace.nasa.gov/comets/en/\`. NASA's published policy says NASA content is generally not subject to U.S. copyright, but third-party copyrighted content identified on a NASA page is not automatically cleared by NASA's use of it.
+- **Existing production asset audit:** Read-only inspection found 19 ready assets. Visual inspection confirmed blank parchment placeholders for \`beyond-earth-fig-06\`, \`beyond-earth-fig-09\`, \`beyond-earth-fig-10\`, and \`beyond-earth-fig-13\`; some other images are unrelated or duplicated. These must be reviewed and selectively superseded only after replacement assets are fetched and verified. Existing useful images should remain.
+- **Idempotency:** Repeated startup runs preserve \`ready\` when the same asset fingerprint is re-fetched; changed bytes return to \`pending\` review.
+- **Visibility:** New assets are stored \`pending\`. The existing admin approval endpoint \`POST /admin/visuals/{asset_id}/approve\` can promote individually reviewed images. No automatic publish of unreviewed images.
+- **Tests added:** manifest scope/mapping assertions plus HTTPS host, DNS, and JPEG/PNG/WebP signature tests. Exact-head CI pending.
+- **What remains unverified:** exact-head CI, live startup worker execution, remote source fetch response headers/bytes from Render, production BYTEA insert, visual inspection of fetched bytes, review/ready transition, and Android learner screen.
+- **Next action:** Finish exact-head CI; merge/deploy only when all required checks pass; verify the worker's DB result; inspect fetched assets; approve only the verified curated images and hide only confirmed placeholders; then capture actual tutor UI evidence.

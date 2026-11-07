@@ -53,6 +53,8 @@ class CuratedWebImageUrlTests(unittest.TestCase):
                 self.assertTrue(item["creator"])
                 self.assertTrue(item["attribution"])
                 self.assertTrue(item["alt_text"])
+                step_number = item["step_ids"][0].split("_", 1)[1]
+                self.assertEqual(item["module_key"], f"module-{step_number}")
 
     def test_sniffs_supported_image_signatures(self):
         self.assertEqual(sniff_image_type(b"\xff\xd8\xff" + b"data"), "image/jpeg")

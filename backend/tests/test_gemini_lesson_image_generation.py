@@ -74,3 +74,22 @@ def test_step_id_batches_preserves_order_and_caps_requests_at_three():
 def test_step_id_batches_handles_empty_and_short_sequences():
     assert generator._step_id_batches([]) == []
     assert generator._step_id_batches(["step_1"]) == [["step_1"]]
+
+
+
+def test_quota_exhaustion_is_detected_without_retrying_other_503_errors():
+    assert generator._is_quota_exhausted(
+        HTTPException(status_code=503, detail="Gemini image generation quota is temporarily exhausted.")
+    )
+    assert not generator._is_quota_exhausted(
+        HTTPException(status_code=503, detail="Gemini image generation is not configured on the backend.")
+    )
+    assert not generator._is_quota_exhausted(RuntimeError("quota"))
+
+
+def test_quota_retry_delay_uses_bounded_exponential_backoff():
+    assert [generator._quota_retry_delay(i) for i in range(1, 8)] == [
+        900, 1800, 3600, 7200, 14400, 21600, 21600
+    ]
+    with pytest.raises(ValueError):
+        generator._quota_retry_delay(0)

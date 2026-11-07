@@ -236,6 +236,22 @@ def sniff_image_type(payload: bytes) -> str | None:
     return None
 
 
+
+
+def replacement_target_status_is_valid(
+    old_status: str,
+    current_status: str | None,
+    existing_fingerprint: str | None,
+    incoming_fingerprint: str,
+) -> bool:
+    """Permit retry after approval only when the unchanged replacement is already ready."""
+    return old_status == "ready" or (
+        old_status == "superseded"
+        and current_status == "ready"
+        and existing_fingerprint == incoming_fingerprint
+    )
+
+
 def ensure_superseded_status(conn) -> None:
     """Extend the existing status constraint for explicitly reviewed replacements."""
     row = conn.execute(
@@ -393,6 +409,10 @@ async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
                 raise HTTPException(status_code=422, detail="An existing image cannot be superseded by multiple replacements.")
             superseded_ids_seen.update(old_ids)
             if old_ids:
+                existing_asset = conn.execute(
+                    "SELECT status, content_fingerprint FROM lesson_image_assets WHERE id=%s AND lesson_id=%s",
+                    (item["id"], lesson_id),
+                ).fetchone()
                 old_rows = conn.execute(
                     "SELECT id, step_ids_json, status FROM lesson_image_assets WHERE lesson_id=%s AND id = ANY(%s)",
                     (lesson_id, old_ids),
@@ -401,8 +421,13 @@ async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
                     raise HTTPException(status_code=422, detail="A replacement target is not part of this lesson.")
                 for old_row in old_rows:
                     old_steps = json.loads(old_row["step_ids_json"] or "[]")
-                    if old_row["status"] != "ready" or old_steps != item["step_ids"]:
-                        raise HTTPException(status_code=422, detail="Only ready images mapped to the same teaching step can be superseded.")
+                    if old_steps != item["step_ids"] or not replacement_target_status_is_valid(
+                        old_row["status"],
+                        existing_asset["status"] if existing_asset else None,
+                        existing_asset["content_fingerprint"] if existing_asset else None,
+                        item["sha256"],
+                    ):
+                        raise HTTPException(status_code=422, detail="Only ready same-step images, or previously superseded targets for an unchanged ready replacement, are accepted.")
 
         ensure_blob_table(conn)
         conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_url TEXT")

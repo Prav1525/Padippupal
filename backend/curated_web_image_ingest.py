@@ -5,11 +5,15 @@ are stored as pending and cannot be served to learners until an admin approves.
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import logging
+import os
 import ipaddress
 import json
 import re
 import socket
+import threading
 from io import BytesIO
 from urllib.parse import urljoin, urlsplit
 
@@ -131,7 +135,8 @@ async def ingest_curated_web_images(
                    ON CONFLICT (id) DO UPDATE SET
                     lesson_id=EXCLUDED.lesson_id,module_key=EXCLUDED.module_key,title=EXCLUDED.title,
                     step_ids_json=EXCLUDED.step_ids_json,object_key=EXCLUDED.object_key,
-                    content_type=EXCLUDED.content_type,alt_text=EXCLUDED.alt_text,status='pending',
+                    content_type=EXCLUDED.content_type,alt_text=EXCLUDED.alt_text,
+                    status=CASE WHEN lesson_image_assets.status='ready' AND lesson_image_assets.content_fingerprint=EXCLUDED.content_fingerprint THEN 'ready' ELSE 'pending' END,
                     content_fingerprint=EXCLUDED.content_fingerprint,source_url=EXCLUDED.source_url,
                     source_creator=EXCLUDED.source_creator,source_license=EXCLUDED.source_license,
                     source_attribution=EXCLUDED.source_attribution,updated_at=NOW()""",
@@ -390,3 +395,57 @@ async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
         raise HTTPException(status_code=500, detail=f"Curated image ingestion failed ({type(exc).__name__}).") from exc
     finally:
         conn.close()
+
+
+# Production startup ingestion for the one founder-approved, reviewed manifest.
+# This removes the admin ZIP/API-trigger step. A PostgreSQL advisory lock prevents
+# multiple Render instances from fetching/storing the same batch concurrently.
+_AUTO_CURATED_LESSON_ID = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
+_AUTO_CURATED_LOCK_KEY = (7142026, 7)
+_auto_curated_thread: threading.Thread | None = None
+_auto_curated_logger = logging.getLogger("padippupal.curated_web_image_ingest")
+
+
+def _run_auto_curated_ingestion() -> None:
+    lock_conn = None
+    try:
+        # Never run this production content job against a local SQLite database.
+        if not os.getenv("DATABASE_URL", "").strip():
+            _auto_curated_logger.info("Automatic curated image ingestion skipped: DATABASE_URL is not configured")
+            return
+        manifest_path = __import__("pathlib").Path(__file__).with_name("curated_beyond_earth_manifest.json")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest.get("lesson_id") != _AUTO_CURATED_LESSON_ID:
+            raise ValueError("Curated manifest lesson allowlist does not match the approved Beyond Earth lesson.")
+        lock_conn = connect()
+        lock_row = lock_conn.execute(
+            "SELECT pg_try_advisory_lock(%s, %s) AS locked",
+            _AUTO_CURATED_LOCK_KEY,
+        ).fetchone()
+        if not lock_row or not lock_row["locked"]:
+            _auto_curated_logger.info("Automatic curated image ingestion skipped: another instance owns the lock")
+            return
+        result = asyncio.run(ingest_curated_web_image_urls(manifest))
+        _auto_curated_logger.info(
+            "Automatic curated image ingestion finished: lesson_id=%s count=%s status=%s",
+            result.get("lesson_id"), result.get("image_count"), result.get("status"),
+        )
+    except Exception:
+        # Do not prevent API startup; the next process start safely retries.
+        _auto_curated_logger.exception("Automatic curated image ingestion failed; API startup continues")
+    finally:
+        if lock_conn is not None:
+            lock_conn.close()
+
+
+def start_auto_curated_ingestion() -> None:
+    """Start the approved, idempotent Beyond Earth image fetch after API startup."""
+    global _auto_curated_thread
+    if _auto_curated_thread is not None and _auto_curated_thread.is_alive():
+        return
+    _auto_curated_thread = threading.Thread(
+        target=_run_auto_curated_ingestion,
+        name="curated-beyond-earth-image-ingest",
+        daemon=True,
+    )
+    _auto_curated_thread.start()

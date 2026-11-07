@@ -28,7 +28,7 @@ from lesson_visuals import build_visual_records
 from textbook_visual_refs import describe_pdf_visual_references
 from lesson_image_ingest import router as lesson_image_ingest_router
 from gemini_lesson_image_generation import router as gemini_lesson_image_generation_router, start_auto_generation
-from curated_web_image_ingest import router as curated_web_image_ingest_router
+from curated_web_image_ingest import router as curated_web_image_ingest_router, start_auto_curated_ingestion
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -1046,6 +1046,7 @@ def startup() -> None:
     _backfill_approved_lesson_visuals()
     _backfill_approved_topic_synthesis_visuals()
     start_auto_generation()
+    start_auto_curated_ingestion()
     _stop.clear()
     if _worker is None or not _worker.is_alive():
         _worker = threading.Thread(target=worker_loop, name="curriculum-indexer", daemon=True)

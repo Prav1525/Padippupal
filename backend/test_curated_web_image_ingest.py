@@ -47,8 +47,13 @@ class CuratedWebImageUrlTests(unittest.TestCase):
         )
         self.assertEqual(len(manifest["images"]), 5)
         self.assertEqual(
-            {asset_id for item in manifest["images"] for asset_id in item["supersedes_asset_ids"]},
-            {"beyond-earth-fig-04", "beyond-earth-fig-06", "beyond-earth-fig-09", "beyond-earth-fig-10", "beyond-earth-fig-13"},
+            {tuple(item["step_ids"]): set(item["supersedes_asset_ids"]) for item in manifest["images"] if item["supersedes_asset_ids"]},
+            {
+                ("step_2",): {"beyond-earth-fig-04", "beyond-earth-fig-06"},
+                ("step_4",): {"beyond-earth-fig-09"},
+                ("step_5",): {"beyond-earth-fig-10"},
+                ("step_6",): {"beyond-earth-fig-13"},
+            },
         )
         for item in manifest["images"]:
             with self.subTest(asset_id=item["id"]):

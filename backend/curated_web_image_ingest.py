@@ -282,6 +282,7 @@ async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
         raise HTTPException(status_code=422, detail="Manifest needs lesson_id and 1–100 image records.")
 
     prepared, seen = [], set()
+    total_batch_bytes = 0
     for item in records:
         if not isinstance(item, dict):
             raise HTTPException(status_code=422, detail="Each image entry must be an object.")

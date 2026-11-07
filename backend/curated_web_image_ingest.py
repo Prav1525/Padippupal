@@ -412,8 +412,8 @@ async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
                 """INSERT INTO lesson_image_assets
                    (id,lesson_id,module_key,title,step_ids_json,bucket_name,object_key,
                     content_type,alt_text,status,content_fingerprint,source_url,source_creator,
-                    source_license,source_attribution,created_at,updated_at)
-                   VALUES (%s,%s,%s,%s,%s,'postgres-inline-images',%s,%s,%s,'pending',%s,%s,%s,%s,%s,NOW(),NOW())
+                    source_license,source_attribution,supersedes_asset_ids_json,created_at,updated_at)
+                   VALUES (%s,%s,%s,%s,%s,'postgres-inline-images',%s,%s,%s,'pending',%s,%s,%s,%s,%s,%s,NOW(),NOW())
                    ON CONFLICT (id) DO UPDATE SET
                     lesson_id=EXCLUDED.lesson_id,module_key=EXCLUDED.module_key,title=EXCLUDED.title,
                     step_ids_json=EXCLUDED.step_ids_json,object_key=EXCLUDED.object_key,
@@ -421,10 +421,12 @@ async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
                     status=CASE WHEN lesson_image_assets.status='ready' AND lesson_image_assets.content_fingerprint=EXCLUDED.content_fingerprint THEN 'ready' ELSE 'pending' END,
                     content_fingerprint=EXCLUDED.content_fingerprint,source_url=EXCLUDED.source_url,
                     source_creator=EXCLUDED.source_creator,source_license=EXCLUDED.source_license,
-                    source_attribution=EXCLUDED.source_attribution,updated_at=NOW()""",
+                    source_attribution=EXCLUDED.source_attribution,
+                    supersedes_asset_ids_json=EXCLUDED.supersedes_asset_ids_json,updated_at=NOW()""",
                 (item["id"], lesson_id, item["module_key"], item["title"],
                  json.dumps(item["step_ids"]), object_key, item["content_type"], item["alt_text"],
-                 item["sha256"], item["source_url"], item["creator"], item["license"], item["attribution"]),
+                 item["sha256"], item["source_url"], item["creator"], item["license"], item["attribution"],
+                 json.dumps(item["supersedes_asset_ids"])),
             )
             conn.execute(
                 """INSERT INTO lesson_image_asset_blobs(asset_id,image_bytes,sha256,byte_length)

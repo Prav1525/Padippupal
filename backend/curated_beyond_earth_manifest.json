@@ -12,7 +12,8 @@
       "source_url": "https://spaceplace.nasa.gov/constellations/en/big-dipper.en.jpg",
       "creator": "NASA/Donald R. Pettit",
       "license": "Public Domain",
-      "attribution": "NASA/Donald R. Pettit. NASA Space Place, “What Are Constellations?” https://spaceplace.nasa.gov/constellations/en/ ."
+      "attribution": "NASA/Donald R. Pettit. NASA Space Place, “What Are Constellations?” https://spaceplace.nasa.gov/constellations/en/ .",
+      "supersedes_asset_ids": []
     },
     {
       "id": "curated-beyond-earth-step2-constellation-calendar",
@@ -25,7 +26,11 @@
       "source_url": "https://spaceplace.nasa.gov/constellations/en/constellations-chart.en.jpg",
       "creator": "NASA/JPL-Caltech",
       "license": "Public Domain",
-      "attribution": "NASA/JPL-Caltech. NASA Space Place, “What Are Constellations?” https://spaceplace.nasa.gov/constellations/en/ ."
+      "attribution": "NASA/JPL-Caltech. NASA Space Place, “What Are Constellations?” https://spaceplace.nasa.gov/constellations/en/ .",
+      "supersedes_asset_ids": [
+        "beyond-earth-fig-04",
+        "beyond-earth-fig-06"
+      ]
     },
     {
       "id": "curated-beyond-earth-step4-star-size-comparison",
@@ -38,7 +43,10 @@
       "source_url": "https://spaceplace.nasa.gov/sun-compare/en/size_comparison.en.png",
       "creator": "NASA Space Place",
       "license": "Public Domain",
-      "attribution": "NASA Space Place, “How Does Our Sun Compare With Other Stars?” https://spaceplace.nasa.gov/sun-compare/en/ ."
+      "attribution": "NASA Space Place, “How Does Our Sun Compare With Other Stars?” https://spaceplace.nasa.gov/sun-compare/en/ .",
+      "supersedes_asset_ids": [
+        "beyond-earth-fig-09"
+      ]
     },
     {
       "id": "curated-beyond-earth-step5-labelled-planets",
@@ -51,7 +59,10 @@
       "source_url": "https://spaceplace.nasa.gov/gallery-solar-system/en/planets.en.jpg",
       "creator": "NASA/JHUAPL/Carnegie Institution of Washington; USGS Astrogeology Science Center; NASA/GSFC/STScI; NASA/JPL/Space Science Institute",
       "license": "Public Domain",
-      "attribution": "NASA Space Place, “Gallery of NASA Solar System Images.” Individual image credits are listed on the source page: NASA/JHUAPL/Carnegie Institution of Washington, USGS Astrogeology Science Center, NASA/GSFC/STScI, and NASA/JPL/Space Science Institute. https://spaceplace.nasa.gov/gallery-solar-system/en/ ."
+      "attribution": "NASA Space Place, “Gallery of NASA Solar System Images.” Individual image credits are listed on the source page: NASA/JHUAPL/Carnegie Institution of Washington, USGS Astrogeology Science Center, NASA/GSFC/STScI, and NASA/JPL/Space Science Institute. https://spaceplace.nasa.gov/gallery-solar-system/en/ .",
+      "supersedes_asset_ids": [
+        "beyond-earth-fig-10"
+      ]
     },
     {
       "id": "curated-beyond-earth-step6-comet-anatomy",
@@ -64,7 +75,10 @@
       "source_url": "https://spaceplace.nasa.gov/comets/en/anatomy-of-a-comet.en.jpg",
       "creator": "NASA/JPL-Caltech",
       "license": "Public Domain",
-      "attribution": "NASA/JPL-Caltech. NASA Space Place, “What Is a Comet?” https://spaceplace.nasa.gov/comets/en/ ."
+      "attribution": "NASA/JPL-Caltech. NASA Space Place, “What Is a Comet?” https://spaceplace.nasa.gov/comets/en/ .",
+      "supersedes_asset_ids": [
+        "beyond-earth-fig-13"
+      ]
     }
   ]
 }

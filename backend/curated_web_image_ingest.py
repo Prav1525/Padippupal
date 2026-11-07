@@ -6,12 +6,17 @@ are stored as pending and cannot be served to learners until an admin approves.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import re
+import socket
 from io import BytesIO
+from urllib.parse import urljoin, urlsplit
+
+import httpx
 from zipfile import BadZipFile, ZipFile
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 
 from lesson_image_ingest import (
     MAX_IMAGE_BYTES,
@@ -147,6 +152,230 @@ async def ingest_curated_web_images(
         return {"status": "stored_pending_review", "image_count": len(stored),
                 "lesson_id": lesson_id, "images": stored,
                 "storage": "PostgreSQL BYTEA; provenance and licence metadata retained"}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Curated image ingestion failed ({type(exc).__name__}).") from exc
+    finally:
+        conn.close()
+
+
+# Direct URL ingestion: the server fetches curated NASA image URLs, so an admin
+# submits metadata only; no ZIP or local file upload is required.
+ALLOWED_IMAGE_HOSTS = {
+    "images-assets.nasa.gov",
+    "images.nasa.gov",
+    "spaceplace.nasa.gov",
+    "svs.gsfc.nasa.gov",
+    "photojournal.jpl.nasa.gov",
+    "science.nasa.gov",
+    "assets.science.nasa.gov",
+    "nasa.gov",
+    "www.nasa.gov",
+    "jpl.nasa.gov",
+}
+REDIRECT_STATUSES = {301, 302, 303, 307, 308}
+
+
+def validate_source_url(source_url: str) -> str:
+    """Allow HTTPS image URLs on explicitly approved NASA hosts only."""
+    if not isinstance(source_url, str) or len(source_url) > 2000:
+        raise ValueError("source_url must be a URL no longer than 2000 characters.")
+    parsed = urlsplit(source_url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if (
+        parsed.scheme != "https"
+        or not host
+        or host not in ALLOWED_IMAGE_HOSTS
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port not in (None, 443)
+        or parsed.fragment
+    ):
+        raise ValueError("Only HTTPS URLs on approved NASA image hosts are accepted.")
+    # Check every resolved address before making a request. The allowlist and
+    # TLS verification remain in force for the actual HTTP request as well.
+    try:
+        addresses = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    except OSError as exc:
+        raise ValueError("The approved image host could not be resolved.") from exc
+    if not addresses:
+        raise ValueError("The approved image host has no public address.")
+    for address in addresses:
+        ip = ipaddress.ip_address(address[4][0])
+        if not ip.is_global:
+            raise ValueError("The image host resolved to a non-public network address.")
+    return source_url
+
+
+def sniff_image_type(payload: bytes) -> str | None:
+    if payload.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if payload.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if payload[:4] == b"RIFF" and payload[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+async def fetch_approved_image(source_url: str) -> tuple[bytes, str]:
+    """Fetch a bounded image from an allowlisted host, validating every redirect."""
+    current_url = validate_source_url(source_url)
+    timeout = httpx.Timeout(15.0, connect=8.0)
+    async with httpx.AsyncClient(
+        timeout=timeout,
+        follow_redirects=False,
+        trust_env=False,
+        verify=True,
+        headers={"User-Agent": "PadippuPal-LessonImageIngest/1.0"},
+    ) as client:
+        for redirect_count in range(4):
+            # Re-check DNS and policy for each hop; redirects never bypass the allowlist.
+            current_url = validate_source_url(current_url)
+            async with client.stream("GET", current_url) as response:
+                if response.status_code in REDIRECT_STATUSES:
+                    location = response.headers.get("location")
+                    if not location or redirect_count == 3:
+                        raise ValueError("Image source redirected too many times or omitted Location.")
+                    current_url = urljoin(current_url, location)
+                    continue
+                if response.status_code != 200:
+                    raise ValueError(f"Image source returned HTTP {response.status_code}.")
+                declared_type = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+                if declared_type not in MIME_SIGNATURES:
+                    raise ValueError("Image source did not return JPEG, PNG or WebP.")
+                length = response.headers.get("content-length")
+                if length:
+                    try:
+                        if int(length) > MAX_IMAGE_BYTES:
+                            raise ValueError("Image exceeds the 8 MB limit.")
+                    except ValueError as exc:
+                        if "8 MB" in str(exc):
+                            raise
+                        raise ValueError("Image source returned an invalid Content-Length.") from exc
+                chunks, total = [], 0
+                async for chunk in response.aiter_bytes():
+                    total += len(chunk)
+                    if total > MAX_IMAGE_BYTES:
+                        raise ValueError("Image exceeds the 8 MB limit.")
+                    chunks.append(chunk)
+                payload = b"".join(chunks)
+                actual_type = sniff_image_type(payload)
+                if not payload or actual_type != declared_type:
+                    raise ValueError("Downloaded image bytes do not match the declared image type.")
+                return payload, actual_type
+    raise ValueError("Image source redirect handling failed.")
+
+
+@router.post("/admin/lesson-images/ingest-curated-urls", dependencies=[Depends(require_image_admin)])
+async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
+    """Fetch curated NASA image URLs server-side and store them pending review."""
+    if not isinstance(manifest, dict):
+        raise HTTPException(status_code=422, detail="Manifest must be a JSON object.")
+    lesson_id = str(manifest.get("lesson_id", "")).strip()
+    records = manifest.get("images")
+    if not lesson_id or len(lesson_id) > 160 or not isinstance(records, list) or not records or len(records) > 100:
+        raise HTTPException(status_code=422, detail="Manifest needs lesson_id and 1–100 image records.")
+
+    prepared, seen = [], set()
+    for item in records:
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=422, detail="Each image entry must be an object.")
+        asset_id = str(item.get("id", "")).strip()
+        module_key = str(item.get("module_key", "")).strip()
+        step_ids = item.get("step_ids")
+        title = str(item.get("title", "")).strip()
+        alt = str(item.get("alt_text", "")).strip()
+        source_url = str(item.get("source_url", "")).strip()
+        creator = str(item.get("creator", "")).strip()
+        license_name = str(item.get("license", "")).strip()
+        attribution = str(item.get("attribution", "")).strip()
+        if not SAFE_ID.fullmatch(asset_id) or asset_id in seen:
+            raise HTTPException(status_code=422, detail="Invalid or duplicate asset ID.")
+        seen.add(asset_id)
+        if not SAFE_ID.fullmatch(module_key) or not isinstance(step_ids, list) or not step_ids:
+            raise HTTPException(status_code=422, detail="A valid module_key and step_ids are required.")
+        if any(not isinstance(step, str) or not SAFE_ID.fullmatch(step) for step in step_ids):
+            raise HTTPException(status_code=422, detail="Invalid teaching step ID.")
+        if not title or len(title) > 240 or not alt or len(alt) > 1000:
+            raise HTTPException(status_code=422, detail="A concise title and descriptive alt_text are required.")
+        if not creator or len(creator) > 300 or license_name not in ALLOWED_LICENSES or not attribution:
+            raise HTTPException(status_code=422, detail="Creator, supported reuse licence and attribution are required.")
+        try:
+            validate_source_url(source_url)
+            payload, content_type = await fetch_approved_image(source_url)
+        except (ValueError, httpx.HTTPError) as exc:
+            raise HTTPException(status_code=422, detail=f"Image source rejected: {str(exc)[:240]}") from exc
+        prepared.append({
+            "id": asset_id, "module_key": module_key,
+            "step_ids": list(dict.fromkeys(step_ids)), "title": title,
+            "alt_text": alt, "content_type": content_type, "payload": payload,
+            "sha256": hashlib.sha256(payload).hexdigest(), "source_url": source_url,
+            "creator": creator, "license": license_name, "attribution": attribution,
+        })
+
+    conn = connect()
+    try:
+        lesson = conn.execute(
+            "SELECT id, chapter, status, lesson_json FROM chapter_lessons WHERE id=%s",
+            (lesson_id,),
+        ).fetchone()
+        if not lesson or lesson["status"] != "approved":
+            raise HTTPException(status_code=404, detail="Approved lesson not found.")
+        if str(lesson["chapter"]).strip().casefold() != "beyond earth":
+            raise HTTPException(status_code=422, detail="This curated batch is currently restricted to Beyond Earth.")
+        lesson_json = json.loads(lesson["lesson_json"] or "{}")
+        known_steps = {str(step.get("id")) for step in lesson_json.get("teaching_sequence", []) if isinstance(step, dict)}
+        for item in prepared:
+            if not set(item["step_ids"]).issubset(known_steps):
+                raise HTTPException(status_code=422, detail="An image references a step outside this approved lesson.")
+
+        ensure_blob_table(conn)
+        conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_url TEXT")
+        conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_creator TEXT")
+        conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_license TEXT")
+        conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_attribution TEXT")
+        stored = []
+        for item in prepared:
+            object_key = f"curated-web/{lesson_id}/{item['id']}"
+            conn.execute(
+                """INSERT INTO lesson_image_assets
+                   (id,lesson_id,module_key,title,step_ids_json,bucket_name,object_key,
+                    content_type,alt_text,status,content_fingerprint,source_url,source_creator,
+                    source_license,source_attribution,created_at,updated_at)
+                   VALUES (%s,%s,%s,%s,%s,'postgres-inline-images',%s,%s,%s,'pending',%s,%s,%s,%s,%s,NOW(),NOW())
+                   ON CONFLICT (id) DO UPDATE SET
+                    lesson_id=EXCLUDED.lesson_id,module_key=EXCLUDED.module_key,title=EXCLUDED.title,
+                    step_ids_json=EXCLUDED.step_ids_json,object_key=EXCLUDED.object_key,
+                    content_type=EXCLUDED.content_type,alt_text=EXCLUDED.alt_text,status='pending',
+                    content_fingerprint=EXCLUDED.content_fingerprint,source_url=EXCLUDED.source_url,
+                    source_creator=EXCLUDED.source_creator,source_license=EXCLUDED.source_license,
+                    source_attribution=EXCLUDED.source_attribution,updated_at=NOW()""",
+                (item["id"], lesson_id, item["module_key"], item["title"],
+                 json.dumps(item["step_ids"]), object_key, item["content_type"], item["alt_text"],
+                 item["sha256"], item["source_url"], item["creator"], item["license"], item["attribution"]),
+            )
+            conn.execute(
+                """INSERT INTO lesson_image_asset_blobs(asset_id,image_bytes,sha256,byte_length)
+                   VALUES (%s,%s,%s,%s)
+                   ON CONFLICT(asset_id) DO UPDATE SET image_bytes=EXCLUDED.image_bytes,
+                    sha256=EXCLUDED.sha256,byte_length=EXCLUDED.byte_length,created_at=NOW()""",
+                (item["id"], item["payload"], item["sha256"], len(item["payload"])),
+            )
+            stored.append({
+                "asset_id": item["id"], "module_key": item["module_key"],
+                "step_ids": item["step_ids"], "status": "pending",
+                "byte_length": len(item["payload"]), "sha256": item["sha256"],
+                "source_url": item["source_url"], "license": item["license"],
+            })
+        conn.commit()
+        return {
+            "status": "stored_pending_review", "image_count": len(stored),
+            "lesson_id": lesson_id, "images": stored,
+            "storage": "PostgreSQL BYTEA; source provenance retained",
+        }
     except HTTPException:
         conn.rollback()
         raise

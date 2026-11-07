@@ -46,6 +46,10 @@ class CuratedWebImageUrlTests(unittest.TestCase):
             {("step_1",), ("step_2",), ("step_4",), ("step_5",), ("step_6",)},
         )
         self.assertEqual(len(manifest["images"]), 5)
+        self.assertEqual(
+            {asset_id for item in manifest["images"] for asset_id in item["supersedes_asset_ids"]},
+            {"beyond-earth-fig-04", "beyond-earth-fig-06", "beyond-earth-fig-09", "beyond-earth-fig-10", "beyond-earth-fig-13"},
+        )
         for item in manifest["images"]:
             with self.subTest(asset_id=item["id"]):
                 self.assertTrue(item["source_url"].startswith("https://spaceplace.nasa.gov/"))

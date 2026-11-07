@@ -27,7 +27,7 @@ from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_f
 from lesson_visuals import build_visual_records
 from textbook_visual_refs import describe_pdf_visual_references
 from lesson_image_ingest import router as lesson_image_ingest_router
-from gemini_lesson_image_generation import router as gemini_lesson_image_generation_router, start_auto_generation
+from gemini_lesson_image_generation import router as gemini_lesson_image_generation_router
 from curated_web_image_ingest import router as curated_web_image_ingest_router, start_auto_curated_ingestion
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
@@ -1045,7 +1045,8 @@ def startup() -> None:
     init_db()
     _backfill_approved_lesson_visuals()
     _backfill_approved_topic_synthesis_visuals()
-    start_auto_generation()
+    # The approved NASA manifest is the unattended image path for Beyond Earth;
+    # do not also trigger Gemini image generation or consume its quota at startup.
     start_auto_curated_ingestion()
     _stop.clear()
     if _worker is None or not _worker.is_alive():

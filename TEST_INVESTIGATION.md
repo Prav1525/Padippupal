@@ -749,3 +749,17 @@ Use this format:
 - **What remains unverified:** A fresh guidance-gate run, completion of the Android UI smoke test, code review of the full route, mergeability, deployment, production ingestion, review/approval, and learner-facing rendering.
 - **Difference from previous attempt:** Records this PR's actual checks and corrects the missing append-only investigation record rather than bypassing the gate.
 - **Next action and why:** Re-run exact-head CI after this ledger commit; inspect all results and the route's production safety before merge or deployment.
+
+
+### 2026-11-07 — Add server-side curated NASA image URL ingestion
+- **Branch / implementation commit:** \`feat/curated-web-image-ingestion\`; implementation \`2ee0c54262e16ec4d42f6c70489bd6f5564c33f4\`; URL validation tests \`cb4731b0eb90f7548cbd2cc1e358723a1b2957c9\`.
+- **Requirement:** Remove the admin ZIP/local-file handoff. The production backend must fetch reviewed direct image URLs and persist the bytes plus provenance in the existing PostgreSQL BYTEA image tables.
+- **Result:** **IN PROGRESS — exact-head CI not yet run.**
+- **Change made:** Added \`POST /admin/lesson-images/ingest-curated-urls\`, accepting a JSON manifest and fetching JPEG/PNG/WebP server-side. It validates HTTPS, an exact NASA-host allowlist, public DNS answers, every redirect target, TLS, response status, declared MIME, byte signature and an 8 MB per-image cap. It retains creator/licence/attribution/source URL, validates approved Beyond Earth lesson and exact teaching step IDs, and stores bytes/metadata with status \`pending\`.
+- **Regression coverage added:** \`backend/test_curated_web_image_ingest.py\` covers approved HTTPS host acceptance, rejection of HTTP/unapproved/private/credentialed/nonstandard-port URLs, private DNS answers, and image signature sniffing.
+- **Root cause:** **CONFIRMED** for the workflow gap: the prior implementation exposed only multipart ZIP ingestion; there was no server-side URL fetch route, so automatic URL-to-production-DB ingestion was impossible.
+- **Security / product boundary:** Only exact approved NASA hosts are accepted; redirects are revalidated; outbound proxy environment variables are ignored; TLS verification is enabled; downloaded content is size-limited and signature-checked. Assets remain pending review and are not learner-visible.
+- **What this change proves:** The backend now has a code path for URL-based server-side fetching and DB persistence without a ZIP upload, subject to CI and production verification.
+- **What remains unverified:** Exact-head tests, DNS-rebinding resistance beyond allowlisting/public-answer checks, live NASA image availability/licensing for each curated item, deployment, production DB insertion, pending-to-ready review workflow, and Android learner rendering.
+- **Difference from previous attempt:** Adds the missing URL-fetch capability rather than asking the admin to upload a ZIP.
+- **Next action:** Run the curriculum backend tests and all PR checks on the exact final head; fix any failures, then inspect production deployment/review workflow before requesting or executing release-impacting steps.

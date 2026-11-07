@@ -15,6 +15,7 @@ import re
 import socket
 import threading
 from io import BytesIO
+from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
 import httpx
@@ -360,7 +361,8 @@ async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
                    ON CONFLICT (id) DO UPDATE SET
                     lesson_id=EXCLUDED.lesson_id,module_key=EXCLUDED.module_key,title=EXCLUDED.title,
                     step_ids_json=EXCLUDED.step_ids_json,object_key=EXCLUDED.object_key,
-                    content_type=EXCLUDED.content_type,alt_text=EXCLUDED.alt_text,status='pending',
+                    content_type=EXCLUDED.content_type,alt_text=EXCLUDED.alt_text,
+                    status=CASE WHEN lesson_image_assets.status='ready' AND lesson_image_assets.content_fingerprint=EXCLUDED.content_fingerprint THEN 'ready' ELSE 'pending' END,
                     content_fingerprint=EXCLUDED.content_fingerprint,source_url=EXCLUDED.source_url,
                     source_creator=EXCLUDED.source_creator,source_license=EXCLUDED.source_license,
                     source_attribution=EXCLUDED.source_attribution,updated_at=NOW()""",
@@ -413,7 +415,7 @@ def _run_auto_curated_ingestion() -> None:
         if not os.getenv("DATABASE_URL", "").strip():
             _auto_curated_logger.info("Automatic curated image ingestion skipped: DATABASE_URL is not configured")
             return
-        manifest_path = __import__("pathlib").Path(__file__).with_name("curated_beyond_earth_manifest.json")
+        manifest_path = Path(__file__).with_name("curated_beyond_earth_manifest.json")
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         if manifest.get("lesson_id") != _AUTO_CURATED_LESSON_ID:
             raise ValueError("Curated manifest lesson allowlist does not match the approved Beyond Earth lesson.")

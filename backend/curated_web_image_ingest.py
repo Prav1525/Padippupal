@@ -107,18 +107,26 @@ async def ingest_curated_web_images(
     conn = connect()
     try:
         lesson = conn.execute(
-            "SELECT id, chapter, status, lesson_json FROM chapter_lessons WHERE id=%s",
+            "SELECT id, board, class_level, subject, chapter, status, lesson_json FROM chapter_lessons WHERE id=%s",
             (lesson_id,),
         ).fetchone()
         if not lesson or lesson["status"] != "approved":
             raise HTTPException(status_code=404, detail="Approved lesson not found.")
-        if str(lesson["chapter"]).strip().casefold() != "beyond earth":
-            raise HTTPException(status_code=422, detail="This curated batch is currently restricted to Beyond Earth.")
+        if (
+            str(lesson["chapter"]).strip().casefold() != "beyond earth"
+            or str(lesson["subject"]).strip().casefold() != "science"
+            or int(lesson["class_level"]) != 6
+            or str(lesson["board"]).strip().casefold() != "cbse"
+        ):
+            raise HTTPException(status_code=422, detail="This curated batch is restricted to the approved CBSE Class 6 Science Beyond Earth lesson.")
         lesson_json = json.loads(lesson["lesson_json"] or "{}")
         known_steps = {str(s.get("id")) for s in lesson_json.get("teaching_sequence", []) if isinstance(s, dict)}
+        expected_modules = {f"step_{number}": f"module-{number}" for number in range(1, 9)}
         for item in prepared:
             if not set(item["step_ids"]).issubset(known_steps):
                 raise HTTPException(status_code=422, detail="An image references a step outside this approved lesson.")
+            if any(expected_modules.get(step) != item["module_key"] for step in item["step_ids"]):
+                raise HTTPException(status_code=422, detail="Image module_key does not match its teaching step.")
         ensure_blob_table(conn)
         conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_url TEXT")
         conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_creator TEXT")

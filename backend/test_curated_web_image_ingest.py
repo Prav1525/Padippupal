@@ -1,8 +1,8 @@
+import socket
 import unittest
 from unittest.mock import patch
 
 from curated_web_image_ingest import (
-    ALLOWED_IMAGE_HOSTS,
     sniff_image_type,
     validate_source_url,
 )
@@ -14,7 +14,7 @@ class CuratedWebImageUrlTests(unittest.TestCase):
         resolve.return_value = [(None, None, None, None, ("8.8.8.8", 443))]
         url = "https://images-assets.nasa.gov/image/example.jpg"
         self.assertEqual(validate_source_url(url), url)
-        resolve.assert_called_once_with("images-assets.nasa.gov", 443, type=unittest.mock.ANY)
+        resolve.assert_called_once_with("images-assets.nasa.gov", 443, type=socket.SOCK_STREAM)
 
     def test_rejects_non_https_and_unapproved_hosts_before_dns(self):
         for url in (

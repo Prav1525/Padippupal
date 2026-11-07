@@ -59,6 +59,7 @@ async def ingest_curated_web_images(
         raise HTTPException(status_code=422, detail="Manifest needs lesson_id and 1–100 image records.")
     archive_names = {i.filename for i in archive.infolist() if not i.is_dir()}
     prepared, seen = [], set()
+    total_batch_bytes = 0
     for item in records:
         if not isinstance(item, dict):
             raise HTTPException(status_code=422, detail="Each image entry must be an object.")
@@ -177,6 +178,7 @@ ALLOWED_IMAGE_HOSTS = {
     "jpl.nasa.gov",
 }
 REDIRECT_STATUSES = {301, 302, 303, 307, 308}
+MAX_CURATED_BATCH_BYTES = MAX_ARCHIVE_BYTES
 
 
 def validate_source_url(source_url: str) -> str:
@@ -306,6 +308,9 @@ async def ingest_curated_web_image_urls(manifest: dict = Body(...)) -> dict:
         try:
             validate_source_url(source_url)
             payload, content_type = await fetch_approved_image(source_url)
+            total_batch_bytes += len(payload)
+            if total_batch_bytes > MAX_CURATED_BATCH_BYTES:
+                raise ValueError("Curated batch exceeds the 80 MB total limit.")
         except (ValueError, httpx.HTTPError) as exc:
             raise HTTPException(status_code=422, detail=f"Image source rejected: {str(exc)[:240]}") from exc
         prepared.append({

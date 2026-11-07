@@ -785,3 +785,11 @@ Use this format:
 - **Tests added:** manifest scope/mapping assertions plus HTTPS host, DNS, and JPEG/PNG/WebP signature tests. Exact-head CI pending.
 - **What remains unverified:** exact-head CI, live startup worker execution, remote source fetch response headers/bytes from Render, production BYTEA insert, visual inspection of fetched bytes, review/ready transition, and Android learner screen.
 - **Next action:** Finish exact-head CI; merge/deploy only when all required checks pass; verify the worker's DB result; inspect fetched assets; approve only the verified curated images and hide only confirmed placeholders; then capture actual tutor UI evidence.
+
+
+### 2026-11-07 — Prevent duplicate Gemini startup generation
+- **Change:** \`backend/app.py\` no longer calls the existing automatic Gemini image-generation worker during startup for this rollout. The Gemini router remains registered for its existing explicitly invoked endpoints, but the approved NASA web-image manifest is now the sole unattended image-ingestion path for Beyond Earth.
+- **Reason:** The user selected curated web images after Gemini image generation was quota-limited. Running both workers on the same production startup would duplicate work and could consume Gemini quota without helping the approved web-image batch.
+- **Implementation commit:** \`3a63c5eb686287371df75a8f516bb686cc248cad\`.
+- **Verification:** Exact-head CI pending. The previous head passed 120 backend tests; this startup change requires a fresh run.
+- **Safety:** No Gemini credentials are read or used by the curated web worker. No synthesis lesson content is modified.

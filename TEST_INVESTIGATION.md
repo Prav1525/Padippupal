@@ -793,3 +793,10 @@ Use this format:
 - **Implementation commit:** \`3a63c5eb686287371df75a8f516bb686cc248cad\`.
 - **Verification:** Exact-head CI pending. The previous head passed 120 backend tests; this startup change requires a fresh run.
 - **Safety:** No Gemini credentials are read or used by the curated web worker. No synthesis lesson content is modified.
+
+
+### 2026-11-07 — Tighten lesson profile and module-step validation
+- **Change:** The URL-ingestion route now requires the exact approved CBSE Class 6 Science Beyond Earth lesson profile and validates that each \`step_N\` maps to \`module-N\` before committing any fetched bytes. The manifest regression test asserts the same mapping.
+- **Implementation commits:** route guard \`9187957dcf8d106c9c0ec60c276c875627a5fa9a\`; manifest mapping test \`2e7c89fb67102ad8bbd99144af3c1b77e8d04e1d\`.
+- **Reason:** A known lesson ID and valid step IDs alone are not sufficient if an image could be assigned to a mismatched module; constrain both the curriculum profile and mapping.
+- **Verification:** Exact-head CI pending. Previous head had 120 passing backend tests; this validation change requires a fresh run.

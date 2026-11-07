@@ -10,8 +10,8 @@
 - **Regression tests:** \`backend/test_curated_web_image_ingest.py\` tests URL policy and JPEG/PNG/WebP signature validation. Exact-head CI not yet observed.
 - **Safety:** Fetched assets remain \`pending\`, not learner-visible. No synthesis lesson content is changed. Do not auto-promote assets to \`ready\` without a verified review mechanism.
 - **Root cause:** CONFIRMED — prior PR only accepted ZIP upload and could not fetch image URLs itself.
-- **Acceptance:** Exact-head backend/CI checks pass; direct fetch route tests pass; production deploy is confirmed; a small reviewed Beyond Earth batch is fetched and verified in production DB with correct step mappings/provenance; then approval status and learner image endpoint/UI are verified. Generic tutor smoke is not a substitute.
-- **Next:** Poll exact-head checks; inspect review/publish route; inspect curated sources and lesson step mapping; do not merge/deploy/write production DB until checks pass and the explicitly approved release sequence is safe.
+- **Acceptance:** Exact-head backend/CI checks pass; direct fetch and manifest tests pass; production deploy is confirmed; the startup worker fetches the approved five-image batch into production DB with correct step mappings/provenance; inspect bytes and review status; approve only verified images and supersede only confirmed blank/unrelated placeholders; then verify learner image endpoint/UI. Generic tutor smoke is not a substitute.
+- **Next:** Poll exact-head checks; verify the startup worker and NASA sources; then merge/deploy only after required gates pass, inspect production BYTEA assets, selectively approve and replace the confirmed placeholders, and verify the tutor screen. The worker stores new images pending review; it does not publish unreviewed content.
 
 # Active work handoff
 

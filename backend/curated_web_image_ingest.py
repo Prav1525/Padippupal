@@ -420,8 +420,9 @@ def _run_auto_curated_ingestion() -> None:
     lock_conn = None
     try:
         # Never run this production content job against a local SQLite database.
-        if not os.getenv("DATABASE_URL", "").strip():
-            _auto_curated_logger.info("Automatic curated image ingestion skipped: DATABASE_URL is not configured")
+        database_url = os.getenv("DATABASE_URL", "").strip()
+        if not database_url.startswith(("postgres://", "postgresql://")):
+            _auto_curated_logger.info("Automatic curated image ingestion skipped: a PostgreSQL DATABASE_URL is not configured")
             return
         manifest_path = Path(__file__).with_name("curated_beyond_earth_manifest.json")
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

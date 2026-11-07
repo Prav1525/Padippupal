@@ -17,6 +17,8 @@ import urllib.request
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+
+from curated_web_image_ingest import ensure_superseded_status
 from pydantic import BaseModel, Field
 
 from lesson_image_ingest import connect, ensure_blob_table, require_image_admin
@@ -278,8 +280,10 @@ def approve_generated_lesson_image(asset_id: str) -> dict[str, Any]:
     """Make one reviewed image visible to the existing approved-lesson read endpoint."""
     conn = connect()
     try:
+        conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS supersedes_asset_ids_json TEXT")
         row = conn.execute(
-            """SELECT a.id, a.lesson_id, a.status, l.status AS lesson_status
+            """SELECT a.id, a.lesson_id, a.status, a.step_ids_json,
+                      a.supersedes_asset_ids_json, l.status AS lesson_status
                FROM lesson_image_assets a
                JOIN chapter_lessons l ON l.id=a.lesson_id
                JOIN lesson_image_asset_blobs b ON b.asset_id=a.id
@@ -288,12 +292,36 @@ def approve_generated_lesson_image(asset_id: str) -> dict[str, Any]:
         ).fetchone()
         if not row or row["lesson_status"] != "approved" or row["status"] != "pending":
             raise HTTPException(status_code=404, detail="Pending image for an approved lesson not found.")
+        supersedes_ids = json.loads(row["supersedes_asset_ids_json"] or "[]")
+        superseded = []
+        if supersedes_ids:
+            ensure_superseded_status(conn)
+            new_steps = json.loads(row["step_ids_json"] or "[]")
+            old_rows = conn.execute(
+                "SELECT id, step_ids_json, status FROM lesson_image_assets WHERE lesson_id=%s AND id = ANY(%s)",
+                (row["lesson_id"], supersedes_ids),
+            ).fetchall()
+            if len(old_rows) != len(supersedes_ids):
+                raise HTTPException(status_code=409, detail="A replacement target is no longer part of this lesson.")
+            for old_row in old_rows:
+                old_steps = json.loads(old_row["step_ids_json"] or "[]")
+                if old_row["status"] != "ready" or old_steps != new_steps:
+                    raise HTTPException(status_code=409, detail="A replacement target is no longer ready on the same teaching step.")
+            for old_row in old_rows:
+                conn.execute(
+                    "UPDATE lesson_image_assets SET status='superseded', updated_at=NOW() WHERE id=%s AND lesson_id=%s AND status='ready'",
+                    (old_row["id"], row["lesson_id"]),
+                )
+                superseded.append(old_row["id"])
         conn.execute(
             "UPDATE lesson_image_assets SET status='ready', updated_at=NOW() WHERE id=%s",
             (asset_id,),
         )
         conn.commit()
-        return {"asset_id": asset_id, "lesson_id": row["lesson_id"], "status": "ready"}
+        return {
+            "asset_id": asset_id, "lesson_id": row["lesson_id"],
+            "status": "ready", "superseded_asset_ids": superseded,
+        }
     except HTTPException:
         conn.rollback()
         raise

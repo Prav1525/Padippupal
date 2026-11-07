@@ -1,0 +1,84 @@
+{
+  "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+  "images": [
+    {
+      "id": "curated-beyond-earth-step1-big-dipper",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Big Dipper star pattern",
+      "alt_text": "A night-sky photograph shows seven bright stars joined by faint dotted lines to outline the Big Dipper, a pattern people can use to orient themselves.",
+      "source_url": "https://spaceplace.nasa.gov/constellations/en/big-dipper.en.jpg",
+      "creator": "NASA/Donald R. Pettit",
+      "license": "Public Domain",
+      "attribution": "NASA/Donald R. Pettit. NASA Space Place, “What Are Constellations?” https://spaceplace.nasa.gov/constellations/en/ .",
+      "supersedes_asset_ids": []
+    },
+    {
+      "id": "curated-beyond-earth-step2-constellation-calendar",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Constellations through the year",
+      "alt_text": "A labeled diagram places named constellations around Earth's orbit and shows how the night-sky view changes through the year.",
+      "source_url": "https://spaceplace.nasa.gov/constellations/en/constellations-chart.en.jpg",
+      "creator": "NASA/JPL-Caltech",
+      "license": "Public Domain",
+      "attribution": "NASA/JPL-Caltech. NASA Space Place, “What Are Constellations?” https://spaceplace.nasa.gov/constellations/en/ .",
+      "supersedes_asset_ids": [
+        "beyond-earth-fig-04",
+        "beyond-earth-fig-06"
+      ]
+    },
+    {
+      "id": "curated-beyond-earth-step4-star-size-comparison",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Our Sun compared with other stars",
+      "alt_text": "A child-friendly size comparison labels the Sun, Betelgeuse, Pollux, Sirius, Rigel and Aldebaran; the Sun is a star, while some stars are much larger.",
+      "source_url": "https://spaceplace.nasa.gov/sun-compare/en/size_comparison.en.png",
+      "creator": "NASA Space Place",
+      "license": "Public Domain",
+      "attribution": "NASA Space Place, “How Does Our Sun Compare With Other Stars?” https://spaceplace.nasa.gov/sun-compare/en/ .",
+      "supersedes_asset_ids": [
+        "beyond-earth-fig-09"
+      ]
+    },
+    {
+      "id": "curated-beyond-earth-step5-labelled-planets",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "The planets of our Solar System",
+      "alt_text": "A labeled image shows Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune and Pluto in rows; Pluto is shown as a dwarf planet.",
+      "source_url": "https://spaceplace.nasa.gov/gallery-solar-system/en/planets.en.jpg",
+      "creator": "NASA/JHUAPL/Carnegie Institution of Washington; USGS Astrogeology Science Center; NASA/GSFC/STScI; NASA/JPL/Space Science Institute",
+      "license": "Public Domain",
+      "attribution": "NASA Space Place, “Gallery of NASA Solar System Images.” Individual image credits are listed on the source page: NASA/JHUAPL/Carnegie Institution of Washington, USGS Astrogeology Science Center, NASA/GSFC/STScI, and NASA/JPL/Space Science Institute. https://spaceplace.nasa.gov/gallery-solar-system/en/ .",
+      "supersedes_asset_ids": [
+        "beyond-earth-fig-10"
+      ]
+    },
+    {
+      "id": "curated-beyond-earth-step6-comet-anatomy",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Parts of a comet",
+      "alt_text": "A labeled comet diagram points to the nucleus, coma, ion tail, dust tail, solar wind and sunlight.",
+      "source_url": "https://spaceplace.nasa.gov/comets/en/anatomy-of-a-comet.en.jpg",
+      "creator": "NASA/JPL-Caltech",
+      "license": "Public Domain",
+      "attribution": "NASA/JPL-Caltech. NASA Space Place, “What Is a Comet?” https://spaceplace.nasa.gov/comets/en/ .",
+      "supersedes_asset_ids": [
+        "beyond-earth-fig-13"
+      ]
+    }
+  ]
+}

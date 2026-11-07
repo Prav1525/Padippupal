@@ -27,7 +27,8 @@ from syllabus_synthesis import (EvidenceChunk, build_evidence_packet, evidence_f
 from lesson_visuals import build_visual_records
 from textbook_visual_refs import describe_pdf_visual_references
 from lesson_image_ingest import router as lesson_image_ingest_router
-from gemini_lesson_image_generation import router as gemini_lesson_image_generation_router, start_auto_generation
+from gemini_lesson_image_generation import router as gemini_lesson_image_generation_router
+from curated_web_image_ingest import router as curated_web_image_ingest_router, start_auto_curated_ingestion
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 DB_PATH = Path(os.getenv("PADIPPUPAL_DB", "padippupal_curriculum.sqlite3"))
@@ -46,6 +47,7 @@ app = FastAPI(
 app.include_router(exam_master_router)
 app.include_router(lesson_image_ingest_router)
 app.include_router(gemini_lesson_image_generation_router)
+app.include_router(curated_web_image_ingest_router)
 
 # Allow browser-based API clients (including Swagger) to call the HTTPS API.
 # Admin endpoints remain protected by the x-admin-token dependency.
@@ -1043,7 +1045,9 @@ def startup() -> None:
     init_db()
     _backfill_approved_lesson_visuals()
     _backfill_approved_topic_synthesis_visuals()
-    start_auto_generation()
+    # The approved NASA manifest is the unattended image path for Beyond Earth;
+    # do not also trigger Gemini image generation or consume its quota at startup.
+    start_auto_curated_ingestion()
     _stop.clear()
     if _worker is None or not _worker.is_alive():
         _worker = threading.Thread(target=worker_loop, name="curriculum-indexer", daemon=True)

@@ -735,3 +735,89 @@ Use this format:
 - **Tests added:** Unit tests cover ordered batching into 3, 3, and 2 steps for an eight-step lesson and empty/short sequences. No local test execution is claimed.
 - **CI evidence:** Initial Investigation Guidance Gate run `42256510964` failed only because this investigation record was missing; the job log explicitly reported that requirement. Curriculum Engine Tests, Android UI smoke test, and Android APK build were still in progress at the time of inspection. Recheck exact-head CI after this record commit; do not merge until all required checks pass.
 - **Production status:** PR only. No merge, Render deployment, Gemini API call, production DB write, or learner-visible image approval has occurred.
+
+
+### 2026-11-07 — Add curated web-image ingestion endpoint
+- **Branch / commit:** `feat/curated-web-image-ingestion`; tested head `b031b46c54090cf4560298ed7a3f9a4c7a4681b2`.
+- **Test command or workflow URL:** [Investigation Guidance Gate run 42320929382](https://github.com/Prav1525/Padippupal/actions/runs/42320929382); [Curriculum Engine Tests run 42320929384](https://github.com/Prav1525/Padippupal/actions/runs/42320929384); [Android UI smoke run 42320929389](https://github.com/Prav1525/Padippupal/actions/runs/42320929389); [Android APK run 42320929412](https://github.com/Prav1525/Padippupal/actions/runs/42320929412).
+- **Result:** **FAIL** for the guidance gate; **PASS** for curriculum engine tests and APK build; Android UI smoke test **IN PROGRESS** at inspection time.
+- **Exact failure or assertion:** Guidance job 128245024334 reported: `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence links (logs/screenshots/XML/artifacts):** [Guidance gate job log](https://github.com/Prav1525/Padippupal/actions/runs/42320929382); [curriculum tests](https://github.com/Prav1525/Padippupal/actions/runs/42320929384); [Android smoke](https://github.com/Prav1525/Padippupal/actions/runs/42320929389); [APK build](https://github.com/Prav1525/Padippupal/actions/runs/42320929412).
+- **Change made (files + rationale):** Append this dated, evidence-based record so the repository's append-only investigation gate can validate the code change and its current verification state.
+- **Root cause:** **CONFIRMED** for the guidance failure: the PR changed backend code but omitted the mandatory ledger update. This is a process-gate failure, not an ingestion endpoint runtime failure.
+- **What this attempt proves:** The backend curriculum tests and Android APK build passed on the recorded head; the guidance gate failure is specifically due to the missing ledger entry.
+- **What remains unverified:** A fresh guidance-gate run, completion of the Android UI smoke test, code review of the full route, mergeability, deployment, production ingestion, review/approval, and learner-facing rendering.
+- **Difference from previous attempt:** Records this PR's actual checks and corrects the missing append-only investigation record rather than bypassing the gate.
+- **Next action and why:** Re-run exact-head CI after this ledger commit; inspect all results and the route's production safety before merge or deployment.
+
+
+### 2026-11-07 — Add server-side curated NASA image URL ingestion
+- **Branch / implementation commit:** \`feat/curated-web-image-ingestion\`; implementation \`2ee0c54262e16ec4d42f6c70489bd6f5564c33f4\`; URL validation tests \`cb4731b0eb90f7548cbd2cc1e358723a1b2957c9\`.
+- **Requirement:** Remove the admin ZIP/local-file handoff. The production backend must fetch reviewed direct image URLs and persist the bytes plus provenance in the existing PostgreSQL BYTEA image tables.
+- **Result:** **IN PROGRESS — exact-head CI not yet run.**
+- **Change made:** Added \`POST /admin/lesson-images/ingest-curated-urls\`, accepting a JSON manifest and fetching JPEG/PNG/WebP server-side. It validates HTTPS, an exact NASA-host allowlist, public DNS answers, every redirect target, TLS, response status, declared MIME, byte signature and an 8 MB per-image cap. It retains creator/licence/attribution/source URL, validates approved Beyond Earth lesson and exact teaching step IDs, and stores bytes/metadata with status \`pending\`.
+- **Regression coverage added:** \`backend/test_curated_web_image_ingest.py\` covers approved HTTPS host acceptance, rejection of HTTP/unapproved/private/credentialed/nonstandard-port URLs, private DNS answers, and image signature sniffing.
+- **Root cause:** **CONFIRMED** for the workflow gap: the prior implementation exposed only multipart ZIP ingestion; there was no server-side URL fetch route, so automatic URL-to-production-DB ingestion was impossible.
+- **Security / product boundary:** Only exact approved NASA hosts are accepted; redirects are revalidated; outbound proxy environment variables are ignored; TLS verification is enabled; downloaded content is size-limited and signature-checked. Assets remain pending review and are not learner-visible.
+- **What this change proves:** The backend now has a code path for URL-based server-side fetching and DB persistence without a ZIP upload, subject to CI and production verification.
+- **What remains unverified:** Exact-head tests, DNS-rebinding resistance beyond allowlisting/public-answer checks, live NASA image availability/licensing for each curated item, deployment, production DB insertion, pending-to-ready review workflow, and Android learner rendering.
+- **Difference from previous attempt:** Adds the missing URL-fetch capability rather than asking the admin to upload a ZIP.
+- **Next action:** Run the curriculum backend tests and all PR checks on the exact final head; fix any failures, then inspect production deployment/review workflow before requesting or executing release-impacting steps.
+
+
+### 2026-11-07 — Remove manual trigger and curate the first production image batch
+- **Branch:** \`feat/curated-web-image-ingestion\`.
+- **Implementation commits:** startup fetch worker \`75233d053f6e3c166a42307e7c63faf31b18afdb\`; NASA manifest \`3ec912cdd48d5da3eda40065c9b0cd94d935889e\`; Render startup hook \`954f2d6c5f31e67014ae79720e5772faa03f730a\`; preserve-ready idempotency \`64f730895963115abd2498e4bff11b9ed6322432\`; manifest regression test \`882b5de567be24b4b3051cf0a0a30de91d96ae82\`.
+- **Requirement:** No manual ZIP upload or admin API trigger. On production startup, the backend should fetch a founder-approved, fixed manifest directly from the source sites and store bytes in production PostgreSQL.
+- **Result:** **IMPLEMENTED IN CODE — exact-head CI and production verification pending.**
+- **Automatic path:** Added \`backend/curated_beyond_earth_manifest.json\` and a background startup worker. The worker runs only when \`DATABASE_URL\` is configured, checks the exact approved lesson ID, uses a PostgreSQL advisory lock across Render instances, calls the server-side fetch/store path, and logs the result without blocking API startup. No user API token or ZIP is required.
+- **Curated batch:** Five NASA Space Place direct image URLs, mapped to actual lesson steps:
+  - \`step_1\`: Big Dipper star pattern — NASA/Donald R. Pettit.
+  - \`step_2\`: labeled constellations-through-the-year chart — NASA/JPL-Caltech.
+  - \`step_4\`: labeled Sun/other-star size comparison — ESA/NASA.
+  - \`step_5\`: labeled Solar System planets image — credits recorded from NASA Space Place.
+  - \`step_6\`: labeled comet anatomy (nucleus, coma, ion tail, dust tail) — NASA/JPL-Caltech.
+  - No image is added to \`step_3\`, \`step_7\`, or \`step_8\` by this batch because existing relevant visuals are retained or the module does not need a new visual.
+- **Reuse metadata:** Each manifest record includes the direct source URL, creator/credit, Public Domain designation under NASA's published media-use guidance, and source-page attribution. Source pages: \`https://spaceplace.nasa.gov/constellations/en/\`, \`https://spaceplace.nasa.gov/sun-compare/en/\`, \`https://spaceplace.nasa.gov/gallery-solar-system/en/\`, and \`https://spaceplace.nasa.gov/comets/en/\`. NASA's published policy says NASA content is generally not subject to U.S. copyright, but third-party copyrighted content identified on a NASA page is not automatically cleared by NASA's use of it.
+- **Existing production asset audit:** Read-only inspection found 19 ready assets. Visual inspection confirmed blank parchment placeholders for \`beyond-earth-fig-06\`, \`beyond-earth-fig-09\`, \`beyond-earth-fig-10\`, and \`beyond-earth-fig-13\`; some other images are unrelated or duplicated. These must be reviewed and selectively superseded only after replacement assets are fetched and verified. Existing useful images should remain.
+- **Idempotency:** Repeated startup runs preserve \`ready\` when the same asset fingerprint is re-fetched; changed bytes return to \`pending\` review.
+- **Visibility:** New assets are stored \`pending\`. The existing admin approval endpoint \`POST /admin/visuals/{asset_id}/approve\` can promote individually reviewed images. No automatic publish of unreviewed images.
+- **Tests added:** manifest scope/mapping assertions plus HTTPS host, DNS, and JPEG/PNG/WebP signature tests. Exact-head CI pending.
+- **What remains unverified:** exact-head CI, live startup worker execution, remote source fetch response headers/bytes from Render, production BYTEA insert, visual inspection of fetched bytes, review/ready transition, and Android learner screen.
+- **Next action:** Finish exact-head CI; merge/deploy only when all required checks pass; verify the worker's DB result; inspect fetched assets; approve only the verified curated images and hide only confirmed placeholders; then capture actual tutor UI evidence.
+
+
+### 2026-11-07 — Prevent duplicate Gemini startup generation
+- **Change:** \`backend/app.py\` no longer calls the existing automatic Gemini image-generation worker during startup for this rollout. The Gemini router remains registered for its existing explicitly invoked endpoints, but the approved NASA web-image manifest is now the sole unattended image-ingestion path for Beyond Earth.
+- **Reason:** The user selected curated web images after Gemini image generation was quota-limited. Running both workers on the same production startup would duplicate work and could consume Gemini quota without helping the approved web-image batch.
+- **Implementation commit:** \`3a63c5eb686287371df75a8f516bb686cc248cad\`.
+- **Verification:** Exact-head CI pending. The previous head passed 120 backend tests; this startup change requires a fresh run.
+- **Safety:** No Gemini credentials are read or used by the curated web worker. No synthesis lesson content is modified.
+
+
+### 2026-11-07 — Tighten lesson profile and module-step validation
+- **Change:** The URL-ingestion route now requires the exact approved CBSE Class 6 Science Beyond Earth lesson profile and validates that each \`step_N\` maps to \`module-N\` before committing any fetched bytes. The manifest regression test asserts the same mapping.
+- **Implementation commits:** route guard \`9187957dcf8d106c9c0ec60c276c875627a5fa9a\`; manifest mapping test \`2e7c89fb67102ad8bbd99144af3c1b77e8d04e1d\`.
+- **Reason:** A known lesson ID and valid step IDs alone are not sufficient if an image could be assigned to a mismatched module; constrain both the curriculum profile and mapping.
+- **Verification:** Exact-head CI pending. Previous head had 120 passing backend tests; this validation change requires a fresh run.
+
+
+### 2026-11-07 — Final manifest attribution and production-only worker guard
+- **Change:** Corrected the star-size diagram creator attribution to NASA Space Place (the image itself has no separate ESA/NASA credit on the source page; ESA/NASA credit applies to the separate Sun photograph). The worker now starts only when \`DATABASE_URL\` is explicitly a PostgreSQL URL, not merely any non-empty database setting.
+- **Implementation commits:** manifest attribution \`35d2fb916749cf7c3da0e3a6f6ee464a83fca1bb\`; PostgreSQL-only worker guard \`4664fc340d5398376eac82e538843e28e756a7a7\`.
+- **Verification:** Exact-head CI pending. Previous head passed 120 backend tests.
+
+
+### 2026-11-07 — Supersede only verified blank placeholders after approval
+- **Production evidence:** The live \`lesson_image_assets_status_check\` constraint permits only \`pending\`, \`uploaded\`, \`ready\`, and \`failed\`; it has no semantic \`superseded\` state. Blindly changing a placeholder to an invented status would fail.
+- **Change:** Added the explicit \`superseded\` status through an idempotent PostgreSQL constraint migration and added \`supersedes_asset_ids_json\` metadata. The curated manifest identifies exact same-step replacement targets only: step 2 replaces \`beyond-earth-fig-04\` and \`beyond-earth-fig-06\`; step 4 replaces \`beyond-earth-fig-09\`; step 5 replaces \`beyond-earth-fig-10\`; step 6 replaces \`beyond-earth-fig-13\`.
+- **Safety:** Ingestion validates each target belongs to the same approved lesson, is currently \`ready\`, and has exactly the same teaching-step mapping. The existing admin approval endpoint rechecks those conditions and only then marks the new image \`ready\` and the named old assets \`superseded\` in the same transaction. If validation fails, neither status change commits.
+- **Implementation commits:** metadata and validation \`41b81a3d82cd26e95e53846c2ed804cae5a5c9cb\`; manifest replacement targets \`03f47a546360c2eba97b3a53dbbb76fe8578a89e\`; approval workflow \`60150dcb0b3c5c65b1726ebebbcc3af102198a8e\`; exact replacement-map test \`872ef21ca49adaed504e81083fe28cb8be871e7b\`.
+- **Verification:** Exact-head CI pending. Production DB remains unchanged by this code change; the migration runs only when the curated ingestion route is executed on the deployed service.
+
+
+### 2026-11-07 — Make startup retries safe after assets are approved
+- **Change:** The ingestion route now permits a replacement target already marked \`superseded\` only when the corresponding new asset is already \`ready\` with the exact same content fingerprint. This allows Render restarts after approval without failing the batch or downgrading the ready image.
+- **Safety:** A changed fingerprint or a pending replacement cannot pass this retry exception. Existing ready targets still require exact same-step mapping.
+- **Implementation commits:** retry guard \`c0926be24748f212dd29daf69a3e9bae4fa479cd\`; regression tests \`8352bd33aabd82f1793ecf46bb922ec425088b9a\`.
+- **Verification:** Exact-head CI pending.

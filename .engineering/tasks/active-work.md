@@ -1,3 +1,18 @@
+## Current objective — Beyond Earth curated web-image URL ingestion
+
+- **State:** IN PROGRESS — server-side URL ingestion implemented on the existing PR #257 branch; exact-head CI and release verification pending.
+- **Founder request / approval:** User explicitly requested a feasible automatic URL-to-production-DB ingestion path and approved continuing the existing PR #257 merge/deploy flow once required checks pass. No merge, deploy, or production DB write has occurred.
+- **PR:** https://github.com/Prav1525/Padippupal/pull/257
+- **Branch:** \`feat/curated-web-image-ingestion\`
+- **Latest implementation commits:** URL-fetch route \`2ee0c54262e16ec4d42f6c70489bd6f5564c33f4\`; tests \`cb4731b0eb90f7548cbd2cc1e358723a1b2957c9\`; investigation ledger \`2270eb19e79f657263b2e08e5e572414040109af\`.
+- **Requirement:** Admin submits a reviewed JSON manifest containing direct source URLs; the backend fetches image bytes and stores them with source URL, creator, licence and attribution in the existing PostgreSQL BYTEA tables. No ZIP/local file upload.
+- **Implemented:** \`POST /admin/lesson-images/ingest-curated-urls\`; exact NASA hostname allowlist; HTTPS-only; DNS public-address check; every redirect revalidated; TLS verification; environment proxies disabled; response/MIME/signature validation; 8 MB per-image cap; exact approved CBSE Class 6 Science Beyond Earth profile and teaching-step/module mapping validation; pending-review persistence.
+- **Regression tests:** \`backend/test_curated_web_image_ingest.py\` tests URL policy and JPEG/PNG/WebP signature validation. Exact-head CI not yet observed.
+- **Safety:** Fetched assets remain \`pending\`, not learner-visible. No synthesis lesson content is changed. Do not auto-promote assets to \`ready\` without a verified review mechanism.
+- **Root cause:** CONFIRMED — prior PR only accepted ZIP upload and could not fetch image URLs itself.
+- **Acceptance:** Exact-head backend/CI checks pass; direct fetch and manifest tests pass; production deploy is confirmed; the startup worker fetches the approved five-image batch into production DB with correct step mappings/provenance; inspect bytes and review status; approve only verified images and supersede only confirmed blank/unrelated placeholders; then verify learner image endpoint/UI. Generic tutor smoke is not a substitute.
+- **Next:** Poll exact-head checks; verify the startup worker and NASA sources; then merge/deploy only after required gates pass, inspect production BYTEA assets, selectively approve and replace the confirmed placeholders, and verify the tutor screen. The worker stores new images pending review; it does not publish unreviewed content.
+
 # Active work handoff
 
 **Last updated:** 2026-11-03
@@ -11,7 +26,7 @@ This block is the durable, machine-readable repair counter for the active work h
 {"schema_version":1,"max_generations":5,"chains":[]}
 <!-- padippupal-repair-state:end -->
 
-## Main-push Proceed monitoring — current objective
+## Main-push Proceed monitoring — prior objective (preserved handoff)
 
 - **State:** IN PROGRESS — implementation prepared on `fix/main-push-proceed-monitoring`; awaiting exact-head CI.
 - **Root cause:** Confirmed. The five-minute controller was only invoked for PR and manual full-cycle events. Main-push test runs were not coordinated; the `workflow_run` handler only records completed evidence.

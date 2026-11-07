@@ -800,3 +800,9 @@ Use this format:
 - **Implementation commits:** route guard \`9187957dcf8d106c9c0ec60c276c875627a5fa9a\`; manifest mapping test \`2e7c89fb67102ad8bbd99144af3c1b77e8d04e1d\`.
 - **Reason:** A known lesson ID and valid step IDs alone are not sufficient if an image could be assigned to a mismatched module; constrain both the curriculum profile and mapping.
 - **Verification:** Exact-head CI pending. Previous head had 120 passing backend tests; this validation change requires a fresh run.
+
+
+### 2026-11-07 — Final manifest attribution and production-only worker guard
+- **Change:** Corrected the star-size diagram creator attribution to NASA Space Place (the image itself has no separate ESA/NASA credit on the source page; ESA/NASA credit applies to the separate Sun photograph). The worker now starts only when \`DATABASE_URL\` is explicitly a PostgreSQL URL, not merely any non-empty database setting.
+- **Implementation commits:** manifest attribution \`35d2fb916749cf7c3da0e3a6f6ee464a83fca1bb\`; PostgreSQL-only worker guard \`4664fc340d5398376eac82e538843e28e756a7a7\`.
+- **Verification:** Exact-head CI pending. Previous head passed 120 backend tests.

@@ -79,6 +79,13 @@ async def ingest_curated_web_images(
         creator = str(item.get("creator", "")).strip()
         license_name = str(item.get("license", "")).strip()
         attribution = str(item.get("attribution", "")).strip()
+        supersedes_ids = item.get("supersedes_asset_ids", [])
+        if not isinstance(supersedes_ids, list) or len(supersedes_ids) > 20:
+            raise HTTPException(status_code=422, detail="supersedes_asset_ids must be a list of at most 20 asset IDs.")
+        if any(not isinstance(old_id, str) or not SAFE_ID.fullmatch(old_id) or old_id == asset_id for old_id in supersedes_ids):
+            raise HTTPException(status_code=422, detail="Invalid asset ID in supersedes_asset_ids.")
+        if len(set(supersedes_ids)) != len(supersedes_ids):
+            raise HTTPException(status_code=422, detail="Duplicate asset ID in supersedes_asset_ids.")
         if not SAFE_ID.fullmatch(asset_id) or asset_id in seen:
             raise HTTPException(status_code=422, detail="Invalid or duplicate asset ID.")
         seen.add(asset_id)
@@ -102,6 +109,7 @@ async def ingest_curated_web_images(
             "title": title, "alt_text": alt, "content_type": mime, "payload": payload,
             "sha256": hashlib.sha256(payload).hexdigest(), "source_url": source_url,
             "creator": creator, "license": license_name, "attribution": attribution,
+            "supersedes_asset_ids": supersedes_ids,
         })
 
     conn = connect()
@@ -122,16 +130,34 @@ async def ingest_curated_web_images(
         lesson_json = json.loads(lesson["lesson_json"] or "{}")
         known_steps = {str(s.get("id")) for s in lesson_json.get("teaching_sequence", []) if isinstance(s, dict)}
         expected_modules = {f"step_{number}": f"module-{number}" for number in range(1, 9)}
+        superseded_ids_seen = set()
         for item in prepared:
             if not set(item["step_ids"]).issubset(known_steps):
                 raise HTTPException(status_code=422, detail="An image references a step outside this approved lesson.")
             if any(expected_modules.get(step) != item["module_key"] for step in item["step_ids"]):
                 raise HTTPException(status_code=422, detail="Image module_key does not match its teaching step.")
+            old_ids = item["supersedes_asset_ids"]
+            if superseded_ids_seen.intersection(old_ids):
+                raise HTTPException(status_code=422, detail="An existing image cannot be superseded by multiple replacements.")
+            superseded_ids_seen.update(old_ids)
+            if old_ids:
+                old_rows = conn.execute(
+                    "SELECT id, step_ids_json, status FROM lesson_image_assets WHERE lesson_id=%s AND id = ANY(%s)",
+                    (lesson_id, old_ids),
+                ).fetchall()
+                if len(old_rows) != len(old_ids):
+                    raise HTTPException(status_code=422, detail="A replacement target is not part of this lesson.")
+                for old_row in old_rows:
+                    old_steps = json.loads(old_row["step_ids_json"] or "[]")
+                    if old_row["status"] != "ready" or old_steps != item["step_ids"]:
+                        raise HTTPException(status_code=422, detail="Only ready images mapped to the same teaching step can be superseded.")
         ensure_blob_table(conn)
         conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_url TEXT")
         conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_creator TEXT")
         conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_license TEXT")
         conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS source_attribution TEXT")
+        conn.execute("ALTER TABLE lesson_image_assets ADD COLUMN IF NOT EXISTS supersedes_asset_ids_json TEXT")
+        ensure_superseded_status(conn)
         stored = []
         for item in prepared:
             object_key = f"curated-web/{lesson_id}/{item['id']}"
@@ -139,8 +165,8 @@ async def ingest_curated_web_images(
                 """INSERT INTO lesson_image_assets
                    (id,lesson_id,module_key,title,step_ids_json,bucket_name,object_key,
                     content_type,alt_text,status,content_fingerprint,source_url,source_creator,
-                    source_license,source_attribution,created_at,updated_at)
-                   VALUES (%s,%s,%s,%s,%s,'postgres-inline-images',%s,%s,%s,'pending',%s,%s,%s,%s,%s,NOW(),NOW())
+                    source_license,source_attribution,supersedes_asset_ids_json,created_at,updated_at)
+                   VALUES (%s,%s,%s,%s,%s,'postgres-inline-images',%s,%s,%s,'pending',%s,%s,%s,%s,%s,%s,NOW(),NOW())
                    ON CONFLICT (id) DO UPDATE SET
                     lesson_id=EXCLUDED.lesson_id,module_key=EXCLUDED.module_key,title=EXCLUDED.title,
                     step_ids_json=EXCLUDED.step_ids_json,object_key=EXCLUDED.object_key,
@@ -148,10 +174,12 @@ async def ingest_curated_web_images(
                     status=CASE WHEN lesson_image_assets.status='ready' AND lesson_image_assets.content_fingerprint=EXCLUDED.content_fingerprint THEN 'ready' ELSE 'pending' END,
                     content_fingerprint=EXCLUDED.content_fingerprint,source_url=EXCLUDED.source_url,
                     source_creator=EXCLUDED.source_creator,source_license=EXCLUDED.source_license,
-                    source_attribution=EXCLUDED.source_attribution,updated_at=NOW()""",
+                    source_attribution=EXCLUDED.source_attribution,
+                    supersedes_asset_ids_json=EXCLUDED.supersedes_asset_ids_json,updated_at=NOW()""",
                 (item["id"], lesson_id, item["module_key"], item["title"],
                  json.dumps(item["step_ids"]), object_key, item["content_type"], item["alt_text"],
-                 item["sha256"], item["source_url"], item["creator"], item["license"], item["attribution"]),
+                 item["sha256"], item["source_url"], item["creator"], item["license"], item["attribution"],
+                 json.dumps(item["supersedes_asset_ids"])),
             )
             conn.execute(
                 """INSERT INTO lesson_image_asset_blobs(asset_id,image_bytes,sha256,byte_length)
@@ -234,6 +262,26 @@ def sniff_image_type(payload: bytes) -> str | None:
     if payload[:4] == b"RIFF" and payload[8:12] == b"WEBP":
         return "image/webp"
     return None
+
+
+def ensure_superseded_status(conn) -> None:
+    """Allow reviewed replacements to hide only the exact assets they replace."""
+    row = conn.execute(
+        """SELECT pg_get_constraintdef(oid) AS definition
+           FROM pg_constraint
+           WHERE conrelid='lesson_image_assets'::regclass
+             AND conname='lesson_image_assets_status_check'"""
+    ).fetchone()
+    definition = str(row["definition"] or "") if row else ""
+    if "superseded" in definition:
+        return
+    if row:
+        conn.execute("ALTER TABLE lesson_image_assets DROP CONSTRAINT lesson_image_assets_status_check")
+    conn.execute(
+        """ALTER TABLE lesson_image_assets
+           ADD CONSTRAINT lesson_image_assets_status_check
+           CHECK (status IN ('pending','uploaded','ready','failed','superseded'))"""
+    )
 
 
 async def fetch_approved_image(source_url: str) -> tuple[bytes, str]:

@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from curated_web_image_ingest import (
+    replacement_target_status_is_valid,
     sniff_image_type,
     validate_source_url,
 )
@@ -64,6 +65,13 @@ class CuratedWebImageUrlTests(unittest.TestCase):
                 self.assertTrue(item["alt_text"])
                 step_number = item["step_ids"][0].split("_", 1)[1]
                 self.assertEqual(item["module_key"], f"module-{step_number}")
+
+
+    def test_superseded_targets_are_allowed_only_for_unchanged_ready_replacements(self):
+        self.assertTrue(replacement_target_status_is_valid("ready", "pending", None, "new-hash"))
+        self.assertTrue(replacement_target_status_is_valid("superseded", "ready", "same-hash", "same-hash"))
+        self.assertFalse(replacement_target_status_is_valid("superseded", "pending", "same-hash", "same-hash"))
+        self.assertFalse(replacement_target_status_is_valid("superseded", "ready", "old-hash", "new-hash"))
 
     def test_sniffs_supported_image_signatures(self):
         self.assertEqual(sniff_image_type(b"\xff\xd8\xff" + b"data"), "image/jpeg")

@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import threading
+import time
 import urllib.error
 import urllib.request
 from typing import Any
@@ -317,6 +318,30 @@ def _step_id_batches(step_ids: list[str], batch_size: int = MAX_STEPS_PER_REQUES
     return [step_ids[index:index + batch_size] for index in range(0, len(step_ids), batch_size)]
 
 
+AUTO_QUOTA_RETRY_LIMIT = 8
+AUTO_QUOTA_RETRY_BASE_SECONDS = 15 * 60
+AUTO_QUOTA_RETRY_MAX_SECONDS = 6 * 60 * 60
+
+
+def _is_quota_exhausted(exc: Exception) -> bool:
+    """Identify the sanitized provider-quota error emitted for Gemini HTTP 429."""
+    return (
+        isinstance(exc, HTTPException)
+        and exc.status_code == 503
+        and "quota" in str(exc.detail).casefold()
+    )
+
+
+def _quota_retry_delay(retry_number: int) -> int:
+    """Exponential cooldown: 15m, 30m, 1h, 2h, 4h, then capped at 6h."""
+    if retry_number < 1:
+        raise ValueError("retry_number must be at least one")
+    return min(
+        AUTO_QUOTA_RETRY_BASE_SECONDS * (2 ** (retry_number - 1)),
+        AUTO_QUOTA_RETRY_MAX_SECONDS,
+    )
+
+
 def _run_auto_generation() -> None:
     """Generate the allowlisted lesson after startup, with a cross-instance DB lock.
 
@@ -356,30 +381,45 @@ def _run_auto_generation() -> None:
             for step in teaching_sequence
             if isinstance(step, dict) and str(step.get("id", "")).strip()
         ]
-        batches = _step_id_batches(step_ids)
+        # Persist one step per call. The generator writes only after all requested
+        # steps succeed, so keeping auto calls to one step prevents a later 429
+        # from discarding earlier in-memory images from a multi-step batch.
+        batches = [[step_id] for step_id in step_ids]
         _auto_generation_logger.info(
             "Automatic Gemini generation starting: lesson_id=%s steps=%s batches=%s",
             AUTO_GEMINI_LESSON_ID, len(step_ids), len(batches),
         )
         for batch_number, batch in enumerate(batches, start=1):
-            try:
-                result = generate_science_lesson_images(
-                    AUTO_GEMINI_LESSON_ID,
-                    GenerateLessonImagesRequest(step_ids=batch, overwrite=False),
-                )
-                _auto_generation_logger.info(
-                    "Automatic Gemini generation batch complete: lesson_id=%s batch=%s/%s stored=%s skipped=%s",
-                    AUTO_GEMINI_LESSON_ID, batch_number, len(batches),
-                    result.get("stored_count", 0), result.get("skipped_count", 0),
-                )
-            except Exception:
-                # Stop at the first failed batch. A later restart retries safely:
-                # successful assets have deterministic IDs and will be skipped.
-                _auto_generation_logger.exception(
-                    "Automatic Gemini generation batch failed: lesson_id=%s batch=%s/%s",
-                    AUTO_GEMINI_LESSON_ID, batch_number, len(batches),
-                )
-                break
+            quota_retries = 0
+            while True:
+                try:
+                    result = generate_science_lesson_images(
+                        AUTO_GEMINI_LESSON_ID,
+                        GenerateLessonImagesRequest(step_ids=batch, overwrite=False),
+                    )
+                    _auto_generation_logger.info(
+                        "Automatic Gemini generation step complete: lesson_id=%s step=%s stored=%s skipped=%s",
+                        AUTO_GEMINI_LESSON_ID, batch[0],
+                        result.get("stored_count", 0), result.get("skipped_count", 0),
+                    )
+                    break
+                except Exception as exc:
+                    if _is_quota_exhausted(exc) and quota_retries < AUTO_QUOTA_RETRY_LIMIT:
+                        quota_retries += 1
+                        delay = _quota_retry_delay(quota_retries)
+                        _auto_generation_logger.warning(
+                            "Gemini quota exhausted; automatically retrying lesson_id=%s step=%s "
+                            "retry=%s/%s delay_seconds=%s",
+                            AUTO_GEMINI_LESSON_ID, batch[0], quota_retries,
+                            AUTO_QUOTA_RETRY_LIMIT, delay,
+                        )
+                        time.sleep(delay)
+                        continue
+                    _auto_generation_logger.exception(
+                        "Automatic Gemini generation stopped: lesson_id=%s step=%s quota_retries=%s",
+                        AUTO_GEMINI_LESSON_ID, batch[0], quota_retries,
+                    )
+                    return
     except Exception:
         _auto_generation_logger.exception("Automatic Gemini generation worker failed")
     finally:

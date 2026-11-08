@@ -2,16 +2,22 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import os
 import re
+import socket
 from io import BytesIO
 from zipfile import BadZipFile, ZipFile
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, build_opener, HTTPRedirectHandler
+from urllib.parse import urlsplit
 
 import psycopg
 from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import Response
 from psycopg.rows import dict_row
+from pydantic import BaseModel, Field
 
 router = APIRouter(tags=["lesson-image-assets"])
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
@@ -206,5 +212,157 @@ def get_lesson_image(lesson_id: str, asset_id: str) -> Response:
         return Response(content=bytes(row["image_bytes"]), media_type=row["content_type"],
                         headers={"Cache-Control": "public, max-age=86400", "ETag": f'"{row["sha256"]}"',
                                  "X-Content-Type-Options": "nosniff"})
+    finally:
+        conn.close()
+
+
+# URL ingestion is deliberately limited to known public educational image hosts.
+# Redirects are disabled so an allow-listed URL cannot redirect to an internal host.
+URL_IMAGE_HOSTS = {"upload.wikimedia.org", "images.nasa.gov", "hk.space.museum"}
+MAX_REMOTE_IMAGE_BYTES = 8 * 1024 * 1024
+
+
+class RemoteImageInput(BaseModel):
+    image_url: str = Field(min_length=12, max_length=2048)
+    lesson_id: str = Field(min_length=8, max_length=160)
+    module_key: str = Field(min_length=1, max_length=120)
+    step_ids: list[str] = Field(min_length=1, max_length=8)
+    alt_text: str = Field(min_length=5, max_length=500)
+    title: str = Field(default="", max_length=200)
+    source_page_url: str = Field(min_length=12, max_length=2048)
+    license_name: str = Field(min_length=3, max_length=120)
+    license_url: str = Field(min_length=12, max_length=2048)
+    creator: str = Field(min_length=2, max_length=200)
+    attribution: str = Field(min_length=3, max_length=500)
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _validate_public_image_url(value: str) -> str:
+    parsed = urlsplit(value)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise HTTPException(status_code=422, detail="Image URL must be a credential-free HTTPS URL.")
+    host = parsed.hostname.lower().rstrip(".")
+    if host not in URL_IMAGE_HOSTS or parsed.port not in (None, 443):
+        raise HTTPException(status_code=422, detail="Image host is not on the approved source allow-list.")
+    try:
+        addresses = {item[4][0] for item in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)}
+    except OSError as exc:
+        raise HTTPException(status_code=502, detail="Image source DNS lookup failed.") from exc
+    if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
+        raise HTTPException(status_code=422, detail="Image source resolved to a non-public network address.")
+    return value
+
+
+def _fetch_remote_image(url: str) -> tuple[bytes, str]:
+    request = Request(url, headers={"User-Agent": "PadippuPal-LessonImageIngest/1.0", "Accept": "image/png,image/jpeg,image/webp,image/gif"})
+    opener = build_opener(_NoRedirect())
+    try:
+        with opener.open(request, timeout=15) as response:
+            content_type = response.headers.get_content_type().lower()
+            if content_type not in ALLOWED_TYPES:
+                raise HTTPException(status_code=415, detail="Remote source did not return a supported image MIME type.")
+            length = response.headers.get("Content-Length")
+            if length and int(length) > MAX_REMOTE_IMAGE_BYTES:
+                raise HTTPException(status_code=413, detail="Remote image exceeds the 8 MB limit.")
+            payload = response.read(MAX_REMOTE_IMAGE_BYTES + 1)
+    except HTTPError as exc:
+        if 300 <= exc.code < 400:
+            raise HTTPException(status_code=422, detail="Image redirects are not accepted; use the final approved HTTPS image URL.") from exc
+        raise HTTPException(status_code=502, detail=f"Image source returned HTTP {exc.code}.") from exc
+    except (URLError, TimeoutError, OSError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="Could not retrieve the remote image.") from exc
+    if not payload or len(payload) > MAX_REMOTE_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Remote image must be between 1 byte and 8 MB.")
+    signature_ok = (
+        (content_type == "image/jpeg" and payload.startswith(b"\\xff\\xd8\\xff")) or
+        (content_type == "image/png" and payload.startswith(b"\\x89PNG\\r\\n\\x1a\\n")) or
+        (content_type == "image/webp" and payload[:4] == b"RIFF" and payload[8:12] == b"WEBP") or
+        (content_type == "image/gif" and payload[:6] in (b"GIF87a", b"GIF89a"))
+    )
+    if not signature_ok:
+        raise HTTPException(status_code=415, detail="Downloaded bytes do not match the declared image MIME type.")
+    return payload, content_type
+
+
+@router.post("/admin/lesson-images/ingest-url", dependencies=[Depends(require_image_admin)])
+def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
+    """Fetch one allow-listed HTTPS image and store it for review, not student delivery."""
+    image_url = _validate_public_image_url(payload.image_url)
+    for field_name in ("source_page_url", "license_url"):
+        value = getattr(payload, field_name)
+        parsed = urlsplit(value)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+            raise HTTPException(status_code=422, detail=f"{field_name} must be a valid HTTPS URL.")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,120}", payload.module_key):
+        raise HTTPException(status_code=422, detail="Invalid module_key.")
+    if any(not re.fullmatch(r"step_[1-8]", step) for step in payload.step_ids):
+        raise HTTPException(status_code=422, detail="step_ids must identify valid Beyond Earth teaching steps (step_1 to step_8).")
+    if len(set(payload.step_ids)) != len(payload.step_ids):
+        raise HTTPException(status_code=422, detail="Duplicate step_ids are not allowed.")
+
+    image_bytes, content_type = _fetch_remote_image(image_url)
+    fingerprint = hashlib.sha256(image_bytes).hexdigest()
+    asset_id = "remote-" + hashlib.sha256(
+        f"{payload.lesson_id}|{payload.module_key}|{fingerprint}".encode("utf-8")
+    ).hexdigest()[:32]
+    conn = connect()
+    try:
+        lesson = conn.execute(
+            "SELECT id, chapter, medium, status FROM chapter_lessons WHERE id=%s",
+            (payload.lesson_id,)
+        ).fetchone()
+        if not lesson or lesson["status"] != "approved" or str(lesson["chapter"]).strip().casefold() != "beyond earth":
+            raise HTTPException(status_code=422, detail="Only an approved Beyond Earth lesson can receive this image.")
+        ensure_blob_table(conn)
+        conn.execute("""
+            ALTER TABLE lesson_image_assets
+            ADD COLUMN IF NOT EXISTS source_url TEXT,
+            ADD COLUMN IF NOT EXISTS source_page_url TEXT,
+            ADD COLUMN IF NOT EXISTS license_name TEXT,
+            ADD COLUMN IF NOT EXISTS license_url TEXT,
+            ADD COLUMN IF NOT EXISTS creator TEXT,
+            ADD COLUMN IF NOT EXISTS attribution TEXT
+        """)
+        object_key = f"beyond-earth/{str(lesson['medium'] or 'unknown').lower()}/{payload.module_key}/{asset_id}"
+        conn.execute("""
+            INSERT INTO lesson_image_assets
+              (id, lesson_id, module_key, title, step_ids_json, bucket_name, object_key,
+               content_type, alt_text, status, content_fingerprint, source_url,
+               source_page_url, license_name, license_url, creator, attribution,
+               created_at, updated_at)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'pending_review',%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())
+            ON CONFLICT (id) DO UPDATE SET
+              title=EXCLUDED.title, step_ids_json=EXCLUDED.step_ids_json,
+              content_type=EXCLUDED.content_type, alt_text=EXCLUDED.alt_text,
+              status='pending_review', content_fingerprint=EXCLUDED.content_fingerprint,
+              source_url=EXCLUDED.source_url, source_page_url=EXCLUDED.source_page_url,
+              license_name=EXCLUDED.license_name, license_url=EXCLUDED.license_url,
+              creator=EXCLUDED.creator, attribution=EXCLUDED.attribution, updated_at=NOW()
+        """, (asset_id, payload.lesson_id, payload.module_key, payload.title or payload.alt_text,
+              json.dumps(payload.step_ids), "postgres-inline-images", object_key, content_type,
+              payload.alt_text, fingerprint, image_url, payload.source_page_url,
+              payload.license_name, payload.license_url, payload.creator, payload.attribution))
+        conn.execute("""
+            INSERT INTO lesson_image_asset_blobs (asset_id,image_bytes,sha256,byte_length)
+            VALUES (%s,%s,%s,%s)
+            ON CONFLICT (asset_id) DO UPDATE SET image_bytes=EXCLUDED.image_bytes,
+              sha256=EXCLUDED.sha256, byte_length=EXCLUDED.byte_length, created_at=NOW()
+        """, (asset_id, image_bytes, fingerprint, len(image_bytes)))
+        conn.commit()
+        return {"status": "pending_review", "asset_id": asset_id,
+                "lesson_id": payload.lesson_id, "module_key": payload.module_key,
+                "step_ids": payload.step_ids, "sha256": fingerprint,
+                "byte_length": len(image_bytes), "content_type": content_type,
+                "student_visible": False}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Remote image ingestion failed ({type(exc).__name__}).") from exc
     finally:
         conn.close()

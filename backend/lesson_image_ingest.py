@@ -334,11 +334,11 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
                content_type, alt_text, status, content_fingerprint, source_url,
                source_page_url, license_name, license_url, creator, attribution,
                created_at, updated_at)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'pending_review',%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'pending',%s,%s,%s,%s,%s,%s,%s,NOW(),NOW())
             ON CONFLICT (id) DO UPDATE SET
               title=EXCLUDED.title, step_ids_json=EXCLUDED.step_ids_json,
               content_type=EXCLUDED.content_type, alt_text=EXCLUDED.alt_text,
-              status='pending_review', content_fingerprint=EXCLUDED.content_fingerprint,
+              status='pending', content_fingerprint=EXCLUDED.content_fingerprint,
               source_url=EXCLUDED.source_url, source_page_url=EXCLUDED.source_page_url,
               license_name=EXCLUDED.license_name, license_url=EXCLUDED.license_url,
               creator=EXCLUDED.creator, attribution=EXCLUDED.attribution, updated_at=NOW()
@@ -353,7 +353,7 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
               sha256=EXCLUDED.sha256, byte_length=EXCLUDED.byte_length, created_at=NOW()
         """, (asset_id, image_bytes, fingerprint, len(image_bytes)))
         conn.commit()
-        return {"status": "pending_review", "asset_id": asset_id,
+        return {"status": "pending", "asset_id": asset_id,
                 "lesson_id": payload.lesson_id, "module_key": payload.module_key,
                 "step_ids": payload.step_ids, "sha256": fingerprint,
                 "byte_length": len(image_bytes), "content_type": content_type,

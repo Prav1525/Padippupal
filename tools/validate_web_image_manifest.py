@@ -16,8 +16,8 @@ def read(path: str):
 def validate(web: dict, authored: dict) -> list[str]:
     errors: list[str] = []
     records = web.get("images")
-    if not isinstance(records, list) or not records:
-        return ["web source manifest must contain image records"]
+    if not isinstance(records, list):
+        return ["web source manifest images must be an array"]
     authored_keys = {(x.get("lesson_id"), x.get("module_key")) for x in authored.get("images", [])}
     seen = set()
     for index, item in enumerate(records, 1):

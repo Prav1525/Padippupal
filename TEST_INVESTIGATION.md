@@ -805,3 +805,15 @@ Use this format:
 - **What remains unverified:** The full CI suite and investigation gate on the updated PR head.
 - **Difference from previous attempt:** Fixes the classifier itself and adds a regression test instead of weakening the expected route.
 - **Next action and why:** Run all visual renderer/ingestion/audit tests and the investigation gate; do not merge until both pass.
+
+
+### 2026-11-09 — Rebase and verify the visual curation coverage audit
+- **Branch / commit:** `feat/lesson-visual-curation-pipeline`, PR #283, rebased onto the refreshed Class 6 visual branch.
+- **Test command or workflow URL:** [Latest renderer/audit test run](https://github.com/Prav1525/Padippupal/actions/runs/42606792660); rebased investigation gate [run 42607998541](https://github.com/Prav1525/Padippupal/actions/runs/42607998541).
+- **Result:** Renderer/audit tests passed on the pre-rebase exact tree; rebased investigation gate initially failed because the audit ledger entry was present only in the base branch, not in this PR's diff.
+- **Exact failure or assertion:** `Changed files: 7; code/config files: 5; FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence:** [Rebased gate log](https://github.com/Prav1525/Padippupal/actions/runs/42607998541).
+- **Change made (files + rationale):** Append this PR-specific rebase/validation entry so the required investigation gate can verify the audit implementation and test result on this pull request.
+- **Root cause:** **CONFIRMED** — the prior investigation entry was moved into PR #281's base during the branch refresh, so it no longer counted as an update in PR #283's changed-file set.
+- **What remains unverified:** Re-run renderer/audit tests and investigation gate on this exact rebased PR head.
+- **Next action:** Confirm both exact-head checks pass; keep the audit proposal-only and do not ingest or publish images from this PR.

@@ -14,18 +14,18 @@ from collections import Counter
 from pathlib import Path
 
 REAL_WORLD = re.compile(
-    r"\\b(plant|leaf|flower|animal|bird|insect|habitat|tool|instrument|"
+    r"\b(plant|leaf|flower|animal|bird|insect|habitat|tool|instrument|"
     r"food|grain|fruit|vegetable|magnet|compass|thermometer|water|cloud|"
-    r"rain|snow|soil|rock|stone|material|machine|vehicle|body part)\\b", re.I
+    r"rain|snow|soil|rock|stone|material|machine|vehicle|body part)\b", re.I
 )
 ABSTRACT = re.compile(
-    r"\\b(fractions?|angles?|geometry|symmetry|equations?|number line|integers?|"
+    r"\b(fractions?|angles?|geometry|symmetry|equations?|number line|integers?|"
     r"factor|multiple|prime|pattern|area|perimeter|ratio|graph|data|"
-    r"measurement|construct|polygon|decimal)\\b", re.I
+    r"measurement|construct|polygon|decimal)\b", re.I
 )
 PROCESS = re.compile(
-    r"\\b(cycle|process|stage|steps|evaporation|condensation|growth|"
-    r"life cycle|separation|method|experiment|rotation|reflection)\\b", re.I
+    r"\b(cycle|process|stage|steps|evaporation|condensation|growth|"
+    r"life cycle|separation|method|experiment|rotation|reflection)\b", re.I
 )
 
 

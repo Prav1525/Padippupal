@@ -93,6 +93,81 @@ def diagram(d, kind, data):
         label(d,(515,590),data.get("length","6 units"),30,BLUE,True,anchor="mm")
         label(d,(110,390),data.get("width","3 units"),28,BLUE,True,anchor="mm")
         label(d,(515,380),"AREA = inside",38,INK,True,anchor="mm")
+    elif kind == "perimeter_shapes":
+        # Make the outside boundary the focus; do not show an area grid here.
+        d.rectangle((95,300,365,470),fill="#E8F4F8",outline=BLUE,width=10)
+        label(d,(230,245),"RECTANGLE",27,INK,True,anchor="mm")
+        label(d,(230,520),"6 + 3 + 6 + 3 = 18",23,BLUE,True,anchor="mm")
+        d.polygon([(540,260),(405,485),(675,485)],fill="#FFF0D9",outline=BLUE)
+        label(d,(540,225),"TRIANGLE",27,INK,True,anchor="mm")
+        label(d,(540,535),"4 + 4 + 4 = 12",23,BLUE,True,anchor="mm")
+        pts=[(850,275),(955,335),(955,455),(850,515),(745,455),(745,335)]
+        d.polygon(pts,fill="#EAF4E4",outline=BLUE)
+        label(d,(850,235),"HEXAGON",27,INK,True,anchor="mm")
+        label(d,(850,560),"2 on each side = 12",23,BLUE,True,anchor="mm")
+        label(d,(540,625),"Perimeter = add every outside side",28,INK,True,anchor="mm")
+    elif kind == "same_area_perimeters":
+        # Textbook example: equal areas, different boundary lengths.
+        d.rounded_rectangle((45,205,520,600),radius=24,fill="#F8FBFC",outline="#C8DCE5",width=3)
+        d.rounded_rectangle((560,205,1035,600),radius=24,fill="#F8FBFC",outline="#C8DCE5",width=3)
+        d.rectangle((105,300,460,455),fill="#E8F4F8",outline=BLUE,width=7)
+        d.rectangle((665,285,930,470),fill="#FFF0D9",outline=BLUE,width=7)
+        label(d,(282,245),"HOUSE A",27,INK,True,anchor="mm")
+        label(d,(797,245),"HOUSE B",27,INK,True,anchor="mm")
+        label(d,(282,485),"42 ft × 25 ft",25,INK,True,anchor="mm")
+        label(d,(282,520),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
+        label(d,(282,555),"Perimeter = 134 ft",24,INK,True,anchor="mm")
+        label(d,(797,495),"35 ft × 30 ft",25,INK,True,anchor="mm")
+        label(d,(797,530),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
+        label(d,(797,565),"Perimeter = 130 ft",24,INK,True,anchor="mm")
+    elif kind == "shared_prime_factors":
+        # Two numbers share 3 and 7, so this pair is not co-prime.
+        label(d,(270,205),"NUMBER A = 42",30,INK,True,anchor="mm")
+        label(d,(810,205),"NUMBER B = 231",30,INK,True,anchor="mm")
+        left=[("2",False),("3",True),("7",True)]
+        right=[("3",True),("7",True),("11",False)]
+        for i,(v,shared) in enumerate(left):
+            x=120+i*170
+            d.rounded_rectangle((x,290,x+125,410),radius=20,fill="#F6C66B" if shared else "#E8F4F8",outline=INK,width=4)
+            label(d,(x+62,350),v,42,INK,True,anchor="mm")
+        for i,(v,shared) in enumerate(right):
+            x=660+i*130
+            d.rounded_rectangle((x,290,x+110,410),radius=20,fill="#F6C66B" if shared else "#E8F4F8",outline=INK,width=4)
+            label(d,(x+55,350),v,42,INK,True,anchor="mm")
+        label(d,(270,455),"2 × 3 × 7 = 42",26,BLUE,True,anchor="mm")
+        label(d,(810,455),"3 × 7 × 11 = 231",26,BLUE,True,anchor="mm")
+        label(d,(540,555),"Shared prime factors: 3 and 7",30,INK,True,anchor="mm")
+        label(d,(540,610),"So the numbers are NOT co-prime",27,"#B43B51",True,anchor="mm")
+    elif kind == "condensation_examples":
+        # Examples of droplets appearing on cool surfaces.
+        d.rounded_rectangle((70,250,370,560),radius=28,fill="#E8F4F8",outline=INK,width=5)
+        d.rounded_rectangle((430,250,650,560),radius=28,fill="#D9EAF2",outline=INK,width=5)
+        d.rectangle((750,440,1010,560),fill="#B7D7A8",outline=INK,width=4)
+        for x,y in [(120,315),(180,365),(300,330),(485,330),(590,385),(835,425),(920,405)]:
+            d.ellipse((x-10,y-10,x+10,y+10),fill="#6CA9D6",outline=INK,width=2)
+        d.ellipse((790,290,970,410),fill="#8BCB83",outline="#286B3A",width=4)
+        d.line((805,380,955,320),fill="#286B3A",width=4)
+        for x in (790,850,910,970): d.line((x,555,x-18,475),fill="#39834A",width=5)
+        label(d,(220,210),"COOL BOTTLE",25,INK,True,anchor="mm")
+        label(d,(540,210),"COLD GLASS",25,INK,True,anchor="mm")
+        label(d,(880,245),"LEAF DEW",25,INK,True,anchor="mm")
+        label(d,(540,625),"Water vapour forms droplets on cool surfaces",27,BLUE,True,anchor="mm")
+    elif kind == "condensation_process":
+        # Vapour cools and condenses into tiny liquid droplets.
+        for x in (170,235,300,365):
+            for y in (300,360,420):
+                d.ellipse((x-9,y-9,x+9,y+9),fill="#8DBBE8",outline=INK,width=2)
+        label(d,(270,245),"WATER VAPOUR",25,INK,True,anchor="mm")
+        arrow(d,(420,365),(545,365),fill=BLUE,width=8)
+        d.rounded_rectangle((560,260,745,475),radius=28,fill="#E8F4F8",outline=INK,width=5)
+        label(d,(652,365),"COOLING",26,INK,True,anchor="mm")
+        arrow(d,(760,365),(850,365),fill=BLUE,width=8)
+        d.ellipse((870,270,1020,420),fill="#DCE7F4",outline=INK,width=4)
+        for x,y in [(900,320),(950,300),(985,345),(925,375),(975,390)]:
+            d.ellipse((x-12,y-12,x+12,y+12),fill="#6CA9D6",outline=INK,width=2)
+        label(d,(945,455),"TINY DROPLETS",23,INK,True,anchor="mm")
+        label(d,(540,570),"Water vapour changes into liquid water",29,BLUE,True,anchor="mm")
+
     elif kind == "symmetry":
         box=(220,180,860,570); d.ellipse(box,fill="#F6C66A",outline=INK,width=6)
         d.polygon([(540,205),(420,330),(540,410),(660,330)],fill="#E8F4F8",outline=INK)
@@ -525,11 +600,11 @@ def diagram(d, kind, data):
         arrow(d,(180,320),(340,320),fill=BLUE,width=8); arrow(d,(180,390),(340,390),fill=BLUE,width=8)
         label(d,(540,200),"Moving air turns the pinwheel blades",28,BLUE,True,anchor="mm")
     elif kind == "fresh_water":
-        cards=[(130,280,"OCEANS","#8DBBE8"),(570,280,"ICE & SNOW","#DCE7F4"),(130,450,"GROUNDWATER","#D8B477"),(570,450,"RIVERS & LAKES","#BFE4F2")]
+        cards=[(130,280,"RIVERS & LAKES","#BFE4F2"),(570,280,"ICE & SNOW","#DCE7F4"),(130,450,"GROUNDWATER","#D8B477"),(570,450,"WATER IN SOIL","#EAF4E4")]
         for x,y,name,col in cards:
             d.rounded_rectangle((x,y,x+370,y+115),radius=20,fill=col,outline=INK,width=4)
             label(d,(x+185,y+57),name,24,INK,True,anchor="mm")
-        label(d,(540,205),"Only a small part of Earth's fresh water is easy to access",25,BLUE,True,anchor="mm")
+        label(d,(540,205),"Fresh water is found in rivers, lakes, ice and underground",25,BLUE,True,anchor="mm")
     elif kind == "soil_formation":
         d.rectangle((230,300,850,620),fill="#C99A6B",outline=INK,width=5)
         d.rectangle((230,300,850,390),fill="#8BCB83",outline=INK,width=3)

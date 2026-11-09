@@ -2723,6 +2723,122 @@
           "diagram": "scientific_method"
         }
       ]
+    },
+    {
+      "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Counting Numbers in Everyday Life",
+      "alt_text": "A child-friendly number pattern showing counting groups and number order.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Numbers help us count and organise everyday things",
+          "diagram": "number_patterns"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Estimate a Class Size",
+      "alt_text": "A simple visual grouping students into tens to estimate a total.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Estimate by grouping into tens",
+          "lines": [
+            "32 students is a little more than 30",
+            "Group objects in tens, then count the few left over",
+            "An estimate is close to the exact answer"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Integers on a Number Line",
+      "alt_text": "A labelled number line showing negative and positive integers around zero.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Zero is the centre point for positive and negative numbers",
+          "diagram": "number_line"
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Integer Tiles and Zero Pairs",
+      "alt_text": "Positive and negative tiles paired to make zero, with a few unpaired tiles remaining.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "One positive tile and one negative tile make a zero pair",
+          "diagram": "zero_pairs"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Explore the Night Sky",
+      "alt_text": "A child-friendly night sky with stars and a labelled constellation pattern.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Look for patterns among the stars",
+          "diagram": "constellation_pattern"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "A Balanced and Varied Meal",
+      "alt_text": "A child-friendly plate showing a variety of food groups for a balanced meal.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Choose a variety of foods in suitable amounts",
+          "diagram": "food_variety"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Vitamin C and Healthy Gums",
+      "alt_text": "Citrus fruits and other vitamin C sources shown as foods that help prevent scurvy.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Vitamin C helps keep gums healthy",
+          "diagram": "nutrient_sources"
+        }
+      ]
     }
   ]
 }

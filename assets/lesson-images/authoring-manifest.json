@@ -1,0 +1,396 @@
+{
+  "version": 1,
+  "class_level": 6,
+  "curriculum_scope": "approved Class 6 Mathematics and Science lessons only",
+  "canvas": {
+    "width": 1080,
+    "height": 720,
+    "layout": "full-width landscape; preserve aspect ratio"
+  },
+  "images": [
+    {
+      "lesson_id": "2c2c7721-9ce7-54bc-9c7d-ebaa1df97b5c",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Reading a Bar Graph",
+      "alt_text": "A simple labelled bar graph showing how to compare values by bar height.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Read the bars to compare values",
+          "diagram": "bar_graph",
+          "values": [
+            3,
+            5,
+            2,
+            4
+          ],
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Sharing a Whole into Fractions",
+      "alt_text": "A circle divided into four equal parts with one part shaded to show one quarter.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A fraction means equal parts of a whole",
+          "diagram": "fractions",
+          "parts": 4,
+          "shaded": 1
+        }
+      ]
+    },
+    {
+      "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Parts of an Angle",
+      "alt_text": "A large angle diagram showing two arms meeting at a vertex.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "An angle is made by two arms",
+          "diagram": "angle"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Positive and Negative Number Line",
+      "alt_text": "A number line with zero in the middle and positive and negative numbers on either side.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Zero separates positive and negative numbers",
+          "diagram": "number_line"
+        }
+      ]
+    },
+    {
+      "lesson_id": "dd2afe00-7a01-5f1b-9c1d-b8eec8791f11",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Stacked Triangle Pattern",
+      "alt_text": "A growing triangular arrangement of small triangles.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Notice how the triangle pattern grows",
+          "diagram": "triangle_pattern"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Area and Perimeter of a Rectangle",
+      "alt_text": "A rectangle with a visible square grid to distinguish inside area from the boundary.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Area covers the inside; perimeter follows the edge",
+          "diagram": "area_perimeter",
+          "length": "6 units",
+          "width": "3 units"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Rectangle Properties",
+      "alt_text": "A rectangle showing equal opposite sides and four right-angle corners.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A rectangle has equal opposite sides",
+          "diagram": "rectangle_properties"
+        }
+      ]
+    },
+    {
+      "lesson_id": "809a1b07-cac4-52e3-b83c-ebf1168f98d5",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Prime Factor Tree",
+      "alt_text": "A factor tree showing 12 split into prime factors 2, 2 and 3.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Break a number into prime factors",
+          "diagram": "factor_tree"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Line of Symmetry",
+      "alt_text": "A simple symmetrical shape with a vertical fold line showing matching halves.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Both sides match across the fold line",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Integers Around Zero",
+      "alt_text": "A number line showing negative numbers, zero and positive numbers.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Numbers can lie on either side of zero",
+          "diagram": "number_line"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Three States of Water",
+      "alt_text": "Ice, liquid water and water vapour shown as the three states of water.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Water can be solid, liquid or gas",
+          "diagram": "water_states"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Constellations are Star Patterns",
+      "alt_text": "A child-friendly star pattern connected with lines to show a constellation.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "People recognise patterns among stars",
+          "diagram": "constellation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "The Solar System",
+      "alt_text": "A simple schematic of the Sun and planets, explicitly not to scale.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The Sun and planets form our solar system",
+          "diagram": "solar_system"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Leaf Vein Patterns",
+      "alt_text": "Two large leaves comparing net-like and parallel venation.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Leaves can have different vein patterns",
+          "diagram": "leaf_venation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "958addf6-1ff1-54c3-934e-d8d67548759f",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "A Bar Magnet",
+      "alt_text": "A labelled north and south bar magnet with nearby iron objects.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A magnet has two poles",
+          "diagram": "magnet"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "A Seedling Begins to Grow",
+      "alt_text": "A young seedling with visible roots, stem and first leaves.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A seedling grows roots and a shoot",
+          "diagram": "seedling"
+        }
+      ]
+    },
+    {
+      "lesson_id": "20b0bf32-d25c-5210-bdca-2ac203fa3c00",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Soluble and Insoluble Materials",
+      "alt_text": "Two clear beakers compare salt dissolving in water with sand settling at the bottom.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Some materials dissolve in water; others do not",
+          "diagram": "solubility"
+        }
+      ]
+    },
+    {
+      "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "How to Read a Ruler",
+      "alt_text": "A large ruler with clear centimetre markings and an arrow showing movement.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Line up the object with zero before measuring",
+          "diagram": "ruler_measurement"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Decantation",
+      "alt_text": "Two beakers show a mixture settling and the clear liquid being poured off.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Decantation pours liquid away from settled solids",
+          "diagram": "decantation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Food Groups in a Balanced Diet",
+      "alt_text": "Four simple labelled food groups: fruits, vegetables, grains and protein, shown without fixed serving proportions.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A balanced diet includes a variety of food groups",
+          "diagram": "food_variety"
+        }
+      ]
+    },
+    {
+      "lesson_id": "2724ac7f-6c27-5ad0-91b4-c8cde97af506",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "The Sun Gives Earth Energy",
+      "alt_text": "A simple Sun and Earth schematic to show the Sun as an energy source for Earth.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The Sun is Earth's main energy source",
+          "diagram": "sun_energy"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Reading a Thermometer",
+      "alt_text": "A large labelled thermometer and scale showing temperature readings.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A thermometer measures temperature",
+          "diagram": "thermometer"
+        }
+      ]
+    },
+    {
+      "lesson_id": "24297054-ccec-55ce-8428-ac94cbe0b79f",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "A Simple Scientific Method",
+      "alt_text": "A five-step flow from observing and asking to testing and concluding.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Scientists observe, ask, test and conclude",
+          "diagram": "scientific_method"
+        }
+      ]
+    }
+  ]
+}

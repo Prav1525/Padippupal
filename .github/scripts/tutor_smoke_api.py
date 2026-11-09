@@ -7,6 +7,9 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 import uuid
+from io import BytesIO
+
+from PIL import Image, ImageDraw, ImageFont
 
 
 DIARY_TASKS: dict[str, list[dict]] = {}
@@ -23,6 +26,8 @@ LESSON = {
     # It deliberately models the learning relationship (repeated equal terms), not a copied textbook illustration.
     "interactive_lesson": {
         "id": "synth-smoke-all-ones",
+        "lesson_id": "smoke-all-ones",
+        "module_key": "module-1",
         "chapter": "Patterns in Mathematics",
         "topic": "All 1s",
         "title": "All 1s pattern visual",
@@ -55,8 +60,8 @@ LESSON = {
     "segments": [
         {
             "id": "all-ones-definition",
-            "spoken_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease. The rule is simple: write 1 again each time.",
-            "caption_text": "The All 1s pattern is a sequence where every term is the number 1. It looks like this: 1, 1, 1, 1. The number does not increase or decrease. The rule is simple: write 1 again each time.",
+            "spoken_text": "The All 1s pattern is a sequence where every term is the number 1. Each term stays 1. The pattern repeats without growing. It looks like this: 1, 1, 1, 1. The number does not increase or decrease. The rule is simple: write 1 again each time.",
+            "caption_text": "The All 1s pattern is a sequence where every term is the number 1. Each term stays 1. The pattern repeats without growing. It looks like this: 1, 1, 1, 1. The number does not increase or decrease. The rule is simple: write 1 again each time.",
             "source_chunk_ids": ["smoke-source"],
             "visual_action": {"type": "none", "target": "", "value": ""},
             "checkpoint": None,
@@ -95,6 +100,29 @@ for _segment in LESSON["segments"]:
     _segment["interactive_lesson"] = LESSON["interactive_lesson"]
 
 
+
+
+
+def _make_smoke_lesson_png() -> bytes:
+    image = Image.new("RGB", (1080, 720), "#FFFDF7")
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((24, 24, 1056, 696), radius=30, fill="#FFFFFF", outline="#DCE5EA", width=4)
+    draw.rounded_rectangle((52, 48, 1028, 158), radius=22, fill="#E8F4F8")
+    bold_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    title_font = ImageFont.truetype(bold_path, 42) if __import__("os").path.exists(bold_path) else ImageFont.load_default()
+    number_font = ImageFont.truetype(bold_path, 100) if __import__("os").path.exists(bold_path) else ImageFont.load_default()
+    draw.text((82, 78), "Every term stays 1", font=title_font, fill="#24324A")
+    for index, x in enumerate([160, 350, 540, 730, 920]):
+        draw.rounded_rectangle((x - 62, 300, x + 62, 470), radius=24, fill="#EAF4E4", outline="#277DA1", width=5)
+        draw.text((x, 382), "1", font=number_font, fill="#24324A", anchor="mm")
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+SMOKE_LESSON_PNG = _make_smoke_lesson_png()
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, status: int, body: dict) -> None:
         encoded = json.dumps(body).encode("utf-8")
@@ -108,6 +136,22 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/health":
             self._send(200, {"status": "ok", "service": "padippupal-smoke-fixture", "fixture_version": 1})
+            return
+        if path == "/chapter-lessons/smoke-all-ones/images":
+            self._send(200, {"lesson_id": "smoke-all-ones", "images": [{
+                "id": "smoke-asset", "module_key": "module-1", "title": "All 1s example",
+                "step_ids": ["all-ones-rule"], "content_type": "image/png",
+                "alt_text": "Five equal ones shown in five full-width cards",
+                "url": "/chapter-lessons/smoke-all-ones/images/smoke-asset"
+            }]})
+            return
+        if path == "/chapter-lessons/smoke-all-ones/images/smoke-asset":
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(SMOKE_LESSON_PNG)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(SMOKE_LESSON_PNG)
             return
         if path == "/curriculum/outline":
             self._send(200, {

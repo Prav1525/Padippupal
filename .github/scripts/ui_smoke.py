@@ -333,8 +333,10 @@ def assert_live(path):
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
     if "all 1s pattern visual" not in joined:
         raise SystemExit("The source-mapped synthesized 2D visual is missing from the inline tutor flow")
-    if "each term stays 1" not in joined:
-        raise SystemExit("The inline visual is not mapped to the All 1s teaching summary")
+    # The mapped visual exposes its title and image alt text to accessibility.
+    # Its descriptive caption is metadata, not a separate visible Text node.
+    if "all 1s example" not in joined:
+        raise SystemExit("The mapped 1080x720 lesson image was not loaded into the tutor screen")
     if "ask your teacher" in joined or "send question" in joined:
         raise SystemExit("Chat composer is still visible during the dedicated live teaching experience")
     forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")

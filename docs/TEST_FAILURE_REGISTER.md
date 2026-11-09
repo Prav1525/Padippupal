@@ -331,3 +331,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** The shared `dump_ui` helper now removes any prior local/remote dump before each attempt, retries a fresh dump-and-pull up to three times, validates that the pulled file is non-empty and contains a hierarchy root, and then fails with a specific diagnostic. It cannot silently reuse stale accessibility XML.
 - **Regression prevention:** Added `test_ui_hierarchy_dump_retries_transient_null_root_without_reusing_stale_tree` to `.github/scripts/test_diary_emulator_script.py`.
 - **Validation:** Pending coordinated CI on the fix branch. The fix is not accepted until the regression suite and full API 35 emulator flow pass, including Photo Picker return, crop, rescan, review, and planner save. No merge or production action performed.
+
+
+## Incident: Android live-lesson smoke assertion required non-accessible visual caption text
+
+- **Symptom:** PR #276 API 35 run [42589960275](https://github.com/Prav1525/Padippupal/actions/runs/42589960275) passed JVM tests, APK build, renderer/image-ingest tests, and smoke-script validation, but the emulator failed to recognize the active lesson. The final accessibility tree showed the completed lesson, mapped visual title `All 1s pattern visual`, image alt text `All 1s example`, and the question composer.
+- **Evidence:** The accessibility tree exposed the mapped image title and alt text. The visual caption is metadata and is not duplicated as a separate visible Text node. The old assertion incorrectly required the exact phrase `Each term stays 1` to appear in the UI tree.
+- **Root cause:** `.github/scripts/ui_smoke.py::assert_live` required metadata caption text as if it were an accessible on-screen label. It rejected the correctly mapped image on every active poll; eventually playback completed and Pause/Stop disappeared, causing a secondary failure.
+- **Fix:** Validate the accessible image title and alt text instead of requiring the metadata caption as a separate Text node. The first deterministic spoken segment also now includes the mapped caption so the teaching narration remains aligned with the visual.
+- **Regression prevention:** Add helper tests proving the live UI assertion checks the image title and alt text and does not require metadata caption text. Add a fixture contract test proving the first spoken segment includes the mapped caption.
+- **Validation:** Fresh Android API 35 run on the final fix commit pending. Do not merge PR #276 until it passes.

@@ -767,3 +767,16 @@ Use this format:
 - **Validation:** Investigation Guidance Gate run [42583518172](https://github.com/Prav1525/Padippupal/actions/runs/42583518172) failed because this required ledger entry was not yet present; its log explicitly reports that `TEST_INVESTIGATION.md` was not updated. Curriculum Engine Tests [42583518170](https://github.com/Prav1525/Padippupal/actions/runs/42583518170), Android APK [42583518247](https://github.com/Prav1525/Padippupal/actions/runs/42583518247), and Android UI smoke [42583518434](https://github.com/Prav1525/Padippupal/actions/runs/42583518434) were still running at inspection time. No code test is yet claimed as passed.
 - **What remains unverified:** Exact-head backend tests, Android checks, end-to-end workflow behavior, visual suitability of each curated asset, production ingestion, and Android tutor-screen rendering.
 - **Next action:** Append this evidence to the ledger, rerun the guidance gate, inspect all exact-head checks, then obtain explicit merge approval before any production deployment. Curate images against the approved lesson module contents and ingest them as pending review assets only.
+
+
+## 2026-11-09 — Phone-first original lesson visual pipeline (PR #276)
+
+- Added an admin-only multipart endpoint for original raster visuals (PNG/JPEG/WebP). It checks an 8 MB maximum, MIME/signature agreement, approved lesson status, actual teaching-sequence step IDs, and module/step consistency.
+- Original artwork is explicitly attributed as PadippuPal-created; the endpoint stores metadata and bytes in PostgreSQL as `pending`. It does not publish assets to learners.
+- Added `tools/render_lesson_visuals.py`: 1080×720 (3:2) phone-content canvas; one full-width panel for `single`, or two separate full-width panels shown sequentially for `pair`. Text overflow fails closed rather than shrinking labels to unreadable sizes.
+- Added authoring guidance at `docs/lesson-visual-authoring.md`. The renderer consumes human-reviewed panel content; it does not infer curriculum facts.
+- Production scope remains 22 approved Class 6 chapters / 170 modules (10 Maths / 78 modules; 12 Science / 92 modules). The authoring manifest and final per-module visual curation are not yet complete.
+- Production source PDF bytes and extracted page-image tables were previously verified absent for these approved source records; do not claim textbook image extraction is available from production.
+- No production database write, deploy, merge, or learner-visible publication performed.
+- PR #276 CI finding: Investigation Guidance Gate failed because this ledger had not yet been updated in PR #276. Corrective ledger update is included in this commit; rerun checks before treating PR as verified.
+- Existing Android API 35 emulator smoke run for PR #274 was still in progress at last check; navigation and screenshot artifact remain unverified.

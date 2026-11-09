@@ -14,7 +14,7 @@ import ssl
 from urllib.parse import urlsplit
 
 import psycopg
-from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import Response
 from psycopg.rows import dict_row
 from pydantic import BaseModel, Field
@@ -414,5 +414,108 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
     except Exception as exc:
         conn.rollback()
         raise HTTPException(status_code=500, detail=f"Remote image ingestion failed ({type(exc).__name__}).") from exc
+    finally:
+        conn.close()
+
+
+class OriginalImageInput(BaseModel):
+    lesson_id: str = Field(min_length=8, max_length=160)
+    module_key: str = Field(min_length=1, max_length=120)
+    step_ids: list[str] = Field(min_length=1, max_length=8)
+    alt_text: str = Field(min_length=5, max_length=500)
+    title: str = Field(default="", max_length=200)
+
+
+def _validate_original_image(payload: bytes, content_type: str) -> str:
+    """Validate a locally generated raster image before it can enter review storage."""
+    if not payload or len(payload) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Original image must be between 1 byte and 8 MB.")
+    normalized = (content_type or "").split(";", 1)[0].strip().lower()
+    if normalized not in {"image/png", "image/jpeg", "image/webp"}:
+        raise HTTPException(status_code=415, detail="Original uploads must be PNG, JPEG, or WebP.")
+    if not _image_signature_matches(payload, normalized):
+        raise HTTPException(status_code=415, detail="Uploaded bytes do not match the declared image MIME type.")
+    return normalized
+
+
+@router.post("/admin/lesson-images/ingest-original", dependencies=[Depends(require_image_admin)])
+async def ingest_original_lesson_image(
+    lesson_id: str = Form(...),
+    module_key: str = Form(...),
+    step_ids_json: str = Form(...),
+    alt_text: str = Form(...),
+    title: str = Form(""),
+    file: UploadFile = File(...),
+) -> dict:
+    """Store an original locally-created raster diagram as pending, never learner-visible."""
+    try:
+        step_ids = json.loads(step_ids_json)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail="step_ids_json must be a JSON array.") from exc
+    if not isinstance(step_ids, list) or not step_ids or any(not isinstance(step, str) for step in step_ids):
+        raise HTTPException(status_code=422, detail="step_ids_json must contain a non-empty array of step IDs.")
+    if len(step_ids) > 8 or len(set(step_ids)) != len(step_ids):
+        raise HTTPException(status_code=422, detail="Use 1–8 unique teaching step IDs.")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,120}", module_key):
+        raise HTTPException(status_code=422, detail="Invalid module_key.")
+    if any(not re.fullmatch(r"step_[1-9][0-9]{0,2}", step) for step in step_ids):
+        raise HTTPException(status_code=422, detail="step IDs must use the lesson step_N format.")
+    _validate_module_step_mapping(module_key, step_ids)
+    if len(alt_text.strip()) < 5 or len(alt_text) > 500 or len(title) > 200:
+        raise HTTPException(status_code=422, detail="A useful alt_text and a title of at most 200 characters are required.")
+
+    image_bytes = await file.read(MAX_IMAGE_BYTES + 1)
+    content_type = _validate_original_image(image_bytes, file.content_type or "")
+    fingerprint = hashlib.sha256(image_bytes).hexdigest()
+    asset_id = "original-" + hashlib.sha256(
+        f"{lesson_id}|{module_key}|{fingerprint}".encode("utf-8")
+    ).hexdigest()[:32]
+    conn = connect()
+    try:
+        lesson = conn.execute(
+            "SELECT id, board, class_level, subject, chapter, medium, status, lesson_json FROM chapter_lessons WHERE id=%s",
+            (lesson_id,)
+        ).fetchone()
+        if not lesson or lesson["status"] != "approved":
+            raise HTTPException(status_code=422, detail="Images may only attach to an approved lesson.")
+        _validate_lesson_step_mapping(lesson["lesson_json"], module_key, step_ids)
+        object_key = "lesson-images/{}/{}/{}/{}/{}/{}".format(
+            lesson["board"], lesson["class_level"], lesson["subject"], lesson_id, module_key, asset_id
+        )
+        conn.execute("""
+            INSERT INTO lesson_image_assets
+              (id, lesson_id, module_key, title, step_ids_json, bucket_name, object_key,
+               content_type, alt_text, status, content_fingerprint, creator, attribution,
+               license_name, created_at, updated_at)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'pending',%s,%s,%s,%s,NOW(),NOW())
+            ON CONFLICT (id) DO UPDATE SET
+              title=EXCLUDED.title, step_ids_json=EXCLUDED.step_ids_json,
+              content_type=EXCLUDED.content_type, alt_text=EXCLUDED.alt_text,
+              status='pending', content_fingerprint=EXCLUDED.content_fingerprint,
+              creator=EXCLUDED.creator, attribution=EXCLUDED.attribution,
+              license_name=EXCLUDED.license_name, updated_at=NOW()
+        """, (
+            asset_id, lesson_id, module_key, title.strip() or alt_text.strip(),
+            json.dumps(step_ids), "postgres-inline-images", object_key, content_type,
+            alt_text.strip(), fingerprint, "PadippuPal original artwork",
+            "Original diagram created for PadippuPal; no external image source.",
+            "Original artwork — PadippuPal"
+        ))
+        conn.execute("""
+            INSERT INTO lesson_image_asset_blobs (asset_id,image_bytes,sha256,byte_length)
+            VALUES (%s,%s,%s,%s)
+            ON CONFLICT (asset_id) DO UPDATE SET image_bytes=EXCLUDED.image_bytes,
+              sha256=EXCLUDED.sha256, byte_length=EXCLUDED.byte_length, created_at=NOW()
+        """, (asset_id, image_bytes, fingerprint, len(image_bytes)))
+        conn.commit()
+        return {"status": "pending_review", "asset_id": asset_id, "lesson_id": lesson_id,
+                "module_key": module_key, "step_ids": step_ids, "sha256": fingerprint,
+                "byte_length": len(image_bytes), "student_visible": False}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as exc:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Original image ingestion failed ({type(exc).__name__}).") from exc
     finally:
         conn.close()

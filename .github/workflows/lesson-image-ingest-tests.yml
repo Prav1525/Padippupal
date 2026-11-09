@@ -1,0 +1,25 @@
+name: Lesson image ingestion tests
+on:
+  pull_request:
+    paths:
+      - "backend/lesson_image_ingest.py"
+      - "backend/tests/test_lesson_image_url_ingest.py"
+      - ".github/workflows/lesson-image-ingest-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/lesson_image_ingest.py"
+      - "backend/tests/test_lesson_image_url_ingest.py"
+      - ".github/workflows/lesson-image-ingest-tests.yml"
+jobs:
+  image-ingest-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -r backend/requirements.txt
+      - name: Test protected image ingestion
+        working-directory: backend
+        run: python -m pytest -q tests/test_lesson_image_url_ingest.py

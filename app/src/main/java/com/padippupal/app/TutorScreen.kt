@@ -668,8 +668,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
-private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, activeStepOverride: Int? = null) {
-    val chapter = lesson.optString("chapter").trim()
+private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOverride: Int? = null) {
     // Inline visual IDs are presentation IDs, not the approved chapter_lessons primary key.
     val lessonId = lesson.optString("lesson_id").trim()
     val topic = lesson.optString("topic").ifBlank { lesson.optString("title") }.trim().lowercase()
@@ -683,7 +682,7 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
     val stepId = lesson.optString("step_id").trim().ifBlank {
         mappedStep?.optString("id")?.trim().orEmpty()
     }
-    if (!chapter.contains("beyond earth", ignoreCase = true)) {
+    if (lessonId.isBlank()) {
         SynthesizedVisualCard(lesson, compact, activeStepOverride)
         return
     }
@@ -717,9 +716,9 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
                     val matched = candidates.firstOrNull { image ->
                         val steps = image.optJSONArray("step_ids") ?: JSONArray()
                         val stepMatch = stepId.isNotBlank() && (0 until steps.length()).any { steps.optString(it) == stepId }
-                        val moduleMatch = moduleKey.isNotBlank() && image.optString("module_key") == moduleKey
+                        val moduleMatch = stepId.isBlank() && moduleKey.isNotBlank() && image.optString("module_key") == moduleKey
                         stepMatch || moduleMatch
-                    } ?: throw IllegalStateException("No original image is mapped to this lesson step")
+                    } ?: throw IllegalStateException("No lesson image is mapped to this teaching step")
                     imageUrl = matched.optString("url")
                     imageTitle = matched.optString("title").ifBlank { matched.optString("alt_text") }
                 } finally {
@@ -734,10 +733,10 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
                 imageConnection.requestMethod = "GET"
                 try {
                     if (imageConnection.responseCode != HttpURLConnection.HTTP_OK) {
-                        throw IllegalStateException("Original textbook image could not be loaded")
+                        throw IllegalStateException("Lesson image could not be loaded")
                     }
                     val decoded = imageConnection.inputStream.use { BitmapFactory.decodeStream(it) }
-                    if (decoded == null) throw IllegalStateException("Original textbook image is invalid")
+                    if (decoded == null) throw IllegalStateException("Lesson image is invalid")
                     assetLabel = imageTitle
                     decoded
                 } finally {
@@ -755,7 +754,7 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
-            lesson.optString("title", "Beyond Earth — textbook image"),
+            lesson.optString("title", "Lesson visual"),
             color = Color(0xFF17324D),
             fontSize = if (compact) 13.sp else 15.sp,
             fontWeight = FontWeight.Bold
@@ -763,22 +762,26 @@ private fun BeyondEarthTextbookPageImage(lesson: JSONObject, compact: Boolean, a
         bitmap?.let { image ->
             androidx.compose.foundation.Image(
                 bitmap = image.asImageBitmap(),
-                contentDescription = assetLabel.ifBlank { lesson.optString("topic", "Original Beyond Earth textbook image") },
-                modifier = Modifier.fillMaxWidth().heightIn(max = if (compact) 180.dp else 230.dp),
+                contentDescription = assetLabel.ifBlank { lesson.optString("topic", "Lesson visual") },
+                modifier = Modifier.fillMaxWidth().aspectRatio(image.width.toFloat() / image.height.toFloat()),
                 contentScale = ContentScale.Fit
             )
             Text(
-                "Original NCERT textbook image" + if (assetLabel.isNotBlank()) " · $assetLabel" else "",
+                "Lesson visual" + if (assetLabel.isNotBlank()) " · $assetLabel" else "",
                 color = Color(0xFF64748B),
                 fontSize = 9.sp,
                 lineHeight = 11.sp
             )
-        } ?: Text(
-            if (failed) "Original textbook image for this step is not available yet." else "Loading original textbook image…",
-            color = Color(0xFF64748B),
-            fontSize = 10.sp,
-            modifier = Modifier.padding(vertical = 2.dp)
-        )
+        } ?: if (failed) {
+            SynthesizedVisualCard(lesson, compact, activeStepOverride)
+        } else {
+            Text(
+                "Loading lesson visual…",
+                color = Color(0xFF64748B),
+                fontSize = 10.sp,
+                modifier = Modifier.padding(vertical = 2.dp)
+            )
+        }
     }
 }
 
@@ -791,11 +794,7 @@ private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: andro
     val key = lesson.optString("id", title)
     val raw = lesson.optJSONArray("objects")
     if (scene == "synthesis_static") {
-        if (lesson.optString("chapter").contains("Beyond Earth", ignoreCase = true)) {
-            BeyondEarthTextbookPageImage(lesson, compact, activeStepOverride)
-        } else {
-            SynthesizedVisualCard(lesson, compact, activeStepOverride)
-        }
+        MappedLessonImage(lesson, compact, activeStepOverride)
         return
     }
     if (lesson.optString("chapter") == "Patterns in Mathematics" && scene in setOf("number_pattern", "shape_pattern", "number_machine", "pattern_builder")) {

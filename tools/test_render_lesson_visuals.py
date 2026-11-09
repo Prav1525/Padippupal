@@ -12,7 +12,7 @@ from tools import render_lesson_visuals as renderer
 
 def test_every_curated_visual_renders_as_phone_first_png(tmp_path):
     manifest = json.loads((ROOT / "assets/lesson-images/authoring-manifest.json").read_text())
-    assert len(manifest["images"]) == 170
+    assert len(manifest["images"]) == 163
     rendered = 0
     for item in manifest["images"]:
         assert item["layout"] in {"single", "pair"}

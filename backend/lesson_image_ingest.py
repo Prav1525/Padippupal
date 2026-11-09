@@ -361,7 +361,7 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
         ).fetchone()
         if not lesson or lesson["status"] != "approved" or str(lesson["chapter"]).strip().casefold() != "beyond earth":
             raise HTTPException(status_code=422, detail="Only an approved Beyond Earth lesson can receive this image.")
-                object_key = f"beyond-earth/{str(lesson['medium'] or 'unknown').lower()}/{payload.module_key}/{asset_id}"
+        object_key = f"beyond-earth/{str(lesson['medium'] or 'unknown').lower()}/{payload.module_key}/{asset_id}"
         conn.execute("""
             INSERT INTO lesson_image_assets
               (id, lesson_id, module_key, title, step_ids_json, bucket_name, object_key,

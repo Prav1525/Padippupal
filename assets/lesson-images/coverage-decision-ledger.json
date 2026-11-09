@@ -106,7 +106,7 @@
       "confidence": "high",
       "visual_brief": "Show equal parts, fraction strips or number-line fractions with large labelled numerators and denominators.",
       "caption_excerpt": "Find equivalent fractions for the given pairs of fractions such that the fractional units are the same. a. 136 and 19 Expressing a fraction in lowest terms (or in its simplest form) In any fraction, if its numerator and denominator have no common factor except 1, then the fraction is said to be in lowest terms or in its simplest form. 1620 expressed in lowest terms is 45. So, 45 is called the simplest form of 1620 , since 4 and 5 have no common factor other than 1.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
       "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
     },
     {
@@ -526,7 +526,7 @@
       "confidence": "high",
       "visual_brief": "Create a clean geometry construction with labelled points, ruler/compass arcs and only the measurements needed by this module.",
       "caption_excerpt": "if you wish to go to – 2, how far must you travel? One must travel 5 steps backward or move (-5) from 3 to go to -2. Write down the above 3 marked negative numbers in the following boxes: Ans. -7, -3, -1 Q3. On the number line 2 is on the right side of (-3).",
-      "decision_status": "PROPOSED_NOT_APPROVED",
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
       "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
     },
     {
@@ -554,7 +554,7 @@
       "confidence": "high",
       "visual_brief": "Show water-state changes or the specific condensation/evaporation/precipitation process with arrows and labels.",
       "caption_excerpt": "A Journey through States of Water 161 1. Which of the following best describes condensation? (i) The conversion of water into its vapour state. (ii) The process of water changing from a liquid into gaseous state. (iii) The formation of clouds from tiny water droplets. (iv) The conversion of water vapour into its liquid state. removed from drains, it is left in heaps next to the drain for 3–4 days. This approach reduces transportation cost of the sludge and enhances the safety of individuals hand",
-      "decision_status": "PROPOSED_NOT_APPROVED",
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
       "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
     },
     {
@@ -736,7 +736,7 @@
       "confidence": "high",
       "visual_brief": "Draw bar magnets, poles, field/compass direction or a simple experiment setup with N/S labels.",
       "caption_excerpt": "freely suspended magnet rests along the north-south direction. The needle of a magnetic compass indicates the north-south direction. Column I Column II N – N N – Attraction S – N – S Repulsion 4. Atharv performed an experiment in which he took a bar magnet and rolled it over a heap of steel U-clips (Fig.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
       "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
     },
     {
@@ -1243,5 +1243,12 @@
       "decision_status": "PROPOSED_NOT_APPROVED",
       "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
     }
-  ]
+  ],
+  "manifest_reconciliation": {
+    "manifest_mapping_count": 86,
+    "items_mapped_since_initial_audit": 4,
+    "unresolved_review_items": 84,
+    "production_ingested_from_this_manifest": 0,
+    "learner_visible_from_this_manifest": 0
+  }
 }

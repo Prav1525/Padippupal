@@ -56,6 +56,7 @@ def test_manifest_has_unique_module_mappings_and_supported_diagrams():
         "handpicking", "winnowing", "salt_evaporation", "magnetic_separation", "windmill",
         "fresh_water", "soil_formation", "vehicle_fuels", "digital_thermometer", "lab_thermometer",
         "thermometer_setup", "melting_plateau", "temperature_scales", "forest_products",
+        "butterfly_lifecycle", "frog_lifecycle",
         "perimeter_shapes", "same_area_perimeters", "shared_prime_factors",
         "threefold_rotation", "building_symmetry", "paper_hole_symmetry",
         "double_line_symmetry", "reflection_only_symmetry", "earth_moon_orbit",

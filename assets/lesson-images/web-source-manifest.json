@@ -1,52 +1,6 @@
 {
   "version": 1,
-  "scope": "Class 6 missing-module web image candidates; pending-only ingestion",
-  "policy": "Only exact module matches. Source file page, creator, licence and attribution are retained. Do not ingest until PR review and explicit pending-ingestion approval.",
-  "images": [
-    {
-      "title": "Orion Constellation in the Night Sky",
-      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
-      "module_key": "module-7",
-      "step_ids": [
-        "step_7"
-      ],
-      "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/40/Orion_constellation_in_night_sky.jpg",
-      "source_page_url": "https://commons.wikimedia.org/wiki/File:Orion_constellation_in_night_sky.jpg",
-      "license_name": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0/",
-      "creator": "Bhaiyaji Smile 123",
-      "attribution": "Orion constellation in night sky — Bhaiyaji Smile 123, Wikimedia Commons, CC BY 4.0. Cropped/resized for lesson display if needed.",
-      "alt_text": "A real night-sky photograph showing the Orion constellation and its stars; learners can compare the star pattern with the textbook's Orion activity."
-    },
-    {
-      "title": "Citrus Fruits",
-      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
-      "module_key": "module-3",
-      "step_ids": [
-        "step_3"
-      ],
-      "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Citrus_fruits.jpg",
-      "source_page_url": "https://commons.wikimedia.org/wiki/File:Citrus_fruits.jpg",
-      "license_name": "Public domain (USDA ARS)",
-      "license_url": "https://commons.wikimedia.org/wiki/Commons:Licensing",
-      "creator": "Scott Bauer, USDA",
-      "attribution": "Citrus fruits — Scott Bauer, USDA Agricultural Research Service; public domain U.S. federal work.",
-      "alt_text": "A close-up photograph of sliced citrus fruits, including oranges and other citrus, matching the lesson example of lemons and oranges as vitamin C sources."
-    },
-    {
-      "title": "A Balanced Meal with Five Food Groups",
-      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
-      "module_key": "module-1",
-      "step_ids": [
-        "step_1"
-      ],
-      "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Dinner_meal_-_MyPlate_20210810-FNS-UNC-0017.jpg",
-      "source_page_url": "https://commons.wikimedia.org/wiki/File:Dinner_meal_-_MyPlate_20210810-FNS-UNC-0017.jpg",
-      "license_name": "Public domain (USDA)",
-      "license_url": "https://commons.wikimedia.org/wiki/Commons:Licensing",
-      "creator": "U.S. Department of Agriculture",
-      "attribution": "Dinner meal - MyPlate 20210810-FNS-UNC-0017 — U.S. Department of Agriculture; public domain U.S. federal work.",
-      "alt_text": "A meal photograph showing grains, protein foods, dairy, vegetables and fruit, useful as an example for discussing variety in everyday meals."
-    }
-  ]
+  "scope": "Class 6 web image candidates for modules not already assigned an original PNG; pending-only ingestion",
+  "policy": "Only exact module matches. Source file page, creator, licence and attribution are retained. A module may have one active source route; if an original PNG mapping exists, do not duplicate it as a web candidate. Do not ingest until PR review and explicit pending-ingestion approval.",
+  "images": []
 }

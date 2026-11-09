@@ -23,9 +23,9 @@ jobs:
           source = json.loads(Path("assets/lesson-images/authoring-manifest.json").read_text())
           lesson_id = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
           selected = [item for item in source["images"]
-                      if item["lesson_id"] == lesson_id and item["module_key"] == "module-3"]
-          if len(selected) != 1 or selected[0]["step_ids"] != ["step_3"]:
-              raise SystemExit("Expected exactly one Beyond Earth module-3 / step_3 mapping")
+                      if item["lesson_id"] == lesson_id and item["module_key"] == "module-5"]
+          if len(selected) != 1 or selected[0]["step_ids"] != ["step_5"]:
+              raise SystemExit("Expected exactly one Beyond Earth module-5 / step_5 mapping")
           Path("/tmp/padippupal-one-image-manifest.json").write_text(
               json.dumps({"images": selected}, ensure_ascii=False, indent=2)
           )

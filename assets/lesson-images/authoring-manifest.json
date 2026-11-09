@@ -1512,7 +1512,7 @@
       "panels": [
         {
           "heading": "Rotational Symmetry with Three Arms",
-          "diagram": "symmetry"
+          "diagram": "threefold_rotation"
         }
       ]
     },
@@ -1528,7 +1528,7 @@
       "panels": [
         {
           "heading": "Checking Reflection Symmetry in Buildings",
-          "diagram": "symmetry"
+          "diagram": "building_symmetry"
         }
       ]
     },
@@ -1544,7 +1544,7 @@
       "panels": [
         {
           "heading": "Paper Folding and Hole Patterns",
-          "diagram": "symmetry"
+          "diagram": "paper_hole_symmetry"
         }
       ]
     },
@@ -1560,7 +1560,7 @@
       "panels": [
         {
           "heading": "Two Lines of Symmetry",
-          "diagram": "symmetry"
+          "diagram": "double_line_symmetry"
         }
       ]
     },
@@ -1576,7 +1576,7 @@
       "panels": [
         {
           "heading": "Reflection Without Rotational Symmetry",
-          "diagram": "symmetry"
+          "diagram": "reflection_only_symmetry"
         }
       ]
     },
@@ -1608,7 +1608,7 @@
       "panels": [
         {
           "heading": "Earth and Moon in Orbit",
-          "diagram": "orbit"
+          "diagram": "earth_moon_orbit"
         }
       ]
     },
@@ -1640,7 +1640,7 @@
       "panels": [
         {
           "heading": "Patterns of Stars in the Night Sky",
-          "diagram": "constellation"
+          "diagram": "constellation_pattern"
         }
       ]
     },
@@ -1656,7 +1656,7 @@
       "panels": [
         {
           "heading": "Condensation in the Water Cycle",
-          "diagram": "condensation"
+          "diagram": "water_cycle_condensation"
         }
       ]
     }

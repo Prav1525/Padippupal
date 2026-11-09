@@ -57,6 +57,9 @@ def test_manifest_has_unique_module_mappings_and_supported_diagrams():
         "fresh_water", "soil_formation", "vehicle_fuels", "digital_thermometer", "lab_thermometer",
         "thermometer_setup", "melting_plateau", "temperature_scales", "forest_products",
         "perimeter_shapes", "same_area_perimeters", "shared_prime_factors",
+        "threefold_rotation", "building_symmetry", "paper_hole_symmetry",
+        "double_line_symmetry", "reflection_only_symmetry", "earth_moon_orbit",
+        "constellation_pattern", "water_cycle_condensation",
         "condensation_examples", "condensation_process",
     }
     used = {panel["diagram"] for item in manifest["images"] for panel in item["panels"] if "diagram" in panel}

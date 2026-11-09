@@ -56,6 +56,8 @@ def test_manifest_has_unique_module_mappings_and_supported_diagrams():
         "handpicking", "winnowing", "salt_evaporation", "magnetic_separation", "windmill",
         "fresh_water", "soil_formation", "vehicle_fuels", "digital_thermometer", "lab_thermometer",
         "thermometer_setup", "melting_plateau", "temperature_scales", "forest_products",
+        "perimeter_shapes", "same_area_perimeters", "shared_prime_factors",
+        "condensation_examples", "condensation_process",
     }
     used = {panel["diagram"] for item in manifest["images"] for panel in item["panels"] if "diagram" in panel}
     assert used <= supported

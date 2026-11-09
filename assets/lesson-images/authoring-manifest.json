@@ -1351,6 +1351,74 @@
           "diagram": "thermometer"
         }
       ]
+    },
+    {
+      "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Equivalent Fractions and Simplest Form",
+      "alt_text": "Three fraction bars show one-half, two-fourths and three-sixths as equal shares.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Different fractions can show the same share",
+          "diagram": "equivalent_fractions"
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Moving Left on the Number Line",
+      "alt_text": "A number line shows movement to the left from a positive number toward a negative number.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Moving left makes the number smaller",
+          "diagram": "integer_movement"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Condensation Forms Tiny Water Droplets",
+      "alt_text": "A cold glass and nearby water vapour illustrate condensation into liquid droplets.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Cooling water vapour forms liquid droplets",
+          "diagram": "condensation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "958addf6-1ff1-54c3-934e-d8d67548759f",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Magnet Poles and Compass Direction",
+      "alt_text": "Two full-width diagrams show like and unlike magnetic poles, and a compass with north, east, south and west.",
+      "layout": "pair",
+      "panels": [
+        {
+          "heading": "Like poles repel; unlike poles attract",
+          "diagram": "magnet_poles"
+        },
+        {
+          "heading": "A compass needle points north and south",
+          "diagram": "compass"
+        }
+      ]
     }
   ]
 }

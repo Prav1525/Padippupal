@@ -1419,6 +1419,246 @@
           "diagram": "compass"
         }
       ]
+    },
+    {
+      "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Adding Fractions to Make One Whole",
+      "alt_text": "Use fraction strips to show how different fractional parts can combine to make one whole.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Adding Fractions to Make One Whole",
+          "diagram": "fraction_addition"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Mixed Numbers on a Number Line",
+      "alt_text": "Show eighths grouped into whole units and the remaining fractional part.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Mixed Numbers on a Number Line",
+          "diagram": "fraction_number_line"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Making and Comparing Equal Angles",
+      "alt_text": "Show an angle being folded or split into two equal smaller angles.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Making and Comparing Equal Angles",
+          "diagram": "angle"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Perimeter with Straight and Diagonal Units",
+      "alt_text": "Trace a shape boundary and count straight side units and diagonal units separately.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Perimeter with Straight and Diagonal Units",
+          "diagram": "polygon_perimeter"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Paper Folding and Reflection Symmetry",
+      "alt_text": "Show a folded paper shape reflected across its crease to make matching halves.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Paper Folding and Reflection Symmetry",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Rotational Symmetry with Three Arms",
+      "alt_text": "Show three equally spaced arms and the 120-degree turns that bring the figure onto itself.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Rotational Symmetry with Three Arms",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Checking Reflection Symmetry in Buildings",
+      "alt_text": "Show a building outline and its vertical mirror line with matching left and right halves.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Checking Reflection Symmetry in Buildings",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Paper Folding and Hole Patterns",
+      "alt_text": "Show a folded square sheet with a hole; unfold it to reveal mirrored holes.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Paper Folding and Hole Patterns",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Two Lines of Symmetry",
+      "alt_text": "Show a grid pattern reflected across two perpendicular symmetry lines.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Two Lines of Symmetry",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Reflection Without Rotational Symmetry",
+      "alt_text": "Show a shape with one mirror line that does not match itself after a quarter-turn.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Reflection Without Rotational Symmetry",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Our Place in Space",
+      "alt_text": "Show Earth, the Moon, the Sun and the wider solar-system context with clear size-not-to-scale labels.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Our Place in Space",
+          "diagram": "solar_system"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Earth and Moon in Orbit",
+      "alt_text": "Show the Moon orbiting Earth with a clear direction arrow; keep distances not to scale.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Earth and Moon in Orbit",
+          "diagram": "orbit"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Why Day and Night Happen",
+      "alt_text": "Show sunlight lighting one half of Earth as Earth rotates.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Why Day and Night Happen",
+          "diagram": "day_night"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Patterns of Stars in the Night Sky",
+      "alt_text": "Show a simple labelled constellation pattern against a night sky.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Patterns of Stars in the Night Sky",
+          "diagram": "constellation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Condensation in the Water Cycle",
+      "alt_text": "Show water vapour cooling into liquid droplets and returning to water.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Condensation in the Water Cycle",
+          "diagram": "condensation"
+        }
+      ]
     }
   ]
 }

@@ -757,19 +757,22 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
                         return@mapNotNull null
                     }
                     val imageTitle = matched.optString("title").ifBlank { matched.optString("alt_text") }
-                    val imageConnection = URL("$base$imageUrl").openConnection() as HttpURLConnection
-                    imageConnection.connectTimeout = 8000
-                    imageConnection.readTimeout = 12000
-                    imageConnection.requestMethod = "GET"
-                    try {
-                        if (imageConnection.responseCode != HttpURLConnection.HTTP_OK) {
-                            return@mapNotNull null
+                    runCatching {
+                        val imageConnection = URL("$base$imageUrl").openConnection() as HttpURLConnection
+                        imageConnection.connectTimeout = 8000
+                        imageConnection.readTimeout = 12000
+                        imageConnection.requestMethod = "GET"
+                        try {
+                            if (imageConnection.responseCode != HttpURLConnection.HTTP_OK) {
+                                null
+                            } else {
+                                val decoded = imageConnection.inputStream.use { BitmapFactory.decodeStream(it) }
+                                decoded?.let { it to imageTitle }
+                            }
+                        } finally {
+                            imageConnection.disconnect()
                         }
-                        val decoded = imageConnection.inputStream.use { BitmapFactory.decodeStream(it) }
-                        decoded?.let { it to imageTitle }
-                    } finally {
-                        imageConnection.disconnect()
-                    }
+                    }.getOrNull()
                 }
                 if (decodedImages.isEmpty()) {
                     throw IllegalStateException("No mapped lesson images could be loaded")

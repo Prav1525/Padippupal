@@ -263,3 +263,55 @@ def test_original_upload_admin_authentication_is_required(monkeypatch):
     with pytest.raises(HTTPException) as exc:
         ingest.require_image_admin("wrong-secret")
     assert exc.value.status_code == 401
+
+def test_lesson_image_manifest_keeps_paired_assets_in_stable_order(monkeypatch):
+    rows = [
+        {
+            "id": "original-first",
+            "module_key": "module-4",
+            "title": "Sun energy",
+            "step_ids_json": '["step_4"]',
+            "content_type": "image/png",
+            "alt_text": "Sunlight reaches Earth",
+            "sha256": "a" * 64,
+            "byte_length": 123,
+        },
+        {
+            "id": "original-second",
+            "module_key": "module-4",
+            "title": "Forest products",
+            "step_ids_json": '["step_4"]',
+            "content_type": "image/png",
+            "alt_text": "Useful forest products",
+            "sha256": "b" * 64,
+            "byte_length": 456,
+        },
+    ]
+
+    class Result:
+        def fetchall(self):
+            return rows
+
+    class FakeConnection:
+        def __init__(self):
+            self.query = ""
+
+        def execute(self, query, params=None):
+            self.query = query
+            assert params == ("lesson-12345678",)
+            return Result()
+
+        def close(self):
+            pass
+
+    connection = FakeConnection()
+    monkeypatch.setattr(ingest, "connect", lambda: connection)
+
+    result = ingest.list_lesson_images("lesson-12345678")
+
+    assert [image["id"] for image in result["images"]] == [
+        "original-first",
+        "original-second",
+    ]
+    assert "ORDER BY a.module_key, a.created_at, a.id" in connection.query
+    assert all(image["step_ids"] == ["step_4"] for image in result["images"])

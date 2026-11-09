@@ -1659,6 +1659,1118 @@
           "diagram": "water_cycle_condensation"
         }
       ]
+    },
+    {
+      "lesson_id": "2c2c7721-9ce7-54bc-9c7d-ebaa1df97b5c",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Understanding Data in a Graph",
+      "alt_text": "A child-friendly example bar graph showing labelled categories and bars for comparing quantities; example values are illustrative, not lesson data.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Data Handling and Presentation — Part 1",
+          "diagram": "bar_graph",
+          "values": [
+            2,
+            4,
+            3,
+            5
+          ],
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "2c2c7721-9ce7-54bc-9c7d-ebaa1df97b5c",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Understanding Data in a Graph",
+      "alt_text": "A child-friendly example bar graph showing labelled categories and bars for comparing quantities; example values are illustrative, not lesson data.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Data Handling and Presentation — Part 2",
+          "diagram": "bar_graph",
+          "values": [
+            2,
+            4,
+            3,
+            5
+          ],
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "2c2c7721-9ce7-54bc-9c7d-ebaa1df97b5c",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Understanding Data in a Graph",
+      "alt_text": "A child-friendly example bar graph showing labelled categories and bars for comparing quantities; example values are illustrative, not lesson data.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Data Handling and Presentation — Part 5",
+          "diagram": "bar_graph",
+          "values": [
+            2,
+            4,
+            3,
+            5
+          ],
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "2c2c7721-9ce7-54bc-9c7d-ebaa1df97b5c",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Understanding Data in a Graph",
+      "alt_text": "A child-friendly example bar graph showing labelled categories and bars for comparing quantities; example values are illustrative, not lesson data.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Data Handling and Presentation — Part 6",
+          "diagram": "bar_graph",
+          "values": [
+            2,
+            4,
+            3,
+            5
+          ],
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "2c2c7721-9ce7-54bc-9c7d-ebaa1df97b5c",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Understanding Data in a Graph",
+      "alt_text": "A child-friendly example bar graph showing labelled categories and bars for comparing quantities; example values are illustrative, not lesson data.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Data Handling and Presentation — Part 7",
+          "diagram": "bar_graph",
+          "values": [
+            2,
+            4,
+            3,
+            5
+          ],
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "2c2c7721-9ce7-54bc-9c7d-ebaa1df97b5c",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Understanding Data in a Graph",
+      "alt_text": "A child-friendly example bar graph showing labelled categories and bars for comparing quantities; example values are illustrative, not lesson data.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Data Handling and Presentation — Part 8",
+          "diagram": "bar_graph",
+          "values": [
+            2,
+            4,
+            3,
+            5
+          ],
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Number Patterns",
+      "alt_text": "A simple sequence diagram highlights the repeating or growing number pattern described in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Number Play — Part 2",
+          "diagram": "number_patterns"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Number Patterns with Even Numbers",
+      "alt_text": "A visual array groups objects into pairs to show even-number patterns.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Number Play — Part 3",
+          "diagram": "even_numbers"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Growing Number Patterns",
+      "alt_text": "A growing square pattern shows how each new layer changes the total.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Number Play — Part 5",
+          "diagram": "square_growth"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Place Value and Large Numbers",
+      "alt_text": "A place-value illustration groups ones, tens, hundreds and thousands into clear blocks.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Number Play — Part 7",
+          "diagram": "building_floors"
+        }
+      ]
+    },
+    {
+      "lesson_id": "dd2afe00-7a01-5f1b-9c1d-b8eec8791f11",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Number Patterns",
+      "alt_text": "A simple sequence diagram highlights the repeating or growing number pattern described in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Patterns in Mathematics — Part 5",
+          "diagram": "number_patterns"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Building Shapes with Geometry",
+      "alt_text": "Simple geometric pieces combine to make a larger shape.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Playing with Constructions — Part 1",
+          "diagram": "tangram"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Lines Through Points",
+      "alt_text": "Four labelled points are joined in pairs to explore the lines and intersections they form.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Playing with Constructions — Part 3",
+          "diagram": "four_point_lines"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Rectangle Construction",
+      "alt_text": "A rectangle construction shows opposite sides and right-angle corners.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Playing with Constructions — Part 4",
+          "diagram": "rectangle_properties"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Measuring and Constructing Angles",
+      "alt_text": "A large protractor diagram shows the centre, baseline and angle arc.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Playing with Constructions — Part 5",
+          "diagram": "protractor"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Lines Through Points",
+      "alt_text": "Four labelled points are joined in pairs to explore the lines and intersections they form.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Playing with Constructions — Part 6",
+          "diagram": "four_point_lines"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Rectangle Construction",
+      "alt_text": "A rectangle construction shows opposite sides and right-angle corners.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Playing with Constructions — Part 7",
+          "diagram": "rectangle_properties"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Building Shapes with Geometry",
+      "alt_text": "Simple geometric pieces combine to make a larger shape.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Playing with Constructions — Part 8",
+          "diagram": "tangram"
+        }
+      ]
+    },
+    {
+      "lesson_id": "809a1b07-cac4-52e3-b83c-ebf1168f98d5",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Prime Factor Arrays",
+      "alt_text": "Prime factors are arranged in a clear array to show how they multiply to make a number.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Prime Time — Part 3",
+          "diagram": "factor_arrays"
+        }
+      ]
+    },
+    {
+      "lesson_id": "809a1b07-cac4-52e3-b83c-ebf1168f98d5",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Prime Factor Arrays",
+      "alt_text": "Prime factors are arranged in a clear array to show how they multiply to make a number.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Prime Time — Part 6",
+          "diagram": "factor_arrays"
+        }
+      ]
+    },
+    {
+      "lesson_id": "809a1b07-cac4-52e3-b83c-ebf1168f98d5",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Prime Factorisation",
+      "alt_text": "A factor tree splits a composite number into smaller factors until prime factors remain.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Prime Time — Part 7",
+          "diagram": "factor_tree"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Plants and Their Features",
+      "alt_text": "A labelled plant diagram highlights the visible features discussed in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Diversity in the Living World — Part 1",
+          "diagram": "plant"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Leaf Vein Patterns",
+      "alt_text": "Two leaves compare net-like and parallel vein patterns.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Diversity in the Living World — Part 2",
+          "diagram": "leaf_venation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "How a Seed Begins to Grow",
+      "alt_text": "A sequence shows a seed sprouting roots and a shoot before the first leaves appear.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Diversity in the Living World — Part 3",
+          "diagram": "seed_germination"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "How a Seed Begins to Grow",
+      "alt_text": "A sequence shows a seed sprouting roots and a shoot before the first leaves appear.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Diversity in the Living World — Part 5",
+          "diagram": "seed_germination"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Plants and Their Features",
+      "alt_text": "A labelled plant diagram highlights the visible features discussed in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Diversity in the Living World — Part 6",
+          "diagram": "plant"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Plants and Their Features",
+      "alt_text": "A labelled plant diagram highlights the visible features discussed in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Diversity in the Living World — Part 7",
+          "diagram": "plant"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Leaf Vein Patterns",
+      "alt_text": "Two leaves compare net-like and parallel vein patterns.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Diversity in the Living World — Part 8",
+          "diagram": "leaf_venation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "958addf6-1ff1-54c3-934e-d8d67548759f",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Exploring a Bar Magnet",
+      "alt_text": "A labelled bar magnet shows its north and south poles.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Exploring Magnets — Part 1",
+          "diagram": "magnet"
+        }
+      ]
+    },
+    {
+      "lesson_id": "958addf6-1ff1-54c3-934e-d8d67548759f",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "North and South Magnetic Poles",
+      "alt_text": "Two bar magnets show how like poles repel and unlike poles attract.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Exploring Magnets — Part 7",
+          "diagram": "magnet_poles"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Plants and Their Features",
+      "alt_text": "A labelled plant diagram highlights the visible features discussed in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Living Creatures: Exploring their Characteristics — Part 1",
+          "diagram": "plant"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "The Scientific Method",
+      "alt_text": "A friendly science inquiry cycle shows observe, ask, investigate and learn.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Living Creatures: Exploring their Characteristics — Part 3",
+          "diagram": "scientific_method"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "The Life Cycle of a Butterfly",
+      "alt_text": "Four labelled stages show egg, caterpillar, chrysalis and adult butterfly.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Living Creatures: Exploring their Characteristics — Part 6",
+          "diagram": "butterfly_lifecycle"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "The Life Cycle of a Frog",
+      "alt_text": "A labelled sequence shows frog eggs, tadpole, tadpole with legs and adult frog.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Living Creatures: Exploring their Characteristics — Part 7",
+          "diagram": "frog_lifecycle"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Plants and Their Features",
+      "alt_text": "A labelled plant diagram highlights the visible features discussed in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Living Creatures: Exploring their Characteristics — Part 8",
+          "diagram": "plant"
+        }
+      ]
+    },
+    {
+      "lesson_id": "20b0bf32-d25c-5210-bdca-2ac203fa3c00",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Comparing Materials in Water",
+      "alt_text": "Two beakers compare a material dissolving in water with another remaining visible or settling.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Materials Around Us — Part 1",
+          "diagram": "solubility"
+        }
+      ]
+    },
+    {
+      "lesson_id": "20b0bf32-d25c-5210-bdca-2ac203fa3c00",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Comparing Materials in Water",
+      "alt_text": "Two beakers compare a material dissolving in water with another remaining visible or settling.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Materials Around Us — Part 2",
+          "diagram": "solubility"
+        }
+      ]
+    },
+    {
+      "lesson_id": "20b0bf32-d25c-5210-bdca-2ac203fa3c00",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Comparing Materials in Water",
+      "alt_text": "Two beakers compare a material dissolving in water with another remaining visible or settling.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Materials Around Us — Part 3",
+          "diagram": "solubility"
+        }
+      ]
+    },
+    {
+      "lesson_id": "20b0bf32-d25c-5210-bdca-2ac203fa3c00",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Comparing Materials in Water",
+      "alt_text": "Two beakers compare a material dissolving in water with another remaining visible or settling.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Materials Around Us — Part 5",
+          "diagram": "solubility"
+        }
+      ]
+    },
+    {
+      "lesson_id": "20b0bf32-d25c-5210-bdca-2ac203fa3c00",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Comparing Materials in Water",
+      "alt_text": "Two beakers compare a material dissolving in water with another remaining visible or settling.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Materials Around Us — Part 6",
+          "diagram": "solubility"
+        }
+      ]
+    },
+    {
+      "lesson_id": "20b0bf32-d25c-5210-bdca-2ac203fa3c00",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Separating Magnetic Materials",
+      "alt_text": "A magnet attracts iron pieces from a mixture while non-magnetic material remains.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Materials Around Us — Part 7",
+          "diagram": "magnetic_separation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Measuring Length Correctly",
+      "alt_text": "A ruler and object are aligned at zero to show how length is read correctly.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Measurement of Length and Motion — Part 1",
+          "diagram": "ruler_measurement"
+        }
+      ]
+    },
+    {
+      "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Measuring Length Correctly",
+      "alt_text": "A ruler and object are aligned at zero to show how length is read correctly.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Measurement of Length and Motion — Part 2",
+          "diagram": "ruler_measurement"
+        }
+      ]
+    },
+    {
+      "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Distance and Movement",
+      "alt_text": "A labelled path shows distance and position changing along a straight line.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Measurement of Length and Motion — Part 4",
+          "diagram": "number_line"
+        }
+      ]
+    },
+    {
+      "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Wind Can Make Objects Move",
+      "alt_text": "A simple windmill diagram shows moving air turning its blades.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Measurement of Length and Motion — Part 5",
+          "diagram": "windmill"
+        }
+      ]
+    },
+    {
+      "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Measuring Length Correctly",
+      "alt_text": "A ruler and object are aligned at zero to show how length is read correctly.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Measurement of Length and Motion — Part 6",
+          "diagram": "ruler_measurement"
+        }
+      ]
+    },
+    {
+      "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Distance and Movement",
+      "alt_text": "A labelled path shows distance and position changing along a straight line.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Measurement of Length and Motion — Part 7",
+          "diagram": "number_line"
+        }
+      ]
+    },
+    {
+      "lesson_id": "435b479e-b2ce-5744-be1d-63984ba5115f",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Wind Can Make Objects Move",
+      "alt_text": "A simple windmill diagram shows moving air turning its blades.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Measurement of Length and Motion — Part 8",
+          "diagram": "windmill"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Separating Grain by Winnowing",
+      "alt_text": "A labelled sequence shows wind carrying away lighter husk while heavier grains fall.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Methods of Separation in Everyday Life — Part 5",
+          "diagram": "winnowing"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Separating Magnetic Materials",
+      "alt_text": "A magnet attracts iron pieces from a mixture while non-magnetic material remains.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Methods of Separation in Everyday Life — Part 7",
+          "diagram": "magnetic_separation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Separating Materials by Handpicking",
+      "alt_text": "A simple sorting illustration shows unwanted pieces being removed by hand.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Methods of Separation in Everyday Life — Part 8",
+          "diagram": "handpicking"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Food Groups and Nutrients",
+      "alt_text": "A labelled food illustration groups familiar foods by the nutrients they provide, following the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Mindful Eating: A Path to a Healthy Body — Part 1",
+          "diagram": "nutrient_sources"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Variety in Everyday Food",
+      "alt_text": "A child-friendly meal illustration shows variety in everyday food choices without making medical claims.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Mindful Eating: A Path to a Healthy Body — Part 2",
+          "diagram": "food_variety"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Food Groups and Nutrients",
+      "alt_text": "A labelled food illustration groups familiar foods by the nutrients they provide, following the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Mindful Eating: A Path to a Healthy Body — Part 3",
+          "diagram": "nutrient_sources"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Testing Food Components",
+      "alt_text": "A simple classroom test setup shows filtering and observing food samples.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Mindful Eating: A Path to a Healthy Body — Part 5",
+          "diagram": "tea_filter"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Variety in Everyday Food",
+      "alt_text": "A child-friendly meal illustration shows variety in everyday food choices without making medical claims.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Mindful Eating: A Path to a Healthy Body — Part 6",
+          "diagram": "food_variety"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Variety in Everyday Food",
+      "alt_text": "A child-friendly meal illustration shows variety in everyday food choices without making medical claims.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Mindful Eating: A Path to a Healthy Body — Part 7",
+          "diagram": "food_variety"
+        }
+      ]
+    },
+    {
+      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Variety in Everyday Food",
+      "alt_text": "A child-friendly meal illustration shows variety in everyday food choices without making medical claims.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Mindful Eating: A Path to a Healthy Body — Part 8",
+          "diagram": "food_variety"
+        }
+      ]
+    },
+    {
+      "lesson_id": "2724ac7f-6c27-5ad0-91b4-c8cde97af506",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Useful Products from Forests",
+      "alt_text": "A labelled scene shows useful resources obtained from forests, such as fruits, wood and medicines.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Nature's Treasures — Part 7",
+          "diagram": "forest_products"
+        }
+      ]
+    },
+    {
+      "lesson_id": "24297054-ccec-55ce-8428-ac94cbe0b79f",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "The Scientific Method",
+      "alt_text": "A friendly science inquiry cycle shows observe, ask, investigate and learn.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The Wonderful World of Science — Part 1",
+          "diagram": "scientific_method"
+        }
+      ]
+    },
+    {
+      "lesson_id": "24297054-ccec-55ce-8428-ac94cbe0b79f",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "The Scientific Method",
+      "alt_text": "A friendly science inquiry cycle shows observe, ask, investigate and learn.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The Wonderful World of Science — Part 2",
+          "diagram": "scientific_method"
+        }
+      ]
+    },
+    {
+      "lesson_id": "24297054-ccec-55ce-8428-ac94cbe0b79f",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "The Scientific Method",
+      "alt_text": "A friendly science inquiry cycle shows observe, ask, investigate and learn.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The Wonderful World of Science — Part 3",
+          "diagram": "scientific_method"
+        }
+      ]
+    },
+    {
+      "lesson_id": "24297054-ccec-55ce-8428-ac94cbe0b79f",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "The Scientific Method",
+      "alt_text": "A friendly science inquiry cycle shows observe, ask, investigate and learn.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The Wonderful World of Science — Part 5",
+          "diagram": "scientific_method"
+        }
+      ]
+    },
+    {
+      "lesson_id": "24297054-ccec-55ce-8428-ac94cbe0b79f",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "The Scientific Method",
+      "alt_text": "A friendly science inquiry cycle shows observe, ask, investigate and learn.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The Wonderful World of Science — Part 6",
+          "diagram": "scientific_method"
+        }
+      ]
+    },
+    {
+      "lesson_id": "24297054-ccec-55ce-8428-ac94cbe0b79f",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "The Scientific Method",
+      "alt_text": "A friendly science inquiry cycle shows observe, ask, investigate and learn.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The Wonderful World of Science — Part 7",
+          "diagram": "scientific_method"
+        }
+      ]
     }
   ]
 }

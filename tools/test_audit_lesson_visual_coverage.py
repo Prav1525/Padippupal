@@ -13,7 +13,7 @@ class VisualCoverageAuditTests(unittest.TestCase):
              ]},
             {"id": "lesson-b", "subject": "Science", "chapter": "Plants",
              "modules": [{"step_id": "step_1", "title": "Parts of a plant",
-                          "caption": "Observe the leaf and flower."}],
+                          "caption": "Observe the leaf and flower."}]},
         ]
 
     def test_every_module_gets_explicit_lifecycle_status(self):

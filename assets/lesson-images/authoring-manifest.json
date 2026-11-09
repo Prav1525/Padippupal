@@ -108,15 +108,15 @@
       "step_ids": [
         "step_1"
       ],
-      "title": "Area and Perimeter of a Rectangle",
-      "alt_text": "A rectangle with a visible square grid to distinguish inside area from the boundary.",
+      "title": "Perimeter of a Rectangle",
+      "alt_text": "A rectangle with correctly labelled length 12 cm and breadth 8 cm, showing its boundary.",
       "layout": "single",
       "panels": [
         {
-          "heading": "Area covers the inside; perimeter follows the edge",
-          "diagram": "area_perimeter",
-          "length": "6 units",
-          "width": "3 units"
+          "heading": "Perimeter measures the boundary",
+          "diagram": "perimeter_rectangle",
+          "length": 12,
+          "breadth": 8
         }
       ]
     },
@@ -143,7 +143,7 @@
         "step_4"
       ],
       "title": "Prime Factor Tree",
-      "alt_text": "A factor tree showing 12 split into prime factors 2, 2 and 3.",
+      "alt_text": "A factor tree showing 72 split into prime factors 2, 2, 2, 3 and 3.",
       "layout": "single",
       "panels": [
         {
@@ -174,13 +174,13 @@
       "step_ids": [
         "step_1"
       ],
-      "title": "Integers Around Zero",
-      "alt_text": "A number line showing negative numbers, zero and positive numbers.",
+      "title": "Counting Numbers Begin at Zero",
+      "alt_text": "A simple number ray starting at zero and moving right through positive counting numbers.",
       "layout": "single",
       "panels": [
         {
-          "heading": "Numbers can lie on either side of zero",
-          "diagram": "number_line"
+          "heading": "A number ray starts at zero",
+          "diagram": "number_ray"
         }
       ]
     },
@@ -318,13 +318,13 @@
       "step_ids": [
         "step_4"
       ],
-      "title": "Decantation",
-      "alt_text": "Two beakers show a mixture settling and the clear liquid being poured off.",
+      "title": "Filtering Tea with a Cloth",
+      "alt_text": "Tea leaves retained by a cloth while liquid tea passes through.",
       "layout": "single",
       "panels": [
         {
-          "heading": "Decantation pours liquid away from settled solids",
-          "diagram": "decantation"
+          "heading": "A cloth filter holds back tea leaves",
+          "diagram": "tea_filter"
         }
       ]
     },
@@ -334,13 +334,13 @@
       "step_ids": [
         "step_4"
       ],
-      "title": "Food Groups in a Balanced Diet",
-      "alt_text": "Four simple labelled food groups: fruits, vegetables, grains and protein, shown without fixed serving proportions.",
+      "title": "Vitamins and Roughage from Food",
+      "alt_text": "Familiar fruits, vegetables and whole grains shown as sources of vitamins and roughage.",
       "layout": "single",
       "panels": [
         {
-          "heading": "A balanced diet includes a variety of food groups",
-          "diagram": "food_variety"
+          "heading": "Fruits and vegetables provide vitamins",
+          "diagram": "nutrient_sources"
         }
       ]
     },
@@ -350,13 +350,17 @@
       "step_ids": [
         "step_4"
       ],
-      "title": "The Sun Gives Earth Energy",
-      "alt_text": "A simple Sun and Earth schematic to show the Sun as an energy source for Earth.",
-      "layout": "single",
+      "title": "Sun Energy and Forest Products",
+      "alt_text": "Two separate panels show sunlight reaching Earth and useful products obtained from forests.",
+      "layout": "pair",
       "panels": [
         {
           "heading": "The Sun is Earth's main energy source",
           "diagram": "sun_energy"
+        },
+        {
+          "heading": "Forests provide many useful products",
+          "diagram": "forest_products"
         }
       ]
     },
@@ -389,6 +393,962 @@
         {
           "heading": "Scientists observe, ask, test and conclude",
           "diagram": "scientific_method"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Fractions on a Number Line",
+      "alt_text": "A number line divided into equal parts, marking one-half and three-quarters.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Fractions on a Number Line",
+          "diagram": "fraction_number_line"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Equal Shares, Equivalent Fractions",
+      "alt_text": "One half shown as one of two parts, two of four parts and three of six parts.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Equal Shares, Equivalent Fractions",
+          "diagram": "equivalent_fractions"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Adding Fractions with Common Units",
+      "alt_text": "Two fraction bars showing one-third plus one-third equals two-thirds.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Adding Fractions with Common Units",
+          "diagram": "fraction_addition"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Comparing Fractions with the Same Denominator",
+      "alt_text": "Two fraction bars compare four-sevenths and five-sevenths.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Comparing Fractions with the Same Denominator",
+          "diagram": "fraction_compare"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Reading a Protractor",
+      "alt_text": "A clear semicircular protractor with centre, baseline and degree marks.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Reading a Protractor",
+          "diagram": "protractor"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Angles Made by Clock Hands",
+      "alt_text": "Two clock faces show a right angle and a straight angle between the hands.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Angles Made by Clock Hands",
+          "diagram": "clock_angles"
+        }
+      ]
+    },
+    {
+      "lesson_id": "dd2afe00-7a01-5f1b-9c1d-b8eec8791f11",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Common Number Patterns",
+      "alt_text": "Square numbers and triangular numbers shown as simple dot arrays.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Common Number Patterns",
+          "diagram": "number_patterns"
+        }
+      ]
+    },
+    {
+      "lesson_id": "dd2afe00-7a01-5f1b-9c1d-b8eec8791f11",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Odd Numbers Build a Square",
+      "alt_text": "Rows of odd-numbered dots combine to form a larger square.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Odd Numbers Build a Square",
+          "diagram": "odd_numbers_square"
+        }
+      ]
+    },
+    {
+      "lesson_id": "dd2afe00-7a01-5f1b-9c1d-b8eec8791f11",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Growing Square Patterns",
+      "alt_text": "A sequence shows square arrangements growing from 1 by 1 to 3 by 3.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Growing Square Patterns",
+          "diagram": "square_growth"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Perimeter of a Regular Polygon",
+      "alt_text": "An equilateral triangle and a regular hexagon show equal sides around the boundary.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Perimeter of a Regular Polygon",
+          "diagram": "polygon_perimeter"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Tangram Pieces Make New Shapes",
+      "alt_text": "Seven simple tangram pieces rearranged into a square and rectangle.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Tangram Pieces Make New Shapes",
+          "diagram": "tangram"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Finding Area on a Grid",
+      "alt_text": "A grid illustrates counting square units inside a simple shape.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Finding Area on a Grid",
+          "diagram": "grid_area"
+        }
+      ]
+    },
+    {
+      "lesson_id": "809a1b07-cac4-52e3-b83c-ebf1168f98d5",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Factors and Prime Numbers",
+      "alt_text": "Arrays of 12 objects show factor pairs and contrast a prime number.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Factors and Prime Numbers",
+          "diagram": "factor_arrays"
+        }
+      ]
+    },
+    {
+      "lesson_id": "809a1b07-cac4-52e3-b83c-ebf1168f98d5",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Divisibility by Two",
+      "alt_text": "Numbers ending in 0, 2, 4, 6 or 8 are grouped as even numbers.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Divisibility by Two",
+          "diagram": "even_numbers"
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Floors Above and Below Ground",
+      "alt_text": "A building floor diagram places positive floors above ground and negative floors below.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Floors Above and Below Ground",
+          "diagram": "building_floors"
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Moving Along an Integer Number Line",
+      "alt_text": "A number line shows movement from 9 to 3 with a left-pointing arrow.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Moving Along an Integer Number Line",
+          "diagram": "integer_movement"
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Zero Pairs Keep the Value Unchanged",
+      "alt_text": "One positive and one negative counter pair to zero; adding pairs does not change the total.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Zero Pairs Keep the Value Unchanged",
+          "diagram": "zero_pairs"
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Adding Integers on a Number Line",
+      "alt_text": "Arrows show positive and negative movement from zero on an integer line.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Adding Integers on a Number Line",
+          "diagram": "integer_addition"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Water Droplets on a Cold Glass",
+      "alt_text": "Water vapour in air cools near a cold glass and forms droplets on its outside.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Water Droplets on a Cold Glass",
+          "diagram": "condensation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Evaporation Needs Heat",
+      "alt_text": "A small puddle becomes vapour faster with warmth and a larger exposed surface.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Evaporation Needs Heat",
+          "diagram": "evaporation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Cooling Water in an Earthen Pot",
+      "alt_text": "A simple cross-section shows water cooling as a little water seeps through the pot and evaporates.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Cooling Water in an Earthen Pot",
+          "diagram": "earthen_pot"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Finding the Pole Star",
+      "alt_text": "The Big Dipper pointer stars guide the eye toward the Pole Star.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Finding the Pole Star",
+          "diagram": "pole_star"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Earth's Rotation and Day and Night",
+      "alt_text": "A sunlit Earth diagram labels the day side, night side and rotation direction.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Earth's Rotation and Day and Night",
+          "diagram": "day_night"
+        }
+      ]
+    },
+    {
+      "lesson_id": "958addf6-1ff1-54c3-934e-d8d67548759f",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "A Compass Finds North and South",
+      "alt_text": "A compass needle aligns along the north-south direction.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A Compass Finds North and South",
+          "diagram": "compass"
+        }
+      ]
+    },
+    {
+      "lesson_id": "958addf6-1ff1-54c3-934e-d8d67548759f",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Like Poles Repel, Unlike Poles Attract",
+      "alt_text": "Two bar-magnet pairs show N-N repulsion and N-S attraction.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Like Poles Repel, Unlike Poles Attract",
+          "diagram": "magnet_poles"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Handpicking Stones from Grains",
+      "alt_text": "A simple hand removes visible stones from a bowl of grains.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Handpicking Stones from Grains",
+          "diagram": "handpicking"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Winnowing Separates Husk from Grain",
+      "alt_text": "Wind carries light husk farther while heavier grains fall nearby.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Winnowing Separates Husk from Grain",
+          "diagram": "winnowing"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Separating Salt by Evaporation",
+      "alt_text": "Salt solution in a shallow dish leaves salt behind as water evaporates.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Separating Salt by Evaporation",
+          "diagram": "salt_evaporation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Magnetic Separation",
+      "alt_text": "A magnet lifts iron pieces away from non-magnetic material.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Magnetic Separation",
+          "diagram": "magnetic_separation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "2724ac7f-6c27-5ad0-91b4-c8cde97af506",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Wind Turns a Pinwheel",
+      "alt_text": "Air movement pushes the blades of a pinwheel and makes it rotate.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Wind Turns a Pinwheel",
+          "diagram": "windmill"
+        }
+      ]
+    },
+    {
+      "lesson_id": "2724ac7f-6c27-5ad0-91b4-c8cde97af506",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Where Fresh Water Is Found",
+      "alt_text": "A simple water distribution picture distinguishes oceans, ice, groundwater and accessible fresh water.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Where Fresh Water Is Found",
+          "diagram": "fresh_water"
+        }
+      ]
+    },
+    {
+      "lesson_id": "2724ac7f-6c27-5ad0-91b4-c8cde97af506",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "How Soil Forms",
+      "alt_text": "Rock fragments, water, air and living things gradually contribute to soil formation.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "How Soil Forms",
+          "diagram": "soil_formation"
+        }
+      ]
+    },
+    {
+      "lesson_id": "2724ac7f-6c27-5ad0-91b4-c8cde97af506",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Different Fuels for Vehicles",
+      "alt_text": "Simple transport icons are matched with common fuels such as petrol, diesel, CNG and electricity.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Different Fuels for Vehicles",
+          "diagram": "vehicle_fuels"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Using a Digital Thermometer Safely",
+      "alt_text": "A digital thermometer is shown with safe handling and a 37 degree Celsius example.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Using a Digital Thermometer Safely",
+          "diagram": "digital_thermometer"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Parts of a Laboratory Thermometer",
+      "alt_text": "A laboratory thermometer labels the bulb, liquid column and scale.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Parts of a Laboratory Thermometer",
+          "diagram": "lab_thermometer"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Correct Thermometer Position",
+      "alt_text": "A thermometer is held upright in water without touching the beaker sides or bottom.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Correct Thermometer Position",
+          "diagram": "thermometer_setup"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Temperature During Melting",
+      "alt_text": "A simple heating curve shows temperature staying level while ice melts.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Temperature During Melting",
+          "diagram": "melting_plateau"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Three Temperature Scales",
+      "alt_text": "Celsius, Fahrenheit and Kelvin scales are shown as three labelled scales.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Three Temperature Scales",
+          "diagram": "temperature_scales"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Obtuse Angles on a Protractor",
+      "alt_text": "A protractor shows an angle greater than 90 degrees and less than 180 degrees.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Read an obtuse angle between 90° and 180°",
+          "diagram": "protractor"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Angles Formed by Intersecting Lines",
+      "alt_text": "Two lines crossing form angles around a common point.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Lines meet to form angles",
+          "diagram": "four_point_lines"
+        }
+      ]
+    },
+    {
+      "lesson_id": "dd2afe00-7a01-5f1b-9c1d-b8eec8791f11",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Growing Square Patterns",
+      "alt_text": "A sequence of square arrangements grows by adding another layer.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "See how a square pattern grows",
+          "diagram": "square_growth"
+        }
+      ]
+    },
+    {
+      "lesson_id": "dd2afe00-7a01-5f1b-9c1d-b8eec8791f11",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Triangular Number Patterns",
+      "alt_text": "Rows of dots form growing triangular numbers.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Count dots in growing triangles",
+          "diagram": "triangle_pattern"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Perimeters of Different Shapes",
+      "alt_text": "A rectangle, triangle and hexagon show that perimeter is found by adding every outside side.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Perimeter = add every outside side",
+          "diagram": "perimeter_shapes"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Same Area, Different Perimeters",
+      "alt_text": "Two rectangles each have an area of 1,050 square feet, but their perimeters are 134 feet and 130 feet.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Equal area does not always mean equal perimeter",
+          "diagram": "same_area_perimeters"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Why Touch Is Not a Reliable Thermometer",
+      "alt_text": "Touch can feel different while a thermometer gives a measurable temperature.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Use a thermometer for reliable temperature",
+          "diagram": "thermometer"
+        }
+      ]
+    },
+    {
+      "lesson_id": "2c2c7721-9ce7-54bc-9c7d-ebaa1df97b5c",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Bar Graphs Compare Values",
+      "alt_text": "A simple labelled bar graph showing how bars of equal width and scale compare category values.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Compare values using bar height",
+          "diagram": "bar_graph",
+          "values": [
+            2,
+            5,
+            3,
+            4
+          ],
+          "labels": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        }
+      ]
+    },
+    {
+      "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Points, Lines and Angles",
+      "alt_text": "A clear angle diagram introduces two arms meeting at one vertex.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A point marks a position; two arms can form an angle",
+          "diagram": "angle"
+        }
+      ]
+    },
+    {
+      "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Measuring Angles with a Protractor",
+      "alt_text": "A labelled semicircular protractor showing its centre, baseline and degree marks.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Place the centre on the vertex and read the scale",
+          "diagram": "protractor"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Area Inside a Shape",
+      "alt_text": "A grid shows the square units inside a rectangle, supporting area-maze reasoning.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Area counts the square units covering a region",
+          "diagram": "grid_area"
+        }
+      ]
+    },
+    {
+      "lesson_id": "809a1b07-cac4-52e3-b83c-ebf1168f98d5",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Factors as Equal Groups",
+      "alt_text": "Arrays of objects show how a number can be arranged into equal rows and columns.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Factors make equal groups or arrays",
+          "diagram": "factor_arrays"
+        }
+      ]
+    },
+    {
+      "lesson_id": "809a1b07-cac4-52e3-b83c-ebf1168f98d5",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Common Prime Factors",
+      "alt_text": "Two numbers show prime factors 2, 3, 7 and 3, 7, 11, highlighting the shared factors 3 and 7.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "The numbers share prime factors 3 and 7",
+          "diagram": "shared_prime_factors"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Reflection Symmetry",
+      "alt_text": "A simple shape and fold line show matching halves across a line of symmetry.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A line of symmetry divides matching halves",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Ice, Water and Water Vapour",
+      "alt_text": "Three labelled panels compare solid, liquid and gaseous water.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Water exists as ice, liquid water and water vapour",
+          "diagram": "water_states"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Condensation on a Cold Surface",
+      "alt_text": "Water vapour cools near a cold surface and forms liquid droplets.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Condensation can appear on many cool surfaces",
+          "diagram": "condensation_examples"
+        }
+      ]
+    },
+    {
+      "lesson_id": "958addf6-1ff1-54c3-934e-d8d67548759f",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Magnetic Poles and Compass Needle",
+      "alt_text": "Two magnet pole arrangements show attraction and repulsion.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Like poles repel; unlike poles attract",
+          "diagram": "magnet_poles"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Parts of a Flowering Plant",
+      "alt_text": "A child-friendly plant diagram labels flower, leaves, stem and roots.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Plants have roots, stems, leaves and flowers",
+          "diagram": "plant"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Plant Life Cycle Begins with a Seed",
+      "alt_text": "A seedling diagram labels the new shoot and growing roots.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A seed grows into a seedling",
+          "diagram": "seedling"
+        }
+      ]
+    },
+    {
+      "lesson_id": "2724ac7f-6c27-5ad0-91b4-c8cde97af506",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Fresh Water in Nature",
+      "alt_text": "A simple illustration distinguishes oceans, ice, groundwater and accessible fresh water.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Fresh water is found in rivers, lakes, ice and underground",
+          "diagram": "fresh_water"
+        }
+      ]
+    },
+    {
+      "lesson_id": "7ba07e6b-c3dd-5a0a-a0b1-f2102b70f9d3",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Reading a Thermometer Scale",
+      "alt_text": "A large labelled thermometer helps learners read a temperature scale.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Read temperature from the thermometer scale",
+          "diagram": "thermometer"
         }
       ]
     }

@@ -100,27 +100,6 @@ private val tutorMainHandler = Handler(Looper.getMainLooper())
 private data class TutorMessage(val role: String, val content: String, val visualLesson: JSONObject? = null, val interactiveLesson: JSONObject? = null)
 private data class TutorSource(val title: String, val url: String)
 
-internal data class LessonImageMappingCandidate(
-    val index: Int,
-    val moduleKey: String,
-    val stepIds: List<String>
-)
-
-/** Return every asset mapped to the active teaching step, including paired visuals. */
-internal fun matchingLessonImageIndexes(
-    candidates: List<LessonImageMappingCandidate>,
-    stepId: String,
-    moduleKey: String
-): List<Int> {
-    val activeStep = stepId.trim()
-    if (activeStep.isNotBlank()) {
-        return candidates.filter { activeStep in it.stepIds }.map { it.index }
-    }
-    val activeModule = moduleKey.trim()
-    if (activeModule.isBlank()) return emptyList()
-    return candidates.filter { it.moduleKey == activeModule }.map { it.index }
-}
-
 private fun normalizedCheckpoint(raw: String?): String {
     val value = raw.orEmpty().trim()
     return if (value.isBlank() || value.equals("null", ignoreCase = true) || value.equals("undefined", ignoreCase = true) || value == "{}" || value == "[]") "Does that make sense so far?" else value

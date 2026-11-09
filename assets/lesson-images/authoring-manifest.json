@@ -1614,22 +1614,6 @@
     },
     {
       "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
-      "module_key": "module-7",
-      "step_ids": [
-        "step_7"
-      ],
-      "title": "Why Day and Night Happen",
-      "alt_text": "Show sunlight lighting one half of Earth as Earth rotates.",
-      "layout": "single",
-      "panels": [
-        {
-          "heading": "Why Day and Night Happen",
-          "diagram": "day_night"
-        }
-      ]
-    },
-    {
-      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
       "module_key": "module-8",
       "step_ids": [
         "step_8"
@@ -2550,22 +2534,6 @@
     },
     {
       "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
-      "module_key": "module-1",
-      "step_ids": [
-        "step_1"
-      ],
-      "title": "Food Groups and Nutrients",
-      "alt_text": "A labelled food illustration groups familiar foods by the nutrients they provide, following the lesson.",
-      "layout": "single",
-      "panels": [
-        {
-          "heading": "Mindful Eating: A Path to a Healthy Body — Part 1",
-          "diagram": "nutrient_sources"
-        }
-      ]
-    },
-    {
-      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
       "module_key": "module-2",
       "step_ids": [
         "step_2"
@@ -2577,22 +2545,6 @@
         {
           "heading": "Mindful Eating: A Path to a Healthy Body — Part 2",
           "diagram": "food_variety"
-        }
-      ]
-    },
-    {
-      "lesson_id": "6c76991a-220d-5321-82a5-c1de4f06f876",
-      "module_key": "module-3",
-      "step_ids": [
-        "step_3"
-      ],
-      "title": "Food Groups and Nutrients",
-      "alt_text": "A labelled food illustration groups familiar foods by the nutrients they provide, following the lesson.",
-      "layout": "single",
-      "panels": [
-        {
-          "heading": "Mindful Eating: A Path to a Healthy Body — Part 3",
-          "diagram": "nutrient_sources"
         }
       ]
     },

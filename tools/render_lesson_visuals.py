@@ -244,6 +244,49 @@ def diagram(d, kind, data):
         label(d,(420,300),"EVAPORATION",23,BLUE,True,anchor="mm")
         label(d,(740,185),"CLOUDS FORM",23,INK,True,anchor="mm")
         label(d,(865,460),"RAIN",23,BLUE,True,anchor="mm")
+    elif kind == "butterfly_lifecycle":
+        # Four simple, age-appropriate butterfly life stages.
+        stages=[("EGG",140),("CATERPILLAR",400),("CHRYSALIS",660),("BUTTERFLY",920)]
+        for label_text,x in stages:
+            if label_text=="EGG":
+                d.ellipse((x-24,330,x+24,380),fill="#F6C66B",outline=INK,width=4)
+            elif label_text=="CATERPILLAR":
+                for j in range(4):
+                    d.ellipse((x-48+j*26,330,x-8+j*26,370),fill="#8BCB83",outline=INK,width=3)
+            elif label_text=="CHRYSALIS":
+                d.ellipse((x-24,295,x+24,405),fill="#B7D7A8",outline=INK,width=4)
+            else:
+                d.ellipse((x-12,330,x+12,370),fill="#F6C66B",outline=INK,width=3)
+                d.ellipse((x-68,285,x-10,355),fill="#D9C4F2",outline=INK,width=3)
+                d.ellipse((x+10,285,x+68,355),fill="#D9C4F2",outline=INK,width=3)
+                d.ellipse((x-55,355,x-8,415),fill="#E8DFF5",outline=INK,width=3)
+                d.ellipse((x+8,355,x+55,415),fill="#E8DFF5",outline=INK,width=3)
+            label(d,(x,470),label_text,20,INK,True,anchor="mm")
+        for x in (270,530,790): arrow(d,(x,350),(x+85,350),fill=BLUE,width=6)
+        label(d,(540,590),"A butterfly changes form as it grows",28,BLUE,True,anchor="mm")
+    elif kind == "frog_lifecycle":
+        # Frog development: eggs, tadpole, tadpole with legs, adult.
+        d.ellipse((95,300,230,400),fill="#E8F4F8",outline=INK,width=4)
+        for x,y in [(130,330),(160,350),(190,330),(150,375),(200,375)]:
+            d.ellipse((x-10,y-10,x+10,y+10),fill="#8DBBE8",outline=BLUE,width=2)
+        label(d,(160,460),"EGGS",22,INK,True,anchor="mm")
+        d.ellipse((350,325,455,375),fill="#8BCB83",outline=INK,width=4)
+        d.ellipse((430,345,500,365),fill="#8BCB83",outline=INK,width=3)
+        label(d,(425,460),"TADPOLE",22,INK,True,anchor="mm")
+        d.ellipse((620,315,720,395),fill="#8BCB83",outline=INK,width=4)
+        d.line((700,360,765,400),fill="#8BCB83",width=10)
+        d.line((650,380,625,425),fill="#286B3A",width=7)
+        d.line((685,380,710,425),fill="#286B3A",width=7)
+        label(d,(680,470),"LEGS GROW",20,INK,True,anchor="mm")
+        d.ellipse((885,315,985,405),fill="#8BCB83",outline=INK,width=4)
+        d.line((905,390,875,445),fill="#286B3A",width=8)
+        d.line((965,390,995,445),fill="#286B3A",width=8)
+        d.line((895,345,865,310),fill="#286B3A",width=8)
+        d.line((975,345,1005,310),fill="#286B3A",width=8)
+        label(d,(935,480),"ADULT FROG",20,INK,True,anchor="mm")
+        for x in (260,525,790): arrow(d,(x,355),(x+70,355),fill=BLUE,width=6)
+        label(d,(540,590),"A frog develops from an egg into an adult",27,BLUE,True,anchor="mm")
+
     elif kind == "symmetry":
         box=(220,180,860,570); d.ellipse(box,fill="#F6C66A",outline=INK,width=6)
         d.polygon([(540,205),(420,330),(540,410),(660,330)],fill="#E8F4F8",outline=INK)

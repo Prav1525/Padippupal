@@ -110,8 +110,8 @@ def diagram(d, kind, data):
         # Textbook example: equal areas, different boundary lengths.
         d.rounded_rectangle((45,205,520,600),radius=24,fill="#F8FBFC",outline="#C8DCE5",width=3)
         d.rounded_rectangle((560,205,1035,600),radius=24,fill="#F8FBFC",outline="#C8DCE5",width=3)
-        d.rectangle((105,300,460,455),fill="#E8F4F8",outline=BLUE,width=7)
-        d.rectangle((665,285,930,470),fill="#FFF0D9",outline=BLUE,width=7)
+        d.rectangle((120,300,420,478),fill="#E8F4F8",outline=BLUE,width=7)
+        d.rectangle((685,280,910,472),fill="#FFF0D9",outline=BLUE,width=7)
         label(d,(282,245),"HOUSE A",27,INK,True,anchor="mm")
         label(d,(797,245),"HOUSE B",27,INK,True,anchor="mm")
         label(d,(282,485),"42 ft × 25 ft",25,INK,True,anchor="mm")

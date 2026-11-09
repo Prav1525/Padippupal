@@ -846,3 +846,11 @@ Use this format:
 - **Visual generation scope:** 163 original PNG mappings are configured for 1080×720 rendering. Added butterfly and frog life-cycle diagrams with tests. CI has not yet produced an artifact for the latest head, so PNG output count/decoding on this exact head remains unverified.
 - **Safety:** Three web candidates are not ingested. Production writes, production deployment, asset approval and learner-visible publication remain at zero for this batch.
 - **Next verification:** Re-run renderer and web-provenance tests on the latest PR head, inspect the resulting PNG artifact, then perform Android API 35 tutor-screen placement tests.
+
+
+### 2026-11-09 — Confirm production multipart endpoint 404 root cause
+- **Evidence:** One-image smoke workflow run [42614082827](https://github.com/Prav1525/Padippupal/actions/runs/42614082827) selected the exact approved Beyond Earth module 3 mapping, rendered one PNG, then received HTTP 404 from `POST /admin/lesson-images/ingest-original`.
+- **Root cause:** **CONFIRMED — stale Render deployment.** Production Render deploy `dep-dbonmim417fc738rki50` runs commit `e822ad819793fad89e4e641db90b6775e4bd498f`; that commit's `backend/lesson_image_ingest.py` exposes only `/ingest` and `/ingest-url`. GitHub `main` is at `65bd8fb24c053c7df21a1bc14146789e580e2517` and its router includes `/admin/lesson-images/ingest-original`.
+- **Impact:** The request never reached the handler; no production asset or blob was inserted. The route is present in source but absent from the deployed API because Render has not deployed the latest main commit.
+- **Safety:** No retry against another endpoint and no alternate production write was attempted. Activating the route requires deploying the current main commit to the existing Render service; this remains gated on explicit deployment approval.
+- **Test fix:** Correct renderer test expectations to 163 original PNG mappings; 3 web-source candidates are separate and 4 human-review modules remain unmapped. Corrected the CI command so the provenance validator runs separately from pytest.

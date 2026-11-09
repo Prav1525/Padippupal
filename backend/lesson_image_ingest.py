@@ -288,6 +288,21 @@ def _validate_module_step_mapping(module_key: str, step_ids: list[str]) -> None:
             detail="module_key must match the mapped teaching step (for example, step_2 uses module-2).",
         )
 
+def _validate_lesson_step_mapping(lesson_json: str, module_key: str, step_ids: list[str]) -> None:
+    """Ensure requested visual mappings refer to real steps in this approved lesson."""
+    try:
+        lesson = json.loads(lesson_json or "{}")
+        sequence = lesson.get("teaching_sequence", [])
+        available_steps = {
+            item.get("id") for item in sequence
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="Approved lesson has an invalid teaching sequence.")
+    if not step_ids or any(step not in available_steps for step in step_ids):
+        raise HTTPException(status_code=422, detail="Image step_ids must match existing teaching steps in the approved lesson.")
+    _validate_module_step_mapping(module_key, step_ids)
+
 
 def _fetch_remote_image(url: str, host: str, resolved_ip: str) -> tuple[bytes, str]:
     parsed = urlsplit(url)
@@ -342,8 +357,8 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
             raise HTTPException(status_code=422, detail=f"{field_name} must be a valid HTTPS URL.")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,120}", payload.module_key):
         raise HTTPException(status_code=422, detail="Invalid module_key.")
-    if any(not re.fullmatch(r"step_[1-8]", step) for step in payload.step_ids):
-        raise HTTPException(status_code=422, detail="step_ids must identify valid Beyond Earth teaching steps (step_1 to step_8).")
+    if any(not re.fullmatch(r"step_[1-9][0-9]{0,2}", step) for step in payload.step_ids):
+        raise HTTPException(status_code=422, detail="step_ids must use the lesson step_N format.")
     if len(set(payload.step_ids)) != len(payload.step_ids):
         raise HTTPException(status_code=422, detail="Duplicate step_ids are not allowed.")
     _validate_module_step_mapping(payload.module_key, payload.step_ids)
@@ -356,12 +371,13 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
     conn = connect()
     try:
         lesson = conn.execute(
-            "SELECT id, chapter, medium, status FROM chapter_lessons WHERE id=%s",
+            "SELECT id, board, class_level, subject, chapter, medium, status, lesson_json FROM chapter_lessons WHERE id=%s",
             (payload.lesson_id,)
         ).fetchone()
-        if not lesson or lesson["status"] != "approved" or str(lesson["chapter"]).strip().casefold() != "beyond earth":
-            raise HTTPException(status_code=422, detail="Only an approved Beyond Earth lesson can receive this image.")
-        object_key = f"beyond-earth/{str(lesson['medium'] or 'unknown').lower()}/{payload.module_key}/{asset_id}"
+        if not lesson or lesson["status"] != "approved":
+            raise HTTPException(status_code=422, detail="Images may only attach to an approved lesson.")
+        _validate_lesson_step_mapping(lesson["lesson_json"], payload.module_key, payload.step_ids)
+        object_key = "lesson-images/{}/{}/{}/{}/{}/{}".format(lesson["board"], lesson["class_level"], lesson["subject"], payload.lesson_id, payload.module_key, asset_id)
         conn.execute("""
             INSERT INTO lesson_image_assets
               (id, lesson_id, module_key, title, step_ids_json, bucket_name, object_key,

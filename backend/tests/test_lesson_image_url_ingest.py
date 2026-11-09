@@ -111,3 +111,21 @@ def test_module_mapping_rejects_step_to_wrong_module():
     with pytest.raises(HTTPException) as exc:
         ingest._validate_module_step_mapping("step_2", ["step_2"])
     assert exc.value.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("lesson_json", "module_key", "steps", "valid"),
+    [
+        ('{"teaching_sequence":[{"id":"step_1"},{"id":"step_2"}]}', "module-2", ["step_2"], True),
+        ('{"teaching_sequence":[{"id":"step_1"},{"id":"step_2"}]}', "module-2", ["step_3"], False),
+        ('{"teaching_sequence":[{"id":"step_1"},{"id":"step_2"}]}', "module-1", ["step_2"], False),
+        ('{"teaching_sequence":[{"id":"step_12"}]}', "module-12", ["step_12"], True),
+    ],
+)
+def test_lesson_mapping_must_match_existing_step_and_module(lesson_json, module_key, steps, valid):
+    if valid:
+        ingest._validate_lesson_step_mapping(lesson_json, module_key, steps)
+    else:
+        with pytest.raises(HTTPException) as exc:
+            ingest._validate_lesson_step_mapping(lesson_json, module_key, steps)
+        assert exc.value.status_code == 422

@@ -817,3 +817,11 @@ Use this format:
 - **Root cause:** **CONFIRMED** — the prior investigation entry was moved into PR #281's base during the branch refresh, so it no longer counted as an update in PR #283's changed-file set.
 - **What remains unverified:** Re-run renderer/audit tests and investigation gate on this exact rebased PR head.
 - **Next action:** Confirm both exact-head checks pass; keep the audit proposal-only and do not ingest or publish images from this PR.
+
+
+### 2026-11-09 — Reconcile curation decision ledger with expanded manifest
+- **Branch / PR:** `feat/lesson-visual-curation-pipeline`, PR #283.
+- **Evidence:** Manifest contains 86 unique mappings; the initial coverage decision ledger contains 88 missing-module proposals. Four exact lesson/module keys now appear in both files: Fractions module 4, The Other Side of Zero module 8, States of Water module 8, and Exploring Magnets module 6.
+- **Change:** Mark those four ledger items `MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED`; record 84 unresolved review proposals. Preserve route counts as the initial triage distribution.
+- **Safety:** Manifest PNGs were rendered in CI as build artifacts only. This does not mean production ingestion or learner-visible publication. Production ingested count from this manifest remains zero.
+- **Validation:** Ledger reconciliation is source-checked; exact-head CI is pending.

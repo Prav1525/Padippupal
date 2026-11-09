@@ -9,8 +9,8 @@ import re
 import socket
 from io import BytesIO
 from zipfile import BadZipFile, ZipFile
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, build_opener, HTTPRedirectHandler
+import http.client
+import ssl
 from urllib.parse import urlsplit
 
 import psycopg
@@ -236,54 +236,88 @@ class RemoteImageInput(BaseModel):
     attribution: str = Field(min_length=3, max_length=500)
 
 
-class _NoRedirect(HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        return None
-
-
-def _validate_public_image_url(value: str) -> str:
+def _validate_public_image_url(value: str) -> tuple[str, str, str]:
     parsed = urlsplit(value)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
         raise HTTPException(status_code=422, detail="Image URL must be a credential-free HTTPS URL.")
     host = parsed.hostname.lower().rstrip(".")
     if host not in URL_IMAGE_HOSTS or parsed.port not in (None, 443):
         raise HTTPException(status_code=422, detail="Image host is not on the approved source allow-list.")
     try:
-        addresses = {item[4][0] for item in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)}
-    except OSError as exc:
+        addresses = {
+            str(ipaddress.ip_address(item[4][0]))
+            for item in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+        }
+    except (OSError, ValueError) as exc:
         raise HTTPException(status_code=502, detail="Image source DNS lookup failed.") from exc
     if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
         raise HTTPException(status_code=422, detail="Image source resolved to a non-public network address.")
-    return value
+    # Pin the actual TCP connection to an address from the validated DNS result.
+    # TLS still verifies the allow-listed hostname and sends it as SNI.
+    return value, host, sorted(addresses)[0]
 
 
-def _fetch_remote_image(url: str) -> tuple[bytes, str]:
-    request = Request(url, headers={"User-Agent": "PadippuPal-LessonImageIngest/1.0", "Accept": "image/png,image/jpeg,image/webp,image/gif"})
-    opener = build_opener(_NoRedirect())
-    try:
-        with opener.open(request, timeout=15) as response:
-            content_type = response.headers.get_content_type().lower()
-            if content_type not in ALLOWED_TYPES:
-                raise HTTPException(status_code=415, detail="Remote source did not return a supported image MIME type.")
-            length = response.headers.get("Content-Length")
-            if length and int(length) > MAX_REMOTE_IMAGE_BYTES:
-                raise HTTPException(status_code=413, detail="Remote image exceeds the 8 MB limit.")
-            payload = response.read(MAX_REMOTE_IMAGE_BYTES + 1)
-    except HTTPError as exc:
-        if 300 <= exc.code < 400:
-            raise HTTPException(status_code=422, detail="Image redirects are not accepted; use the final approved HTTPS image URL.") from exc
-        raise HTTPException(status_code=502, detail=f"Image source returned HTTP {exc.code}.") from exc
-    except (URLError, TimeoutError, OSError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail="Could not retrieve the remote image.") from exc
-    if not payload or len(payload) > MAX_REMOTE_IMAGE_BYTES:
-        raise HTTPException(status_code=413, detail="Remote image must be between 1 byte and 8 MB.")
-    signature_ok = (
-        (content_type == "image/jpeg" and payload.startswith(b"\\xff\\xd8\\xff")) or
-        (content_type == "image/png" and payload.startswith(b"\\x89PNG\\r\\n\\x1a\\n")) or
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    def __init__(self, host: str, resolved_ip: str, timeout: float = 15):
+        super().__init__(host=host, port=443, timeout=timeout, context=ssl.create_default_context())
+        self._resolved_ip = resolved_ip
+
+    def connect(self) -> None:
+        raw_socket = socket.create_connection((self._resolved_ip, self.port), self.timeout)
+        try:
+            self.sock = self._context.wrap_socket(raw_socket, server_hostname=self.host)
+        except Exception:
+            raw_socket.close()
+            raise
+
+
+def _image_signature_matches(payload: bytes, content_type: str) -> bool:
+    return (
+        (content_type == "image/jpeg" and payload.startswith(b"\xff\xd8\xff")) or
+        (content_type == "image/png" and payload.startswith(b"\x89PNG\r\n\x1a\n")) or
         (content_type == "image/webp" and payload[:4] == b"RIFF" and payload[8:12] == b"WEBP") or
         (content_type == "image/gif" and payload[:6] in (b"GIF87a", b"GIF89a"))
     )
-    if not signature_ok:
+
+
+def _fetch_remote_image(url: str, host: str, resolved_ip: str) -> tuple[bytes, str]:
+    parsed = urlsplit(url)
+    target = parsed.path or "/"
+    if parsed.query:
+        target += "?" + parsed.query
+    connection = _PinnedHTTPSConnection(host, resolved_ip, timeout=15)
+    try:
+        connection.request(
+            "GET",
+            target,
+            headers={
+                "Host": host,
+                "User-Agent": "PadippuPal-LessonImageIngest/1.0",
+                "Accept": "image/png,image/jpeg,image/webp,image/gif",
+                "Connection": "close",
+            },
+        )
+        response = connection.getresponse()
+        if 300 <= response.status < 400:
+            raise HTTPException(status_code=422, detail="Image redirects are not accepted; use the final approved HTTPS image URL.")
+        if response.status != 200:
+            raise HTTPException(status_code=502, detail=f"Image source returned HTTP {response.status}.")
+        content_type = (response.getheader("Content-Type") or "").split(";", 1)[0].strip().lower()
+        if content_type not in ALLOWED_TYPES:
+            raise HTTPException(status_code=415, detail="Remote source did not return a supported image MIME type.")
+        length = response.getheader("Content-Length")
+        if length and int(length) > MAX_REMOTE_IMAGE_BYTES:
+            raise HTTPException(status_code=413, detail="Remote image exceeds the 8 MB limit.")
+        payload = response.read(MAX_REMOTE_IMAGE_BYTES + 1)
+    except HTTPException:
+        raise
+    except (OSError, http.client.HTTPException, TimeoutError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="Could not retrieve the remote image.") from exc
+    finally:
+        connection.close()
+    if not payload or len(payload) > MAX_REMOTE_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Remote image must be between 1 byte and 8 MB.")
+    if not _image_signature_matches(payload, content_type):
         raise HTTPException(status_code=415, detail="Downloaded bytes do not match the declared image MIME type.")
     return payload, content_type
 
@@ -291,7 +325,7 @@ def _fetch_remote_image(url: str) -> tuple[bytes, str]:
 @router.post("/admin/lesson-images/ingest-url", dependencies=[Depends(require_image_admin)])
 def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
     """Fetch one allow-listed HTTPS image and store it for review, not student delivery."""
-    image_url = _validate_public_image_url(payload.image_url)
+    image_url, image_host, resolved_ip = _validate_public_image_url(payload.image_url)
     for field_name in ("source_page_url", "license_url"):
         value = getattr(payload, field_name)
         parsed = urlsplit(value)
@@ -303,8 +337,11 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
         raise HTTPException(status_code=422, detail="step_ids must identify valid Beyond Earth teaching steps (step_1 to step_8).")
     if len(set(payload.step_ids)) != len(payload.step_ids):
         raise HTTPException(status_code=422, detail="Duplicate step_ids are not allowed.")
+    expected_module_keys = {f"module-{step.split('_', 1)[1]}" for step in payload.step_ids}
+    if len(expected_module_keys) != 1 or payload.module_key not in expected_module_keys:
+        raise HTTPException(status_code=422, detail="module_key must match the mapped teaching step (for example, step_2 uses module-2).")
 
-    image_bytes, content_type = _fetch_remote_image(image_url)
+    image_bytes, content_type = _fetch_remote_image(image_url, image_host, resolved_ip)
     fingerprint = hashlib.sha256(image_bytes).hexdigest()
     asset_id = "remote-" + hashlib.sha256(
         f"{payload.lesson_id}|{payload.module_key}|{fingerprint}".encode("utf-8")
@@ -317,17 +354,7 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
         ).fetchone()
         if not lesson or lesson["status"] != "approved" or str(lesson["chapter"]).strip().casefold() != "beyond earth":
             raise HTTPException(status_code=422, detail="Only an approved Beyond Earth lesson can receive this image.")
-        ensure_blob_table(conn)
-        conn.execute("""
-            ALTER TABLE lesson_image_assets
-            ADD COLUMN IF NOT EXISTS source_url TEXT,
-            ADD COLUMN IF NOT EXISTS source_page_url TEXT,
-            ADD COLUMN IF NOT EXISTS license_name TEXT,
-            ADD COLUMN IF NOT EXISTS license_url TEXT,
-            ADD COLUMN IF NOT EXISTS creator TEXT,
-            ADD COLUMN IF NOT EXISTS attribution TEXT
-        """)
-        object_key = f"beyond-earth/{str(lesson['medium'] or 'unknown').lower()}/{payload.module_key}/{asset_id}"
+                object_key = f"beyond-earth/{str(lesson['medium'] or 'unknown').lower()}/{payload.module_key}/{asset_id}"
         conn.execute("""
             INSERT INTO lesson_image_assets
               (id, lesson_id, module_key, title, step_ids_json, bucket_name, object_key,

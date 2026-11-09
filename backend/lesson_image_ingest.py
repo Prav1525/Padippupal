@@ -280,6 +280,15 @@ def _image_signature_matches(payload: bytes, content_type: str) -> bool:
     )
 
 
+def _validate_module_step_mapping(module_key: str, step_ids: list[str]) -> None:
+    expected_module_keys = {f"module-{step.split('_', 1)[1]}" for step in step_ids}
+    if len(expected_module_keys) != 1 or module_key not in expected_module_keys:
+        raise HTTPException(
+            status_code=422,
+            detail="module_key must match the mapped teaching step (for example, step_2 uses module-2).",
+        )
+
+
 def _fetch_remote_image(url: str, host: str, resolved_ip: str) -> tuple[bytes, str]:
     parsed = urlsplit(url)
     target = parsed.path or "/"
@@ -337,9 +346,7 @@ def ingest_lesson_image_url(payload: RemoteImageInput) -> dict:
         raise HTTPException(status_code=422, detail="step_ids must identify valid Beyond Earth teaching steps (step_1 to step_8).")
     if len(set(payload.step_ids)) != len(payload.step_ids):
         raise HTTPException(status_code=422, detail="Duplicate step_ids are not allowed.")
-    expected_module_keys = {f"module-{step.split('_', 1)[1]}" for step in payload.step_ids}
-    if len(expected_module_keys) != 1 or payload.module_key not in expected_module_keys:
-        raise HTTPException(status_code=422, detail="module_key must match the mapped teaching step (for example, step_2 uses module-2).")
+    _validate_module_step_mapping(payload.module_key, payload.step_ids)
 
     image_bytes, content_type = _fetch_remote_image(image_url, image_host, resolved_ip)
     fingerprint = hashlib.sha256(image_bytes).hexdigest()

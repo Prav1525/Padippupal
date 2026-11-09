@@ -168,6 +168,82 @@ def diagram(d, kind, data):
         label(d,(945,455),"TINY DROPLETS",23,INK,True,anchor="mm")
         label(d,(540,570),"Water vapour changes into liquid water",29,BLUE,True,anchor="mm")
 
+    elif kind == "threefold_rotation":
+        # Three identical arms, each separated by 120 degrees.
+        cx,cy=540,390
+        for deg in (0,120,240):
+            a=math.radians(deg)
+            x=cx+210*math.cos(a); y=cy+210*math.sin(a)
+            d.line((cx,cy,x,y),fill=BLUE,width=24)
+            d.ellipse((x-35,y-35,x+35,y+35),fill="#F6C66B",outline=INK,width=4)
+        d.ellipse((cx-38,cy-38,cx+38,cy+38),fill="#E8F4F8",outline=INK,width=4)
+        label(d,(540,650),"A 120° turn matches the same shape",28,INK,True,anchor="mm")
+    elif kind == "building_symmetry":
+        # Simple building silhouette reflected about a central vertical axis.
+        pts=[(300,570),(300,340),(420,340),(420,250),(660,250),(660,340),(780,340),(780,570)]
+        d.polygon(pts,fill="#DCEAF3",outline=INK)
+        d.line((540,185,540,600),fill="#D35D6E",width=8)
+        for x in (365,465,615,715):
+            d.rectangle((x,390,x+55,465),fill="#8DBBE8",outline=INK,width=3)
+        d.rectangle((495,460,585,570),fill="#C89D72",outline=INK,width=4)
+        label(d,(540,205),"MIRROR LINE",26,"#B43B51",True,anchor="mm")
+        label(d,(540,635),"Matching left and right sides",27,INK,True,anchor="mm")
+    elif kind == "paper_hole_symmetry":
+        # A folded sheet with two symmetric holes after unfolding.
+        d.rectangle((260,220,820,575),fill="#F8FBFC",outline=INK,width=5)
+        d.line((540,220,540,575),fill="#D35D6E",width=7)
+        for x in (390,690):
+            d.ellipse((x-34,350-34,x+34,350+34),fill="#E8F4F8",outline=BLUE,width=5)
+        label(d,(540,185),"CREASE / FOLD LINE",26,"#B43B51",True,anchor="mm")
+        label(d,(540,625),"Unfolding makes matching holes",27,INK,True,anchor="mm")
+    elif kind == "double_line_symmetry":
+        # A four-petal pattern reflected in both vertical and horizontal axes.
+        cx,cy=540,390
+        for box in [(cx-65,cy-205,cx+65,cy-35),(cx-65,cy+35,cx+65,cy+205),
+                    (cx-205,cy-65,cx-35,cy+65),(cx+35,cy-65,cx+205,cy+65)]:
+            d.ellipse(box,fill="#9BCBE3",outline=INK,width=4)
+        d.line((540,160,540,620),fill="#D35D6E",width=6)
+        d.line((280,390,800,390),fill="#39834A",width=6)
+        label(d,(540,650),"Two perpendicular lines of symmetry",27,INK,True,anchor="mm")
+    elif kind == "reflection_only_symmetry":
+        # A heart-like asymmetric orientation: mirror halves match, quarter-turn does not.
+        pts=[(540,560),(300,360),(330,260),(430,245),(540,330),(650,245),(750,260),(780,360)]
+        d.polygon(pts,fill="#E99AA8",outline=INK)
+        d.line((540,220,540,590),fill="#D35D6E",width=7)
+        label(d,(540,190),"ONE MIRROR LINE",26,"#B43B51",True,anchor="mm")
+        label(d,(540,635),"Reflects, but a quarter-turn does not match",25,INK,True,anchor="mm")
+    elif kind == "earth_moon_orbit":
+        # Moon orbiting Earth; diagram is schematic and not to scale.
+        d.ellipse((300,205,780,625),outline="#8DBBE8",width=7)
+        d.ellipse((500,365,590,455),fill="#6CA9D6",outline=INK,width=4)
+        d.ellipse((735,380,785,430),fill="#C9C9C9",outline=INK,width=3)
+        label(d,(545,340),"EARTH",25,INK,True,anchor="mm")
+        label(d,(760,465),"MOON",23,INK,True,anchor="mm")
+        arrow(d,(690,230),(780,290),fill=BLUE,width=6)
+        label(d,(540,155),"The Moon travels around Earth",29,BLUE,True,anchor="mm")
+        label(d,(540,650),"Orbit shown schematically — not to scale",22,INK,True,anchor="mm")
+    elif kind == "constellation_pattern":
+        # A simple seven-star pattern connected by guide lines.
+        pts=[(260,420),(380,300),(500,370),(620,245),(740,340),(850,280),(940,410)]
+        for a,b in zip(pts,pts[1:]): d.line((a,b),fill="#8DBBE8",width=4)
+        for x,y in pts:
+            d.ellipse((x-12,y-12,x+12,y+12),fill="#F6C66B",outline=INK,width=2)
+        label(d,(540,190),"A constellation is a pattern we see in stars",27,BLUE,True,anchor="mm")
+        label(d,(540,625),"The stars are very far apart in space",24,INK,True,anchor="mm")
+    elif kind == "water_cycle_condensation":
+        # Sun heats water; vapour rises, cools into clouds, and falls as rain.
+        d.ellipse((105,190,225,310),fill="#F6C66B",outline=INK,width=4)
+        d.rectangle((90,500,990,590),fill="#8DBBE8",outline=INK,width=3)
+        label(d,(540,630),"Water moves between land, water and air",26,INK,True,anchor="mm")
+        for x in (330,420,510):
+            arrow(d,(x,490),(x-35,340),fill=BLUE,width=6)
+        d.ellipse((600,235,760,335),fill="#E8F4F8",outline=INK,width=3)
+        d.ellipse((680,210,830,330),fill="#E8F4F8",outline=INK,width=3)
+        for x in (700,780,860):
+            arrow(d,(x,350),(x+20,475),fill="#6CA9D6",width=5)
+        label(d,(420,300),"EVAPORATION",23,BLUE,True,anchor="mm")
+        label(d,(740,185),"CLOUDS FORM",23,INK,True,anchor="mm")
+        label(d,(865,460),"RAIN",23,BLUE,True,anchor="mm")
     elif kind == "symmetry":
         box=(220,180,860,570); d.ellipse(box,fill="#F6C66A",outline=INK,width=6)
         d.polygon([(540,205),(420,330),(540,410),(660,330)],fill="#E8F4F8",outline=INK)

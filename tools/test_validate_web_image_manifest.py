@@ -31,3 +31,7 @@ def test_web_candidates_cannot_duplicate_original_mapping():
         "alt_text": "A sufficiently detailed alternative text description for children."
     }]}
     assert any("duplicates an original PNG mapping" in e for e in validate(web, {"images": [{"lesson_id": "lesson-12345678", "module_key": "module-1"}]}))
+
+
+def test_empty_web_candidate_manifest_is_valid_when_modules_use_original_diagrams():
+    assert validate({"images": []}, {"images": [{"lesson_id": "lesson-12345678", "module_key": "module-1"}]}) == []

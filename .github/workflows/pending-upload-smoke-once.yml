@@ -1,0 +1,40 @@
+name: One-time pending image upload smoke
+on:
+  push:
+    branches:
+      - feat/lesson-visual-curation-pipeline
+jobs:
+  upload-one-pending-sample:
+    if: contains(github.event.head_commit.message, 'RUN-PENDING-UPLOAD-SMOKE-ONCE')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install Pillow requests
+      - name: Select exactly one approved lesson module mapping
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source = json.loads(Path("assets/lesson-images/authoring-manifest.json").read_text())
+          lesson_id = "10d13a36-87e9-5f3b-8210-f62eb95e8854"
+          selected = [item for item in source["images"]
+                      if item["lesson_id"] == lesson_id and item["module_key"] == "module-3"]
+          if len(selected) != 1 or selected[0]["step_ids"] != ["step_3"]:
+              raise SystemExit("Expected exactly one Beyond Earth module-3 / step_3 mapping")
+          Path("/tmp/padippupal-one-image-manifest.json").write_text(
+              json.dumps({"images": selected}, ensure_ascii=False, indent=2)
+          )
+          PY
+      - name: Render one 1080x720 PNG
+        run: python tools/render_lesson_visuals.py --manifest /tmp/padippupal-one-image-manifest.json --out "$RUNNER_TEMP/padippupal-one-image"
+      - name: Upload one image to production as pending review only
+        env:
+          PADIPPUPAL_CONFIRM_PENDING_INGESTION: "true"
+          PADIPPUPAL_API_BASE_URL: ${{ vars.PADIPPUPAL_API_BASE_URL || 'https://padippupal-curriculum-api.onrender.com' }}
+          PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+        run: python tools/ingest_rendered_originals.py "$RUNNER_TEMP/padippupal-one-image/rendered-manifest.json"

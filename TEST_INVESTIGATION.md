@@ -780,3 +780,77 @@ Use this format:
 - No production database write, deploy, merge, or learner-visible publication performed.
 - PR #276 CI finding: Investigation Guidance Gate failed because this ledger had not yet been updated in PR #276. Corrective ledger update is included in this commit; rerun checks before treating PR as verified.
 - Existing Android API 35 emulator smoke run for PR #274 was still in progress at last check; navigation and screenshot artifact remain unverified.
+
+## 2026-11-09 — Expanded Class 6 missing-module visual authoring
+
+- **Scope reviewed:** Production approved Class 6 CBSE curriculum: 10 Mathematics chapters / 78 modules and 12 Science chapters / 92 modules (170 modules total). Module captions in each approved lesson's `teaching_sequence` were used to select visual concepts; generic module titles alone were not used.
+- **Manifest update:** Expanded the original 23-image first pass to 61 mapped visuals across the same 22 chapters. Added 38 module-specific visual concepts covering fractions on number lines/equivalence/addition, protractor and clock angles, number patterns, perimeter/area, factors, integer movement, water condensation/evaporation, day/night, compass and magnet poles, separation methods, natural resources, and thermometer use.
+- **Corrections:** Replaced the mismatched first image for The Other Side of Zero module 1 with a counting-number ray; corrected the Perimeter and Area module 1 visual to show perimeter with consistent dimensions; changed Mindful Eating module 4 to vitamin/roughage sources; changed Methods of Separation module 4 to cloth filtration; expanded Nature's Treasures module 4 to a two-panel Sun/forest-products visual; changed Living Creatures module 4 to seed germination.
+- **Renderer:** Added original Pillow-rendered diagram types for the new concepts. Manifest output remains 1080×720 PNG; pair layouts are two separate full-width images. Added tests for unique lesson/module/step mappings, minimum manifest coverage, supported diagram types, PNG format, and dimensions.
+- **Coverage accounting:** 61/170 modules have a visual mapping; 109/170 remain unmapped. These remaining modules are not automatically image omissions; they still require concept-by-concept judgement, and no image should be forced where it adds no learning value.
+- **Validation status:** All selected lesson IDs and step IDs were validated against production on the prior 23-item manifest. The newly added 38 mappings still require a fresh production step-ID validation. Renderer/test changes are committed to branch `feat/class6-missing-module-visuals`; exact-head CI, generated PNG inspection, and tutor-screen verification are pending.
+- **Production safety:** This work changes only repository authoring assets and renderer tests. No production DB write, image ingestion, merge, deployment, or learner-visible publication occurred. PR #276 remains open; this branch is stacked on the PR #276 head.
+
+- **First exact-head CI correction:** The initial renderer run found one manifest diagram type (`forest_products`) without a renderer implementation and the supported-diagram assertion caught it. Added the missing forest-products renderer and included it in the supported diagram test. The initial run failed as expected; rerun the updated exact head before considering the renderer validated.
+
+### 2026-11-09 — Fix plural concept matching in lesson visual coverage audit
+- **Branch / commit:** `feat/lesson-visual-curation-pipeline`; PR #283.
+- **Test command or workflow URL:** `python -m pytest -q tools/test_audit_lesson_visual_coverage.py`; prior failing run [42596647602](https://github.com/Prav1525/Padippupal/actions/runs/42596647602).
+- **Result:** Fix committed; fresh CI validation pending.
+- **Exact failure or assertion:** `test_reports_unmapped_and_routes_abstract_concept_to_original` expected `ORIGINAL_DIAGRAM` for a module titled “Fractions”, but the classifier returned `HUMAN_REVIEW`.
+- **Evidence links:** [Failed render-and-test run](https://github.com/Prav1525/Padippupal/actions/runs/42596647602).
+- **Change made (files + rationale):** The abstract-concept regex matched singular `fraction` only, so it missed the plural lesson title `Fractions`. Match singular/plural forms for fraction, angle, equation and integer; add a focused regression test for the plural fraction title.
+- **Root cause:** **CONFIRMED** by the failing assertion and regex inspection: word-boundary matching did not include plural forms.
+- **What this attempt proves:** The previous test failure is explained by a deterministic classifier bug, not an issue in image rendering or ingestion.
+- **What remains unverified:** The full CI suite and investigation gate on the updated PR head.
+- **Difference from previous attempt:** Fixes the classifier itself and adds a regression test instead of weakening the expected route.
+- **Next action and why:** Run all visual renderer/ingestion/audit tests and the investigation gate; do not merge until both pass.
+
+
+### 2026-11-09 — Rebase and verify the visual curation coverage audit
+- **Branch / commit:** `feat/lesson-visual-curation-pipeline`, PR #283, rebased onto the refreshed Class 6 visual branch.
+- **Test command or workflow URL:** [Latest renderer/audit test run](https://github.com/Prav1525/Padippupal/actions/runs/42606792660); rebased investigation gate [run 42607998541](https://github.com/Prav1525/Padippupal/actions/runs/42607998541).
+- **Result:** Renderer/audit tests passed on the pre-rebase exact tree; rebased investigation gate initially failed because the audit ledger entry was present only in the base branch, not in this PR's diff.
+- **Exact failure or assertion:** `Changed files: 7; code/config files: 5; FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence:** [Rebased gate log](https://github.com/Prav1525/Padippupal/actions/runs/42607998541).
+- **Change made (files + rationale):** Append this PR-specific rebase/validation entry so the required investigation gate can verify the audit implementation and test result on this pull request.
+- **Root cause:** **CONFIRMED** — the prior investigation entry was moved into PR #281's base during the branch refresh, so it no longer counted as an update in PR #283's changed-file set.
+- **What remains unverified:** Re-run renderer/audit tests and investigation gate on this exact rebased PR head.
+- **Next action:** Confirm both exact-head checks pass; keep the audit proposal-only and do not ingest or publish images from this PR.
+
+
+### 2026-11-09 — Reconcile curation decision ledger with expanded manifest
+- **Branch / PR:** `feat/lesson-visual-curation-pipeline`, PR #283.
+- **Evidence:** Manifest contains 86 unique mappings; the initial coverage decision ledger contains 88 missing-module proposals. Four exact lesson/module keys now appear in both files: Fractions module 4, The Other Side of Zero module 8, States of Water module 8, and Exploring Magnets module 6.
+- **Change:** Mark those four ledger items `MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED`; record 84 unresolved review proposals. Preserve route counts as the initial triage distribution.
+- **Safety:** Manifest PNGs were rendered in CI as build artifacts only. This does not mean production ingestion or learner-visible publication. Production ingested count from this manifest remains zero.
+- **Validation:** Ledger reconciliation is source-checked; exact-head CI is pending.
+
+
+### 2026-11-09 — Generate remaining Class 6 module visual batch
+- **Branch / PR:** `feat/lesson-visual-curation-pipeline`, PR #283.
+- **Scope:** Read-only comparison of all 170 approved Class 6 Maths and Science teaching steps in production against the authoring manifest and web-source manifest.
+- **Audit result:** 166 unique module mappings prepared (163 original PNG renderer entries + 3 licensed web-image candidates); 4 modules remain intentionally unmapped for human review. No duplicate or unknown lesson/module keys were found.
+- **New original diagram types:** Added child-friendly butterfly and frog life-cycle drawings, with renderer test coverage. Existing renderer-supported types are reused for the other 65 newly mapped modules.
+- **Web sources:** Added three direct Wikimedia Commons file candidates with source-page URL, creator, licence and attribution. Two are public-domain USDA material; one is CC BY 4.0. They remain candidate metadata only until the pending-ingestion workflow is approved and run.
+- **Human review:** Number Play modules 1 and 4; The Other Side of Zero modules 5 and 7. Their captions need full review before an illustration is selected.
+- **Safety / status:** No production database writes, no production deployment, no asset approvals and no learner-visible publishing were performed. The rendered images are generated by CI artifacts after exact-head checks pass.
+- **Validation still required:** Run renderer tests on the exact latest head, verify all 163 PNG outputs and 3 web-source URLs/metadata, then Android API 35 tutor-screen placement. Production ingestion remains a separate explicit approval step.
+
+
+### 2026-11-09 — Add web-source manifest validation and complete coverage reconciliation
+- **Branch / PR:** `feat/lesson-visual-curation-pipeline`, PR #283.
+- **Exact audit:** 170 approved Class 6 modules; 163 original-renderer mappings and 3 licensed web-source candidates cover 166 unique modules. Four modules remain intentionally unmapped for human review. No duplicate mappings or unknown lesson/module keys were found against production curriculum IDs.
+- **Human-review exclusions:** Number Play modules 1 and 4; The Other Side of Zero modules 5 and 7. These were removed from the generated manifest after the initial mapping pass; no speculative visuals are retained for them.
+- **Web-source validator:** Added `tools/validate_web_image_manifest.py` and tests. It checks allow-listed Wikimedia file hosts, Commons source pages, HTTPS licensing links, explicit licence classes, attribution, alt text, step/module agreement, and collisions with original PNG mappings. The renderer workflow now runs this validator and includes the web manifest in its path filter.
+- **Visual generation scope:** 163 original PNG mappings are configured for 1080×720 rendering. Added butterfly and frog life-cycle diagrams with tests. CI has not yet produced an artifact for the latest head, so PNG output count/decoding on this exact head remains unverified.
+- **Safety:** Three web candidates are not ingested. Production writes, production deployment, asset approval and learner-visible publication remain at zero for this batch.
+- **Next verification:** Re-run renderer and web-provenance tests on the latest PR head, inspect the resulting PNG artifact, then perform Android API 35 tutor-screen placement tests.
+
+
+### 2026-11-09 — Confirm production multipart endpoint 404 root cause
+- **Evidence:** One-image smoke workflow run [42614082827](https://github.com/Prav1525/Padippupal/actions/runs/42614082827) selected the exact approved Beyond Earth module 3 mapping, rendered one PNG, then received HTTP 404 from `POST /admin/lesson-images/ingest-original`.
+- **Root cause:** **CONFIRMED — stale Render deployment.** Production Render deploy `dep-dbonmim417fc738rki50` runs commit `e822ad819793fad89e4e641db90b6775e4bd498f`; that commit's `backend/lesson_image_ingest.py` exposes only `/ingest` and `/ingest-url`. GitHub `main` is at `65bd8fb24c053c7df21a1bc14146789e580e2517` and its router includes `/admin/lesson-images/ingest-original`.
+- **Impact:** The request never reached the handler; no production asset or blob was inserted. The route is present in source but absent from the deployed API because Render has not deployed the latest main commit.
+- **Safety:** No retry against another endpoint and no alternate production write was attempted. Activating the route requires deploying the current main commit to the existing Render service; this remains gated on explicit deployment approval.
+- **Test fix:** Correct renderer test expectations to 163 original PNG mappings; 3 web-source candidates are separate and 4 human-review modules remain unmapped. Corrected the CI command so the provenance validator runs separately from pytest.

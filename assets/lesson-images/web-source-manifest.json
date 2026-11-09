@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "scope": "Class 6 web image candidates for modules not already assigned an original PNG; pending-only ingestion",
+  "policy": "Only exact module matches. Source file page, creator, licence and attribution are retained. A module may have one active source route; if an original PNG mapping exists, do not duplicate it as a web candidate. Do not ingest until PR review and explicit pending-ingestion approval.",
+  "images": []
+}

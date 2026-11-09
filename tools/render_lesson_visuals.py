@@ -76,6 +76,15 @@ def diagram(d, kind, data):
         d.arc((o[0]-145,o[1]-145,o[0]+145,o[1]+145),-68,0,fill=INK,width=7)
         label(d,(260,545),"VERTEX",25,INK,True); label(d,(775,490),"ARM",25,BLUE,True)
         label(d,(600,175),"ARM",25,"#B36A12",True)
+    elif kind == "four_point_lines":
+        points = {"A": (300, 230), "B": (790, 230), "C": (790, 535), "D": (300, 535)}
+        pairs = [("A","B"),("A","C"),("A","D"),("B","C"),("B","D"),("C","D")]
+        for left, right in pairs:
+            d.line((*points[left], *points[right]), fill=BLUE, width=7)
+        for name, (x, y) in points.items():
+            d.ellipse((x-13,y-13,x+13,y+13), fill="#E39A35", outline=INK, width=3)
+            label(d,(x-24 if name in ("A","D") else x+24,y-28),name,28,INK,True,anchor="mm")
+        label(d,(545,625),"4 points • 6 joining lines",30,INK,True,anchor="mm")
     elif kind == "area_perimeter":
         x0,y0,x1,y1=180,220,850,560
         d.rectangle((x0,y0,x1,y1),fill="#E8F4F8",outline=INK,width=8)
@@ -84,6 +93,200 @@ def diagram(d, kind, data):
         label(d,(515,590),data.get("length","6 units"),30,BLUE,True,anchor="mm")
         label(d,(110,390),data.get("width","3 units"),28,BLUE,True,anchor="mm")
         label(d,(515,380),"AREA = inside",38,INK,True,anchor="mm")
+    elif kind == "perimeter_shapes":
+        # Make the outside boundary the focus; do not show an area grid here.
+        d.rectangle((95,300,365,470),fill="#E8F4F8",outline=BLUE,width=10)
+        label(d,(230,245),"RECTANGLE",27,INK,True,anchor="mm")
+        label(d,(230,520),"6 + 3 + 6 + 3 = 18",23,BLUE,True,anchor="mm")
+        d.polygon([(540,260),(405,485),(675,485)],fill="#FFF0D9",outline=BLUE)
+        label(d,(540,225),"TRIANGLE",27,INK,True,anchor="mm")
+        label(d,(540,535),"4 + 4 + 4 = 12",23,BLUE,True,anchor="mm")
+        pts=[(850,275),(955,335),(955,455),(850,515),(745,455),(745,335)]
+        d.polygon(pts,fill="#EAF4E4",outline=BLUE)
+        label(d,(850,235),"HEXAGON",27,INK,True,anchor="mm")
+        label(d,(850,560),"2 on each side = 12",23,BLUE,True,anchor="mm")
+        label(d,(540,625),"Perimeter = add every outside side",28,INK,True,anchor="mm")
+    elif kind == "same_area_perimeters":
+        # Textbook example: equal areas, different boundary lengths.
+        d.rounded_rectangle((45,205,520,600),radius=24,fill="#F8FBFC",outline="#C8DCE5",width=3)
+        d.rounded_rectangle((560,205,1035,600),radius=24,fill="#F8FBFC",outline="#C8DCE5",width=3)
+        d.rectangle((120,300,420,478),fill="#E8F4F8",outline=BLUE,width=7)
+        d.rectangle((685,280,910,472),fill="#FFF0D9",outline=BLUE,width=7)
+        label(d,(282,245),"HOUSE A",27,INK,True,anchor="mm")
+        label(d,(797,245),"HOUSE B",27,INK,True,anchor="mm")
+        label(d,(282,485),"42 ft × 25 ft",25,INK,True,anchor="mm")
+        label(d,(282,520),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
+        label(d,(282,555),"Perimeter = 134 ft",24,INK,True,anchor="mm")
+        label(d,(797,495),"35 ft × 30 ft",25,INK,True,anchor="mm")
+        label(d,(797,530),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
+        label(d,(797,565),"Perimeter = 130 ft",24,INK,True,anchor="mm")
+    elif kind == "shared_prime_factors":
+        # Two numbers share 3 and 7, so this pair is not co-prime.
+        label(d,(270,205),"NUMBER A = 42",30,INK,True,anchor="mm")
+        label(d,(810,205),"NUMBER B = 231",30,INK,True,anchor="mm")
+        left=[("2",False),("3",True),("7",True)]
+        right=[("3",True),("7",True),("11",False)]
+        for i,(v,shared) in enumerate(left):
+            x=120+i*170
+            d.rounded_rectangle((x,290,x+125,410),radius=20,fill="#F6C66B" if shared else "#E8F4F8",outline=INK,width=4)
+            label(d,(x+62,350),v,42,INK,True,anchor="mm")
+        for i,(v,shared) in enumerate(right):
+            x=660+i*130
+            d.rounded_rectangle((x,290,x+110,410),radius=20,fill="#F6C66B" if shared else "#E8F4F8",outline=INK,width=4)
+            label(d,(x+55,350),v,42,INK,True,anchor="mm")
+        label(d,(270,455),"2 × 3 × 7 = 42",26,BLUE,True,anchor="mm")
+        label(d,(810,455),"3 × 7 × 11 = 231",26,BLUE,True,anchor="mm")
+        label(d,(540,555),"Shared prime factors: 3 and 7",30,INK,True,anchor="mm")
+        label(d,(540,610),"So the numbers are NOT co-prime",27,"#B43B51",True,anchor="mm")
+    elif kind == "condensation_examples":
+        # Examples of droplets appearing on cool surfaces.
+        d.rounded_rectangle((70,250,370,560),radius=28,fill="#E8F4F8",outline=INK,width=5)
+        d.rounded_rectangle((430,250,650,560),radius=28,fill="#D9EAF2",outline=INK,width=5)
+        d.rectangle((750,440,1010,560),fill="#B7D7A8",outline=INK,width=4)
+        for x,y in [(120,315),(180,365),(300,330),(485,330),(590,385),(835,425),(920,405)]:
+            d.ellipse((x-10,y-10,x+10,y+10),fill="#6CA9D6",outline=INK,width=2)
+        d.ellipse((790,290,970,410),fill="#8BCB83",outline="#286B3A",width=4)
+        d.line((805,380,955,320),fill="#286B3A",width=4)
+        for x in (790,850,910,970): d.line((x,555,x-18,475),fill="#39834A",width=5)
+        label(d,(220,210),"COOL BOTTLE",25,INK,True,anchor="mm")
+        label(d,(540,210),"COLD GLASS",25,INK,True,anchor="mm")
+        label(d,(880,245),"LEAF DEW",25,INK,True,anchor="mm")
+        label(d,(540,625),"Water vapour forms droplets on cool surfaces",27,BLUE,True,anchor="mm")
+    elif kind == "condensation_process":
+        # Vapour cools and condenses into tiny liquid droplets.
+        for x in (170,235,300,365):
+            for y in (300,360,420):
+                d.ellipse((x-9,y-9,x+9,y+9),fill="#8DBBE8",outline=INK,width=2)
+        label(d,(270,245),"WATER VAPOUR",25,INK,True,anchor="mm")
+        arrow(d,(420,365),(545,365),fill=BLUE,width=8)
+        d.rounded_rectangle((560,260,745,475),radius=28,fill="#E8F4F8",outline=INK,width=5)
+        label(d,(652,365),"COOLING",26,INK,True,anchor="mm")
+        arrow(d,(760,365),(850,365),fill=BLUE,width=8)
+        d.ellipse((870,270,1020,420),fill="#DCE7F4",outline=INK,width=4)
+        for x,y in [(900,320),(950,300),(985,345),(925,375),(975,390)]:
+            d.ellipse((x-12,y-12,x+12,y+12),fill="#6CA9D6",outline=INK,width=2)
+        label(d,(945,455),"TINY DROPLETS",23,INK,True,anchor="mm")
+        label(d,(540,570),"Water vapour changes into liquid water",29,BLUE,True,anchor="mm")
+
+    elif kind == "threefold_rotation":
+        # Three identical arms, each separated by 120 degrees.
+        cx,cy=540,390
+        for deg in (0,120,240):
+            a=math.radians(deg)
+            x=cx+210*math.cos(a); y=cy+210*math.sin(a)
+            d.line((cx,cy,x,y),fill=BLUE,width=24)
+            d.ellipse((x-35,y-35,x+35,y+35),fill="#F6C66B",outline=INK,width=4)
+        d.ellipse((cx-38,cy-38,cx+38,cy+38),fill="#E8F4F8",outline=INK,width=4)
+        label(d,(540,650),"A 120° turn matches the same shape",28,INK,True,anchor="mm")
+    elif kind == "building_symmetry":
+        # Simple building silhouette reflected about a central vertical axis.
+        pts=[(300,570),(300,340),(420,340),(420,250),(660,250),(660,340),(780,340),(780,570)]
+        d.polygon(pts,fill="#DCEAF3",outline=INK)
+        d.line((540,185,540,600),fill="#D35D6E",width=8)
+        for x in (365,465,615,715):
+            d.rectangle((x,390,x+55,465),fill="#8DBBE8",outline=INK,width=3)
+        d.rectangle((495,460,585,570),fill="#C89D72",outline=INK,width=4)
+        label(d,(540,205),"MIRROR LINE",26,"#B43B51",True,anchor="mm")
+        label(d,(540,635),"Matching left and right sides",27,INK,True,anchor="mm")
+    elif kind == "paper_hole_symmetry":
+        # A folded sheet with two symmetric holes after unfolding.
+        d.rectangle((260,220,820,575),fill="#F8FBFC",outline=INK,width=5)
+        d.line((540,220,540,575),fill="#D35D6E",width=7)
+        for x in (390,690):
+            d.ellipse((x-34,350-34,x+34,350+34),fill="#E8F4F8",outline=BLUE,width=5)
+        label(d,(540,185),"CREASE / FOLD LINE",26,"#B43B51",True,anchor="mm")
+        label(d,(540,625),"Unfolding makes matching holes",27,INK,True,anchor="mm")
+    elif kind == "double_line_symmetry":
+        # A four-petal pattern reflected in both vertical and horizontal axes.
+        cx,cy=540,390
+        for box in [(cx-65,cy-205,cx+65,cy-35),(cx-65,cy+35,cx+65,cy+205),
+                    (cx-205,cy-65,cx-35,cy+65),(cx+35,cy-65,cx+205,cy+65)]:
+            d.ellipse(box,fill="#9BCBE3",outline=INK,width=4)
+        d.line((540,160,540,620),fill="#D35D6E",width=6)
+        d.line((280,390,800,390),fill="#39834A",width=6)
+        label(d,(540,650),"Two perpendicular lines of symmetry",27,INK,True,anchor="mm")
+    elif kind == "reflection_only_symmetry":
+        # A heart-like asymmetric orientation: mirror halves match, quarter-turn does not.
+        pts=[(540,560),(300,360),(330,260),(430,245),(540,330),(650,245),(750,260),(780,360)]
+        d.polygon(pts,fill="#E99AA8",outline=INK)
+        d.line((540,220,540,590),fill="#D35D6E",width=7)
+        label(d,(540,190),"ONE MIRROR LINE",26,"#B43B51",True,anchor="mm")
+        label(d,(540,635),"Reflects, but a quarter-turn does not match",25,INK,True,anchor="mm")
+    elif kind == "earth_moon_orbit":
+        # Moon orbiting Earth; diagram is schematic and not to scale.
+        d.ellipse((300,205,780,625),outline="#8DBBE8",width=7)
+        d.ellipse((500,365,590,455),fill="#6CA9D6",outline=INK,width=4)
+        d.ellipse((735,380,785,430),fill="#C9C9C9",outline=INK,width=3)
+        label(d,(545,340),"EARTH",25,INK,True,anchor="mm")
+        label(d,(760,465),"MOON",23,INK,True,anchor="mm")
+        arrow(d,(690,230),(780,290),fill=BLUE,width=6)
+        label(d,(540,155),"The Moon travels around Earth",29,BLUE,True,anchor="mm")
+        label(d,(540,650),"Orbit shown schematically — not to scale",22,INK,True,anchor="mm")
+    elif kind == "constellation_pattern":
+        # A simple seven-star pattern connected by guide lines.
+        pts=[(260,420),(380,300),(500,370),(620,245),(740,340),(850,280),(940,410)]
+        for a,b in zip(pts,pts[1:]): d.line((a,b),fill="#8DBBE8",width=4)
+        for x,y in pts:
+            d.ellipse((x-12,y-12,x+12,y+12),fill="#F6C66B",outline=INK,width=2)
+        label(d,(540,190),"A constellation is a pattern we see in stars",27,BLUE,True,anchor="mm")
+        label(d,(540,625),"The stars are very far apart in space",24,INK,True,anchor="mm")
+    elif kind == "water_cycle_condensation":
+        # Sun heats water; vapour rises, cools into clouds, and falls as rain.
+        d.ellipse((105,190,225,310),fill="#F6C66B",outline=INK,width=4)
+        d.rectangle((90,500,990,590),fill="#8DBBE8",outline=INK,width=3)
+        label(d,(540,630),"Water moves between land, water and air",26,INK,True,anchor="mm")
+        for x in (330,420,510):
+            arrow(d,(x,490),(x-35,340),fill=BLUE,width=6)
+        d.ellipse((600,235,760,335),fill="#E8F4F8",outline=INK,width=3)
+        d.ellipse((680,210,830,330),fill="#E8F4F8",outline=INK,width=3)
+        for x in (700,780,860):
+            arrow(d,(x,350),(x+20,475),fill="#6CA9D6",width=5)
+        label(d,(420,300),"EVAPORATION",23,BLUE,True,anchor="mm")
+        label(d,(740,185),"CLOUDS FORM",23,INK,True,anchor="mm")
+        label(d,(865,460),"RAIN",23,BLUE,True,anchor="mm")
+    elif kind == "butterfly_lifecycle":
+        # Four simple, age-appropriate butterfly life stages.
+        stages=[("EGG",140),("CATERPILLAR",400),("CHRYSALIS",660),("BUTTERFLY",920)]
+        for label_text,x in stages:
+            if label_text=="EGG":
+                d.ellipse((x-24,330,x+24,380),fill="#F6C66B",outline=INK,width=4)
+            elif label_text=="CATERPILLAR":
+                for j in range(4):
+                    d.ellipse((x-48+j*26,330,x-8+j*26,370),fill="#8BCB83",outline=INK,width=3)
+            elif label_text=="CHRYSALIS":
+                d.ellipse((x-24,295,x+24,405),fill="#B7D7A8",outline=INK,width=4)
+            else:
+                d.ellipse((x-12,330,x+12,370),fill="#F6C66B",outline=INK,width=3)
+                d.ellipse((x-68,285,x-10,355),fill="#D9C4F2",outline=INK,width=3)
+                d.ellipse((x+10,285,x+68,355),fill="#D9C4F2",outline=INK,width=3)
+                d.ellipse((x-55,355,x-8,415),fill="#E8DFF5",outline=INK,width=3)
+                d.ellipse((x+8,355,x+55,415),fill="#E8DFF5",outline=INK,width=3)
+            label(d,(x,470),label_text,20,INK,True,anchor="mm")
+        for x in (270,530,790): arrow(d,(x,350),(x+85,350),fill=BLUE,width=6)
+        label(d,(540,590),"A butterfly changes form as it grows",28,BLUE,True,anchor="mm")
+    elif kind == "frog_lifecycle":
+        # Frog development: eggs, tadpole, tadpole with legs, adult.
+        d.ellipse((95,300,230,400),fill="#E8F4F8",outline=INK,width=4)
+        for x,y in [(130,330),(160,350),(190,330),(150,375),(200,375)]:
+            d.ellipse((x-10,y-10,x+10,y+10),fill="#8DBBE8",outline=BLUE,width=2)
+        label(d,(160,460),"EGGS",22,INK,True,anchor="mm")
+        d.ellipse((350,325,455,375),fill="#8BCB83",outline=INK,width=4)
+        d.ellipse((430,345,500,365),fill="#8BCB83",outline=INK,width=3)
+        label(d,(425,460),"TADPOLE",22,INK,True,anchor="mm")
+        d.ellipse((620,315,720,395),fill="#8BCB83",outline=INK,width=4)
+        d.line((700,360,765,400),fill="#8BCB83",width=10)
+        d.line((650,380,625,425),fill="#286B3A",width=7)
+        d.line((685,380,710,425),fill="#286B3A",width=7)
+        label(d,(680,470),"LEGS GROW",20,INK,True,anchor="mm")
+        d.ellipse((885,315,985,405),fill="#8BCB83",outline=INK,width=4)
+        d.line((905,390,875,445),fill="#286B3A",width=8)
+        d.line((965,390,995,445),fill="#286B3A",width=8)
+        d.line((895,345,865,310),fill="#286B3A",width=8)
+        d.line((975,345,1005,310),fill="#286B3A",width=8)
+        label(d,(935,480),"ADULT FROG",20,INK,True,anchor="mm")
+        for x in (260,525,790): arrow(d,(x,355),(x+70,355),fill=BLUE,width=6)
+        label(d,(540,590),"A frog develops from an egg into an adult",27,BLUE,True,anchor="mm")
+
     elif kind == "symmetry":
         box=(220,180,860,570); d.ellipse(box,fill="#F6C66A",outline=INK,width=6)
         d.polygon([(540,205),(420,330),(540,410),(660,330)],fill="#E8F4F8",outline=INK)
@@ -262,6 +465,318 @@ def diagram(d, kind, data):
                 x=540+(col-(row-1)/2)*100; y=250+row*85
                 d.polygon([(x,y-42),(x-42,y+32),(x+42,y+32)],fill=PALETTE[(row+col)%4],outline=INK)
         label(d,(540,190),"Each new row adds one triangle",28,BLUE,True,anchor="mm")
+    elif kind == "number_ray":
+        d.line((150,430,930,430),fill=INK,width=7)
+        arrow(d,(170,430),(925,430))
+        for n in range(0,9):
+            x=180+n*88; d.line((x,405,x,455),fill=INK,width=4); label(d,(x,480),n,26,INK,True,anchor="mm")
+        label(d,(180,350),"START",24,BLUE,True,anchor="mm")
+        label(d,(720,290),"Counting numbers move to the right",30,BLUE,True,anchor="mm")
+    elif kind == "perimeter_rectangle":
+        x0,y0,x1,y1=220,260,860,520
+        d.rectangle((x0,y0,x1,y1),fill="#E8F4F8",outline=INK,width=8)
+        label(d,(540,220),f"Length = {data.get('length',12)} cm",30,BLUE,True,anchor="mm")
+        label(d,(540,565),f"Perimeter = 2 × ({data.get('length',12)} + {data.get('breadth',8)}) cm",27,INK,True,anchor="mm")
+        label(d,(155,390),f"{data.get('breadth',8)} cm",27,BLUE,True,anchor="mm")
+        label(d,(925,390),f"{data.get('breadth',8)} cm",27,BLUE,True,anchor="mm")
+        label(d,(540,390),"Add all four sides",30,INK,True,anchor="mm")
+    elif kind == "nutrient_sources":
+        cards=[(130,250,"FRUITS","#F6C66B"),(570,250,"GREEN VEG","#9ACB87"),(130,440,"WHOLE GRAINS","#E8C48B"),(570,440,"LEAFY VEG","#8BCB83")]
+        for x,y,name,col in cards:
+            d.rounded_rectangle((x,y,x+370,y+125),radius=22,fill=col,outline=INK,width=4)
+            label(d,(x+185,y+62),name,26,INK,True,anchor="mm")
+        label(d,(540,190),"Vitamins and roughage come from plant foods",28,BLUE,True,anchor="mm")
+    elif kind == "tea_filter":
+        d.polygon([(300,250),(780,250),(600,470),(480,470)],fill="#F3EAFE",outline=INK)
+        d.line((480,470,600,470),fill=INK,width=7)
+        d.line((540,470,540,590),fill=BLUE,width=8)
+        for x in range(400,690,45): d.ellipse((x,290,x+18,308),fill="#9B7545",outline=INK)
+        d.rounded_rectangle((455,590,625,655),radius=16,fill="#BFE4F2",outline=INK,width=4)
+        label(d,(540,210),"Cloth catches tea leaves; tea passes through",27,BLUE,True,anchor="mm")
+        label(d,(540,680),"FILTERED TEA",22,INK,True,anchor="mm")
+    elif kind == "seed_germination":
+        d.line((540,360,540,530),fill="#39834A",width=13)
+        d.ellipse((445,280,540,375),fill="#8BCB83",outline="#286B3A",width=4)
+        d.ellipse((540,280,635,375),fill="#8BCB83",outline="#286B3A",width=4)
+        d.line((540,530,475,635),fill="#A97945",width=9); d.line((540,530,605,635),fill="#A97945",width=9)
+        d.ellipse((500,485,580,555),fill="#C9A36B",outline=INK,width=4)
+        label(d,(540,205),"A seed sprouts when it gets water and air",29,BLUE,True,anchor="mm")
+        label(d,(770,330),"SHOOT",25,INK,True); label(d,(740,590),"ROOT",25,INK,True)
+    elif kind == "fraction_number_line":
+        d.line((150,430,930,430),fill=INK,width=7)
+        for i in range(5):
+            x=180+i*180; d.line((x,405,x,455),fill=INK,width=4); label(d,(x,485),["0","1/4","1/2","3/4","1"][i],26,INK,True,anchor="mm")
+        d.ellipse((522,410,558,446),fill="#E98A8A",outline=INK,width=3)
+        label(d,(540,300),"Fractions mark equal parts between 0 and 1",28,BLUE,True,anchor="mm")
+    elif kind == "equivalent_fractions":
+        for y,parts,shaded,txt in [(300,2,1,"1/2"),(440,4,2,"2/4"),(580,6,3,"3/6")]:
+            x0=250; width=500/parts
+            for i in range(parts):
+                d.rectangle((x0+i*width,y-38,x0+(i+1)*width,y+38),fill="#F6C66B" if i<shaded else "#E8F4F8",outline=INK,width=4)
+            label(d,(820,y),txt,30,BLUE,True,anchor="mm")
+        label(d,(540,205),"Different names can show the same share",29,BLUE,True,anchor="mm")
+    elif kind == "fraction_addition":
+        for y,parts,shaded,txt in [(320,3,1,"1/3"),(450,3,1,"+ 1/3"),(590,3,2,"= 2/3")]:
+            for i in range(parts):
+                x=280+i*175
+                d.rectangle((x,y-35,x+175,y+35),fill="#F6C66B" if i<shaded else "#E8F4F8",outline=INK,width=4)
+            label(d,(900,y),txt,29,BLUE,True,anchor="mm")
+    elif kind == "fraction_compare":
+        for y,shaded,txt in [(350,4,"4/7"),(520,5,"5/7")]:
+            for i in range(7):
+                x=220+i*92
+                d.rectangle((x,y-32,x+92,y+32),fill="#F6C66B" if i<shaded else "#E8F4F8",outline=INK,width=3)
+            label(d,(900,y),txt,30,BLUE,True,anchor="mm")
+        label(d,(540,220),"Same denominator: compare the shaded parts",28,BLUE,True,anchor="mm")
+    elif kind == "protractor":
+        d.arc((250,260,830,840),180,360,fill=INK,width=8)
+        d.line((540,550,250,550),fill=BLUE,width=8)
+        d.line((540,550,540,260),fill="#E39A35",width=8)
+        d.ellipse((525,535,555,565),fill=INK)
+        for deg in range(0,181,10):
+            a=math.radians(180-deg); x1=540+250*math.cos(a); y1=550-250*math.sin(a); x2=540+275*math.cos(a); y2=550-275*math.sin(a)
+            d.line((x1,y1,x2,y2),fill=INK,width=3)
+        label(d,(540,210),"Place the centre on the vertex; read from zero",26,BLUE,True,anchor="mm")
+        label(d,(260,600),"0°",24,INK,True); label(d,(800,600),"180°",24,INK,True)
+    elif kind == "clock_angles":
+        for cx,cy,angle,txt in [(320,420,90,"90°"),(760,420,180,"180°")]:
+            d.ellipse((cx-135,cy-135,cx+135,cy+135),outline=INK,width=6)
+            d.ellipse((cx-9,cy-9,cx+9,cy+9),fill=INK)
+            d.line((cx,cy,cx,cy-105),fill=BLUE,width=9)
+            a=math.radians(angle-90); d.line((cx,cy,cx+105*math.cos(a),cy+105*math.sin(a)),fill="#E39A35",width=9)
+            label(d,(cx,cy+175),txt,30,BLUE,True,anchor="mm")
+    elif kind == "number_patterns":
+        for row,(name,vals) in enumerate([("SQUARES",[1,4,9]),("TRIANGLES",[1,3,6])]):
+            y=300+row*210; label(d,(170,y),name,25,BLUE,True)
+            for j,v in enumerate(vals):
+                cx=420+j*210
+                if row==0:
+                    side=int(math.sqrt(v))
+                    for k in range(v):
+                        xx=cx+(k%side)*28-(side*14); yy=y-20+(k//side)*28
+                        d.rectangle((xx,yy,xx+25,yy+25),fill=PALETTE[j%4],outline=INK,width=2)
+                else:
+                    for k in range(v):
+                        xx=cx+(k%3)*28-28; yy=y-20+(k//3)*28
+                        d.ellipse((xx,yy,xx+22,yy+22),fill=PALETTE[j%4],outline=INK,width=2)
+                label(d,(cx,y+95),v,22,INK,True,anchor="mm")
+    elif kind == "odd_numbers_square":
+        for row in range(6):
+            for col in range(6):
+                d.rectangle((270+col*65,220+row*65,330+col*65,280+row*65),fill=PALETTE[(row+col)%4],outline=INK,width=2)
+        label(d,(540,650),"1 + 3 + 5 + 7 + 9 + 11 = 36",28,BLUE,True,anchor="mm")
+    elif kind == "square_growth":
+        for idx,n in enumerate([1,2,3]):
+            x=170+idx*300; y=300
+            for row in range(n):
+                for col in range(n):
+                    d.rectangle((x+col*65,y+row*65,x+col*65+60,y+row*65+60),fill=PALETTE[(row+col)%4],outline=INK,width=2)
+            label(d,(x+(n*65)/2,y+n*65+45),f"{n} × {n} = {n*n}",25,BLUE,True,anchor="mm")
+    elif kind == "polygon_perimeter":
+        d.polygon([(300,300),(500,300),(400,470)],fill="#E8F4F8",outline=INK)
+        d.polygon([(700,270),(820,340),(820,470),(700,540),(580,470),(580,340)],fill="#FFF0D9",outline=INK)
+        label(d,(400,560),"3 equal sides",25,BLUE,True,anchor="mm"); label(d,(700,600),"6 equal sides",25,BLUE,True,anchor="mm")
+        label(d,(540,205),"Perimeter is the total distance around",29,BLUE,True,anchor="mm")
+    elif kind == "tangram":
+        pts=[(330,250),(540,250),(540,460),(330,460)]
+        d.polygon(pts,fill="#F6C66B",outline=INK)
+        d.line((330,250,540,460),fill=INK,width=4); d.line((540,250,330,460),fill=INK,width=4)
+        d.polygon([(650,260),(850,260),(850,460),(650,460)],fill="#E8F4F8",outline=INK)
+        d.line((650,260,850,460),fill=INK,width=4); d.line((750,260,750,460),fill=INK,width=4)
+        label(d,(540,570),"Same pieces can make different shapes",28,BLUE,True,anchor="mm")
+    elif kind == "grid_area":
+        x0,y0=270,230
+        for row in range(5):
+            for col in range(7):
+                fill="#F6C66B" if (row<3 and col<5) else "#E8F4F8"
+                d.rectangle((x0+col*70,y0+row*70,x0+(col+1)*70,y0+(row+1)*70),fill=fill,outline=INK,width=2)
+        label(d,(540,640),"Count the unit squares inside the shape",28,BLUE,True,anchor="mm")
+    elif kind == "factor_arrays":
+        for row,(n,cols,txt) in enumerate([(12,4,"12 = 3 × 4"),(7,7,"7 has only 1 and 7")]):
+            y=300+row*220; label(d,(160,y),txt,27,BLUE,True)
+            for i in range(n):
+                x=500+(i%cols)*42; yy=y-45+(i//cols)*42
+                d.ellipse((x,yy,x+32,yy+32),fill=PALETTE[row],outline=INK,width=2)
+    elif kind == "even_numbers":
+        for i,n in enumerate([10,12,14,16,18]):
+            x=170+i*180
+            d.rounded_rectangle((x-55,330,x+55,440),radius=18,fill=PALETTE[i%4],outline=INK,width=4)
+            label(d,(x,385),n,32,INK,True,anchor="mm")
+        label(d,(540,550),"Each number ends in 0, 2, 4, 6 or 8",28,BLUE,True,anchor="mm")
+    elif kind == "building_floors":
+        d.rectangle((430,230,650,610),fill="#E8F4F8",outline=INK,width=5)
+        for i in range(5):
+            y=250+i*72; d.line((430,y,650,y),fill=INK,width=3)
+            label(d,(540,y+28),["+2","+1","GROUND","−1","−2"][i],25,INK,True,anchor="mm")
+        label(d,(760,330),"Above ground: positive",24,BLUE,True)
+        label(d,(760,510),"Below ground: negative",24,BLUE,True)
+    elif kind == "integer_movement":
+        d.line((160,440,920,440),fill=INK,width=6)
+        for n in range(-4,5):
+            x=540+n*90; d.line((x,420,x,460),fill=INK,width=4); label(d,(x,490),n,24,INK,True,anchor="mm")
+        arrow(d,(900,350),(360,350),fill="#D35D6E",width=9)
+        label(d,(620,300),"Move left: numbers get smaller",27,BLUE,True,anchor="mm")
+    elif kind == "zero_pairs":
+        for i in range(4):
+            x=300+i*135
+            d.ellipse((x-42,330,x+42,414),fill="#E98A8A",outline=INK,width=3); label(d,(x,372),"+",35,INK,True,anchor="mm")
+            d.ellipse((x-42,430,x+42,514),fill="#8DBBE8",outline=INK,width=3); label(d,(x,472),"−",35,INK,True,anchor="mm")
+        label(d,(540,240),"One positive and one negative make zero",28,BLUE,True,anchor="mm")
+        label(d,(540,590),"Adding zero pairs does not change the total",26,INK,True,anchor="mm")
+    elif kind == "integer_addition":
+        d.line((160,440,920,440),fill=INK,width=6)
+        for n in range(-4,5):
+            x=540+n*90; d.line((x,420,x,460),fill=INK,width=4); label(d,(x,490),n,24,INK,True,anchor="mm")
+        arrow(d,(540,360),(810,360),fill="#39834A",width=8)
+        arrow(d,(810,330),(630,330),fill="#D35D6E",width=8)
+        label(d,(540,255),"Positive moves right; negative moves left",27,BLUE,True,anchor="mm")
+    elif kind == "condensation":
+        d.rounded_rectangle((410,320,670,590),radius=28,fill="#BFE4F2",outline=INK,width=5)
+        for x,y in [(360,350),(700,390),(380,500),(700,530),(540,270)]:
+            d.ellipse((x-13,y-13,x+13,y+13),fill="#6CA9D6",outline=INK,width=2)
+        arrow(d,(250,300),(390,360),fill=BLUE,width=6)
+        label(d,(540,210),"Water vapour cools and forms liquid droplets",27,BLUE,True,anchor="mm")
+        label(d,(540,635),"Droplets form on the outside of the cold glass",23,INK,True,anchor="mm")
+    elif kind == "evaporation":
+        d.rectangle((250,430,830,520),fill="#BFE4F2",outline=INK,width=4)
+        for x in [350,470,590,710]:
+            arrow(d,(x,410),(x-25,280),fill=BLUE,width=6)
+        d.ellipse((760,170,850,260),fill="#F6C66B",outline=INK,width=3)
+        label(d,(540,590),"Heat helps liquid water change into vapour",28,BLUE,True,anchor="mm")
+    elif kind == "earthen_pot":
+        d.ellipse((350,260,730,650),fill="#C98E5B",outline=INK,width=6)
+        d.ellipse((390,300,690,610),fill="#BFE4F2",outline=INK,width=4)
+        for x,y in [(330,390),(340,450),(350,510),(730,390),(720,450),(710,510)]:
+            arrow(d,(x,y),(x-35 if x<500 else x+35,y-55),fill=BLUE,width=5)
+        label(d,(540,205),"A little water seeps out and evaporates",28,BLUE,True,anchor="mm")
+        label(d,(540,675),"Evaporation cools the earthen pot",24,INK,True,anchor="mm")
+    elif kind == "pole_star":
+        pts=[(260,420),(360,300),(490,350),(600,470),(470,540),(340,520),(260,420)]
+        for a,b in zip(pts,pts[1:]): d.line((a,b),fill="#8DBBE8",width=6)
+        for x,y in pts[:-1]: d.ellipse((x-12,y-12,x+12,y+12),fill="#F6C66B",outline=INK,width=2)
+        d.ellipse((850,210,880,240),fill="#F6C66B",outline=INK,width=3)
+        arrow(d,(610,470),(850,225),fill="#D35D6E",width=6)
+        label(d,(865,180),"POLE STAR",22,BLUE,True,anchor="mm")
+        label(d,(430,625),"Use the pointer stars to find the Pole Star",25,INK,True,anchor="mm")
+    elif kind == "day_night":
+        d.ellipse((300,220,780,700),fill="#547DB5",outline=INK,width=5)
+        d.pieslice((300,220,780,700),90,270,fill="#F6C66B",outline=INK,width=3)
+        d.ellipse((500,420,580,500),fill="#8DBBE8",outline=INK,width=3)
+        arrow(d,(520,210),(700,210),fill=BLUE,width=7)
+        label(d,(410,455),"DAY",26,INK,True,anchor="mm"); label(d,(670,455),"NIGHT",26,"#FFFFFF",True,anchor="mm")
+        label(d,(540,180),"Earth rotates on its axis",28,BLUE,True,anchor="mm")
+    elif kind == "compass":
+        d.ellipse((340,220,740,620),fill="#F2F5F7",outline=INK,width=7)
+        d.line((540,270,540,570),fill=INK,width=4); d.line((390,420,690,420),fill=INK,width=4)
+        d.polygon([(540,285),(505,430),(540,405),(575,430)],fill="#D35D6E",outline=INK)
+        d.polygon([(540,555),(505,410),(540,435),(575,410)],fill="#8DBBE8",outline=INK)
+        label(d,(540,190),"N",32,BLUE,True,anchor="mm"); label(d,(540,650),"S",32,BLUE,True,anchor="mm")
+        label(d,(760,420),"E",26,INK,True); label(d,(300,420),"W",26,INK,True)
+    elif kind == "magnet_poles":
+        for y,left,right,desc in [(320,"N","N","LIKE POLES REPEL"),(520,"N","S","UNLIKE POLES ATTRACT")]:
+            for x,pole in [(260,left),(650,right)]:
+                d.rounded_rectangle((x,y-45,x+170,y+45),radius=16,fill="#E98A8A" if pole=="N" else "#8DBBE8",outline=INK,width=4)
+                label(d,(x+85,y),pole,35,INK,True,anchor="mm")
+            if left==right: arrow(d,(450,y),(370,y),fill="#D35D6E",width=7); arrow(d,(630,y),(550,y),fill="#D35D6E",width=7)
+            else: arrow(d,(440,y),(570,y),fill="#39834A",width=7)
+            label(d,(540,y+75),desc,23,BLUE,True,anchor="mm")
+    elif kind == "handpicking":
+        d.rounded_rectangle((230,300,850,560),radius=30,fill="#E8C48B",outline=INK,width=5)
+        for x,y in [(330,370),(470,450),(620,350),(740,470),(560,500)]:
+            d.ellipse((x-18,y-12,x+18,y+12),fill="#6B6257",outline=INK,width=2)
+        label(d,(540,220),"Remove visible unwanted stones by hand",28,BLUE,True,anchor="mm")
+        label(d,(540,610),"GRAINS + STONES",25,INK,True,anchor="mm")
+    elif kind == "winnowing":
+        d.polygon([(260,280),(610,370),(570,440),(220,350)],fill="#D8B477",outline=INK)
+        for i in range(9):
+            x=650+i*24; y=330+(i%3)*32
+            d.ellipse((x,y,x+12,y+12),fill="#E8C48B",outline=INK)
+        arrow(d,(620,340),(900,260),fill=BLUE,width=8)
+        for i in range(6):
+            x=450+i*22; d.ellipse((x,500+(i%2)*18,x+14,514+(i%2)*18),fill="#C99A4A",outline=INK)
+        label(d,(780,210),"LIGHT HUSK",23,BLUE,True,anchor="mm")
+        label(d,(430,590),"HEAVIER GRAINS FALL NEARBY",22,INK,True,anchor="mm")
+    elif kind == "salt_evaporation":
+        d.rounded_rectangle((300,330,780,500),radius=24,fill="#BFE4F2",outline=INK,width=5)
+        for x in [390,500,610,700]: arrow(d,(x,310),(x-20,220),fill=BLUE,width=5)
+        d.rectangle((350,520,730,570),fill="#F6C66B",outline=INK,width=3)
+        label(d,(540,200),"Water evaporates; salt remains",29,BLUE,True,anchor="mm")
+        label(d,(540,630),"SALT CRYSTALS",24,INK,True,anchor="mm")
+    elif kind == "magnetic_separation":
+        d.rounded_rectangle((250,260,830,380),radius=22,fill="#8DBBE8",outline=INK,width=5)
+        for x in [350,450,550,650,750]:
+            d.line((x,430,x+25,455),fill="#9B7545",width=8)
+        d.rounded_rectangle((400,190,680,250),radius=18,fill="#E98A8A",outline=INK,width=4)
+        label(d,(540,220),"MAGNET",22,INK,True,anchor="mm")
+        for x in [430,500,570,640]: arrow(d,(x,410),(x,275),fill="#D35D6E",width=5)
+        label(d,(540,550),"Iron is attracted; other material stays",27,BLUE,True,anchor="mm")
+    elif kind == "windmill":
+        d.line((540,400,540,640),fill=INK,width=12)
+        d.ellipse((500,360,580,440),fill="#F6C66B",outline=INK,width=4)
+        for a in [0,90,180,270]:
+            rad=math.radians(a); x=540+180*math.cos(rad); y=400+180*math.sin(rad)
+            d.polygon([(540,400),(x-35*math.sin(rad),y+35*math.cos(rad)),(x+35*math.sin(rad),y-35*math.cos(rad))],fill="#8DBBE8",outline=INK)
+        arrow(d,(180,320),(340,320),fill=BLUE,width=8); arrow(d,(180,390),(340,390),fill=BLUE,width=8)
+        label(d,(540,200),"Moving air turns the pinwheel blades",28,BLUE,True,anchor="mm")
+    elif kind == "fresh_water":
+        cards=[(130,280,"RIVERS & LAKES","#BFE4F2"),(570,280,"ICE & SNOW","#DCE7F4"),(130,450,"GROUNDWATER","#D8B477"),(570,450,"WATER IN SOIL","#EAF4E4")]
+        for x,y,name,col in cards:
+            d.rounded_rectangle((x,y,x+370,y+115),radius=20,fill=col,outline=INK,width=4)
+            label(d,(x+185,y+57),name,24,INK,True,anchor="mm")
+        label(d,(540,205),"Fresh water is found in rivers, lakes, ice and underground",25,BLUE,True,anchor="mm")
+    elif kind == "soil_formation":
+        d.rectangle((230,300,850,620),fill="#C99A6B",outline=INK,width=5)
+        d.rectangle((230,300,850,390),fill="#8BCB83",outline=INK,width=3)
+        for x,y,r in [(330,460,22),(450,520,15),(600,440,26),(740,550,20),(520,350,12)]:
+            d.ellipse((x-r,y-r,x+r,y+r),fill="#8C8174",outline=INK,width=2)
+        arrow(d,(300,220),(390,290),fill="#E39A35",width=6); arrow(d,(540,220),(540,290),fill=BLUE,width=6)
+        label(d,(540,190),"Rocks break down slowly into soil",28,BLUE,True,anchor="mm")
+        label(d,(540,660),"Rock pieces + water + air + living things",23,INK,True,anchor="mm")
+    elif kind == "vehicle_fuels":
+        cards=[("CAR","PETROL"),("BUS","DIESEL"),("AUTO","CNG"),("E-BUS","ELECTRICITY")]
+        for i,(vehicle,fuel) in enumerate(cards):
+            x=130+(i%2)*440; y=260+(i//2)*190
+            d.rounded_rectangle((x,y,x+380,y+130),radius=20,fill=PALETTE[i%4],outline=INK,width=4)
+            label(d,(x+190,y+42),vehicle,27,INK,True,anchor="mm")
+            label(d,(x+190,y+90),fuel,24,BLUE,True,anchor="mm")
+    elif kind == "digital_thermometer":
+        d.rounded_rectangle((400,300,680,430),radius=24,fill="#F2F5F7",outline=INK,width=5)
+        label(d,(540,365),"37.0 °C",48,BLUE,True,anchor="mm")
+        label(d,(540,230),"Example: normal body temperature",28,BLUE,True,anchor="mm")
+        label(d,(540,540),"Hold safely; clean before and after use",25,INK,True,anchor="mm")
+    elif kind == "lab_thermometer":
+        d.rounded_rectangle((500,210,580,590),radius=35,fill="#F2F5F7",outline=INK,width=5)
+        d.ellipse((480,545,600,665),fill="#E46B5D",outline=INK,width=4)
+        d.rectangle((525,360,555,600),fill="#E46B5D")
+        for i,t in enumerate(["0","20","40","60","80","100"]):
+            y=550-i*55; d.line((580,y,650,y),fill=INK,width=3); label(d,(670,y-14),t,22,INK)
+        label(d,(260,300),"SCALE",24,BLUE,True); label(d,(260,550),"BULB",24,BLUE,True)
+        label(d,(540,185),"Read the liquid level against the scale",27,BLUE,True,anchor="mm")
+    elif kind == "thermometer_setup":
+        d.rectangle((300,430,780,620),fill="#BFE4F2",outline=INK,width=5)
+        d.rounded_rectangle((520,230,560,500),radius=18,fill="#F2F5F7",outline=INK,width=4)
+        d.ellipse((510,470,570,530),fill="#E46B5D",outline=INK,width=3)
+        label(d,(540,200),"Keep the thermometer upright",27,BLUE,True,anchor="mm")
+        label(d,(540,660),"Bulb stays in water, away from the sides and bottom",22,INK,True,anchor="mm")
+    elif kind == "melting_plateau":
+        pts=[(180,520),(350,390),(560,390),(850,220)]
+        d.line(pts,fill=BLUE,width=10,joint="curve")
+        for x,y in pts: d.ellipse((x-10,y-10,x+10,y+10),fill=INK)
+        label(d,(300,570),"ICE WARMS",23,INK,True); label(d,(450,350),"MELTING: TEMP STAYS LEVEL",22,BLUE,True,anchor="mm")
+        label(d,(800,190),"WATER WARMS",22,INK,True,anchor="mm")
+    elif kind == "temperature_scales":
+        for x,name,marks in [(280,"CELSIUS",["0°","20°","40°"]),(540,"FAHRENHEIT",["32°","68°","104°"]),(800,"KELVIN",["273 K","293 K","313 K"])]:
+            d.line((x,280,x,570),fill=INK,width=8)
+            for i,t in enumerate(marks):
+                y=300+i*115; d.line((x-22,y,x+22,y),fill=INK,width=4); label(d,(x+35,y-15),t,20,INK)
+            label(d,(x,620),name,21,BLUE,True,anchor="mm")
+
+    elif kind == "forest_products":
+        cards=[(150,270,"FRUITS","#F6C66B"),(570,270,"WOOD","#C99A6B"),(150,450,"MEDICINAL PLANTS","#9ACB87"),(570,450,"HONEY","#FFF0D9")]
+        for x,y,name,col in cards:
+            d.rounded_rectangle((x,y,x+360,y+120),radius=22,fill=col,outline=INK,width=4)
+            label(d,(x+180,y+60),name,24,INK,True,anchor="mm")
+        label(d,(540,205),"Forests provide useful products and habitats",28,BLUE,True,anchor="mm")
     else:
         raise ValueError(f"Unsupported diagram type: {kind}")
 

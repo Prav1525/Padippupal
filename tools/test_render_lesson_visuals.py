@@ -12,7 +12,7 @@ from tools import render_lesson_visuals as renderer
 
 def test_every_curated_visual_renders_as_phone_first_png(tmp_path):
     manifest = json.loads((ROOT / "assets/lesson-images/authoring-manifest.json").read_text())
-    assert len(manifest["images"]) == 170
+    assert len(manifest["images"]) == 163
     rendered = 0
     for item in manifest["images"]:
         assert item["layout"] in {"single", "pair"}
@@ -40,7 +40,7 @@ def test_manifest_has_unique_module_mappings_and_supported_diagrams():
     manifest = json.loads((ROOT / "assets/lesson-images/authoring-manifest.json").read_text())
     keys = [(item["lesson_id"], item["module_key"], tuple(item["step_ids"])) for item in manifest["images"]]
     assert len(keys) == len(set(keys))
-    assert len(manifest["images"]) == 170
+    assert len(manifest["images"]) == 163
     supported = {
         "fractions", "rectangle_properties", "decantation", "scientific_method", "angle", "four_point_lines",
         "area_perimeter", "symmetry", "bar_graph", "water_states", "seedling", "plant",

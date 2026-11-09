@@ -20,16 +20,16 @@ def test_image_signature_accepts_real_binary_magic_bytes(content_type, payload):
 
 
 @pytest.mark.parametrize(
-    ("content_type", "payload"),
+    ("content_type", "payload", "expected"),
     [
-        ("image/jpeg", b"\\xff\\xd8\\xff"),
-        ("image/png", b"\\x89PNG\\r\\n\\x1a\\n"),
-        ("image/webp", b"RIFFxxxxNOPE"),
-        ("image/gif", b"GIF00a"),
+        ("image/jpeg", b"\\xff\\xd8\\xff", False),
+        ("image/png", b"\x89PNG\r\n\x1a\n", True),
+        ("image/webp", b"RIFFxxxxNOPE", False),
+        ("image/gif", b"GIF00a", False),
     ],
 )
-def test_image_signature_rejects_literal_escape_text_and_wrong_magic(content_type, payload):
-    assert not ingest._image_signature_matches(payload, content_type)
+def test_image_signature_accepts_valid_and_rejects_invalid_magic(content_type, payload, expected):
+    assert ingest._image_signature_matches(payload, content_type) is expected
 
 
 def test_url_validation_returns_the_public_ip_that_must_be_pinned(monkeypatch):
@@ -129,3 +129,137 @@ def test_lesson_mapping_must_match_existing_step_and_module(lesson_json, module_
         with pytest.raises(HTTPException) as exc:
             ingest._validate_lesson_step_mapping(lesson_json, module_key, steps)
         assert exc.value.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("content_type", "payload", "expected"),
+    [
+        ("image/png", b"\x89PNG\r\n\x1a\n" + b"png-data", "image/png"),
+        ("image/jpeg", b"\xff\xd8\xff" + b"jpeg-data", "image/jpeg"),
+        ("image/webp", b"RIFF" + b"\x00\x00\x00\x00" + b"WEBP" + b"data", "image/webp"),
+        ("image/svg+xml", b"<svg/>", "reject"),
+        ("image/png", b"not-a-png", "reject"),
+    ],
+)
+def test_original_raster_upload_validates_type_and_magic_bytes(content_type, payload, expected):
+    if expected == "reject":
+        with pytest.raises(HTTPException):
+            ingest._validate_original_image(payload, content_type)
+    else:
+        assert ingest._validate_original_image(payload, content_type) == expected
+
+
+def test_original_raster_upload_rejects_oversized_payload():
+    with pytest.raises(HTTPException) as exc:
+        ingest._validate_original_image(b"x" * (ingest.MAX_IMAGE_BYTES + 1), "image/png")
+    assert exc.value.status_code == 413
+
+
+def test_original_raster_upload_rejects_gif_for_static_teaching_art():
+    with pytest.raises(HTTPException) as exc:
+        ingest._validate_original_image(b"GIF89a" + b"data", "image/gif")
+    assert exc.value.status_code == 415
+
+
+def test_original_upload_stores_bytes_as_pending_and_never_publishes(monkeypatch):
+    import asyncio
+    import json
+    from io import BytesIO
+    from starlette.datastructures import Headers, UploadFile
+
+    lesson_json = json.dumps({"teaching_sequence": [{"id": "step_1", "title": "A real step"}]})
+    lesson = {
+        "id": "lesson-12345678", "board": "CBSE", "class_level": 6,
+        "subject": "Science", "chapter": "A Journey through States of Water",
+        "medium": "English", "status": "approved", "lesson_json": lesson_json,
+    }
+
+    class Result:
+        def __init__(self, row=None): self.row = row
+        def fetchone(self): return self.row
+
+    class FakeConnection:
+        def __init__(self): self.calls = []; self.committed = False; self.rolled_back = False
+        def execute(self, query, params=None):
+            self.calls.append((query, params))
+            if "SELECT id, board, class_level, subject, chapter, medium, status, lesson_json" in query:
+                return Result(lesson)
+            return Result()
+        def commit(self): self.committed = True
+        def rollback(self): self.rolled_back = True
+        def close(self): pass
+
+    conn = FakeConnection()
+    monkeypatch.setattr(ingest, "connect", lambda: conn)
+    png = b"\x89PNG\r\n\x1a\n" + b"valid-test-png-payload"
+    upload = UploadFile(
+        file=BytesIO(png),
+        filename="water-states.png",
+        headers=Headers({"content-type": "image/png"}),
+    )
+    result = asyncio.run(ingest.ingest_original_lesson_image(
+        lesson_id=lesson["id"],
+        module_key="module-1",
+        step_ids_json='["step_1"]',
+        alt_text="Three states of water",
+        title="Water states",
+        file=upload,
+    ))
+
+    assert result["status"] == "pending_review"
+    assert result["student_visible"] is False
+    assert result["lesson_id"] == lesson["id"]
+    assert result["module_key"] == "module-1"
+    assert conn.committed is True
+    asset_insert = next((q, p) for q, p in conn.calls if "INSERT INTO lesson_image_assets" in q)
+    blob_insert = next((q, p) for q, p in conn.calls if "INSERT INTO lesson_image_asset_blobs" in q)
+    assert "'pending'" in asset_insert[0]
+    assert asset_insert[1][0] == result["asset_id"]
+    assert blob_insert[1][0] == result["asset_id"]
+    assert blob_insert[1][1] == png
+    assert blob_insert[1][2] == result["sha256"]
+
+
+def test_original_upload_rejects_unapproved_lesson_before_any_insert(monkeypatch):
+    import asyncio
+    import json
+    from io import BytesIO
+    from starlette.datastructures import Headers, UploadFile
+
+    class Result:
+        def fetchone(self): return {
+            "id": "lesson-12345678", "board": "CBSE", "class_level": 6,
+            "subject": "Science", "chapter": "Test", "medium": "English",
+            "status": "draft", "lesson_json": json.dumps({"teaching_sequence": [{"id": "step_1"}]}),
+        }
+
+    class FakeConnection:
+        def __init__(self): self.queries = []; self.rolled_back = False
+        def execute(self, query, params=None):
+            self.queries.append(query)
+            return Result()
+        def commit(self): raise AssertionError("draft lessons must never be written")
+        def rollback(self): self.rolled_back = True
+        def close(self): pass
+
+    conn = FakeConnection()
+    monkeypatch.setattr(ingest, "connect", lambda: conn)
+    upload = UploadFile(file=BytesIO(b"\x89PNG\r\n\x1a\n" + b"payload"),
+                        filename="diagram.png", headers=Headers({"content-type": "image/png"}))
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(ingest.ingest_original_lesson_image(
+            lesson_id="lesson-12345678", module_key="module-1",
+            step_ids_json='["step_1"]', alt_text="A labelled diagram", title="",
+            file=upload,
+        ))
+    assert exc.value.status_code == 422
+    assert conn.rolled_back is True
+    assert not any("INSERT INTO" in query for query in conn.queries)
+
+
+def test_original_upload_admin_authentication_is_required(monkeypatch):
+    monkeypatch.setattr(ingest, "ADMIN_TOKEN", "test-secret")
+    ingest.require_image_admin("test-secret")
+    with pytest.raises(HTTPException) as exc:
+        ingest.require_image_admin("wrong-secret")
+    assert exc.value.status_code == 401

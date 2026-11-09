@@ -1,0 +1,29 @@
+name: Ingest curated lesson PNGs to pending review
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_pending_ingestion:
+        description: "I explicitly approve uploading these curated PNGs to production as pending (not learner-visible) assets."
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  ingest-pending:
+    if: ${{ inputs.confirm_pending_ingestion == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install Pillow requests
+      - name: Render approved Class 6 visual manifest
+        run: python tools/render_lesson_visuals.py --manifest assets/lesson-images/authoring-manifest.json --out "$RUNNER_TEMP/padippupal-lesson-visuals"
+      - name: Upload each PNG as pending review only
+        env:
+          PADIPPUPAL_CONFIRM_PENDING_INGESTION: "true"
+          PADIPPUPAL_API_BASE_URL: ${{ vars.PADIPPUPAL_API_BASE_URL || 'https://padippupal-curriculum-api.onrender.com' }}
+          PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+        run: python tools/ingest_rendered_originals.py "$RUNNER_TEMP/padippupal-lesson-visuals/rendered-manifest.json"

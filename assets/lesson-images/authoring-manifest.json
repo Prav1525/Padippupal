@@ -143,7 +143,7 @@
         "step_4"
       ],
       "title": "Prime Factor Tree",
-      "alt_text": "A factor tree showing 12 split into prime factors 2, 2 and 3.",
+      "alt_text": "A factor tree showing 72 split into prime factors 2, 2, 2, 3 and 3.",
       "layout": "single",
       "panels": [
         {
@@ -1075,12 +1075,12 @@
         "step_2"
       ],
       "title": "Perimeters of Different Shapes",
-      "alt_text": "Compare the boundary lengths of regular shapes.",
+      "alt_text": "A rectangle, triangle and hexagon show that perimeter is found by adding every outside side.",
       "layout": "single",
       "panels": [
         {
-          "heading": "Perimeter follows the outside boundary",
-          "diagram": "area_perimeter"
+          "heading": "Perimeter = add every outside side",
+          "diagram": "perimeter_shapes"
         }
       ]
     },
@@ -1091,12 +1091,12 @@
         "step_8"
       ],
       "title": "Same Area, Different Perimeters",
-      "alt_text": "Two rectangles can have equal area but different perimeters.",
+      "alt_text": "Two rectangles each have an area of 1,050 square feet, but their perimeters are 134 feet and 130 feet.",
       "layout": "single",
       "panels": [
         {
           "heading": "Equal area does not always mean equal perimeter",
-          "diagram": "area_perimeter"
+          "diagram": "same_area_perimeters"
         }
       ]
     },
@@ -1214,13 +1214,13 @@
       "step_ids": [
         "step_8"
       ],
-      "title": "Prime Factors Build a Number",
-      "alt_text": "A factor tree shows a composite number splitting into prime factors.",
+      "title": "Common Prime Factors",
+      "alt_text": "Two numbers show prime factors 2, 3, 7 and 3, 7, 11, highlighting the shared factors 3 and 7.",
       "layout": "single",
       "panels": [
         {
-          "heading": "Prime factors combine to make the original number",
-          "diagram": "factor_tree"
+          "heading": "The numbers share prime factors 3 and 7",
+          "diagram": "shared_prime_factors"
         }
       ]
     },
@@ -1267,8 +1267,8 @@
       "layout": "single",
       "panels": [
         {
-          "heading": "Cooling water vapour forms liquid droplets",
-          "diagram": "condensation"
+          "heading": "Condensation can appear on many cool surfaces",
+          "diagram": "condensation_examples"
         }
       ]
     },
@@ -1395,8 +1395,8 @@
       "layout": "single",
       "panels": [
         {
-          "heading": "Cooling water vapour forms liquid droplets",
-          "diagram": "condensation"
+          "heading": "Water vapour cools and forms liquid droplets",
+          "diagram": "condensation_process"
         }
       ]
     },

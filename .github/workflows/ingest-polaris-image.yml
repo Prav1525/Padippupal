@@ -1,0 +1,83 @@
+name: One-time Polaris lesson image ingestion
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/ingest-polaris-image.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: padippupal-polaris-image-ingestion
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ingest licensed Polaris diagram as pending
+        shell: bash
+        env:
+          ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+          API_BASE: https://padippupal-curriculum-api.onrender.com
+        run: |
+          set -euo pipefail
+          set +x
+          if [ -z "${ADMIN_TOKEN}" ]; then
+            echo "Required repository secret PADIPPUPAL_ADMIN_TOKEN is unavailable."
+            exit 1
+          fi
+
+          payload=$(python - <<'PY'
+          import json
+          print(json.dumps({
+              "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/74/Emagone_Constellations_around_Polaris_-_Names.png",
+              "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+              "module_key": "module-2",
+              "step_ids": ["step_2"],
+              "alt_text": "Labeled star map showing Polaris, the Big Dipper, Little Dipper, Cassiopeia and Arcturus",
+              "title": "Constellations around Polaris",
+              "source_page_url": "https://commons.wikimedia.org/wiki/File:Emagone_Constellations_around_Polaris_-_Names.png",
+              "license_name": "CC BY-SA 4.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+              "creator": "Emagone",
+              "attribution": "Emagone, CC BY-SA 4.0, via Wikimedia Commons"
+          }))
+          PY
+          )
+
+          response_file=$(mktemp)
+          status=$(curl --silent --show-error --connect-timeout 10 --max-time 90 \
+            -o "$response_file" -w "%{http_code}" \
+            -X POST "$API_BASE/admin/lesson-images/ingest-url" \
+            -H "Content-Type: application/json" \
+            -H "X-Admin-Token: $ADMIN_TOKEN" \
+            --data "$payload")
+          unset ADMIN_TOKEN
+          cat "$response_file"
+          if [ "$status" != "200" ]; then
+            echo "Ingestion endpoint returned HTTP $status."
+            exit 1
+          fi
+          python - "$response_file" <<'PY'
+          import json, sys
+          with open(sys.argv[1], encoding="utf-8") as f:
+              result = json.load(f)
+          required = {
+              "status": "pending",
+              "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+              "module_key": "module-2",
+              "student_visible": False,
+          }
+          for key, expected in required.items():
+              if result.get(key) != expected:
+                  raise SystemExit(f"FAIL: unexpected {key}: {result.get(key)!r}")
+          if result.get("step_ids") != ["step_2"] or not result.get("asset_id") or not result.get("sha256"):
+              raise SystemExit("FAIL: response is missing the expected mapping or integrity fields.")
+          print("PASS: image stored as pending, mapped to Beyond the Earth module-2 / step_2, and hidden from learners.")
+          PY
+          rm -f "$response_file"

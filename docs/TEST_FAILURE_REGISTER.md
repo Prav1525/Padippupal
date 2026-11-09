@@ -341,3 +341,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Validate the accessible image title and alt text instead of requiring the metadata caption as a separate Text node. The first deterministic spoken segment also now includes the mapped caption so the teaching narration remains aligned with the visual.
 - **Regression prevention:** Add helper tests proving the live UI assertion checks the image title and alt text and does not require metadata caption text. Add a fixture contract test proving the first spoken segment includes the mapped caption.
 - **Validation:** Fresh Android API 35 run on the final fix commit pending. Do not merge PR #276 until it passes.
+
+## Incident: visual coverage audit missed plural abstract concept labels
+
+- **Date:** 2026-11-09
+- **Evidence:** PR #283 render-and-test run [42596647602](https://github.com/Prav1525/Padippupal/actions/runs/42596647602), failure in `VisualCoverageAuditTests.test_reports_unmapped_and_routes_abstract_concept_to_original`.
+- **Symptom:** A module titled “Fractions” was proposed as `HUMAN_REVIEW` instead of `ORIGINAL_DIAGRAM`.
+- **Root cause:** The abstract-concept regular expression matched singular `fraction` but not plural `fractions`; the word-boundary prevented a match.
+- **Fix:** Extend the classifier to recognize plural forms of fraction, angle, equation and integer; add a regression test for plural “Fractions”.
+- **Validation:** Updated CI pending. The audit remains proposal-only and cannot approve, ingest, or publish images.

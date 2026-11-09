@@ -1,0 +1,33 @@
+name: Diagnose Wikimedia Polaris image response
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/diagnose-polaris-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-source-response:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect image response headers and file signature without writing production data
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://upload.wikimedia.org/wikipedia/commons/7/74/Emagone_Constellations_around_Polaris_-_Names.png"
+          curl --silent --show-error --connect-timeout 10 --max-time 60 \
+            -D /tmp/headers.txt -o /tmp/polaris-image \
+            -H "User-Agent: PadippuPal-LessonImageIngest/1.0" \
+            -H "Accept: image/png,image/jpeg,image/webp,image/gif" "$url"
+          echo "Response headers (sensitive headers omitted):"
+          grep -iE '^(HTTP/|content-type:|content-length:|content-encoding:|location:)' /tmp/headers.txt || true
+          echo "First 16 bytes:"
+          od -An -tx1 -N16 /tmp/polaris-image
+          echo "Detected file type:"
+          file --brief --mime-type /tmp/polaris-image
+          echo "Downloaded byte count:"
+          wc -c < /tmp/polaris-image

@@ -185,7 +185,7 @@ def list_lesson_images(lesson_id: str) -> dict:
             FROM lesson_image_assets a JOIN lesson_image_asset_blobs b ON b.asset_id=a.id
             JOIN chapter_lessons l ON l.id=a.lesson_id
             WHERE a.lesson_id=%s AND a.status='ready' AND l.status='approved'
-            ORDER BY a.module_key
+            ORDER BY a.module_key, a.created_at, a.id
         """, (lesson_id,)).fetchall()
         return {"lesson_id": lesson_id, "images": [
             {"id": row["id"], "module_key": row["module_key"], "title": row["title"],

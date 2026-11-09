@@ -120,8 +120,9 @@
       "confidence": "high",
       "visual_brief": "Show equal parts, fraction strips or number-line fractions with large labelled numerators and denominators.",
       "caption_excerpt": "It is easy to add up fractional units to obtain the sum 1, if one uses the same fractional unit, for example, 12 + 12 = 1, 13 + 13 + 13 = 1, 14 + 14 + 14 + 14 = 1, etc. However, can you think of a way to add fractional units that are all different to get 1? to this problem (up to changing the order of the 3 fractions)! Try to find it before reading further.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "fraction_addition"
     },
     {
       "lesson_id": "7d295238-fc08-5fba-9ed4-6c8a28c34576",
@@ -134,8 +135,9 @@
       "confidence": "high",
       "visual_brief": "Show equal parts, fraction strips or number-line fractions with large labelled numerators and denominators.",
       "caption_excerpt": "Now, a unit is divided into 8 equal parts. Write the appropriate fractions in your notebook. How many whole units are there in 𝟒 𝟑 and in 𝟕 𝟑? There is 1 whole unit in 4 3 and 2 whole units in 7 3.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "fraction_number_line"
     },
     {
       "lesson_id": "e674c663-ef68-53c2-9e52-6c15b1a744c6",
@@ -148,8 +150,9 @@
       "confidence": "high",
       "visual_brief": "Create a clean geometry construction with labelled points, ruler/compass arcs and only the measurements needed by this module.",
       "caption_excerpt": "Lines and Angles 27 Challenge: Reduce this angle. Is it possible to draw OC such that the two angles are equal to each other in size? Let’s Explore We can try to solve this problem using a piece of paper. Lines and Angles 29 Justify why the two angles are equal.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "angle"
     },
     {
       "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
@@ -260,8 +263,9 @@
       "confidence": "high",
       "visual_brief": "Create a clean geometry construction with labelled points, ruler/compass arcs and only the measurements needed by this module.",
       "caption_excerpt": "Toshi says it can’t be 9 units and the perimeter will be more than 9 units. The perimeter will be more than 9 units as the length of a diagonal of a square is always greater than the sides of the square. Write the perimeters of the figures below in terms of straight and diagonal units. The perimeters of the figures: 8s + 2d, 4s + 6d, 12s + 6d, 18s + 6d.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "polygon_perimeter"
     },
     {
       "lesson_id": "e712933f-8db6-5166-ac10-ce56769f0264",
@@ -414,8 +418,9 @@
       "confidence": "high",
       "visual_brief": "Show one simple shape with fold/reflection or rotation positions and clearly marked symmetry lines/angles.",
       "caption_excerpt": "the square along this line, the points B, C on the right get reflected to the left side and occupy the positions occupied earlier by A, D. resulting figure symmetric? • If yes, where is the line of symmetry? • Is there any other line along which it can be folded to produce two identical parts? • Try making more such patterns. Chapter 9_Symmetry.indd 222 13-08-2024 17:05:25 Reprint 2026-27 Symmetry 223 Paper Folding and Cutting Here is another way of making symmetric shapes!",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "symmetry"
     },
     {
       "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
@@ -428,8 +433,9 @@
       "confidence": "high",
       "visual_brief": "Show one simple shape with fold/reflection or rotation positions and clearly marked symmetry lines/angles.",
       "caption_excerpt": "Symmetry 233 Here is one way: We have seen figures having 4 and 2 angles of symmetry. Can we get a figure having exactly 3 angles of symmetry? Can it be done by changing the angles between the dotted lines? If a figure with three radial arms should have rotational symmetry, then a rotated version of it should overlap with the original.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "symmetry"
     },
     {
       "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
@@ -442,8 +448,9 @@
       "confidence": "high",
       "visual_brief": "Show one simple shape with fold/reflection or rotation positions and clearly marked symmetry lines/angles.",
       "caption_excerpt": "This is a picture of the new Parliament Building in Delhi. a. Does the outer boundary of the picture have reflection symmetry? Chapter 9_Symmetry.indd 240 13-08-2024 17:05:37 Reprint 2026-27 Symmetry 241 Game Draw a 6 by 6 grid.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "symmetry"
     },
     {
       "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
@@ -456,8 +463,9 @@
       "confidence": "high",
       "visual_brief": "Show one simple shape with fold/reflection or rotation positions and clearly marked symmetry lines/angles.",
       "caption_excerpt": "223 Q1 In each of the following figures, a hole was punched in a folded square sheet of paper and then the paper was unfolded. Identify the line along which the paper was folded. Suppose you have to get each of these sh apes with some folds and a single straight cut. The hole in the centre is square. b.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "symmetry"
     },
     {
       "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
@@ -470,8 +478,9 @@
       "confidence": "high",
       "visual_brief": "Show one simple shape with fold/reflection or rotation positions and clearly marked symmetry lines/angles.",
       "caption_excerpt": "Copy the following drawing on squared paper. Complete each one of them so that the resulting figure has the two blue lines as lines of symmetry. 235 Can you draw a figure with radial arms that has a) exactly 5 angles of symmetry, b) 6 angles of symmetry? Also find the angles of symmetry in each case.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "symmetry"
     },
     {
       "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
@@ -484,8 +493,9 @@
       "confidence": "high",
       "visual_brief": "Show one simple shape with fold/reflection or rotation positions and clearly marked symmetry lines/angles.",
       "caption_excerpt": "A quadrilateral with reflection symmetry but not having rotational symmetry Q4. In a figure, 60 ° is the smallest angle of symmetry. How many lines of symmetry do the shapes in the first shape sequence in Chapter 1, Table 3, the Regular Polygons, have?",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "symmetry"
     },
     {
       "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
@@ -540,8 +550,9 @@
       "confidence": "high",
       "visual_brief": "Show water-state changes or the specific condensation/evaporation/precipitation process with arrows and labels.",
       "caption_excerpt": "In summers, surahi is used to keep the water cold. Under special conditions, it might also fall as hail or snow. Aavi enjoys the rain and creates a poem. (clouds) above the water in the bottle.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Create original PNG; 1080x720 or phone-screen-fit panels; large readable labels; verify factual accuracy.",
+      "selected_visual_type": "condensation"
     },
     {
       "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
@@ -568,8 +579,9 @@
       "confidence": "medium",
       "visual_brief": "Use a licensed astronomy image only if it directly explains the module (Moon/planet/star/constellation); otherwise draw a simple labelled sky diagram.",
       "caption_excerpt": "Nubra is a beautiful region in Ladakh. An eleven-year old girl Yangdol and her twin brother Dorjay live in one of the villages of this region. Growing up, Yangdol and Dorjay have been hearing interesting stories about stars from their elders. They have heard how some particular stars in the clear skies helped the caravans passing through Nubra in finding direction in the ancient days.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Use only verifiable public-domain/CC0/CC-BY assets; capture creator, licence, source-page URL and attribution."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Use only verifiable public-domain/CC0/CC-BY assets; capture creator, licence, source-page URL and attribution.",
+      "selected_visual_type": "solar_system"
     },
     {
       "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
@@ -582,8 +594,9 @@
       "confidence": "medium",
       "visual_brief": "Use a licensed astronomy image only if it directly explains the module (Moon/planet/star/constellation); otherwise draw a simple labelled sky diagram.",
       "caption_excerpt": "Beyond Earth 243 so far away that they look like shining dots, just like stars. So how can we distinguish between planets and the stars? the country which organise sky watching events periodically. Museums and Planetariums also organise similar events.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Use only verifiable public-domain/CC0/CC-BY assets; capture creator, licence, source-page URL and attribution."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Use only verifiable public-domain/CC0/CC-BY assets; capture creator, licence, source-page URL and attribution.",
+      "selected_visual_type": "orbit"
     },
     {
       "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
@@ -596,8 +609,9 @@
       "confidence": "medium",
       "visual_brief": "Use a licensed astronomy image only if it directly explains the module (Moon/planet/star/constellation); otherwise draw a simple labelled sky diagram.",
       "caption_excerpt": "Which of the following is not a planet of the Sun? (i) Jupiter (iii) Neptune (ii) Pluto (iv) Saturn 5. Which is the brighter star, the Pole Star or Sirius? A portion of the night sky is shown in Fig. Draw lines to connect the stars for Orion and label the star Sirius.",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Use only verifiable public-domain/CC0/CC-BY assets; capture creator, licence, source-page URL and attribution."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Use only verifiable public-domain/CC0/CC-BY assets; capture creator, licence, source-page URL and attribution.",
+      "selected_visual_type": "day_night"
     },
     {
       "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
@@ -610,8 +624,9 @@
       "confidence": "medium",
       "visual_brief": "Use a licensed astronomy image only if it directly explains the module (Moon/planet/star/constellation); otherwise draw a simple labelled sky diagram.",
       "caption_excerpt": "the most groundbreaking discoveries often begin with a simple “Why?”. There are countless questions waiting to be answered, and countless answers waiting to be questioned. Notes Chapter 12.indd 254 10/4/2024 3:11:56 PM Reprint 2026-27",
-      "decision_status": "PROPOSED_NOT_APPROVED",
-      "source_requirements": "Use only verifiable public-domain/CC0/CC-BY assets; capture creator, licence, source-page URL and attribution."
+      "decision_status": "MAPPED_IN_AUTHORING_MANIFEST_NOT_INGESTED",
+      "source_requirements": "Use only verifiable public-domain/CC0/CC-BY assets; capture creator, licence, source-page URL and attribution.",
+      "selected_visual_type": "constellation"
     },
     {
       "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",

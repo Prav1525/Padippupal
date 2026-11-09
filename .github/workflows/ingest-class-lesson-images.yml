@@ -1,0 +1,88 @@
+name: Ingest reviewed class lesson images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "assets/lesson-images/manifest.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: padippupal-class-lesson-image-ingestion
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out image manifest
+        uses: actions/checkout@v4
+
+      - name: Ingest images as pending review assets
+        shell: bash
+        env:
+          ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+          API_BASE: https://padippupal-curriculum-api.onrender.com
+        run: |
+          set -euo pipefail
+          set +x
+          if [ -z "${ADMIN_TOKEN}" ]; then
+            echo "Required repository secret PADIPPUPAL_ADMIN_TOKEN is unavailable."
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          import time
+          import urllib.error
+          import urllib.request
+
+          path = "assets/lesson-images/manifest.json"
+          with open(path, encoding="utf-8") as handle:
+              manifest = json.load(handle)
+          images = manifest.get("images")
+          if not isinstance(images, list) or not 1 <= len(images) <= 300:
+              raise SystemExit("Manifest must contain between 1 and 300 image records.")
+
+          token = os.environ["ADMIN_TOKEN"]
+          base = os.environ["API_BASE"].rstrip("/")
+          required = ("image_url", "lesson_id", "module_key", "step_ids", "alt_text",
+                      "source_page_url", "license_name", "license_url", "creator", "attribution")
+          seen = set()
+          for index, item in enumerate(images, 1):
+              if not isinstance(item, dict) or any(not item.get(key) for key in required):
+                  raise SystemExit(f"Image record {index} is missing required metadata.")
+              identity = (item["lesson_id"], item["module_key"], item["image_url"])
+              if identity in seen:
+                  raise SystemExit(f"Duplicate image mapping at record {index}.")
+              seen.add(identity)
+
+          for index, item in enumerate(images, 1):
+              request = urllib.request.Request(
+                  base + "/admin/lesson-images/ingest-url",
+                  data=json.dumps(item).encode("utf-8"),
+                  headers={"Content-Type": "application/json", "X-Admin-Token": token},
+                  method="POST",
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=90) as response:
+                      result = json.loads(response.read().decode("utf-8"))
+              except urllib.error.HTTPError as exc:
+                  detail = exc.read(2048).decode("utf-8", "replace")
+                  raise SystemExit(f"Image {index} failed with HTTP {exc.code}: {detail}") from exc
+              if (result.get("status") != "pending" or result.get("student_visible") is not False
+                      or result.get("lesson_id") != item["lesson_id"]
+                      or result.get("module_key") != item["module_key"]
+                      or result.get("step_ids") != item["step_ids"]
+                      or not result.get("asset_id") or not result.get("sha256")):
+                  raise SystemExit(f"Image {index} returned an unexpected ingestion response.")
+              print(f"PASS {index}/{len(images)}: {result['asset_id']} -> "
+                    f"{result['lesson_id']} / {result['module_key']} (pending)")
+              time.sleep(0.2)
+          print(f"SUCCESS: {len(images)} images ingested as pending review assets; none are learner-visible.")
+          PY

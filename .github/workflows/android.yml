@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main", "feature/gentle-ai-tutor" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "feat/classwide-lesson-image-ingestion" ]
   workflow_dispatch:
     inputs:
       publish_release:

@@ -792,3 +792,16 @@ Use this format:
 - **Production safety:** This work changes only repository authoring assets and renderer tests. No production DB write, image ingestion, merge, deployment, or learner-visible publication occurred. PR #276 remains open; this branch is stacked on the PR #276 head.
 
 - **First exact-head CI correction:** The initial renderer run found one manifest diagram type (`forest_products`) without a renderer implementation and the supported-diagram assertion caught it. Added the missing forest-products renderer and included it in the supported diagram test. The initial run failed as expected; rerun the updated exact head before considering the renderer validated.
+
+### 2026-11-09 — Fix plural concept matching in lesson visual coverage audit
+- **Branch / commit:** `feat/lesson-visual-curation-pipeline`; PR #283.
+- **Test command or workflow URL:** `python -m pytest -q tools/test_audit_lesson_visual_coverage.py`; prior failing run [42596647602](https://github.com/Prav1525/Padippupal/actions/runs/42596647602).
+- **Result:** Fix committed; fresh CI validation pending.
+- **Exact failure or assertion:** `test_reports_unmapped_and_routes_abstract_concept_to_original` expected `ORIGINAL_DIAGRAM` for a module titled “Fractions”, but the classifier returned `HUMAN_REVIEW`.
+- **Evidence links:** [Failed render-and-test run](https://github.com/Prav1525/Padippupal/actions/runs/42596647602).
+- **Change made (files + rationale):** The abstract-concept regex matched singular `fraction` only, so it missed the plural lesson title `Fractions`. Match singular/plural forms for fraction, angle, equation and integer; add a focused regression test for the plural fraction title.
+- **Root cause:** **CONFIRMED** by the failing assertion and regex inspection: word-boundary matching did not include plural forms.
+- **What this attempt proves:** The previous test failure is explained by a deterministic classifier bug, not an issue in image rendering or ingestion.
+- **What remains unverified:** The full CI suite and investigation gate on the updated PR head.
+- **Difference from previous attempt:** Fixes the classifier itself and adds a regression test instead of weakening the expected route.
+- **Next action and why:** Run all visual renderer/ingestion/audit tests and the investigation gate; do not merge until both pass.

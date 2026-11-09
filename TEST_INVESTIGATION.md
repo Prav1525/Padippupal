@@ -854,3 +854,12 @@ Use this format:
 - **Impact:** The request never reached the handler; no production asset or blob was inserted. The route is present in source but absent from the deployed API because Render has not deployed the latest main commit.
 - **Safety:** No retry against another endpoint and no alternate production write was attempted. Activating the route requires deploying the current main commit to the existing Render service; this remains gated on explicit deployment approval.
 - **Test fix:** Correct renderer test expectations to 163 original PNG mappings; 3 web-source candidates are separate and 4 human-review modules remain unmapped. Corrected the CI command so the provenance validator runs separately from pytest.
+
+
+### 2026-11-09 — Render all paired images mapped to a lesson step
+- **Branch / PR:** `fix/render-all-mapped-lesson-images` / PR #292.
+- **Failure evidence:** Production Class 6 manifest and Neon rows contain two images mapped to each of two teaching steps: Science — Exploring Magnets `module-6` / `step_6`, and Science — Nature's Treasures `module-4` / `step_4`. The current Android `MappedLessonImage` implementation used `firstOrNull()`, so it could render only one image for each paired mapping.
+- **Root cause:** **CONFIRMED** — client selection returned the first step-ID match instead of all exact step-ID matches. Both assets existed and were approved in production; the second asset was silently ignored by the tutor UI.
+- **Change proposed:** Return all exact step-ID matches and render every mapped PNG inline in module order; retain module-key fallback only when no active step ID is available; add unit tests for paired assets and fallback behavior.
+- **Verification:** Production database audit confirms 172 ready PNGs, 170 lesson/module pairs, 22 approved lessons, valid blobs, unique hashes, and exact teaching-step references. Sample production PNGs were decoded and visually inspected. PR #292 Android APK and Android UI smoke workflows are running; live production HTTP/API and tutor-screen rendering remain unverified because no live API request was available from this environment.
+- **Safety:** No code merge or Render deployment performed. The 172 image approvals were explicitly authorized by the owner and committed to production DB before this client-side defect was identified.

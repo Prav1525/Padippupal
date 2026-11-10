@@ -421,7 +421,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         live_start = smoke.index("def assert_live(path):")
         live_end = smoke.index("\\ndef exact_color_mask", live_start)
         live_assertion = smoke[live_start:live_end]
-        self.assertNotIn('re.search(r"segment \\\\d+ of \\\\d+", joined)', live_assertion)
+        self.assertNotIn("Live lesson is not exposing its active playback segment progress", live_assertion)
         self.assertIn('if "pause" not in joined or "stop" not in joined:', live_assertion)
         self.assertIn('"all 1s example diagram" not in joined', live_assertion)
 

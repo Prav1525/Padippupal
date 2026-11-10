@@ -264,6 +264,10 @@ def assert_completed_lesson(path):
         raise SystemExit("Playback did not reach the explicit lesson-complete state")
     if "ask your teacher" not in joined:
         raise SystemExit("Question composer is missing after lesson playback completes")
+    if "chapter complete" not in joined or "start next chapter" not in joined:
+        raise SystemExit("Chapter completion screen is missing its highlighted next-chapter action")
+    if "growing number patterns" not in joined:
+        raise SystemExit("Next-chapter action does not identify the next curriculum chapter")
     if not any(len(value.strip()) >= 220 and "all 1s" in value.lower() for value in texts):
         raise SystemExit("Completed lesson disappeared instead of remaining available in chat history")
     if any(term in joined for term in ("how did that explanation feel", "i understand", "explain again")):

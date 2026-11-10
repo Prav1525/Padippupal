@@ -457,7 +457,7 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('completedChapterTitle = chapter', tutor)
         self.assertIn('chapterCompleted = chapter.isNotBlank()', tutor)
         self.assertIn('if (chapterCompleted)', tutor)
-        self.assertIn('val nextChapter = chapterOptions.getOrNull(completedIndex + 1)', tutor)
+        self.assertIn('val nextChapter = if (completedIndex >= 0) chapterOptions.getOrNull(completedIndex + 1) else null', tutor)
         self.assertIn('Text("Start next chapter  →"', tutor)
         self.assertIn('chapter = nextTitle', tutor)
         self.assertIn('topic = nextTopic', tutor)

@@ -510,7 +510,7 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('tutorMainHandler.postDelayed({ startLiveLesson() }, 350L)', tutor)
         self.assertIn('.put("chapter_completed", chapterCompleted)', tutor)
         self.assertIn('.put("completed_chapter", completedChapterTitle)', tutor)
-        self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions)', tutor)
+        self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions, chapterFollowUpStarted)', tutor)
         self.assertIn('(if (chapterCompleted) 1 else 0)', tutor)
         self.assertIn('chatListState.animateScrollToItem(itemCount - 1)', tutor)
         self.assertIn('delay(700L)', tutor)

@@ -95,6 +95,7 @@ def test_pinned_connection_uses_validated_ip_without_resolving_hostname(monkeypa
     ("module_key", "step_ids"),
     [
         ("module-2", ["step_2"]),
+        ("module-2", ["step-2"]),
         ("module-2", ["step_2", "step_2"]),
         ("module-2", ["step_2", "step_3"]),
     ],

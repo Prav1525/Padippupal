@@ -10,6 +10,9 @@ permissions:
 
 jobs:
   retrieve-smoke-test:
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
     runs-on: ubuntu-latest
     steps:
       - name: Wait for API to wake up
@@ -146,7 +149,7 @@ jobs:
                           f"FAIL: asset {item.get('id')} returned HTTP {response.status}, "
                           f"content-type={content_type}"
                       )
-              if not body.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+              if not body.startswith(b"\x89PNG\r\n\x1a\n"):
                   raise SystemExit(f"FAIL: asset {item.get('id')} is not a valid PNG")
               width, height = struct.unpack(">II", body[16:24])
               if (width, height) != (1080, 720):

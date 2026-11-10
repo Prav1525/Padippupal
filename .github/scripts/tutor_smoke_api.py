@@ -193,10 +193,16 @@ class Handler(BaseHTTPRequestHandler):
                 "board": "CBSE",
                 "class_level": 6,
                 "subject": "Mathematics",
-                "chapters": [{
-                    "title": "Patterns in Mathematics",
-                    "topics": ["All 1s"],
-                }],
+                "chapters": [
+                    {
+                        "title": "Patterns in Mathematics",
+                        "topics": ["All 1s"],
+                    },
+                    {
+                        "title": "Growing Number Patterns",
+                        "topics": ["Square Numbers"],
+                    },
+                ],
             })
             return
         if path == "/health/voice":

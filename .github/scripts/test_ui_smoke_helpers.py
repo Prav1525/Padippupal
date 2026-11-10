@@ -493,7 +493,8 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertNotIn("scrollOffset = 10000", tutor)
         fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
         self.assertIn('deterministic_silent_smoke_audio', fixture)
-        self.assertIn('duration_ms = 20000', fixture)
+        self.assertIn("SMOKE_AUDIO_DURATION_MS = 20_000", fixture)
+        self.assertIn("duration_ms = SMOKE_AUDIO_DURATION_MS", fixture)
         self.assertIn('word_timings', fixture)
 
     def test_live_module_cards_use_refined_active_state_without_redundant_number_pill(self):

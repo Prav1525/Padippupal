@@ -736,7 +736,7 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
                     if (imageUrl.isBlank() || !imageUrl.startsWith("/chapter-lessons/")) {
                         return@mapNotNull null
                     }
-                    val imageTitle = matched.optString("title").ifBlank { matched.optString("alt_text") }
+                    val imageTitle = matched.optString("alt_text").ifBlank { matched.optString("title") }
                     runCatching {
                         val imageConnection = URL("$base$imageUrl").openConnection() as HttpURLConnection
                         imageConnection.connectTimeout = 8000

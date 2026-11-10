@@ -350,3 +350,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** The abstract-concept regular expression matched singular `fraction` but not plural `fractions`; the word-boundary prevented a match.
 - **Fix:** Extend the classifier to recognize plural forms of fraction, angle, equation and integer; add a regression test for plural “Fractions”.
 - **Validation:** Updated CI pending. The audit remains proposal-only and cannot approve, ingest, or publish images.
+
+## Incident: combined tutor module layout exposed stale UI/API contracts
+
+- **Date:** 2026-11-10
+- **Evidence:** PR #309 Android API 35 run [42784622417](https://github.com/Prav1525/Padippupal/actions/runs/42784622417), production-image acceptance run [42784622516](https://github.com/Prav1525/Padippupal/actions/runs/42784622516), and deployed API smoke run [42784622510](https://github.com/Prav1525/Padippupal/actions/runs/42784622510).
+- **Symptoms:** Kotlin compilation rejected the new bring-into-view calls because the Compose foundation API is experimental; UI helper tests expected the former single-caption labels; the deployed API audit expected 172 ready rows but observed 184 after 12 replacement rows were promoted.
+- **Root causes:** Missing `ExperimentalFoundationApi` opt-in; regression tests had not been migrated to the module-based UI; the production image-list endpoint exposed both retained predecessor rows and current replacement rows.
+- **Fixes:** Added the explicit Compose opt-in; updated accessibility fixtures and contract assertions to require ordered module headings and per-module image labels; changed the image-list query to return only the latest `updated_at` batch per module while retaining superseded database rows and preserving paired images created in the same batch. The deployed API smoke audit now validates both the legacy 184-row response and the new 172-current-asset policy during the pre-deployment transition.
+- **Regression checks:** Kotlin module-grouping tests reject incomplete step mappings rather than dropping text; backend manifest tests require latest-batch filtering and retain paired assets; Android UI smoke asserts four ordered modules, their explanations, and matching image labels.
+- **Validation:** Initial runs failed as described; fixes are committed on PR #309. Fresh exact-head JVM, backend, Android emulator, and API smoke reruns remain pending. No production writes, image deletions, merge, or deployment.

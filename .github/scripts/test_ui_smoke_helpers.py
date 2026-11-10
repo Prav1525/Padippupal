@@ -76,13 +76,16 @@ class ExactSelectorTests(unittest.TestCase):
 
     def test_live_lesson_assertion_reads_icon_only_pause_and_stop_labels(self):
         root = ET.fromstring("""<hierarchy>
-          <node text="Live lesson · segment 1 of 1" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,50][300,250]"/>
-          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
-          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
-          <node text="All 1s example" bounds="[0,350][300,380]"/>
-          <node text="" content-desc="Pause playback" bounds="[0,380][100,430]"/>
-          <node text="" content-desc="Stop lesson" bounds="[100,380][200,430]"/>
+          <node text="MODULE 1 / 4" bounds="[0,0][300,50]"/>
+          <node text="MODULE 1" bounds="[0,50][300,75]"/>
+          <node text="What is an All 1s pattern" bounds="[0,75][300,105]"/>
+          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,105][300,305]"/>
+          <node text="An All 1s example" bounds="[0,305][300,330]"/>
+          <node text="All 1s example diagram" bounds="[0,330][300,360]"/>
+          <node text="A common mistake" bounds="[0,360][300,390]"/>
+          <node text="Quick recap" bounds="[0,390][300,420]"/>
+          <node text="" content-desc="Pause playback" bounds="[0,420][100,470]"/>
+          <node text="" content-desc="Stop lesson" bounds="[100,420][200,470]"/>
         </hierarchy>""")
         path = Path(__file__).resolve().parent / "tmp-live-lesson-accessibility-test.xml"
         try:
@@ -93,13 +96,16 @@ class ExactSelectorTests(unittest.TestCase):
 
     def test_live_assertion_accepts_a_short_first_segment_before_later_segments(self):
         root = ET.fromstring("""<hierarchy>
-          <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,50][300,250]"/>
-          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
-          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
-          <node text="All 1s example" bounds="[0,350][300,380]"/>
-          <node text="" content-desc="Pause playback" bounds="[0,380][100,430]"/>
-          <node text="" content-desc="Stop lesson" bounds="[100,380][200,430]"/>
+          <node text="MODULE 1 / 4" bounds="[0,0][300,50]"/>
+          <node text="MODULE 1" bounds="[0,50][300,75]"/>
+          <node text="What is an All 1s pattern" bounds="[0,75][300,105]"/>
+          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,105][300,255]"/>
+          <node text="An All 1s example" bounds="[0,255][300,285]"/>
+          <node text="All 1s example diagram" bounds="[0,285][300,315]"/>
+          <node text="A common mistake" bounds="[0,315][300,345]"/>
+          <node text="Quick recap" bounds="[0,345][300,375]"/>
+          <node text="" content-desc="Pause playback" bounds="[0,375][100,425]"/>
+          <node text="" content-desc="Stop lesson" bounds="[100,375][200,425]"/>
         </hierarchy>""")
         path = Path(__file__).resolve().parent / "tmp-live-short-segment-test.xml"
         try:
@@ -142,8 +148,10 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('"all 1s pattern visual" not in joined', live)
-        self.assertIn('"all 1s example" not in joined', live)
+        self.assertIn('"module 1 / 4" not in joined', live)
+        self.assertIn('"what is an all 1s pattern"', live)
+        self.assertIn('"quick recap"', live)
+        self.assertIn('"all 1s example diagram" not in joined', live)
         self.assertNotIn('"each term stays 1" not in joined', live)
 
     def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):

@@ -61,6 +61,12 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
+          name: padippupal-alignment-replacements-ci-preview
+          path: /tmp/padippupal-alignment-replacements/**/*.png
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
           name: padippupal-class6-lesson-visuals
           path: /tmp/padippupal-lesson-visuals
           if-no-files-found: error

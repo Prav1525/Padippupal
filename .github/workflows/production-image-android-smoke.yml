@@ -1,0 +1,127 @@
+name: Production lesson image Android acceptance
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/production-image-android-smoke.yml"
+      - ".github/scripts/production_image_emulator_smoke.sh"
+      - ".github/scripts/production_image_smoke_proxy.py"
+      - "app/**"
+      - "gradle/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-image-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [35]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Install screenshot and test dependencies
+        run: python3 -m pip install --user --disable-pip-version-check Pillow
+
+      - name: Validate test scripts and proxy safety
+        run: |
+          bash -n .github/scripts/production_image_emulator_smoke.sh
+          python3 -m py_compile .github/scripts/production_image_smoke_proxy.py .github/scripts/ui_smoke.py
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+          source=Path(".github/scripts/production_image_smoke_proxy.py").read_text()
+          methods=[n.name for n in ast.walk(ast.parse(source)) if isinstance(n,ast.FunctionDef)]
+          assert "do_PUT" not in methods and "do_DELETE" not in methods
+          assert 'method="GET"' in source and "PRODUCTION_BASE +" in source
+          print("PASS: production upstream transport is GET-only; POSTs are local fixture routes.")
+          PY
+
+      - name: Build Android debug APK
+        run: gradle --no-daemon -PPADIPPUPAL_API_BASE_URL=http://10.0.2.2:8765 testDebugUnitTest assembleDebug
+
+      - name: Start read-only production image proxy
+        run: |
+          python3 .github/scripts/production_image_smoke_proxy.py --host 0.0.0.0 --port 8765 > /tmp/padippupal-production-image-proxy.log 2>&1 &
+          echo $! > /tmp/padippupal-production-image-proxy.pid
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8765/health -o /tmp/proxy-health.json; then
+              cat /tmp/proxy-health.json
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" -eq 1
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -e /dev/kvm && test -r /dev/kvm && test -w /dev/kvm
+
+      - id: emulator_test
+        name: Run Science tutor on Android emulator against production image GETs
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: \${{ matrix.api-level }}
+          arch: x86_64
+          system-image-api-level: \${{ matrix.api-level }}
+          target: google_apis
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -no-snapshot-save -gpu swiftshader_indirect -memory 2048 -cores 2
+          disable-animations: true
+          emulator-boot-timeout: 420
+          script: |
+            "$ANDROID_HOME/emulator/emulator" -accel-check
+            bash .github/scripts/android-tts-preflight.sh
+            bash .github/scripts/production_image_emulator_smoke.sh
+
+      - name: Verify production proxy recorded exactly two image reads and zero writes
+        if: always()
+        run: |
+          mkdir -p ui-screenshots/production-image
+          curl --fail --silent --show-error http://127.0.0.1:8765/__test/report > ui-screenshots/production-image/proxy-report-final.json || true
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("ui-screenshots/production-image/proxy-report-final.json")
+          if not p.exists() or not p.stat().st_size:
+              raise SystemExit("No production proxy report was captured")
+          d=json.loads(p.read_text())
+          print(json.dumps(d,indent=2))
+          if d.get("production_writes") != 0 or d.get("errors"):
+              raise SystemExit("Proxy recorded a write attempt or errors")
+          if len(set(d.get("verified_image_ids",[]))) != 2:
+              raise SystemExit("Android did not fetch both production image assets")
+          PY
+
+      - name: Upload production image Android screenshots and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: padippupal-production-image-android
+          path: |
+            ui-screenshots/production-image/
+            /tmp/padippupal-production-image-proxy.log
+          if-no-files-found: warn
+          retention-days: 14

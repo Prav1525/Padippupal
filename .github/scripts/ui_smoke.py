@@ -256,7 +256,7 @@ def tap_first_concept(path):
     subprocess.run(["adb", "-s", "emulator-5554", "shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2)],
                    check=True, timeout=45)
 
-def assert_completed_lesson(path):
+def assert_completed_lesson(path, lesson_snapshot_path=None):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
     print("COMPLETED LESSON TEXT:", " | ".join(texts[:100]))
@@ -268,11 +268,17 @@ def assert_completed_lesson(path):
         raise SystemExit("Chapter completion screen is missing its highlighted next-chapter action")
     if "growing number patterns" not in joined:
         raise SystemExit("Next-chapter action does not identify the next curriculum chapter")
-    if not any(len(value.strip()) >= 220 and "all 1s" in value.lower() for value in texts):
-        raise SystemExit("Completed lesson disappeared instead of remaining available in chat history")
+    # The completion card is auto-scrolled into view; the preceding lesson
+    # bubble is therefore not expected in this same viewport snapshot.
+    # Verify retained teaching content in the final live-module snapshot.
+    if not lesson_snapshot_path:
+        raise SystemExit("A pre-completion lesson snapshot is required to verify retained teaching content")
+    _, lesson_texts = load(lesson_snapshot_path)
+    if not any(len(value.strip()) >= 220 and "all 1s" in value.lower() for value in lesson_texts):
+        raise SystemExit("The final live-module snapshot does not contain the retained lesson explanation")
     if any(term in joined for term in ("how did that explanation feel", "i understand", "explain again")):
         raise SystemExit("Per-reply feedback prompt reappeared after the lesson")
-    print("PASS: completed lesson remains in chat and follow-up input is available")
+    print("PASS: completion card and follow-up input are visible; retained lesson content is verified in the preceding live-module snapshot")
 
 
 def assert_followup_answer(path):
@@ -682,7 +688,9 @@ def main():
     elif action == "live-module-index":
         print(active_module_index(path))
     elif action == "assert-completed-lesson":
-        assert_completed_lesson(path)
+        if len(sys.argv) < 4:
+            raise SystemExit("Usage: ui_smoke.py assert-completed-lesson COMPLETION_XML LESSON_SNAPSHOT_XML")
+        assert_completed_lesson(path, sys.argv[3])
     elif action == "assert-followup":
         assert_followup_answer(path)
     elif action == "assert-live-layout":

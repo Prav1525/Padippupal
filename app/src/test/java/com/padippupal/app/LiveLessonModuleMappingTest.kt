@@ -28,6 +28,39 @@ class LiveLessonModuleMappingTest {
     }
 
     @Test
+    fun derivesEveryModuleFromLessonStepsEvenWhenNoImagesAreAvailable() {
+        // The lesson response is the source of module boundaries; image-manifest
+        // rows are deliberately absent from this test.
+        val segments = listOf(
+            LiveLessonSegmentCandidate("step_1", "First explanation.", "module-1", "What is a magnet?"),
+            LiveLessonSegmentCandidate("step-2", "Second explanation.", "module-2", "Magnet poles"),
+            LiveLessonSegmentCandidate("step_3", "Third explanation.", "module-3", "Magnetic materials")
+        )
+
+        val modules = moduleCandidatesFromLessonSegments(segments)
+        val grouped = modules?.let { groupLiveLessonSegmentsByModule(it, segments) }
+
+        assertEquals(listOf("module-1", "module-2", "module-3"), modules?.map { it.moduleKey })
+        assertEquals(listOf("What is a magnet?", "Magnet poles", "Magnetic materials"), modules?.map { it.title })
+        assertEquals(3, grouped?.size)
+        assertEquals(listOf("First explanation.", "Second explanation.", "Third explanation."),
+            grouped?.map { it.spokenText })
+    }
+
+    @Test
+    fun preservesModuleStructureWhenLegacyApiOmitsModuleMetadata() {
+        val segments = listOf(
+            LiveLessonSegmentCandidate("step-1", "First explanation."),
+            LiveLessonSegmentCandidate("step-2", "Second explanation.")
+        )
+
+        val modules = moduleCandidatesFromLessonSegments(segments)
+
+        assertEquals(listOf("module-1", "module-2"), modules?.map { it.moduleKey })
+        assertEquals(listOf("Module 1", "Module 2"), modules?.map { it.title })
+    }
+
+    @Test
     fun rejectsIncompleteMappingsInsteadOfDroppingSpokenText() {
         val modules = listOf(
             LiveLessonModuleCandidate("module-1", "First module", listOf("step_1"))

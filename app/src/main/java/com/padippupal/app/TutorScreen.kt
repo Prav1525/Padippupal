@@ -1713,7 +1713,7 @@ internal fun TutorScreen(
         loadCurriculumOutline(subject)
     }
 
-    LaunchedEffect(messages.size, messages.lastOrNull()?.content, subject, chapter, topic, selectedLanguage) {
+    LaunchedEffect(messages.size, messages.lastOrNull()?.content, subject, chapter, topic, selectedLanguage, chapterCompleted, completedChapterTitle) {
         val storedMessages = JSONArray()
         messages.takeLast(80).forEach { message ->
             storedMessages.put(JSONObject().put("role", message.role).put("content", message.content))

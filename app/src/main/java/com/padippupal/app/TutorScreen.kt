@@ -827,32 +827,73 @@ private fun LiveLessonModuleSection(
     LaunchedEffect(active) {
         if (active) requester.bringIntoView()
     }
-    Column(
+    Surface(
         modifier = Modifier.fillMaxWidth()
             .bringIntoViewRequester(requester)
-            .padding(vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(vertical = 5.dp),
+        color = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(
+            1.dp,
+            if (active) Color(0xFFD5E4F5) else Color(0xFFE9EEF5)
+        ),
+        shadowElevation = if (active) 1.dp else 0.dp
     ) {
-        Text(
-            module.optString("module_title", "Module ${index + 1}"),
-            color = TutorDeep,
-            fontSize = 19.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        val moduleText = module.optString("spoken_text")
-        if (active) {
-            WordByWordCaption(
-                moduleText,
-                active = speechActive,
-                currentWordIndex = liveWordIndex,
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
+            verticalArrangement = Arrangement.spacedBy(11.dp)
+        ) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                expandToAvailableHeight = true
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    (index + 1).toString().padStart(2, '0'),
+                    modifier = Modifier
+                        .background(
+                            if (active) Color(0xFFE6F0FF) else Color(0xFFF1F5F9),
+                            RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    color = if (active) Color(0xFF315F9B) else Color(0xFF718096),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    (index + 1).toString(),
+                    color = if (active) Color(0xFF315F9B) else Color(0xFF94A3B8),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Text(
+                module.optString("module_title", "Module " + (index + 1)),
+                color = TutorDeep,
+                fontSize = 19.sp,
+                lineHeight = 25.sp,
+                fontWeight = FontWeight.SemiBold
             )
-        } else {
-            Text(moduleText, color = TutorDeep, fontSize = 16.sp, lineHeight = 25.sp)
-        }
-        module.optJSONObject("interactive_lesson")?.let { moduleVisual ->
-            MappedLessonImage(moduleVisual, compact = false, showTitle = false)
+            val moduleText = module.optString("spoken_text")
+            if (active) {
+                WordByWordCaption(
+                    moduleText,
+                    active = speechActive,
+                    currentWordIndex = liveWordIndex,
+                    modifier = Modifier.fillMaxWidth(),
+                    expandToAvailableHeight = true
+                )
+            } else {
+                Text(
+                    moduleText,
+                    color = TutorDeep,
+                    fontSize = 16.sp,
+                    lineHeight = 25.sp
+                )
+            }
+            module.optJSONObject("interactive_lesson")?.let { moduleVisual ->
+                MappedLessonImage(moduleVisual, compact = false, showTitle = false)
+            }
         }
     }
 }
@@ -2711,9 +2752,6 @@ internal fun TutorScreen(
                                     speechActive = speechActive,
                                     liveWordIndex = liveWordIndex
                                 )
-                                if (index < liveSegments.lastIndex) {
-                                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
-                                }
                             }
                         } else {
                             if (liveCaption.isNotBlank()) {

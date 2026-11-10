@@ -409,6 +409,14 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertNotIn("sentencesInParagraph", caption)
         self.assertNotIn("separate paragraphs only after every third sentence", caption)
 
+    def test_follow_up_chat_scrolls_to_exchange_instead_of_completion_card(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn('var chapterFollowUpStarted by remember { mutableStateOf(savedSession.optBoolean("chapter_follow_up_started", false)) }', tutor)
+        self.assertIn('if (chapterCompleted) chapterFollowUpStarted = true', tutor)
+        self.assertIn('val scrollTarget = if (chapterCompleted && chapterFollowUpStarted)', tutor)
+        self.assertIn('if (chapterCompleted && !chapterFollowUpStarted)', tutor)
+        self.assertIn('.put("chapter_follow_up_started", chapterFollowUpStarted)', tutor)
+
     def test_completed_lesson_is_kept_for_follow_up_chat(self):
         root = Path(__file__).resolve().parents[2]
         tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()

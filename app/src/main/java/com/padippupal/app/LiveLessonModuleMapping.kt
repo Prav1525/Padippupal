@@ -8,8 +8,35 @@ internal data class LiveLessonModuleCandidate(
 
 internal data class LiveLessonSegmentCandidate(
     val id: String,
-    val spokenText: String
+    val spokenText: String,
+    val moduleKey: String = "",
+    val moduleTitle: String = ""
 )
+
+internal fun moduleCandidatesFromLessonSegments(
+    segments: List<LiveLessonSegmentCandidate>
+): List<LiveLessonModuleCandidate>? {
+    if (segments.isEmpty()) return null
+    val modulesByKey = linkedMapOf<String, LiveLessonModuleCandidate>()
+    segments.forEachIndexed { index, segment ->
+        val stepId = segment.id.trim()
+        if (stepId.isBlank()) return null
+        val stepNumber = Regex("step[_-]?([1-9][0-9]*)")
+            .matchEntire(stepId)?.groupValues?.get(1)?.toIntOrNull()
+        val moduleNumber = stepNumber ?: (index + 1)
+        val moduleKey = segment.moduleKey.trim().ifBlank { "module-$moduleNumber" }
+        val title = segment.moduleTitle.trim().ifBlank { "Module $moduleNumber" }
+        val previous = modulesByKey[moduleKey]
+        modulesByKey[moduleKey] = LiveLessonModuleCandidate(
+            moduleKey = moduleKey,
+            title = previous?.title?.takeIf { it.isNotBlank() } ?: title,
+            stepIds = (previous?.stepIds.orEmpty() + stepId).distinct()
+        )
+    }
+    return modulesByKey.values.sortedBy {
+        it.moduleKey.substringAfterLast("-").toIntOrNull() ?: Int.MAX_VALUE
+    }
+}
 
 internal data class LiveLessonModuleGroup(
     val moduleKey: String,
@@ -19,9 +46,9 @@ internal data class LiveLessonModuleGroup(
 )
 
 /**
- * Group approved lesson speech by the exact module/step mapping returned by the
- * lesson-image manifest. Return null rather than silently dropping or misplacing
- * any spoken segment when the mapping is incomplete.
+ * Group approved lesson speech by the module identity returned with each teaching
+ * step. This source is independent of image availability: missing images must not
+ * collapse the learner-facing module layout. Return null rather than dropping text.
  */
 internal fun groupLiveLessonSegmentsByModule(
     modules: List<LiveLessonModuleCandidate>,

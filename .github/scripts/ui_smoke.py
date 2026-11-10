@@ -331,8 +331,11 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
-    if not re.search(r"module [1-4] / 4", joined):
-        raise SystemExit("Live lesson is not presenting the approved text as four ordered modules")
+    # The player status deliberately describes spoken segments, not modules:
+    # "Live lesson · segment N of M". Module headings are asserted separately
+    # below, so do not require the stale, never-rendered "module N / M" label.
+    if not re.search(r"segment [1-4] of 4", joined):
+        raise SystemExit("Live lesson is not exposing active playback progress for the four ordered lesson segments")
     expected_modules = (
         "what is an all 1s pattern",
         "an all 1s example",

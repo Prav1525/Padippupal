@@ -313,5 +313,9 @@ def test_lesson_image_manifest_keeps_paired_assets_in_stable_order(monkeypatch):
         "original-first",
         "original-second",
     ]
+    assert result["asset_version_policy"] == "latest_per_module"
+    assert "WITH latest_module_assets AS" in connection.query
+    assert "MAX(updated_at) AS latest_updated_at" in connection.query
+    assert "latest.latest_updated_at=a.updated_at" in connection.query
     assert "ORDER BY a.module_key, a.created_at, a.id" in connection.query
     assert all(image["step_ids"] == ["step_4"] for image in result["images"])

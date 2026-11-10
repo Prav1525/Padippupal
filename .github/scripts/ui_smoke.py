@@ -549,6 +549,35 @@ def _contains_bounds(outer, inner):
     a, b = parse(outer), parse(inner)
     return bool(a and b and a[0] <= b[0] and a[1] <= b[1] and a[2] >= b[2] and a[3] >= b[3])
 
+def assert_production_pair_layout(path):
+    nodes, _ = load(path)
+    images = [
+        node for node in nodes
+        if node.attrib.get("class") == "android.widget.ImageView"
+        and node.attrib.get("content-desc", "").strip() == "Magnet Poles and Compass Direction"
+    ]
+    if len(images) != 2:
+        raise SystemExit(f"Expected both mapped magnet images, found {len(images)}")
+    scroll_views = [
+        node for node in nodes
+        if node.attrib.get("class") == "android.widget.ScrollView"
+        and node.attrib.get("scrollable") == "true"
+    ]
+    for image_node in images:
+        bounds = image_node.attrib.get("bounds", "")
+        match = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+        if not match:
+            raise SystemExit("Mapped image has invalid accessibility bounds: " + bounds)
+        x1, y1, x2, y2 = map(int, match.groups())
+        width, height = x2 - x1, y2 - y1
+        ratio = width / max(1, height)
+        if not 1.45 <= ratio <= 1.55:
+            raise SystemExit(f"Mapped image is vertically constrained/cropped: bounds={bounds}, ratio={ratio:.3f}; expected natural 3:2")
+        if not any(_contains_bounds(scroll.attrib.get("bounds", ""), bounds) for scroll in scroll_views):
+            raise SystemExit("Mapped images are not inside a vertically scrollable teaching surface")
+    print("PASS: both production PNGs retain natural 3:2 aspect ratio inside the scrollable tutor canvas")
+
+
 def tap(path, target):
     nodes, texts = load(path)
     candidates = []

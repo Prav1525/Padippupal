@@ -158,6 +158,39 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
 
 
+class ProductionImageLayoutTests(unittest.TestCase):
+    def test_pair_images_keep_natural_aspect_ratio_inside_scrollable_canvas(self):
+        xml = ET.fromstring("""<hierarchy>
+          <node class="android.widget.ScrollView" scrollable="true" bounds="[47,354][1033,1700]">
+            <node class="android.widget.ImageView" content-desc="Magnet Poles and Compass Direction" bounds="[47,952][1033,1609]"/>
+            <node class="android.widget.ImageView" content-desc="Magnet Poles and Compass Direction" bounds="[47,1609][1033,2266]"/>
+          </node>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-production-pair-layout.xml"
+        try:
+            path.write_text(ET.tostring(xml, encoding="unicode"))
+            from ui_smoke import assert_production_pair_layout
+            assert_production_pair_layout(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_pair_images_reject_height_constrained_clipping(self):
+        xml = ET.fromstring("""<hierarchy>
+          <node class="android.widget.ScrollView" scrollable="true" bounds="[47,354][1033,1700]">
+            <node class="android.widget.ImageView" content-desc="Magnet Poles and Compass Direction" bounds="[47,952][1033,1397]"/>
+            <node class="android.widget.ImageView" content-desc="Magnet Poles and Compass Direction" bounds="[47,1397][1033,1920]"/>
+          </node>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-production-pair-clipped.xml"
+        try:
+            path.write_text(ET.tostring(xml, encoding="unicode"))
+            from ui_smoke import assert_production_pair_layout
+            with self.assertRaises(SystemExit):
+                assert_production_pair_layout(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+
 class HomeLayoutContractTests(unittest.TestCase):
     def test_home_smoke_contract_matches_refreshed_primary_action(self):
         root = ET.fromstring("""<hierarchy>

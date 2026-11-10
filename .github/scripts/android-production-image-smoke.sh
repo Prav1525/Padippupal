@@ -128,6 +128,7 @@ fi
 
 curl --fail --silent http://127.0.0.1:8765/__test/report > ui-screenshots/production-image/proxy-report.json
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/production-image/live-image-screen.png
+python3 .github/scripts/ui_smoke.py assert-production-pair-layout ui-screenshots/production-image/live-image-screen.xml
 python3 - <<'PY'
 from PIL import Image
 from pathlib import Path

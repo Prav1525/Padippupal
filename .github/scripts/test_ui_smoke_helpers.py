@@ -533,6 +533,12 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('"NOW LEARNING"', section)
         self.assertIn('shadowElevation = if (active) 3.dp else 0.dp', section)
 
+    def test_completion_card_has_scroll_room_above_fixed_composer(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn("bottom = if (chapterCompleted && !chapterFollowUpStarted) 360.dp else 10.dp", tutor)
+        self.assertIn("chatListState.animateScrollToItem(itemCount - 1)", tutor)
+
     def test_emulator_fixture_exposes_next_chapter_and_completion_assertion_checks_it(self):
         fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
         self.assertIn('"title": "Growing Number Patterns"', fixture)

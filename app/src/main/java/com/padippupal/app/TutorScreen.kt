@@ -2562,7 +2562,7 @@ internal fun TutorScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {

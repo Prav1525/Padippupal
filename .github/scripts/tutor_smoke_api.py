@@ -93,11 +93,34 @@ LESSON = {
     ],
 }
 
-# The live Android player reads the visual from the active segment. Keep the
-# deterministic fixture faithful to that contract instead of relying only on
-# the response-level visual, which chat mode uses.
-for _segment in LESSON["segments"]:
-    _segment["interactive_lesson"] = LESSON["interactive_lesson"]
+# Keep each spoken segment paired with its own exact module/step visual.
+# Reusing the response-level module-1 visual for every segment makes the
+# live-player fixture ambiguous and correctly causes the client to fail closed.
+for _index, _segment in enumerate(LESSON["segments"], start=1):
+    _module_key = f"module-{_index}"
+    _step_id = _segment["id"]
+    _segment["module_key"] = _module_key
+    _segment["interactive_lesson"] = {
+        **LESSON["interactive_lesson"],
+        "module_key": _module_key,
+        "step_id": _step_id,
+        "title": [
+            "What is an All 1s pattern",
+            "An All 1s example",
+            "A common mistake",
+            "Quick recap",
+        ][_index - 1],
+        "steps": [{
+            **LESSON["interactive_lesson"]["steps"][0],
+            "id": _step_id,
+            "label": [
+                "What is an All 1s pattern",
+                "An All 1s example",
+                "A common mistake",
+                "Quick recap",
+            ][_index - 1],
+        }],
+    }
 
 
 
@@ -139,22 +162,25 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/chapter-lessons/smoke-all-ones/images":
             module_images = [
-                ("module-1", "all-ones-definition", "What is an All 1s pattern"),
-                ("module-2", "all-ones-example", "An All 1s example"),
-                ("module-3", "all-ones-common-mistake", "A common mistake"),
-                ("module-4", "all-ones-recap", "Quick recap"),
+                ("smoke-asset-1", "module-1", "all-ones-definition", "What is an All 1s pattern"),
+                ("smoke-asset-2", "module-2", "all-ones-example", "An All 1s example"),
+                ("smoke-asset-3", "module-3", "all-ones-common-mistake", "A common mistake"),
+                ("smoke-asset-4", "module-4", "all-ones-recap", "Quick recap"),
             ]
             self._send(200, {"lesson_id": "smoke-all-ones", "images": [
                 {
-                    "id": "smoke-asset", "module_key": module_key, "title": title,
+                    "id": asset_id, "module_key": module_key, "title": title,
                     "step_ids": [step_id], "content_type": "image/png",
                     "alt_text": title + " diagram",
-                    "url": "/chapter-lessons/smoke-all-ones/images/smoke-asset"
+                    "url": f"/chapter-lessons/smoke-all-ones/images/{asset_id}"
                 }
-                for module_key, step_id, title in module_images
+                for asset_id, module_key, step_id, title in module_images
             ]})
             return
-        if path == "/chapter-lessons/smoke-all-ones/images/smoke-asset":
+        if path.startswith("/chapter-lessons/smoke-all-ones/images/smoke-asset-"):
+            if path.rsplit("-", 1)[-1] not in {"1", "2", "3", "4"}:
+                self._send(404, {"detail": "Unknown smoke image"})
+                return
             self.send_response(200)
             self.send_header("Content-Type", "image/png")
             self.send_header("Content-Length", str(len(SMOKE_LESSON_PNG)))
@@ -258,6 +284,9 @@ def self_test() -> None:
     assert "All 1s" in LESSON["segments"][0]["spoken_text"]
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
+    assert [segment["module_key"] for segment in LESSON["segments"]] == [f"module-{i}" for i in range(1, 5)]
+    assert all(segment["interactive_lesson"]["module_key"] == segment["module_key"] for segment in LESSON["segments"])
+    assert all(segment["interactive_lesson"]["step_id"] == segment["id"] for segment in LESSON["segments"])
     assert LESSON["interactive_lesson"]["scene_type"] == "synthesis_static"
     assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["1", "1", "1", "1", "1"]
     assert LESSON["interactive_lesson"]["steps"][0]["source_chunk_ids"] == ["smoke-source"]

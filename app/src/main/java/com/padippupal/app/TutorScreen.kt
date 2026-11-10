@@ -2676,7 +2676,14 @@ internal fun TutorScreen(
             state = chatListState,
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp),
-            contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp)
+            contentPadding = PaddingValues(
+                top = 6.dp,
+                // Give the final completion card enough scroll range to align at
+                // the top of the chat viewport above the fixed follow-up composer.
+                // Without this, a long retained lesson bubble can leave the next-
+                // chapter title and action clipped below the viewport.
+                bottom = if (chapterCompleted && !chapterFollowUpStarted) 360.dp else 10.dp
+            )
         ) {
             if (!liveLessonActive) items(messages) { message ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = if (message.role == "user") Arrangement.End else Arrangement.Start) {

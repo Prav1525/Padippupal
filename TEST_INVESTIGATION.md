@@ -870,3 +870,11 @@ Use this format:
 - **Root cause:** **CONFIRMED** — invoking a top-level helper in `TutorScreen.kt` initializes the file's Android UI top-level state, including the main-thread `Handler(Looper.getMainLooper())`, which is unavailable in the plain JVM unit-test environment.
 - **Change made:** Moved the pure candidate model and matching function to `LessonImageMapping.kt`, leaving the UI file to consume the helper. This isolates the tested logic from Android framework initialization.
 - **Verification:** Backend image-ingestion tests, curriculum engine tests, and investigation guidance gate passed on the preceding PR head. Android APK and emulator smoke checks are rerunning on the updated head; production API and live tutor-screen requests remain unverified from this environment.
+
+
+### 2026-11-10 — Add read-only production lesson-image delivery audit
+- **Scope:** Extend the deployed API smoke workflow to read all 22 approved Class 6 lesson-image endpoints and fetch all 172 expected PNG assets.
+- **Checks:** Assert the exact 170 manifest lesson/module pairs, both paired modules, unique asset IDs, HTTP 200 and image/png responses, PNG signature, 1080×720 dimensions, SHA-256, and byte length.
+- **Test-harness corrections:** The first workflow attempt exposed a literal escaped newline after an existing shell heredoc terminator; corrected the terminator. The first image-audit attempt exposed that the image-list response carries lesson_id at the response root rather than on each image; the test now attaches the already-requested lesson ID when collecting rows.
+- **Verification status:** Latest deployed API smoke run 42744121201 passed API health, curriculum outline, and retrieval checks; the 172-image endpoint and byte-integrity audit is still running. Android emulator run 42744121239 uses the deterministic local tutor fixture, so it does not prove production API rendering.
+- **Safety:** All production checks are GET-only. No production database writes, asset changes, PR merge, or deployment.

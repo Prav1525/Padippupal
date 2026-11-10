@@ -831,37 +831,38 @@ private fun LiveLessonModuleSection(
         modifier = Modifier.fillMaxWidth()
             .bringIntoViewRequester(requester)
             .padding(vertical = 5.dp),
-        color = Color.White,
-        shape = RoundedCornerShape(22.dp),
+        color = if (active) Color(0xFFF8FBFF) else Color.White,
+        shape = RoundedCornerShape(24.dp),
         border = BorderStroke(
-            1.dp,
-            if (active) Color(0xFFD5E4F5) else Color(0xFFE9EEF5)
+            if (active) 1.25.dp else 1.dp,
+            if (active) Color(0xFFBFD4F0) else Color(0xFFE9EEF5)
         ),
-        shadowElevation = if (active) 1.dp else 0.dp
+        shadowElevation = if (active) 3.dp else 0.dp
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 15.dp),
-            verticalArrangement = Arrangement.spacedBy(11.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp, vertical = 17.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    (index + 1).toString().padStart(2, '0'),
+                    if (active) "NOW LEARNING" else "LESSON STEP",
                     modifier = Modifier
                         .background(
-                            if (active) Color(0xFFE6F0FF) else Color(0xFFF1F5F9),
+                            if (active) Color(0xFFE5F0FF) else Color(0xFFF3F6FA),
                             RoundedCornerShape(50)
                         )
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    color = if (active) Color(0xFF315F9B) else Color(0xFF718096),
-                    fontSize = 11.sp,
+                        .padding(horizontal = 11.dp, vertical = 6.dp),
+                    color = if (active) Color(0xFF315F9B) else Color(0xFF7A8798),
+                    fontSize = 9.sp,
+                    letterSpacing = 0.8.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    (index + 1).toString(),
+                    (index + 1).toString().padStart(2, '0'),
                     color = if (active) Color(0xFF315F9B) else Color(0xFF94A3B8),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
@@ -1512,6 +1513,8 @@ internal fun TutorScreen(
     var subject by remember { mutableStateOf(savedSession.optString("subject", "General")) }
     var chapter by remember { mutableStateOf(savedSession.optString("chapter", "")) }
     var topic by remember { mutableStateOf(savedSession.optString("topic", "")) }
+    var chapterCompleted by remember { mutableStateOf(savedSession.optBoolean("chapter_completed", false)) }
+    var completedChapterTitle by remember { mutableStateOf(savedSession.optString("completed_chapter", "")) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
     var topicMenuExpanded by remember { mutableStateOf(false) }
     var showLessonSettings by remember(setupOnly) { mutableStateOf(setupOnly) }
@@ -1723,6 +1726,8 @@ internal fun TutorScreen(
             .put("subject", subject)
             .put("chapter", chapter)
             .put("topic", topic)
+            .put("chapter_completed", chapterCompleted)
+            .put("completed_chapter", completedChapterTitle)
             .put("language", selectedLanguage)
             .put("messages", storedMessages)
         sessionPrefs.edit().putString(sessionKey, snapshot.toString()).apply()
@@ -2153,6 +2158,8 @@ internal fun TutorScreen(
             awaitingUnderstanding = false
             currentCheckpoint = ""
             status = "Live lesson complete."
+            completedChapterTitle = chapter
+            chapterCompleted = chapter.isNotBlank()
             liveInteractiveLesson = null
             return
         }

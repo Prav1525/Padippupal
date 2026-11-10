@@ -15,6 +15,8 @@ on:
       - "tools/test_audit_lesson_visual_coverage.py"
       - "docs/lesson-visual-curation-pipeline.md"
       - "assets/lesson-images/authoring-manifest.json"
+      - "assets/lesson-images/alignment-replacements-manifest.json"
+      - ".github/workflows/replace-flagged-lesson-images.yml"
       - ".github/workflows/lesson-visual-render-tests.yml"
   push:
     branches: [main]
@@ -22,6 +24,8 @@ on:
       - "tools/render_lesson_visuals.py"
       - "tools/test_render_lesson_visuals.py"
       - "assets/lesson-images/authoring-manifest.json"
+      - "assets/lesson-images/alignment-replacements-manifest.json"
+      - ".github/workflows/replace-flagged-lesson-images.yml"
       - ".github/workflows/lesson-visual-render-tests.yml"
 jobs:
   render-and-test:
@@ -35,6 +39,32 @@ jobs:
       - run: python -m pytest -q tools/test_render_lesson_visuals.py tools/test_ingest_rendered_originals.py tools/test_validate_web_image_manifest.py tools/test_audit_lesson_visual_coverage.py
       - run: python tools/validate_web_image_manifest.py --web-manifest assets/lesson-images/web-source-manifest.json --authoring-manifest assets/lesson-images/authoring-manifest.json
       - run: python tools/render_lesson_visuals.py --manifest assets/lesson-images/authoring-manifest.json --out /tmp/padippupal-lesson-visuals
+      - run: python tools/render_lesson_visuals.py --manifest assets/lesson-images/alignment-replacements-manifest.json --out /tmp/padippupal-alignment-replacements
+      - name: Validate scoped replacement output
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from PIL import Image
+          root = Path("/tmp/padippupal-alignment-replacements")
+          manifest = json.loads((root / "rendered-manifest.json").read_text())
+          records = manifest.get("images", [])
+          files = [Path(p) for row in records for p in row.get("files", [])]
+          assert len(records) == 12, len(records)
+          assert len(files) == 12, len(files)
+          for path in files:
+              with Image.open(path) as im:
+                  im.verify()
+              with Image.open(path) as im:
+                  assert im.format == "PNG" and im.size == (1080, 720)
+          print("PASS: 12 scoped replacements rendered as valid 1080x720 PNGs")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: padippupal-alignment-replacements-ci-preview
+          path: /tmp/padippupal-alignment-replacements/**/*.png
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: padippupal-class6-lesson-visuals

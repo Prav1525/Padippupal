@@ -1,0 +1,59 @@
+name: Prepare approved lesson-image alignment replacements
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_pending_replacements:
+        description: "I approve staging exactly the 12 audited PNG replacements as pending review assets (not learner-visible)."
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  render-and-stage:
+    if: ${{ inputs.confirm_pending_replacements == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install image dependencies
+        run: python -m pip install Pillow requests
+      - name: Render only the 12 approved replacement pairs
+        run: |
+          python tools/render_lesson_visuals.py \
+            --manifest assets/lesson-images/alignment-replacements-manifest.json \
+            --out "$RUNNER_TEMP/padippupal-alignment-replacements"
+      - name: Validate replacement count and PNG integrity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from PIL import Image
+          root = Path(__import__('os').environ['RUNNER_TEMP']) / 'padippupal-alignment-replacements'
+          manifest = json.loads((root / 'rendered-manifest.json').read_text())
+          records = manifest.get('images', [])
+          files = [Path(p) for row in records for p in row.get('files', [])]
+          assert len(records) == 12, f'expected 12 lesson/module records, got {len(records)}'
+          assert len(files) == 12, f'expected 12 PNG files, got {len(files)}'
+          for path in files:
+              assert path.is_file(), f'missing rendered file: {path}'
+              with Image.open(path) as im: im.verify()
+              with Image.open(path) as im:
+                  assert im.format == 'PNG' and im.size == (1080, 720), (path, im.format, im.size)
+          print('PASS: exactly 12 replacement PNGs; all valid 1080x720')
+          PY
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: padippupal-alignment-replacements-preview
+          path: ${{ runner.temp }}/padippupal-alignment-replacements/**/*.png
+          if-no-files-found: error
+          retention-days: 14
+      - name: Stage as pending review (not learner-visible)
+        env:
+          PADIPPUPAL_CONFIRM_PENDING_INGESTION: "true"
+          PADIPPUPAL_API_BASE_URL: ${{ vars.PADIPPUPAL_API_BASE_URL || 'https://padippupal-curriculum-api.onrender.com' }}
+          PADIPPUPAL_ADMIN_TOKEN: ${{ secrets.PADIPPUPAL_ADMIN_TOKEN }}
+        run: python tools/ingest_rendered_originals.py "$RUNNER_TEMP/padippupal-alignment-replacements/rendered-manifest.json"

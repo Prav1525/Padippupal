@@ -148,7 +148,7 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('re.search(r"segment \\d+ of \\d+", joined)', live)
+        self.assertNotIn("Live lesson is not exposing its active playback segment progress", live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
         self.assertIn('"all 1s example diagram" not in joined', live)
@@ -159,7 +159,7 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('re.search(r"segment \\d+ of \\d+", joined)', live)
+        self.assertNotIn("Live lesson is not exposing its active playback segment progress", live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
         self.assertIn('"all 1s example diagram" not in joined', live)

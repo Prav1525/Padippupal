@@ -28,13 +28,13 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
 
     def test_launcher_anr_is_detected_and_recovered_before_diary_tile_tap(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        recovery = source[source.index("recover_launcher_anr(){"):source.index("\\nassert_has(){")]
+        recovery = source[source.index("recover_launcher_anr(){"):source.index("\nassert_has(){")]
         self.assertIn('Pixel Launcher isn\'t responding', recovery)
         self.assertIn('"Wait"', recovery)
         self.assertIn('"Close app"', recovery)
         self.assertIn('am force-stop com.padippupal.app', recovery)
         self.assertIn('diary-home-after-relaunch', recovery)
-        home = source[source.index('dump_ui diary-home\\n'):source.index('sleep 3\\ndump_ui diary-scanner')]
+        home = source[source.index('dump_ui diary-home\n'):source.index('sleep 3\ndump_ui diary-scanner')]
         self.assertIn('recover_launcher_anr ui-screenshots/diary-test/diary-home.xml', home)
         self.assertIn('diary-home-ready.xml', home)
 

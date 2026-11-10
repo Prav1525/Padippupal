@@ -2,13 +2,15 @@
 """Regression tests for accessibility-tree selectors; no emulator required."""
 import re
 import sys
+import tempfile
+from unittest.mock import patch
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ui_smoke import (assert_composer_question, assert_home, assert_live, concept_candidates, exact_color_mask,
-                       exact_text_candidates, tap, tap_input)
+                       exact_text_candidates, main as ui_smoke_main, tap, tap_input)
 
 
 
@@ -332,6 +334,16 @@ class TtsFailureRegressionTests(unittest.TestCase):
         self.assertLess(failure_check, controls_check)
         self.assertIn('"voice engine could not initialize"', smoke)
         self.assertIn('"speech engine did not finish starting"', smoke)
+
+
+class ScreenshotFrameDispatchTests(unittest.TestCase):
+    def test_highlight_frame_command_accepts_a_directory_argument(self):
+        # An empty directory reaches the PNG checker and fails for the expected
+        # reason; it must not be rejected by the XML-file validator.
+        with tempfile.TemporaryDirectory() as frames_dir:
+            with patch.object(sys, "argv", ["ui_smoke.py", "assert-highlight-frames", frames_dir]):
+                with self.assertRaisesRegex(SystemExit, "No live lesson frames were captured"):
+                    ui_smoke_main()
 
 
 class ConceptCandidateTests(unittest.TestCase):

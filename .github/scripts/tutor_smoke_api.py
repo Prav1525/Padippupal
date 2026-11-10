@@ -344,7 +344,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def self_test() -> None:
-    assert len(LESSON["segments"]) == 4\n    assert len({hash(payload) for payload in SMOKE_LESSON_PNGS.values()}) == 4, "each module must have a distinct visual asset"
+    assert len(LESSON["segments"]) == 4
+    assert len({hash(payload) for payload in SMOKE_LESSON_PNGS.values()}) == 4, "each module must have a distinct visual asset"
     assert "All 1s" in LESSON["segments"][0]["spoken_text"]
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
     smoke_wav, smoke_timings = _make_smoke_speech(LESSON["segments"][0]["spoken_text"])

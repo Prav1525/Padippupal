@@ -429,7 +429,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn('live-module-index', script)
         self.assertIn('live-module-${module_index}.png', script)
         self.assertIn('active_module_index(path)', live_assertion)
-        self.assertIn('matching mapped image', live_assertion)
+        self.assertIn('own heading and mapped image', live_assertion)
 
 
     def test_synthesized_visuals_follow_exact_spoken_segment_boundaries(self):

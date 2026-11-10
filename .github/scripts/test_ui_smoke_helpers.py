@@ -76,8 +76,8 @@ class ExactSelectorTests(unittest.TestCase):
 
     def test_live_lesson_assertion_reads_icon_only_pause_and_stop_labels(self):
         root = ET.fromstring("""<hierarchy>
-          <node text="MODULE 1 / 4" bounds="[0,0][300,50]"/>
-          <node text="MODULE 1" bounds="[0,50][300,75]"/>
+          <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
+          <node text="NOW LEARNING" bounds="[0,50][300,75]"/>
           <node text="What is an All 1s pattern" bounds="[0,75][300,105]"/>
           <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,105][300,305]"/>
           <node text="An All 1s example" bounds="[0,305][300,330]"/>
@@ -96,8 +96,8 @@ class ExactSelectorTests(unittest.TestCase):
 
     def test_live_assertion_accepts_a_short_first_segment_before_later_segments(self):
         root = ET.fromstring("""<hierarchy>
-          <node text="MODULE 1 / 4" bounds="[0,0][300,50]"/>
-          <node text="MODULE 1" bounds="[0,50][300,75]"/>
+          <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
+          <node text="NOW LEARNING" bounds="[0,50][300,75]"/>
           <node text="What is an All 1s pattern" bounds="[0,75][300,105]"/>
           <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,105][300,255]"/>
           <node text="An All 1s example" bounds="[0,255][300,285]"/>
@@ -448,6 +448,33 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         self.assertIn("assert-settings settings.xml", script)
         self.assertIn("assert-tutor ready-to-teach.xml", script)
         self.assertNotIn('tap tutor.xml "Change"', script)
+
+
+class ChapterCompletionFlowTests(unittest.TestCase):
+    def test_completed_chapter_offers_prominent_next_chapter_action(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn('completedChapterTitle = chapter', tutor)
+        self.assertIn('chapterCompleted = chapter.isNotBlank()', tutor)
+        self.assertIn('if (chapterCompleted)', tutor)
+        self.assertIn('val nextChapter = chapterOptions.getOrNull(completedIndex + 1)', tutor)
+        self.assertIn('Text("Start next chapter  →"', tutor)
+        self.assertIn('chapter = nextTitle', tutor)
+        self.assertIn('topic = nextTopic', tutor)
+        self.assertIn('tutorMainHandler.postDelayed({ startLiveLesson() }, 350L)', tutor)
+        self.assertIn('.put("chapter_completed", chapterCompleted)', tutor)
+        self.assertIn('.put("completed_chapter", completedChapterTitle)', tutor)
+
+    def test_live_module_cards_use_refined_active_state_without_redundant_number_pill(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        start = tutor.index("private fun LiveLessonModuleSection(")
+        end = tutor.index("private fun DatabaseInteractiveLessonLab(", start)
+        section = tutor[start:end]
+        self.assertIn('Color(0xFFF8FBFF)', section)
+        self.assertIn('RoundedCornerShape(24.dp)', section)
+        self.assertIn('"NOW LEARNING"', section)
+        self.assertIn('shadowElevation = if (active) 3.dp else 0.dp', section)
 
 
 if __name__ == "__main__":

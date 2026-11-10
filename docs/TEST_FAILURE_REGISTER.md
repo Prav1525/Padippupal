@@ -468,3 +468,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Regression coverage:** Add a helper contract test that requires completion-only scroll padding and preserves the final-item scroll behavior. The Android API 35 end-to-end test must still observe the next chapter title and enabled “Start next chapter” action, submit a follow-up question, and verify both question and answer.
 - **Validation:** Patch and static regression test committed to PR #309; fresh CI and Android API 35 emulator verification are required. No production writes, image deletion, merge, or deployment.
 
+
+
+## 2026-11-10 — Completion smoke assertion confused retained chat history with visible viewport
+
+- **Evidence:** Android API 35 UI run [42848885887](https://github.com/Prav1525/Padippupal/actions/runs/42848885887), job [129943755100], artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/42848885887/artifacts/13780955944). The captured completion tree contains the completion card, next chapter title/action, completion status, and follow-up composer. The same artifact's `live-module-4.xml` contains the 368-character final teaching explanation.
+- **Root cause:** The completion assertion required a 220-character lesson bubble in the same accessibility snapshot as the completion card. The UI correctly scrolls the completion card into view above the fixed composer, moving the earlier lesson bubble outside the current viewport. UIAutomator reports visible/accessibility nodes, not every off-screen LazyColumn item; absence from this snapshot was incorrectly interpreted as deletion from chat history.
+- **Fix:** Keep completion-screen assertions focused on visible completion controls. Verify retained teaching content separately against the immediately preceding `live-module-4.xml` snapshot, captured while the final module and explanation are visible. Pass that snapshot to the completion assertion in both polling and final verification.
+- **Regression prevention:** The helper contract test now requires the separate final-module snapshot argument and checks the shell invocation passes `ui-screenshots/live-module-4.xml`. Existing app source contract still verifies the completed lesson is appended to chat messages.
+- **Validation:** Run helper/script checks and a fresh Android API 35 emulator flow. Do not merge until the completion card, final lesson snapshot, follow-up question/answer, and all four module/image pairs pass. No production writes, image deletion, merge, or deployment.

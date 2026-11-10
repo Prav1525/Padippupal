@@ -2318,6 +2318,7 @@ internal fun TutorScreen(
                                                 .put("lesson_id", lessonId)
                                                 .put("topic", topic)
                                                 .put("module_key", module.moduleKey)
+                                                .put("step_id", module.stepId)
                                                 .put("title", module.title)
                                                 .put("scene_type", "synthesis_static")
                                             JSONObject()

@@ -686,24 +686,24 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
         SynthesizedVisualCard(lesson, compact, activeStepOverride)
         return
     }
-    var bitmap by remember(lessonId, topic, moduleKey, stepId) { mutableStateOf<Bitmap?>(null) }
+    var renderedImages by remember(lessonId, topic, moduleKey, stepId) {
+        mutableStateOf<List<Pair<Bitmap, String>>>(emptyList())
+    }
     var failed by remember(lessonId, topic, moduleKey, stepId) { mutableStateOf(false) }
-    var assetLabel by remember(lessonId, topic, moduleKey, stepId) { mutableStateOf("") }
+    var partialFailure by remember(lessonId, topic, moduleKey, stepId) { mutableStateOf(false) }
     LaunchedEffect(lessonId, topic, moduleKey, stepId) {
-        bitmap = null
-        assetLabel = ""
+        renderedImages = emptyList()
         failed = false
+        partialFailure = false
         val loaded = withContext(Dispatchers.IO) {
             try {
-                if (lessonId.isBlank()) throw IllegalStateException("Missing approved lesson ID")
                 val base = BuildConfig.CURRICULUM_API_BASE_URL.trim().trimEnd('/')
                 val encodedLessonId = URLEncoder.encode(lessonId, "UTF-8")
                 val listConnection = URL("$base/chapter-lessons/$encodedLessonId/images").openConnection() as HttpURLConnection
                 listConnection.connectTimeout = 8000
                 listConnection.readTimeout = 12000
                 listConnection.requestMethod = "GET"
-                val imageUrl: String
-                val imageTitle: String
+                val matchedImages: List<JSONObject>
                 try {
                     if (listConnection.responseCode != HttpURLConnection.HTTP_OK) {
                         throw IllegalStateException("Original image manifest is not available")
@@ -713,41 +713,57 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
                     val candidates = (0 until images.length()).mapNotNull { index ->
                         images.optJSONObject(index)
                     }
-                    val matched = candidates.firstOrNull { image ->
+                    val mappings = candidates.mapIndexed { index, image ->
                         val steps = image.optJSONArray("step_ids") ?: JSONArray()
-                        val stepMatch = stepId.isNotBlank() && (0 until steps.length()).any { steps.optString(it) == stepId }
-                        val moduleMatch = stepId.isBlank() && moduleKey.isNotBlank() && image.optString("module_key") == moduleKey
-                        stepMatch || moduleMatch
-                    } ?: throw IllegalStateException("No lesson image is mapped to this teaching step")
-                    imageUrl = matched.optString("url")
-                    imageTitle = matched.optString("title").ifBlank { matched.optString("alt_text") }
+                        LessonImageMappingCandidate(
+                            index = index,
+                            moduleKey = image.optString("module_key"),
+                            stepIds = (0 until steps.length()).map { steps.optString(it) }
+                        )
+                    }
+                    matchedImages = matchingLessonImageIndexes(mappings, stepId, moduleKey)
+                        .mapNotNull { candidates.getOrNull(it) }
+                    if (matchedImages.isEmpty()) {
+                        throw IllegalStateException("No lesson image is mapped to this teaching step")
+                    }
                 } finally {
                     listConnection.disconnect()
                 }
-                if (imageUrl.isBlank() || !imageUrl.startsWith("/chapter-lessons/")) {
-                    throw IllegalStateException("Invalid original image URL")
-                }
-                val imageConnection = URL("$base$imageUrl").openConnection() as HttpURLConnection
-                imageConnection.connectTimeout = 8000
-                imageConnection.readTimeout = 12000
-                imageConnection.requestMethod = "GET"
-                try {
-                    if (imageConnection.responseCode != HttpURLConnection.HTTP_OK) {
-                        throw IllegalStateException("Lesson image could not be loaded")
+
+                val decodedImages = matchedImages.mapNotNull { matched ->
+                    val imageUrl = matched.optString("url")
+                    if (imageUrl.isBlank() || !imageUrl.startsWith("/chapter-lessons/")) {
+                        return@mapNotNull null
                     }
-                    val decoded = imageConnection.inputStream.use { BitmapFactory.decodeStream(it) }
-                    if (decoded == null) throw IllegalStateException("Lesson image is invalid")
-                    assetLabel = imageTitle
-                    decoded
-                } finally {
-                    imageConnection.disconnect()
+                    val imageTitle = matched.optString("title").ifBlank { matched.optString("alt_text") }
+                    runCatching {
+                        val imageConnection = URL("$base$imageUrl").openConnection() as HttpURLConnection
+                        imageConnection.connectTimeout = 8000
+                        imageConnection.readTimeout = 12000
+                        imageConnection.requestMethod = "GET"
+                        try {
+                            if (imageConnection.responseCode != HttpURLConnection.HTTP_OK) {
+                                null
+                            } else {
+                                val decoded = imageConnection.inputStream.use { BitmapFactory.decodeStream(it) }
+                                decoded?.let { it to imageTitle }
+                            }
+                        } finally {
+                            imageConnection.disconnect()
+                        }
+                    }.getOrNull()
                 }
+                if (decodedImages.isEmpty()) {
+                    throw IllegalStateException("No mapped lesson images could be loaded")
+                }
+                decodedImages to (decodedImages.size < matchedImages.size)
             } catch (_: Exception) {
-                null
+                emptyList<Pair<Bitmap, String>>() to false
             }
         }
-        bitmap = loaded
-        failed = loaded == null
+        renderedImages = loaded.first
+        failed = loaded.first.isEmpty()
+        partialFailure = loaded.second
     }
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = if (compact) 2.dp else 4.dp, bottom = 0.dp),
@@ -759,20 +775,24 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
             fontSize = if (compact) 13.sp else 15.sp,
             fontWeight = FontWeight.Bold
         )
-        bitmap?.let { image ->
-            androidx.compose.foundation.Image(
-                bitmap = image.asImageBitmap(),
-                contentDescription = assetLabel.ifBlank { lesson.optString("topic", "Lesson visual") },
-                modifier = Modifier.fillMaxWidth().aspectRatio(image.width.toFloat() / image.height.toFloat()),
-                contentScale = ContentScale.Fit
-            )
-            Text(
-                "Lesson visual" + if (assetLabel.isNotBlank()) " · $assetLabel" else "",
-                color = Color(0xFF64748B),
-                fontSize = 9.sp,
-                lineHeight = 11.sp
-            )
-        } ?: if (failed) {
+        if (renderedImages.isNotEmpty()) {
+            renderedImages.forEach { (image, imageTitle) ->
+                androidx.compose.foundation.Image(
+                    bitmap = image.asImageBitmap(),
+                    contentDescription = imageTitle.ifBlank { lesson.optString("topic", "Lesson visual") },
+                    modifier = Modifier.fillMaxWidth().aspectRatio(image.width.toFloat() / image.height.toFloat()),
+                    contentScale = ContentScale.Fit
+                )
+            }
+            if (partialFailure) {
+                Text(
+                    "Some lesson visuals could not be loaded.",
+                    color = Color(0xFF64748B),
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp
+                )
+            }
+        } else if (failed) {
             SynthesizedVisualCard(lesson, compact, activeStepOverride)
         } else {
             Text(
@@ -784,7 +804,6 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
         }
     }
 }
-
 
 @Composable
 private fun DatabaseInteractiveLessonLab(lesson: JSONObject, sessionPrefs: android.content.SharedPreferences, sessionKey: String, todayKey: String, compact: Boolean = false, activeStepOverride: Int? = null) {

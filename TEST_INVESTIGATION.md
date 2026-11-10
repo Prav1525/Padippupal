@@ -854,3 +854,19 @@ Use this format:
 - **Impact:** The request never reached the handler; no production asset or blob was inserted. The route is present in source but absent from the deployed API because Render has not deployed the latest main commit.
 - **Safety:** No retry against another endpoint and no alternate production write was attempted. Activating the route requires deploying the current main commit to the existing Render service; this remains gated on explicit deployment approval.
 - **Test fix:** Correct renderer test expectations to 163 original PNG mappings; 3 web-source candidates are separate and 4 human-review modules remain unmapped. Corrected the CI command so the provenance validator runs separately from pytest.
+
+
+### 2026-11-09 — Render all paired images mapped to a lesson step
+- **Branch / PR:** `fix/render-all-mapped-lesson-images` / PR #292.
+- **Failure evidence:** Production Class 6 manifest and Neon rows contain two images mapped to each of two teaching steps: Science — Exploring Magnets `module-6` / `step_6`, and Science — Nature's Treasures `module-4` / `step_4`. The current Android `MappedLessonImage` implementation used `firstOrNull()`, so it could render only one image for each paired mapping.
+- **Root cause:** **CONFIRMED** — client selection returned the first step-ID match instead of all exact step-ID matches. Both assets existed and were approved in production; the second asset was silently ignored by the tutor UI.
+- **Change proposed:** Return all exact step-ID matches and render every mapped PNG inline in module order; retain module-key fallback only when no active step ID is available; add unit tests for paired assets and fallback behavior.
+- **Verification:** Production database audit confirms 172 ready PNGs, 170 lesson/module pairs, 22 approved lessons, valid blobs, unique hashes, and exact teaching-step references. Sample production PNGs were decoded and visually inspected. PR #292 Android APK and Android UI smoke workflows are running; live production HTTP/API and tutor-screen rendering remain unverified because no live API request was available from this environment.
+- **Safety:** No code merge or Render deployment performed. The 172 image approvals were explicitly authorized by the owner and committed to production DB before this client-side defect was identified.
+
+
+### 2026-11-09 — Isolate pure lesson-image mapping tests from Android UI initialization
+- **Failure evidence:** Android UI smoke run `42651599821` compiled the app and unit tests but failed during JVM test initialization for the four new `LessonImageMappingTest` cases. The failure occurred before the emulator stage; the job's `testDebugUnitTest` step failed with `ExceptionInInitializerError` / `NoClassDefFoundError` when the test called a helper declared in `TutorScreen.kt`.
+- **Root cause:** **CONFIRMED** — invoking a top-level helper in `TutorScreen.kt` initializes the file's Android UI top-level state, including the main-thread `Handler(Looper.getMainLooper())`, which is unavailable in the plain JVM unit-test environment.
+- **Change made:** Moved the pure candidate model and matching function to `LessonImageMapping.kt`, leaving the UI file to consume the helper. This isolates the tested logic from Android framework initialization.
+- **Verification:** Backend image-ingestion tests, curriculum engine tests, and investigation guidance gate passed on the preceding PR head. Android APK and emulator smoke checks are rerunning on the updated head; production API and live tutor-screen requests remain unverified from this environment.

@@ -2716,6 +2716,73 @@ internal fun TutorScreen(
                     }
                 }
             }
+            if (chapterCompleted) {
+                val completedIndex = chapterOptions.indexOfFirst { it.first.equals(completedChapterTitle, ignoreCase = true) }
+                val nextChapter = chapterOptions.getOrNull(completedIndex + 1)
+                item(key = "chapter-complete-${completedChapterTitle}") {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp),
+                        color = Color(0xFFF1F8F4),
+                        shape = RoundedCornerShape(24.dp),
+                        border = BorderStroke(1.dp, Color(0xFFD5E9DC))
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(19.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                "CHAPTER COMPLETE",
+                                color = Color(0xFF28734F),
+                                fontSize = 10.sp,
+                                letterSpacing = 1.1.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                completedChapterTitle.ifBlank { "Wonderful work!" },
+                                color = TutorDeep,
+                                fontSize = 20.sp,
+                                lineHeight = 26.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (nextChapter != null) {
+                                Text(
+                                    "Ready to continue? Your next chapter is ${nextChapter.first}.",
+                                    color = Color(0xFF536477),
+                                    fontSize = 14.sp,
+                                    lineHeight = 21.sp
+                                )
+                                Button(
+                                    onClick = {
+                                        val nextTitle = nextChapter.first
+                                        val nextTopic = nextChapter.second.firstOrNull().orEmpty()
+                                        chapter = nextTitle
+                                        topic = nextTopic
+                                        chapterCompleted = false
+                                        completedChapterTitle = ""
+                                        status = "Opening $nextTitle…"
+                                        tutorMainHandler.postDelayed({ startLiveLesson() }, 350L)
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                                    shape = RoundedCornerShape(17.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF176B4D),
+                                        contentColor = Color.White
+                                    )
+                                ) {
+                                    Text("Start next chapter  →", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                            } else {
+                                Text(
+                                    if (outlineLoading) "Finding the next chapter…" else "You've reached the end of the available chapters for this subject.",
+                                    color = Color(0xFF536477),
+                                    fontSize = 14.sp,
+                                    lineHeight = 21.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         }

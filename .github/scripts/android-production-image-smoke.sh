@@ -16,8 +16,8 @@ tap() {
 }
 fail_diagnostics() {
   rc=$?
-  "${ADB[@]}" logcat -d > ui-screenshots/production-image/logcat.txt 2>&1 || true
-  "${ADB[@]}" shell dumpsys activity activities > ui-screenshots/production-image/activities.txt 2>&1 || true
+  timeout 15s "${ADB[@]}" logcat -d > ui-screenshots/production-image/logcat.txt 2>&1 || true
+  timeout 15s "${ADB[@]}" shell dumpsys activity activities > ui-screenshots/production-image/activities.txt 2>&1 || true
   echo "RESULT: $([ "$rc" -eq 0 ] && echo PASS || echo FAIL)" | tee -a "$REPORT"
   exit "$rc"
 }
@@ -26,7 +26,7 @@ trap fail_diagnostics EXIT
 timeout 30s "${ADB[@]}" wait-for-device
 ready=0
 for attempt in $(seq 1 36); do
-  if [ "$("${ADB[@]}" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] &&
+  if [ "$(timeout 5s "${ADB[@]}" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] &&
      timeout 10s "${ADB[@]}" shell cmd package list packages >/dev/null 2>&1; then
     ready=1
     break
@@ -35,14 +35,14 @@ for attempt in $(seq 1 36); do
 done
 test "$ready" -eq 1
 
-"${ADB[@]}" install -r app/build/outputs/apk/debug/app-debug.apk
-"${ADB[@]}" shell run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml
+timeout 60s "${ADB[@]}" install -r app/build/outputs/apk/debug/app-debug.apk
+timeout 15s "${ADB[@]}" shell run-as com.padippupal.app rm -f shared_prefs/padippupal_profile.xml
 "${ADB[@]}" shell run-as com.padippupal.app rm -f shared_prefs/padippupal_tutor_sessions.xml
 PROFILE_XML='<?xml version="1.0" encoding="utf-8" standalone="yes" ?><map><string name="grade">6</string><string name="board">CBSE</string><string name="medium">English</string><string name="language">English</string></map>'
 PROFILE_B64="$(printf '%s' "$PROFILE_XML" | base64 -w0)"
-"${ADB[@]}" shell "run-as com.padippupal.app sh -c 'mkdir -p shared_prefs && echo $PROFILE_B64 | base64 -d > shared_prefs/padippupal_profile.xml'"
-"${ADB[@]}" shell am force-stop com.padippupal.app
-"${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity
+timeout 15s "${ADB[@]}" shell "run-as com.padippupal.app sh -c 'mkdir -p shared_prefs && echo $PROFILE_B64 | base64 -d > shared_prefs/padippupal_profile.xml'"
+timeout 10s "${ADB[@]}" shell am force-stop com.padippupal.app
+timeout 15s "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity
 sleep 12
 
 capture home
@@ -95,13 +95,13 @@ PY
 done
 
 if [ "$success" -ne 1 ]; then
-  curl --fail --silent http://127.0.0.1:8765/__test/report > ui-screenshots/production-image/proxy-report-on-failure.json || true
+  curl --max-time 5 --fail --silent http://127.0.0.1:8765/__test/report > ui-screenshots/production-image/proxy-report-on-failure.json || true
   echo "FAIL: both production paired-image descriptions and PNG downloads did not appear together on the live tutor screen" | tee -a "$REPORT"
   exit 1
 fi
 
 curl --fail --silent http://127.0.0.1:8765/__test/report > ui-screenshots/production-image/proxy-report.json
-"${ADB[@]}" exec-out screencap -p > ui-screenshots/production-image/live-image-screen.png
+timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/production-image/live-image-screen.png
 python3 - <<'PY'
 from PIL import Image
 from pathlib import Path

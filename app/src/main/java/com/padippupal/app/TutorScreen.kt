@@ -2283,31 +2283,18 @@ internal fun TutorScreen(
                             if (lessonId.isBlank()) {
                                 emptyList<JSONObject>()
                             } else {
-                                val modulesByKey = linkedMapOf<String, LiveLessonModuleCandidate>()
-                                lessonSegments.forEachIndexed { index, segment ->
-                                    val stepId = segment.optString("id").trim()
-                                    if (stepId.isBlank()) return@forEachIndexed
-                                    val stepNumber = Regex("step[_-]?([1-9][0-9]*)")
-                                        .matchEntire(stepId)?.groupValues?.get(1)?.toIntOrNull()
-                                    val moduleNumber = stepNumber ?: (index + 1)
-                                    val moduleKey = segment.optString("module_key").trim()
-                                        .ifBlank { "module-$moduleNumber" }
-                                    val title = segment.optString("module_title").trim()
-                                        .ifBlank { "Module $moduleNumber" }
-                                    val previous = modulesByKey[moduleKey]
-                                    modulesByKey[moduleKey] = LiveLessonModuleCandidate(
-                                        moduleKey = moduleKey,
-                                        title = previous?.title?.takeIf { it.isNotBlank() } ?: title,
-                                        stepIds = (previous?.stepIds.orEmpty() + stepId).distinct()
+                                val segmentCandidates = lessonSegments.map {
+                                    LiveLessonSegmentCandidate(
+                                        id = it.optString("id"),
+                                        spokenText = it.optString("spoken_text"),
+                                        moduleKey = it.optString("module_key"),
+                                        moduleTitle = it.optString("module_title")
                                     )
                                 }
-                                val moduleCandidates = modulesByKey.values.sortedBy {
-                                    it.moduleKey.substringAfterLast("-").toIntOrNull() ?: Int.MAX_VALUE
+                                val moduleCandidates = moduleCandidatesFromLessonSegments(segmentCandidates)
+                                val grouped = moduleCandidates?.let {
+                                    groupLiveLessonSegmentsByModule(it, segmentCandidates)
                                 }
-                                val segmentCandidates = lessonSegments.map {
-                                    LiveLessonSegmentCandidate(it.optString("id"), it.optString("spoken_text"))
-                                }
-                                val grouped = groupLiveLessonSegmentsByModule(moduleCandidates, segmentCandidates)
                                 grouped?.map { module ->
                                     val moduleVisual = JSONObject()
                                         .put("lesson_id", lessonId)

@@ -18,7 +18,7 @@ DIARY_PARSE_REQUESTS: list[dict] = []
 LESSON = {
     "lesson_id": "smoke-all-ones",
     "grounded": True,
-    "provider": "smoke_fixture",
+    "provider": "approved_chapter_lesson",
     "language": "English",
     "subject": "Mathematics",
     "sources": [{"chunk_id": "smoke-source", "title": "Smoke-test fixture", "page_start": 1, "page_end": 1}],
@@ -138,12 +138,21 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"status": "ok", "service": "padippupal-smoke-fixture", "fixture_version": 1})
             return
         if path == "/chapter-lessons/smoke-all-ones/images":
-            self._send(200, {"lesson_id": "smoke-all-ones", "images": [{
-                "id": "smoke-asset", "module_key": "module-1", "title": "All 1s example",
-                "step_ids": ["all-ones-rule"], "content_type": "image/png",
-                "alt_text": "Five equal ones shown in five full-width cards",
-                "url": "/chapter-lessons/smoke-all-ones/images/smoke-asset"
-            }]})
+            module_images = [
+                ("module-1", "all-ones-definition", "What is an All 1s pattern"),
+                ("module-2", "all-ones-example", "An All 1s example"),
+                ("module-3", "all-ones-common-mistake", "A common mistake"),
+                ("module-4", "all-ones-recap", "Quick recap"),
+            ]
+            self._send(200, {"lesson_id": "smoke-all-ones", "images": [
+                {
+                    "id": "smoke-asset", "module_key": module_key, "title": title,
+                    "step_ids": [step_id], "content_type": "image/png",
+                    "alt_text": title + " diagram",
+                    "url": "/chapter-lessons/smoke-all-ones/images/smoke-asset"
+                }
+                for module_key, step_id, title in module_images
+            ]})
             return
         if path == "/chapter-lessons/smoke-all-ones/images/smoke-asset":
             self.send_response(200)

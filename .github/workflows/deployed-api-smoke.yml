@@ -10,11 +10,10 @@ permissions:
 
 jobs:
   retrieve-smoke-test:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-    runs-on: ubuntu-latest
-    steps:
       - name: Wait for API to wake up
         shell: bash
         run: |

@@ -230,7 +230,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_response(200)
             self.send_header("Content-Type", "image/png")
-            image_bytes = SMOKE_LESSON_PNGS[int(path.rsplit("-", 1)[-1])]\n            self.send_header("Content-Length", str(len(image_bytes)))
+            image_bytes = SMOKE_LESSON_PNGS[int(path.rsplit("-", 1)[-1])]
+            self.send_header("Content-Length", str(len(image_bytes)))
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(image_bytes)

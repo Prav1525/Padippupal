@@ -148,7 +148,7 @@ def _make_smoke_lesson_png() -> bytes:
 SMOKE_LESSON_PNG = _make_smoke_lesson_png()
 
 def _make_smoke_speech(text: str) -> tuple[bytes, list[dict]]:
-    duration_ms = 6000
+    duration_ms = 20000
     sample_rate = 16000
     buffer = BytesIO()
     with wave.open(buffer, "wb") as wav:

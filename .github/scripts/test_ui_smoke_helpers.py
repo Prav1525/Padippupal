@@ -428,6 +428,9 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("Waiting for playback to finish", script)
         self.assertIn("assert-followup follow-up.xml", script)
+        self.assertIn("assert-completed-lesson live-complete.xml ui-screenshots/live-module-4.xml", script)
+        self.assertIn("pre-completion lesson snapshot is required", smoke)
+        self.assertIn("preceding live-module snapshot", smoke)
 
     def test_smoke_waits_for_full_caption_and_rejects_checkpoint_ui(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()

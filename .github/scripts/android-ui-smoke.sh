@@ -232,6 +232,12 @@ while [ "$SECONDS" -lt "$lesson_deadline" ]; do
       fi
     fi
   fi
+  # The acceptance condition is the four distinct module/image pairs, in lesson order.
+  # Set the completion flag and stop polling as soon as that evidence is collected.
+  if [ "$seen_modules" = ",1,2,3,4," ]; then
+    lesson_started=1
+    break
+  fi
   sleep 0.5
 done
 if [ "$lesson_started" -ne 1 ]; then

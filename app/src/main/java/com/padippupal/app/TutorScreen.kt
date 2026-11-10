@@ -2486,10 +2486,12 @@ internal fun TutorScreen(
     }
 
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
-    LaunchedEffect(messages.size, loading, liveLessonActive) {
+    LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted) {
         // The live-teaching panel occupies list index 0 while it is visible.
+        // Include the completion CTA so it is brought into view when playback ends.
         val livePanelOffset = if (liveCaption.isNotBlank() || liveLessonActive) 1 else 0
-        val itemCount = livePanelOffset + messages.size + if (loading) 1 else 0
+        val itemCount = livePanelOffset + messages.size +
+            (if (loading) 1 else 0) + (if (chapterCompleted) 1 else 0)
         if (itemCount > 0) chatListState.animateScrollToItem(itemCount - 1)
     }
 

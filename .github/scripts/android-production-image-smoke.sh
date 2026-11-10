@@ -40,6 +40,54 @@ tap() {
   local xml="$1" action="$2" label="${3:-}"
   python3 .github/scripts/ui_smoke.py "$action" "$xml" "$label"
 }
+
+# Pixel Launcher can surface an ANR dialog after boot even though PackageManager
+# is responsive. The old flow slept 12s and asserted the home screen once, so an
+# unrelated launcher dialog was misreported as an app/home-screen failure.
+recover_launcher_anr() {
+  local attempt xml="/data/local/tmp/launcher-recovery.xml" local_xml="ui-screenshots/production-image/launcher-recovery.xml"
+  local launcher_component launcher_package
+  for attempt in 1 2 3; do
+    rm -f "$local_xml"
+    timeout 10s "${ADB[@]}" shell rm -f "$xml" >/dev/null 2>&1 || true
+    timeout 15s "${ADB[@]}" shell uiautomator dump --compressed "$xml" >/dev/null 2>&1 || true
+    timeout 10s "${ADB[@]}" pull "$xml" "$local_xml" >/dev/null 2>&1 || true
+    if [ ! -s "$local_xml" ] || ! grep -Eqi "Pixel Launcher isn't responding|Launcher isn't responding|System UI isn't responding" "$local_xml"; then
+      echo "Launcher ANR dialog not present (check $attempt)"
+      return 0
+    fi
+    echo "Detected launcher ANR dialog (recovery attempt $attempt/3)"
+    # Give Android one bounded chance to recover naturally before dismissing
+    # the system dialog. Tap Wait only when the fresh tree exposes that action.
+    if grep -Eqi 'text="Wait"|content-desc="Wait"' "$local_xml"; then
+      python3 .github/scripts/ui_smoke.py tap "$local_xml" "Wait" || true
+    fi
+    sleep 8
+  done
+  echo "Launcher remains unresponsive; restarting the resolved HOME package once"
+  launcher_component=$(timeout 10s "${ADB[@]}" shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | tail -n 1 || true)
+  launcher_package=$(printf '%s' "$launcher_component" | sed -n 's#.*{\([^/}]*\)/.*#\1#p')
+  if [ -n "$launcher_package" ]; then
+    timeout 10s "${ADB[@]}" shell am force-stop "$launcher_package" || true
+  fi
+  timeout 10s "${ADB[@]}" shell am force-stop com.padippupal.app || true
+  timeout 15s "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity
+  for attempt in $(seq 1 20); do
+    timeout 10s "${ADB[@]}" exec-out screencap -p > "ui-screenshots/production-image/launcher-recovery.png" 2>/dev/null || true
+    if timeout 10s "${ADB[@]}" shell uiautomator dump --compressed "$xml" >/dev/null 2>&1 &&
+       timeout 10s "${ADB[@]}" pull "$xml" "$local_xml" >/dev/null 2>&1 &&
+       [ -s "$local_xml" ] &&
+       ! grep -Eqi "Pixel Launcher isn't responding|Launcher isn't responding|System UI isn't responding" "$local_xml" &&
+       grep -q 'YOUR LEARNING SPACE\|YOUR PERSONAL TUTOR\|Start learning' "$local_xml"; then
+      echo "PASS: recovered launcher and PadippuPal home is accessible"
+      return 0
+    fi
+    sleep 2
+  done
+  echo "FAIL: launcher ANR recovery did not restore PadippuPal home" >&2
+  timeout 15s "${ADB[@]}" logcat -d > ui-screenshots/production-image/launcher-recovery-logcat.txt 2>&1 || true
+  return 1
+}
 fail_diagnostics() {
   rc=$?
   timeout 15s "${ADB[@]}" logcat -d > ui-screenshots/production-image/logcat.txt 2>&1 || true
@@ -69,7 +117,8 @@ PROFILE_B64="$(printf '%s' "$PROFILE_XML" | base64 -w0)"
 timeout 15s "${ADB[@]}" shell "run-as com.padippupal.app sh -c 'mkdir -p shared_prefs && echo $PROFILE_B64 | base64 -d > shared_prefs/padippupal_profile.xml'"
 timeout 10s "${ADB[@]}" shell am force-stop com.padippupal.app
 timeout 15s "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity
-sleep 12
+sleep 5
+recover_launcher_anr
 
 capture home
 tap ui-screenshots/production-image/home.xml assert-home

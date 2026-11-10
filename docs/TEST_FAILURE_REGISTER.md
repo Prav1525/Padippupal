@@ -371,3 +371,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `d35447f37952a5aeb2c01911ce9bbf37e7ab70f2` removes the inner vertical scroll modifier only in expanded/module mode. The complete module text remains in the single vertically scrollable teaching canvas; bounded legacy captions retain their existing internal scroller.
 - **Regression check:** Fresh exact-head Android API 35 emulator run must enter live teaching without a fatal exception, expose ordered module headings and matching image alt labels, and pass the complete live lesson smoke flow. Kotlin/JVM build and helper tests must also pass.
 - **Validation:** Fix committed; fresh exact-head CI is running. Do not merge or deploy until the Android emulator run and all required checks pass.
+
+
+## 2026-11-10 — Android tutor smoke fixture reused module-1 visual
+
+- **Observed:** Android UI smoke run [42791451144](https://github.com/Prav1525/Padippupal/actions/runs/42791451144) reached the completed lesson instead of detecting the four-module live player. The captured accessibility tree showed the entire lesson transcript grouped into the fallback single lesson, and playback controls were already gone.
+- **Root cause:** The deterministic tutor API fixture attached the same response-level `module-1` interactive visual to all four spoken segments. That contradicted the exact `module_key -> step_id` mapping contract and caused module grouping to fail closed to the full-lesson fallback.
+- **Fix:** Commit `2bde53770a81bf4adf34d6f9c3a71028c27b75ba` gives each segment its own matching `module_key`, `step_id`, and visual step, and assigns a distinct image asset ID/URL per module in the smoke manifest.
+- **Regression coverage:** The fixture self-test now asserts four ordered module keys and exact segment-to-visual module/step identity. The API manifest exposes four unique asset IDs and module-specific alt text.
+- **Verification:** Pending fresh Android API 35 emulator UI smoke on the updated PR head. Do not merge until that run passes and the live tutor screenshot is reviewed.

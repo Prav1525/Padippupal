@@ -319,3 +319,23 @@ def test_lesson_image_manifest_keeps_paired_assets_in_stable_order(monkeypatch):
     assert "latest.latest_updated_at=a.updated_at" in connection.query
     assert "ORDER BY a.module_key, a.created_at, a.id" in connection.query
     assert all(image["step_ids"] == ["step_4"] for image in result["images"])
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Mathematics", "Mathematics"),
+        ("Beyond Earth", "Beyond-Earth"),
+        ("A Journey through States of Water", "A-Journey-through-States-of-Water"),
+        ("English / Tamil", "English-Tamil"),
+    ],
+)
+def test_storage_key_segments_are_safe_and_subject_agnostic(raw, expected):
+    assert ingest._safe_object_segment(raw) == expected
+
+
+def test_storage_key_segment_rejects_empty_or_path_only_metadata():
+    with pytest.raises(HTTPException):
+        ingest._safe_object_segment("...")
+    with pytest.raises(HTTPException):
+        ingest._safe_object_segment("")

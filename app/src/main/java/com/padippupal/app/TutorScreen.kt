@@ -668,7 +668,7 @@ private fun SynthesizedVisualCard(lesson: JSONObject, compact: Boolean, activeSt
 
 
 @Composable
-private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOverride: Int? = null) {
+private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOverride: Int? = null, showTitle: Boolean = true) {
     // Inline visual IDs are presentation IDs, not the approved chapter_lessons primary key.
     val lessonId = lesson.optString("lesson_id").trim()
     val topic = lesson.optString("topic").ifBlank { lesson.optString("title") }.trim().lowercase()
@@ -769,12 +769,14 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
         modifier = Modifier.fillMaxWidth().padding(top = if (compact) 2.dp else 4.dp, bottom = 0.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Text(
-            lesson.optString("title", "Lesson visual"),
-            color = Color(0xFF17324D),
-            fontSize = if (compact) 13.sp else 15.sp,
-            fontWeight = FontWeight.Bold
-        )
+        if (showTitle) {
+            Text(
+                lesson.optString("title", "Lesson visual"),
+                color = Color(0xFF17324D),
+                fontSize = if (compact) 13.sp else 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
         if (renderedImages.isNotEmpty()) {
             renderedImages.forEach { (image, imageTitle) ->
                 androidx.compose.foundation.Image(
@@ -801,6 +803,49 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
                 fontSize = 10.sp,
                 modifier = Modifier.padding(vertical = 2.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun LiveLessonModuleSection(
+    module: JSONObject,
+    index: Int,
+    active: Boolean,
+    liveWordIndex: Int
+) {
+    val moduleKey = module.optString("module_key")
+    val requester = remember(moduleKey) { BringIntoViewRequester() }
+    LaunchedEffect(active) {
+        if (active) requester.bringIntoView()
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .bringIntoViewRequester(requester)
+            .padding(vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text("MODULE ${index + 1}", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text(
+            module.optString("module_title", "Module ${index + 1}"),
+            color = TutorDeep,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold
+        )
+        val moduleText = module.optString("spoken_text")
+        if (active) {
+            WordByWordCaption(
+                moduleText,
+                speechActive = true,
+                currentWordIndex = liveWordIndex,
+                modifier = Modifier.fillMaxWidth(),
+                expandToAvailableHeight = true
+            )
+        } else {
+            Text(moduleText, color = TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
+        }
+        module.optJSONObject("interactive_lesson")?.let { moduleVisual ->
+            MappedLessonImage(moduleVisual, compact = false, showTitle = false)
         }
     }
 }
@@ -2047,7 +2092,7 @@ internal fun TutorScreen(
         if (index >= liveSegments.size) {
             // Keep the completed explanation in chat history so the learner can reread it
             // and follow up after playback; otherwise it vanishes when the full-screen player closes.
-            val completedLesson = liveCaption.trim()
+            val completedLesson = liveSegments.map { it.optString("spoken_text").trim() }.filter { it.isNotBlank() }.joinToString("\n\n")
             if (completedLesson.isNotBlank() && messages.none { it.role == "assistant" && it.content == completedLesson }) {
                 messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))
             }
@@ -2117,10 +2162,10 @@ internal fun TutorScreen(
                 val topicGuardrail = if (allOnesTopic) {
                     " TOPIC GUARDRAIL: All 1s means a sequence that repeats the number 1 only. Every teaching segment must explain that repeated-one sequence or its invariant (each term/value stays the same); short neutral classroom transitions are allowed. Do not introduce square numbers, counting up/down, or unrelated arithmetic. If the retrieved source cannot support All 1s, return no lesson instead of substituting another pattern."
                 } else ""
-                val lessonPrompt = "Teach the complete selected topic as one coherent lesson for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-6 ordered speech segments only as a transport format; the app will join them into one uninterrupted explanation. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Use an inline concept visual only when the selected chapter and topic have an exact matching blueprint; do not invent images or switch topics. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
+                val lessonPrompt = "Teach the complete selected topic for class " + grade + ". Begin by naming chapter " + chapter + " and topic " + topic + ". Cover a simple definition, why or how it works, a concrete worked example, important rule or steps, one common mistake when relevant, and a short recap. Use familiar child-friendly language and text examples. Return 4-8 ordered speech segments. Keep every segment tied to its exact approved teaching-step ID when an approved lesson is available; do not invent module IDs or combine unrelated steps. Do not ask questions, request feedback, or insert checkpoints between segments. Put any optional single practice question only at the very end after the recap. Use an inline concept visual only when the selected chapter and topic have an exact matching blueprint; do not invent images or switch topics. Stay grounded only in retrieved textbook passages and make the explanation complete rather than stopping after the first small idea." + topicGuardrail
                 val body = JSONObject().put("board", board).put("class_level", grade).put("subject", subject).put("medium", medium)
                     .put("app_language", selectedLanguage).put("student_name", studentName).put("chapter", chapter).put("topic", topic)
-                    .put("message", lessonPrompt).put("max_segments", 6)
+                    .put("message", lessonPrompt).put("max_segments", 8)
                 val connection = URL("$base/tutor/lesson-plan").openConnection() as HttpURLConnection
                 // The backend may retry Gemini once after schema validation; its two 45s
                 // upstream attempts can exceed 50s in total. Keep the UI waiting for the
@@ -2165,6 +2210,76 @@ internal fun TutorScreen(
                     // synthesized lessons, the backend visual steps mirror the ordered speech
                     // segments, so each visual changes when its own spoken segment begins.
                     val inlineVisual = response.optJSONObject("interactive_lesson")
+                    // Approved lessons carry exact module_key -> step_ids mappings in the
+                    // read-only image manifest. Group the spoken text by those mappings;
+                    // never infer a module from topic wording or a neighbouring step.
+                    val moduleSegments = if (response.optString("provider") == "approved_chapter_lesson") {
+                        runCatching {
+                            val lessonId = response.optString("lesson_id").trim()
+                            if (lessonId.isBlank()) {
+                                emptyList<JSONObject>()
+                            } else {
+                                val encodedLessonId = URLEncoder.encode(lessonId, "UTF-8")
+                                val manifestConnection = URL("$base/chapter-lessons/$encodedLessonId/images").openConnection() as HttpURLConnection
+                                manifestConnection.connectTimeout = 8000
+                                manifestConnection.readTimeout = 12000
+                                manifestConnection.requestMethod = "GET"
+                                try {
+                                    if (manifestConnection.responseCode != HttpURLConnection.HTTP_OK) {
+                                        emptyList()
+                                    } else {
+                                        val manifestText = manifestConnection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+                                        val imageRows = JSONObject(manifestText).optJSONArray("images") ?: JSONArray()
+                                        val modulesByKey = linkedMapOf<String, LiveLessonModuleCandidate>()
+                                        for (imageIndex in 0 until imageRows.length()) {
+                                            val image = imageRows.optJSONObject(imageIndex) ?: continue
+                                            val moduleKey = image.optString("module_key").trim()
+                                            if (moduleKey.isBlank()) continue
+                                            val stepArray = image.optJSONArray("step_ids") ?: JSONArray()
+                                            val stepIds = (0 until stepArray.length()).map { stepArray.optString(it).trim() }
+                                                .filter { it.isNotBlank() }
+                                            if (stepIds.isEmpty()) continue
+                                            val title = image.optString("title").ifBlank { image.optString("alt_text") }.ifBlank { moduleKey }
+                                            val previous = modulesByKey[moduleKey]
+                                            modulesByKey[moduleKey] = LiveLessonModuleCandidate(
+                                                moduleKey = moduleKey,
+                                                title = previous?.title?.takeIf { it.isNotBlank() } ?: title,
+                                                stepIds = (previous?.stepIds.orEmpty() + stepIds).distinct()
+                                            )
+                                        }
+                                        val moduleCandidates = modulesByKey.values.sortedBy {
+                                            it.moduleKey.substringAfterLast("-").toIntOrNull() ?: Int.MAX_VALUE
+                                        }
+                                        val segmentCandidates = lessonSegments.map {
+                                            LiveLessonSegmentCandidate(it.optString("id"), it.optString("spoken_text"))
+                                        }
+                                        val grouped = groupLiveLessonSegmentsByModule(moduleCandidates, segmentCandidates)
+                                        grouped?.map { module ->
+                                            val moduleVisual = JSONObject()
+                                                .put("lesson_id", lessonId)
+                                                .put("topic", topic)
+                                                .put("module_key", module.moduleKey)
+                                                .put("title", module.title)
+                                            JSONObject()
+                                                .put("id", module.moduleKey)
+                                                .put("spoken_text", module.spokenText)
+                                                .put("caption_text", module.spokenText)
+                                                .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+                                                .put("interactive_lesson", moduleVisual)
+                                                .put("checkpoint", JSONObject.NULL)
+                                                .put("module_title", module.title)
+                                                .put("module_key", module.moduleKey)
+                                        } ?: emptyList()
+                                    }
+                                } finally {
+                                    manifestConnection.disconnect()
+                                }
+                            }
+                        }.getOrElse { error ->
+                            status = "Module map unavailable; showing the complete lesson together."
+                            emptyList()
+                        }
+                    } else emptyList()
                     if (inlineVisual?.optString("scene_type") == "synthesis_static") {
                         val visualSteps = inlineVisual.optJSONArray("steps")
                         if (visualSteps != null && visualSteps.length() == lessonSegments.size) {
@@ -2185,7 +2300,7 @@ internal fun TutorScreen(
                         .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
                         .put("interactive_lesson", inlineVisual ?: JSONObject.NULL)
                         .put("checkpoint", JSONObject.NULL)
-                    listOf(completeLesson)
+                    if (moduleSegments.isNotEmpty()) moduleSegments else listOf(completeLesson)
                 } finally { connection.disconnect() }
             }
             tutorMainHandler.post {
@@ -2565,70 +2680,82 @@ internal fun TutorScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                        val hasModuleLayout = liveSegments.any { it.has("module_title") }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(7.dp))
                             Text(if (speechActive) "YOUR TEACHER IS SPEAKING" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else "LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.weight(1f))
-                            if (liveSegments.size > 1) Text("${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp)
-                        }
-                        if (liveCaption.isNotBlank()) {
-                            WordByWordCaption(
-                                liveCaption, speechActive, liveWordIndex,
-                                // At checkpoints, don't let the caption consume all remaining height:
-                                // the compact concept animation and fixed answer card must stay visible.
-                                modifier = if (awaitingUnderstanding) {
-                                    Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
-                                } else {
-                                    Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 190.dp)
-                                },
-                                // Keep the narration caption bounded so the mapped 2D visual stays visible inline.
-                                // Word highlighting scrolls inside the caption rather than pushing the visual off-screen.
-                                expandToAvailableHeight = false
-                            )
-                        } else {
-                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = TutorGreen)
+                            if (liveSegments.size > 1) {
+                                val progressLabel = if (hasModuleLayout) "MODULE" else "SEGMENT"
+                                Text("$progressLabel ${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
-                        // Keep the concept animation mounted during the checkpoint; compact it so
-                        // the student can see both the pattern and the response choices together.
-                        val liveVisualSteps = liveInteractiveLesson?.optJSONArray("steps")
-                        val totalLiveWords = liveCaption.trim().split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
-                        val stepWordBoundaries = liveInteractiveLesson?.optJSONArray("step_word_boundaries")
-                        val liveVisualStep = if (liveVisualSteps != null && liveVisualSteps.length() > 0) {
-                            if (stepWordBoundaries != null && stepWordBoundaries.length() == liveVisualSteps.length()) {
-                                val spokenWordPosition = liveWordIndex + 1
-                                (0 until stepWordBoundaries.length()).firstOrNull { spokenWordPosition <= stepWordBoundaries.optInt(it, Int.MAX_VALUE) }
-                                    ?: (liveVisualSteps.length() - 1)
-                            } else {
-                                ((liveWordIndex.toFloat() / totalLiveWords.toFloat()) * liveVisualSteps.length())
-                                    .toInt().coerceIn(0, liveVisualSteps.length() - 1)
-                            }
-                        } else 0
-                        when {
-                            liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(
-                                lesson = liveInteractiveLesson!!,
-                                sessionPrefs = sessionPrefs,
-                                sessionKey = sessionKey,
-                                todayKey = todayKey,
-                                compact = true,
-                                activeStepOverride = liveVisualStep
-                            )
-                            liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
-                                val topicKey = topic.lowercase(Locale.ROOT)
-                                val scene = when {
-                                    topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
-                                    topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
-                                    else -> "number_pattern"
-                                }
-                                ChapterOneMathAnimation(
-                                    scene = scene,
-                                    title = topic.ifBlank { "Patterns in Mathematics" },
-                                    topic = topic,
-                                    caption = "Watch the pattern change automatically as your teacher explains.",
-                                    compact = awaitingUnderstanding
+                        if (hasModuleLayout) {
+                            liveSegments.forEachIndexed { index, module ->
+                                LiveLessonModuleSection(
+                                    module = module,
+                                    index = index,
+                                    active = index == liveSegmentIndex,
+                                    liveWordIndex = liveWordIndex
                                 )
+                                if (index < liveSegments.lastIndex) {
+                                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
+                                }
+                            }
+                        } else {
+                            if (liveCaption.isNotBlank()) {
+                                WordByWordCaption(
+                                    liveCaption, speechActive, liveWordIndex,
+                                    modifier = if (awaitingUnderstanding) {
+                                        Modifier.fillMaxWidth().heightIn(min = 64.dp, max = 108.dp)
+                                    } else {
+                                        Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 190.dp)
+                                    },
+                                    expandToAvailableHeight = false
+                                )
+                            } else {
+                                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = TutorGreen)
+                                }
+                            }
+                            val liveVisualSteps = liveInteractiveLesson?.optJSONArray("steps")
+                            val totalLiveWords = liveCaption.trim().split(Regex("\\s+")).count { it.isNotBlank() }.coerceAtLeast(1)
+                            val stepWordBoundaries = liveInteractiveLesson?.optJSONArray("step_word_boundaries")
+                            val liveVisualStep = if (liveVisualSteps != null && liveVisualSteps.length() > 0) {
+                                if (stepWordBoundaries != null && stepWordBoundaries.length() == liveVisualSteps.length()) {
+                                    val spokenWordPosition = liveWordIndex + 1
+                                    (0 until stepWordBoundaries.length()).firstOrNull { spokenWordPosition <= stepWordBoundaries.optInt(it, Int.MAX_VALUE) }
+                                        ?: (liveVisualSteps.length() - 1)
+                                } else {
+                                    ((liveWordIndex.toFloat() / totalLiveWords.toFloat()) * liveVisualSteps.length())
+                                        .toInt().coerceIn(0, liveVisualSteps.length() - 1)
+                                }
+                            } else 0
+                            when {
+                                liveCaption.isNotBlank() && liveInteractiveLesson != null -> DatabaseInteractiveLessonLab(
+                                    lesson = liveInteractiveLesson!!,
+                                    sessionPrefs = sessionPrefs,
+                                    sessionKey = sessionKey,
+                                    todayKey = todayKey,
+                                    compact = true,
+                                    activeStepOverride = liveVisualStep
+                                )
+                                liveCaption.isNotBlank() && chapter.contains("Patterns in Mathematics", ignoreCase = true) -> {
+                                    val topicKey = topic.lowercase(Locale.ROOT)
+                                    val scene = when {
+                                        topicKey.contains("all 1s") || topicKey.contains("all ones") -> "repeated_ones"
+                                        topicKey.contains("shape") || topicKey.contains("repeating") -> "shape_pattern"
+                                        else -> "number_pattern"
+                                    }
+                                    ChapterOneMathAnimation(
+                                        scene = scene,
+                                        title = topic.ifBlank { "Patterns in Mathematics" },
+                                        topic = topic,
+                                        caption = "Watch the pattern change automatically as your teacher explains.",
+                                        compact = awaitingUnderstanding
+                                    )
+                                }
                             }
                         }
                     }

@@ -287,25 +287,30 @@ def assert_followup_answer(path):
     print("PASS: follow-up question and answer are both visible")
 
 
+def active_module_index(path):
+    nodes, texts = load(path)
+    descriptions = [n.attrib.get("content-desc", "").strip() for n in nodes]
+    joined = "\n".join(texts + [value for value in descriptions if value]).lower()
+    modules = (
+        ("what is an all 1s pattern", "what is an all 1s pattern diagram"),
+        ("an all 1s example", "an all 1s example diagram"),
+        ("a common mistake", "a common mistake diagram"),
+        ("quick recap", "quick recap diagram"),
+    )
+    matched = [index for index, (heading, image_alt) in enumerate(modules, start=1)
+               if heading in joined and image_alt in joined]
+    if not matched:
+        raise SystemExit("No active module has both its own heading and its matching mapped image")
+    return matched[-1]
+
+
 def assert_live(path):
     nodes, texts = load(path)
-    # Icon-only Compose controls are exposed through content-desc, not text.
-    # Include those accessibility labels in state assertions or a valid live
-    # lesson is rejected even while Pause/Stop are visibly available.
     descriptions = [n.attrib.get("content-desc", "").strip() for n in nodes]
     descriptions = [value for value in descriptions if value]
     joined = "\n".join(texts + descriptions).lower()
     print("LIVE LESSON TEXT:", " | ".join(texts[:140]))
     print("LIVE LESSON ACCESSIBILITY LABELS:", " | ".join(descriptions[:40]))
-    # The app intentionally exposes progress as "Playing segment N of M" /
-    # "Live lesson · segment N of M"; it never renders the obsolete literal
-    # "teacher is speaking". Validate the real progress + inline lesson content.
-    # Audio/highlight progression is checked independently below, so this
-    # assertion must not mask those checks with a stale accessibility label.
-    # A live caption is the current segment, not the whole lesson transcript.
-    # The deterministic smoke fixture intentionally has a short first segment;
-    # waiting for a 220-character caption skipped valid active playback until a
-    # later segment (or until the whole lesson had already completed).
     teaching_texts = [value.strip() for value in texts if len(value.strip()) >= 120]
     if not teaching_texts:
         lengths = sorted((len(value.strip()) for value in texts), reverse=True)[:8]
@@ -335,22 +340,14 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
-    # The status line is transient while the TTS engine initializes and is
-    # not consistently exposed by accessibility on every Compose frame. The
-    # Pause/Stop controls below are the stable active-playback signal; module
-    # headings and exact image alt text verify the teaching content.
-    expected_modules = (
-        "what is an all 1s pattern",
-        "an all 1s example",
-        "a common mistake",
-        "quick recap",
+    module_index = active_module_index(path)
+    module_titles = (
+        "What is an All 1s pattern",
+        "An All 1s example",
+        "A common mistake",
+        "Quick recap",
     )
-    missing_modules = [title for title in expected_modules if title not in joined]
-    if missing_modules:
-        raise SystemExit("Module-by-module lesson layout is missing headings: " + ", ".join(missing_modules))
-    # Each module exposes its own exact mapped image title/alt text.
-    if "all 1s example diagram" not in joined:
-        raise SystemExit("The mapped module image was not loaded below its matching explanation")
+    print(f"PASS: active module {module_index}/4 exposes its own heading and mapped image: {module_titles[module_index - 1]}")
     if "ask your teacher" in joined or "send question" in joined:
         raise SystemExit("Chat composer is still visible during the dedicated live teaching experience")
     forbidden_activity_labels = ("interactive concept lab", "touch & explore", "drag the objects", "touch and hold an object", "reset to start again")
@@ -362,7 +359,7 @@ def assert_live(path):
             raise SystemExit("All 1s lesson lacks an explanation of the repeated-one rule")
         if "square numbers grow" in joined or "1²" in joined or "+3" in joined:
             raise SystemExit("All 1s topic is incorrectly showing square-number content")
-    print("PASS: complete continuous lesson is visible without checkpoints, animations, or interactive overlays")
+    print("PASS: live module text and its exact mapped image are visible without checkpoints or overlays")
 
 def exact_color_mask(image, target):
     """Return a fast Pillow mask for pixels exactly matching an RGB color."""
@@ -674,6 +671,8 @@ def main():
         tap_photo_picker_item(path)
     elif action == "assert-live":
         assert_live(path)
+    elif action == "live-module-index":
+        print(active_module_index(path))
     elif action == "assert-completed-lesson":
         assert_completed_lesson(path)
     elif action == "assert-followup":

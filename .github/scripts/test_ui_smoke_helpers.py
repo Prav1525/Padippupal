@@ -474,7 +474,13 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions)', tutor)
         self.assertIn('(if (chapterCompleted) 1 else 0)', tutor)
         self.assertIn('chatListState.animateScrollToItem(itemCount - 1)', tutor)
+        self.assertIn('delay(700L)', tutor)
+        self.assertIn('once that asynchronous layout has settled', tutor)
         self.assertNotIn("scrollOffset = 10000", tutor)
+        fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
+        self.assertIn('deterministic_silent_smoke_audio', fixture)
+        self.assertIn('duration_ms = 6000', fixture)
+        self.assertIn('word_timings', fixture)
 
     def test_live_module_cards_use_refined_active_state_without_redundant_number_pill(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

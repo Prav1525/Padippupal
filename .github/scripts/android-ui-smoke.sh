@@ -261,7 +261,7 @@ for attempt in $(seq 1 90); do
   fi
   timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/live-complete.xml >/dev/null 2>&1 || true
   timeout 10s "${ADB[@]}" pull /data/local/tmp/live-complete.xml live-complete.xml >/dev/null 2>&1 || true
-  if [ -s live-complete.xml ] && python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml >/dev/null 2>&1; then
+  if [ -s live-complete.xml ] && python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml ui-screenshots/live-module-4.xml >/dev/null 2>&1; then
     lesson_finished=1
     break
   fi

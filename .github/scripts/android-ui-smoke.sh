@@ -274,7 +274,7 @@ if [ "$lesson_finished" -ne 1 ]; then
   exit 1
 fi
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/live-complete.png
-python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml | tee -a "$REPORT"
+python3 .github/scripts/ui_smoke.py assert-completed-lesson live-complete.xml ui-screenshots/live-module-4.xml | tee -a "$REPORT"
 log "Testing a follow-up question after lesson playback"
 # Dump the completed screen, then focus the actual EditText node rather than
 # tapping its placeholder Text composable (which may not focus the field).

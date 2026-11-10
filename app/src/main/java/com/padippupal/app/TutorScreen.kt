@@ -2493,17 +2493,15 @@ internal fun TutorScreen(
     }
 
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
-    LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted) {
-        // The teaching canvas is outside this LazyColumn. Count only the actual
-        // chat items and the optional completion card so the highlighted next
-        // chapter action is scrolled fully into view after playback ends.
+    LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions) {
+        // Re-run when the curriculum outline arrives: the next-chapter action
+        // depends on chapterOptions and may not exist in the first completion frame.
+        // Align the completion card's top with the viewport so its full copy and
+        // primary action remain visible; a large positive offset can clip the card.
         val itemCount = messages.size +
             (if (loading) 1 else 0) + (if (chapterCompleted) 1 else 0)
         if (itemCount > 0) {
-            // Align the tail of the completion item with the bottom of the
-            // viewport. The default offset aligns its top, which can leave the
-            // next-chapter copy and primary action below the visible list area.
-            chatListState.animateScrollToItem(itemCount - 1, scrollOffset = 10000)
+            chatListState.animateScrollToItem(itemCount - 1)
         }
     }
 

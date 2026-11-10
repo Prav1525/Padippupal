@@ -878,3 +878,5 @@ Use this format:
 - **Test-harness corrections:** The first workflow attempt exposed a literal escaped newline after an existing shell heredoc terminator; corrected the terminator. The first image-audit attempt exposed that the image-list response carries lesson_id at the response root rather than on each image; the test now attaches the already-requested lesson ID when collecting rows.
 - **Verification status:** Latest deployed API smoke run 42744121201 passed API health, curriculum outline, and retrieval checks; the 172-image endpoint and byte-integrity audit is still running. Android emulator run 42744121239 uses the deterministic local tutor fixture, so it does not prove production API rendering.
 - **Safety:** All production checks are GET-only. No production database writes, asset changes, PR merge, or deployment.
+
+- **Full asset visual audit:** 172/172 ready PNG blobs were visually inspected at source resolution on 2026-11-10. Source-image alignment defects are recorded in `assets/lesson-images/production-alignment-audit-2026-11-10.md`; no production blobs or lesson content were changed.

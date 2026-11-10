@@ -148,7 +148,7 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('re.search(r"segment [1-4] of 4", joined)', live)
+        self.assertIn('re.search(r"segment \\d+ of \\d+", joined)', live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
         self.assertIn('"all 1s example diagram" not in joined', live)
@@ -159,7 +159,7 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('re.search(r"segment [1-4] of 4", joined)', live)
+        self.assertIn('re.search(r"segment \\d+ of \\d+", joined)', live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
         self.assertIn('"all 1s example diagram" not in joined', live)
@@ -466,6 +466,7 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('.put("completed_chapter", completedChapterTitle)', tutor)
         self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted)', tutor)
         self.assertIn('(if (chapterCompleted) 1 else 0)', tutor)
+        self.assertIn("scrollOffset = 10000", tutor)
 
     def test_live_module_cards_use_refined_active_state_without_redundant_number_pill(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

@@ -812,6 +812,7 @@ private fun LiveLessonModuleSection(
     module: JSONObject,
     index: Int,
     active: Boolean,
+    speechActive: Boolean,
     liveWordIndex: Int
 ) {
     val moduleKey = module.optString("module_key")
@@ -836,7 +837,7 @@ private fun LiveLessonModuleSection(
         if (active) {
             WordByWordCaption(
                 moduleText,
-                speechActive = true,
+                speechActive = speechActive,
                 currentWordIndex = liveWordIndex,
                 modifier = Modifier.fillMaxWidth(),
                 expandToAvailableHeight = true
@@ -2275,10 +2276,7 @@ internal fun TutorScreen(
                                     manifestConnection.disconnect()
                                 }
                             }
-                        }.getOrElse { error ->
-                            status = "Module map unavailable; showing the complete lesson together."
-                            emptyList()
-                        }
+                        }.getOrDefault(emptyList())
                     } else emptyList()
                     if (inlineVisual?.optString("scene_type") == "synthesis_static") {
                         val visualSteps = inlineVisual.optJSONArray("steps")
@@ -2697,6 +2695,7 @@ internal fun TutorScreen(
                                     module = module,
                                     index = index,
                                     active = index == liveSegmentIndex,
+                                    speechActive = speechActive,
                                     liveWordIndex = liveWordIndex
                                 )
                                 if (index < liveSegments.lastIndex) {

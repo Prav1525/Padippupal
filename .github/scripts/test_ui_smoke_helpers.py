@@ -419,7 +419,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertNotIn("explicit understanding checkpoint", script)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
         live_start = smoke.index("def assert_live(path):")
-        live_end = smoke.index("\\ndef exact_color_mask", live_start)
+        live_end = smoke.index(chr(10) + "def exact_color_mask", live_start)
         live_assertion = smoke[live_start:live_end]
         self.assertNotIn("Live lesson is not exposing its active playback segment progress", live_assertion)
         self.assertIn('if "pause" not in joined or "stop" not in joined:', live_assertion)

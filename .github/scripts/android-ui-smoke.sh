@@ -208,7 +208,8 @@ while [ "$SECONDS" -lt "$lesson_deadline" ]; do
       exit 1
     fi
   fi
-  sleep 2
+  # Sample frequently: hosted fixture audio now holds the active state for six seconds.
+  sleep 0.5
 done
 if [ "$lesson_started" -ne 1 ]; then
   FAILURE_CLASS="APP_FAILURE"

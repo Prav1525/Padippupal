@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "class_level": 6,
+  "curriculum_scope": "Approved Class 6 alignment replacements only; 12 exact existing lesson/module pairs.",
+  "canvas": {
+    "width": 1080,
+    "height": 720,
+    "layout": "full-width landscape; preserve aspect ratio"
+  },
+  "images": [
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Line of Symmetry",
+      "alt_text": "A simple symmetrical shape with a vertical fold line showing matching halves.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Both sides match across the fold line",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5176cc88-77d7-5893-b67b-570c98e65c17",
+      "module_key": "module-4",
+      "step_ids": [
+        "step_4"
+      ],
+      "title": "Filtering Tea with a Cloth",
+      "alt_text": "Tea leaves retained by a cloth while liquid tea passes through.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A cloth filter holds back tea leaves",
+          "diagram": "tea_filter"
+        }
+      ]
+    },
+    {
+      "lesson_id": "b26a6b0c-cf53-5f2a-a7d5-1b89bb9891ab",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Floors Above and Below Ground",
+      "alt_text": "A building floor diagram places positive floors above ground and negative floors below.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Floors Above and Below Ground",
+          "diagram": "building_floors"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-6",
+      "step_ids": [
+        "step_6"
+      ],
+      "title": "Cooling Water in an Earthen Pot",
+      "alt_text": "A simple cross-section shows water cooling as a little water seeps through the pot and evaporates.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Cooling Water in an Earthen Pot",
+          "diagram": "earthen_pot"
+        }
+      ]
+    },
+    {
+      "lesson_id": "105a95da-2dec-5b11-b9e3-a73f4abb9776",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Same Area, Different Perimeters",
+      "alt_text": "Two rectangles each have an area of 1,050 square feet, but their perimeters are 134 feet and 130 feet.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Equal area does not always mean equal perimeter",
+          "diagram": "same_area_perimeters"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-3",
+      "step_ids": [
+        "step_3"
+      ],
+      "title": "Reflection Symmetry",
+      "alt_text": "A simple shape and fold line show matching halves across a line of symmetry.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "A line of symmetry divides matching halves",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a5eda399-5e4f-5bb3-8424-273c4f91bbad",
+      "module_key": "module-8",
+      "step_ids": [
+        "step_8"
+      ],
+      "title": "Condensation Forms Tiny Water Droplets",
+      "alt_text": "A cold glass and nearby water vapour illustrate condensation into liquid droplets.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Water vapour cools and forms liquid droplets",
+          "diagram": "condensation_process"
+        }
+      ]
+    },
+    {
+      "lesson_id": "eae02149-e4c4-54db-8839-ef4345e4e5e4",
+      "module_key": "module-2",
+      "step_ids": [
+        "step_2"
+      ],
+      "title": "Paper Folding and Reflection Symmetry",
+      "alt_text": "Show a folded paper shape reflected across its crease to make matching halves.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Paper Folding and Reflection Symmetry",
+          "diagram": "symmetry"
+        }
+      ]
+    },
+    {
+      "lesson_id": "10d13a36-87e9-5f3b-8210-f62eb95e8854",
+      "module_key": "module-5",
+      "step_ids": [
+        "step_5"
+      ],
+      "title": "Earth and Moon in Orbit",
+      "alt_text": "Show the Moon orbiting Earth with a clear direction arrow; keep distances not to scale.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Earth and Moon in Orbit",
+          "diagram": "earth_moon_orbit"
+        }
+      ]
+    },
+    {
+      "lesson_id": "5311db95-6ac8-524f-a415-8125bef73a4c",
+      "module_key": "module-7",
+      "step_ids": [
+        "step_7"
+      ],
+      "title": "Place Value and Large Numbers",
+      "alt_text": "A place-value illustration groups ones, tens, hundreds and thousands into clear blocks.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Number Play — Part 7",
+          "diagram": "building_floors"
+        }
+      ]
+    },
+    {
+      "lesson_id": "4eebec1b-62e6-5843-9eaa-d4df9bbd7c87",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Plants and Their Features",
+      "alt_text": "A labelled plant diagram highlights the visible features discussed in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Diversity in the Living World — Part 1",
+          "diagram": "plant"
+        }
+      ]
+    },
+    {
+      "lesson_id": "a52d8c99-b24d-5c69-9137-0222baff2bdc",
+      "module_key": "module-1",
+      "step_ids": [
+        "step_1"
+      ],
+      "title": "Plants and Their Features",
+      "alt_text": "A labelled plant diagram highlights the visible features discussed in the lesson.",
+      "layout": "single",
+      "panels": [
+        {
+          "heading": "Living Creatures: Exploring their Characteristics — Part 1",
+          "diagram": "plant"
+        }
+      ]
+    }
+  ]
+}

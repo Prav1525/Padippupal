@@ -175,8 +175,13 @@ private fun WordByWordCaption(
             runCatching { scrollState.animateScrollTo(target) }
         }
     }
+    // The live module canvas is already the single vertical scroll container.
+    // Adding another verticalScroll here gives this caption an infinite max-height
+    // from its parent and crashes Compose during the first live-tutor frame.
+    // In expanded/module mode, let the parent canvas scroll the complete module;
+    // keep the bounded inner caption scroller only for legacy compact captions.
     val captionModifier = if (expandToAvailableHeight) {
-        modifier.fillMaxWidth().verticalScroll(scrollState)
+        modifier.fillMaxWidth()
     } else {
         modifier.fillMaxWidth().heightIn(max = 190.dp).verticalScroll(scrollState)
     }

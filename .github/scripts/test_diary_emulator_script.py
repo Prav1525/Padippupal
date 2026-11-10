@@ -28,7 +28,7 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
 
     def test_launcher_anr_is_detected_and_recovered_before_diary_tile_tap(self):
         source = SCRIPT.read_text(encoding="utf-8")
-        recovery = source[source.index("recover_launcher_anr(){"):source.index("\\ntap_label(){")]
+        recovery = source[source.index("recover_launcher_anr(){"):source.index("\\nassert_has(){")]
         self.assertIn('Pixel Launcher isn\'t responding', recovery)
         self.assertIn('"Wait"', recovery)
         self.assertIn('"Close app"', recovery)

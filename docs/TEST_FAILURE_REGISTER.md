@@ -409,3 +409,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Correction:** Validate the active module heading against that same module's exact image alt label, record a real screenshot/XML for each of the four module states, and require all four distinct modules to be observed during playback. Exercise Pause/Resume during module 1 rather than after playback has ended. Increase only the deterministic local fixture audio duration to give the emulator time to inspect each module; production speech behavior is unchanged.
 - **Additional mapping hardening:** Carry the exact step_id from the approved manifest grouping into each module visual so the image renderer matches both the module and step instead of relying on module-only fallback.
 - **Validation:** Fresh JVM, script, API fixture, and Android API 35 emulator checks on the updated PR head are required. No merge, production deployment, production database writes, or image deletion.
+
+
+## 2026-11-10 — PR #309 smoke fixture duration assertion lagged behind audio extension
+
+- **Evidence:** Android UI smoke run [42815932640](https://github.com/Prav1525/Padippupal/actions/runs/42815932640), job [129828905490](https://github.com/Prav1525/Padippupal/actions/runs/42815932640/job/129828905490), checked-out merge commit `ab224b2d0901fa97c9539efe5cd54cd305093376`.
+- **Symptom:** JVM tests, APK build, and the first live-module accessibility assertion passed, but smoke-script validation stopped before emulator allocation. `tutor_smoke_api.py --self-test` raised `AssertionError` because the generated silent WAV was 20,000 ms while the final word-timing assertion still expected 6,000 ms. The emulator was skipped; this run provides no four-module screenshot proof.
+- **Root cause:** The fixture duration was changed to 20 seconds to create a longer inspection window, but the self-test retained a hard-coded end-time from the previous 6-second fixture.
+- **Fix:** Introduce one `SMOKE_AUDIO_DURATION_MS` constant for WAV generation and timing validation. Assert that timings start at zero, end at the configured duration, remain contiguous, and have positive intervals.
+- **Regression prevention:** Add a helper contract test that requires the shared duration constant and timing-boundary assertions and rejects the obsolete 6-second expectation.
+- **Validation:** Fresh exact-head CI is required. Accept only after fixture self-test, all helper/JVM/API checks, and the API 35 emulator run pass and produce four module-specific tutor screenshots/XML plus pause/resume evidence. No merge, deployment, production DB write, or image deletion.

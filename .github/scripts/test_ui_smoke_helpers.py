@@ -464,6 +464,8 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('tutorMainHandler.postDelayed({ startLiveLesson() }, 350L)', tutor)
         self.assertIn('.put("chapter_completed", chapterCompleted)', tutor)
         self.assertIn('.put("completed_chapter", completedChapterTitle)', tutor)
+        self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted)', tutor)
+        self.assertIn('(if (chapterCompleted) 1 else 0)', tutor)
 
     def test_live_module_cards_use_refined_active_state_without_redundant_number_pill(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

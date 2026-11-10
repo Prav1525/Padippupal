@@ -2561,14 +2561,8 @@ internal fun TutorScreen(
                 modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Keep the full caption + visual sequence scrollable. Without this,
-                // the finite live-lesson height constrains Image.aspectRatio and clips
-                // the lower rows of tall diagrams on phones.
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {

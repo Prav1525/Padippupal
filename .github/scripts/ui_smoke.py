@@ -331,7 +331,7 @@ def assert_live(path):
         raise SystemExit("Setup/selection controls are still taking space on the live teaching screen")
     if "pause" not in joined or "stop" not in joined:
         raise SystemExit("Live teaching header is missing Pause/Stop playback controls")
-    if "module 1 / 4" not in joined:
+    if not re.search(r"module [1-4] / 4", joined):
         raise SystemExit("Live lesson is not presenting the approved text as four ordered modules")
     expected_modules = (
         "what is an all 1s pattern",

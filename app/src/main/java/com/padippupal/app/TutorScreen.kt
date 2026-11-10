@@ -826,7 +826,8 @@ private fun LiveLessonModuleSection(
             .padding(vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text("MODULE ${index + 1}", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        val moduleNumber = moduleKey.substringAfterLast("-").toIntOrNull() ?: (index + 1)
+        Text("MODULE $moduleNumber", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         Text(
             module.optString("module_title", "Module ${index + 1}"),
             color = TutorDeep,
@@ -2093,7 +2094,11 @@ internal fun TutorScreen(
         if (index >= liveSegments.size) {
             // Keep the completed explanation in chat history so the learner can reread it
             // and follow up after playback; otherwise it vanishes when the full-screen player closes.
-            val completedLesson = liveSegments.map { it.optString("spoken_text").trim() }.filter { it.isNotBlank() }.joinToString("\n\n")
+            val completedLesson = liveSegments.joinToString("\n\n") { segment ->
+                val moduleTitle = segment.optString("module_title").trim()
+                val text = segment.optString("spoken_text").trim()
+                if (moduleTitle.isNotBlank()) "$moduleTitle\n$text" else text
+            }.trim()
             if (completedLesson.isNotBlank() && messages.none { it.role == "assistant" && it.content == completedLesson }) {
                 messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))
             }
@@ -2261,6 +2266,7 @@ internal fun TutorScreen(
                                                 .put("topic", topic)
                                                 .put("module_key", module.moduleKey)
                                                 .put("title", module.title)
+                                                .put("scene_type", "synthesis_static")
                                             JSONObject()
                                                 .put("id", module.moduleKey)
                                                 .put("spoken_text", module.spokenText)
@@ -2685,8 +2691,13 @@ internal fun TutorScreen(
                             Text(if (speechActive) "YOUR TEACHER IS SPEAKING" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else "LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.weight(1f))
                             if (liveSegments.size > 1) {
-                                val progressLabel = if (hasModuleLayout) "MODULE" else "SEGMENT"
-                                Text("$progressLabel ${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                if (hasModuleLayout) {
+                                    val activeModuleKey = liveSegments.getOrNull(liveSegmentIndex)?.optString("module_key").orEmpty()
+                                    val activeModuleNumber = activeModuleKey.substringAfterLast("-").toIntOrNull() ?: (liveSegmentIndex + 1)
+                                    Text("MODULE $activeModuleNumber / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                } else {
+                                    Text("SEGMENT ${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                         if (hasModuleLayout) {

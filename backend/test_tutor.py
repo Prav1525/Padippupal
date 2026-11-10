@@ -867,6 +867,7 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
             "learning_objectives": ["Understand photosynthesis"],
             "teaching_sequence": [{
                 "id": "step-1",
+                "title": "How plants make food",
                 "teacher_says": "Let's look at how a plant makes its food.",
                 "caption": "Plants use light to make food.",
                 "checkpoint": "What does the plant need?",
@@ -923,6 +924,8 @@ def test_lesson_plan_prefers_exact_approved_chapter_lesson(monkeypatch):
     assert body["lesson_id"] == "lesson-approved-1"
     assert body["chapter_overview"] == "Plants make food using light."
     assert body["segments"][0]["source_chunk_ids"] == [chunk_id]
+    assert body["segments"][0]["module_key"] == "module-1"
+    assert body["segments"][0]["module_title"] == "How plants make food"
     assert body["segments"][0]["visual_action"]["type"] == "reveal"
     assert body["segments"][0]["checkpoint"] == "What does the plant need?"
     assert body["interactive_lesson"] == matched_blueprint

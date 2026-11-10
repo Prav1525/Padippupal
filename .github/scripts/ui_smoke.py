@@ -628,6 +628,14 @@ def main():
     if len(sys.argv) < 3:
         raise SystemExit("Usage: ui_smoke.py {assert-home|assert-tutor|assert-checkpoint|assert-continued|assert-feedback|assert-settings|assert-live|tap} XML [TARGET]")
     action, path = sys.argv[1], sys.argv[2]
+    # Screenshot-frame assertions consume a directory of PNGs, not an XML file.
+    # Keep this dispatch ahead of the shared XML-file validation and pass the
+    # directory argument itself (sys.argv[2]) to the frame checker.
+    if action == "assert-highlight-frames":
+        if not Path(path).is_dir():
+            raise SystemExit("Live lesson screenshot directory does not exist: " + path)
+        assert_highlight_frames(path)
+        return
     if not Path(path).is_file():
         raise SystemExit("UI XML file does not exist: " + path)
     if action == "assert-home":
@@ -677,8 +685,6 @@ def main():
         assert_completed_lesson(path)
     elif action == "assert-followup":
         assert_followup_answer(path)
-    elif action == "assert-highlight-frames" and len(sys.argv) >= 4:
-        assert_highlight_frames(sys.argv[3])
     elif action == "assert-live-layout":
         assert_live_layout(path)
     elif action == "assert-playback-state" and len(sys.argv) >= 4:

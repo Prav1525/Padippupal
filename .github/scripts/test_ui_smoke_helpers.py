@@ -464,6 +464,14 @@ class PreviousScreenSelectionTests(unittest.TestCase):
 
 
 class ChapterCompletionFlowTests(unittest.TestCase):
+    def test_smoke_audio_duration_and_word_timings_share_one_contract(self):
+        fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
+        self.assertIn("SMOKE_AUDIO_DURATION_MS = 20_000", fixture)
+        self.assertIn("duration_ms = SMOKE_AUDIO_DURATION_MS", fixture)
+        self.assertIn('assert smoke_timings[-1]["end_ms"] == SMOKE_AUDIO_DURATION_MS', fixture)
+        self.assertIn('assert all(left["end_ms"] == right["start_ms"] for left, right in zip(smoke_timings, smoke_timings[1:]))', fixture)
+        self.assertNotIn('smoke_timings[-1]["end_ms"] == 6000', fixture)
+
     def test_completed_chapter_offers_prominent_next_chapter_action(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()

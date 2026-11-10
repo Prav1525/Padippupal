@@ -127,8 +127,13 @@ if [ "$success" -ne 1 ]; then
 fi
 
 curl --fail --silent http://127.0.0.1:8765/__test/report > ui-screenshots/production-image/proxy-report.json
+# Scroll the teaching canvas so the full paired diagrams can be inspected
+# together; this proves the content remains reachable without being squeezed.
+timeout 10s "${ADB[@]}" shell input swipe 540 1680 540 650 600
+sleep 1
+capture live-image-screen-scrolled
 timeout 10s "${ADB[@]}" exec-out screencap -p > ui-screenshots/production-image/live-image-screen.png
-python3 .github/scripts/ui_smoke.py assert-production-pair-layout ui-screenshots/production-image/live-image-screen.xml
+python3 .github/scripts/ui_smoke.py assert-production-pair-layout ui-screenshots/production-image/live-image-screen-scrolled.xml
 python3 - <<'PY'
 from PIL import Image
 from pathlib import Path

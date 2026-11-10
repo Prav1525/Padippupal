@@ -110,16 +110,16 @@ def diagram(d, kind, data):
         # Textbook example: equal areas, different boundary lengths.
         d.rounded_rectangle((45,205,520,600),radius=24,fill="#F8FBFC",outline="#C8DCE5",width=3)
         d.rounded_rectangle((560,205,1035,600),radius=24,fill="#F8FBFC",outline="#C8DCE5",width=3)
-        d.rectangle((120,300,420,478),fill="#E8F4F8",outline=BLUE,width=7)
-        d.rectangle((685,280,910,472),fill="#FFF0D9",outline=BLUE,width=7)
+        d.rectangle((120,300,420,448),fill="#E8F4F8",outline=BLUE,width=7)
+        d.rectangle((685,280,910,448),fill="#FFF0D9",outline=BLUE,width=7)
         label(d,(282,245),"HOUSE A",27,INK,True,anchor="mm")
         label(d,(797,245),"HOUSE B",27,INK,True,anchor="mm")
-        label(d,(282,485),"42 ft × 25 ft",25,INK,True,anchor="mm")
-        label(d,(282,520),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
-        label(d,(282,555),"Perimeter = 134 ft",24,INK,True,anchor="mm")
-        label(d,(797,495),"35 ft × 30 ft",25,INK,True,anchor="mm")
-        label(d,(797,530),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
-        label(d,(797,565),"Perimeter = 130 ft",24,INK,True,anchor="mm")
+        label(d,(282,478),"42 ft × 25 ft",25,INK,True,anchor="mm")
+        label(d,(282,518),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
+        label(d,(282,558),"Perimeter = 134 ft",24,INK,True,anchor="mm")
+        label(d,(797,478),"35 ft × 30 ft",25,INK,True,anchor="mm")
+        label(d,(797,518),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
+        label(d,(797,558),"Perimeter = 130 ft",24,INK,True,anchor="mm")
     elif kind == "shared_prime_factors":
         # Two numbers share 3 and 7, so this pair is not co-prime.
         label(d,(270,205),"NUMBER A = 42",30,INK,True,anchor="mm")
@@ -165,7 +165,7 @@ def diagram(d, kind, data):
         d.ellipse((870,270,1020,420),fill="#DCE7F4",outline=INK,width=4)
         for x,y in [(900,320),(950,300),(985,345),(925,375),(975,390)]:
             d.ellipse((x-12,y-12,x+12,y+12),fill="#6CA9D6",outline=INK,width=2)
-        label(d,(945,455),"TINY DROPLETS",23,INK,True,anchor="mm")
+        label(d,(945,455),"TINY DROPLETS",19,INK,True,anchor="mm")
         label(d,(540,570),"Water vapour changes into liquid water",29,BLUE,True,anchor="mm")
 
     elif kind == "threefold_rotation":
@@ -214,13 +214,13 @@ def diagram(d, kind, data):
         label(d,(540,635),"Reflects, but a quarter-turn does not match",25,INK,True,anchor="mm")
     elif kind == "earth_moon_orbit":
         # Moon orbiting Earth; diagram is schematic and not to scale.
-        d.ellipse((300,205,780,625),outline="#8DBBE8",width=7)
-        d.ellipse((500,365,590,455),fill="#6CA9D6",outline=INK,width=4)
-        d.ellipse((735,380,785,430),fill="#C9C9C9",outline=INK,width=3)
-        label(d,(545,340),"EARTH",25,INK,True,anchor="mm")
-        label(d,(760,465),"MOON",23,INK,True,anchor="mm")
-        arrow(d,(690,230),(780,290),fill=BLUE,width=6)
-        label(d,(540,155),"The Moon travels around Earth",29,BLUE,True,anchor="mm")
+        d.ellipse((300,245,780,625),outline="#8DBBE8",width=7)
+        d.ellipse((500,405,590,495),fill="#6CA9D6",outline=INK,width=4)
+        d.ellipse((735,420,785,470),fill="#C9C9C9",outline=INK,width=3)
+        label(d,(545,380),"EARTH",25,INK,True,anchor="mm")
+        label(d,(760,505),"MOON",23,INK,True,anchor="mm")
+        arrow(d,(690,270),(780,330),fill=BLUE,width=6)
+        label(d,(540,195),"The Moon travels around Earth",27,BLUE,True,anchor="mm")
         label(d,(540,650),"Orbit shown schematically — not to scale",22,INK,True,anchor="mm")
     elif kind == "constellation_pattern":
         # A simple seven-star pattern connected by guide lines.
@@ -288,10 +288,10 @@ def diagram(d, kind, data):
         label(d,(540,590),"A frog develops from an egg into an adult",27,BLUE,True,anchor="mm")
 
     elif kind == "symmetry":
-        box=(220,180,860,570); d.ellipse(box,fill="#F6C66A",outline=INK,width=6)
-        d.polygon([(540,205),(420,330),(540,410),(660,330)],fill="#E8F4F8",outline=INK)
-        d.line((540,150,540,600),fill="#D35D6E",width=8)
-        label(d,(565,145),"FOLD LINE",27,"#B43B51",True)
+        box=(220,220,860,570); d.ellipse(box,fill="#F6C66A",outline=INK,width=6)
+        d.polygon([(540,245),(420,350),(540,420),(660,350)],fill="#E8F4F8",outline=INK)
+        d.line((540,210,540,600),fill="#D35D6E",width=8)
+        label(d,(565,195),"FOLD LINE",25,"#B43B51",True)
         label(d,(540,625),"Both sides match",34,INK,True,anchor="mm")
     elif kind == "bar_graph":
         vals=data.get("values",[3,5,2,4]); names=data.get("labels",["A","B","C","D"])
@@ -319,16 +319,16 @@ def diagram(d, kind, data):
         label(d,(700,520),"ROOTS GROW DOWN",26,INK,True)
         label(d,(540,175),"A seedling begins to grow",34,BLUE,True,anchor="mm")
     elif kind == "plant":
-        d.line((540,250,540,520),fill="#39834A",width=18)
-        for x,y,side in [(420,340,-1),(660,400,1),(430,445,-1)]:
+        d.line((540,300,540,535),fill="#39834A",width=18)
+        for x,y,side in [(420,390,-1),(660,435,1),(430,490,-1)]:
             d.ellipse((min(x,540),y-55,max(x,540),y+55),fill="#8BCB83",outline="#286B3A",width=5)
-        d.ellipse((475,155,605,285),fill="#F5C66B",outline=INK,width=5)
+        d.ellipse((475,235,605,365),fill="#F5C66B",outline=INK,width=5)
         for i in range(6):
-            a=i*math.pi/3; px=540+72*math.cos(a); py=220+72*math.sin(a)
+            a=i*math.pi/3; px=540+72*math.cos(a); py=300+72*math.sin(a)
             d.ellipse((px-28,py-28,px+28,py+28),fill="#E99AA8",outline=INK,width=3)
-        d.line((540,520,420,625),fill="#A97945",width=10); d.line((540,520,650,625),fill="#A97945",width=10)
-        label(d,(700,205),"FLOWER",26,INK,True); label(d,(700,355),"LEAF",26,INK,True)
-        label(d,(700,500),"STEM",26,INK,True); label(d,(350,615),"ROOTS",26,INK,True)
+        d.line((540,535,420,625),fill="#A97945",width=10); d.line((540,535,650,625),fill="#A97945",width=10)
+        label(d,(700,300),"FLOWER",26,INK,True); label(d,(700,420),"LEAF",26,INK,True)
+        label(d,(700,535),"STEM",26,INK,True); label(d,(350,650),"ROOTS",26,INK,True)
     elif kind == "magnet":
         d.rounded_rectangle((260,280,820,430),radius=28,fill="#F2C7C7",outline=INK,width=6)
         d.rectangle((260,280,540,430),fill="#E98A8A",outline=INK,width=4); d.rectangle((540,280,820,430),fill="#8DBBE8",outline=INK,width=4)
@@ -489,11 +489,11 @@ def diagram(d, kind, data):
     elif kind == "tea_filter":
         d.polygon([(300,250),(780,250),(600,470),(480,470)],fill="#F3EAFE",outline=INK)
         d.line((480,470,600,470),fill=INK,width=7)
-        d.line((540,470,540,590),fill=BLUE,width=8)
+        d.line((540,470,540,555),fill=BLUE,width=8)
         for x in range(400,690,45): d.ellipse((x,290,x+18,308),fill="#9B7545",outline=INK)
-        d.rounded_rectangle((455,590,625,655),radius=16,fill="#BFE4F2",outline=INK,width=4)
+        d.rounded_rectangle((455,555,625,620),radius=16,fill="#BFE4F2",outline=INK,width=4)
         label(d,(540,210),"Cloth catches tea leaves; tea passes through",27,BLUE,True,anchor="mm")
-        label(d,(540,680),"FILTERED TEA",22,INK,True,anchor="mm")
+        label(d,(540,650),"FILTERED TEA",22,INK,True,anchor="mm")
     elif kind == "seed_germination":
         d.line((540,360,540,530),fill="#39834A",width=13)
         d.ellipse((445,280,540,375),fill="#8BCB83",outline="#286B3A",width=4)
@@ -608,8 +608,8 @@ def diagram(d, kind, data):
         for i in range(5):
             y=250+i*72; d.line((430,y,650,y),fill=INK,width=3)
             label(d,(540,y+28),["+2","+1","GROUND","−1","−2"][i],25,INK,True,anchor="mm")
-        label(d,(760,330),"Above ground: positive",24,BLUE,True)
-        label(d,(760,510),"Below ground: negative",24,BLUE,True)
+        label(d,(700,330),"Above ground: positive",22,BLUE,True)
+        label(d,(700,510),"Below ground: negative",22,BLUE,True)
     elif kind == "integer_movement":
         d.line((160,440,920,440),fill=INK,width=6)
         for n in range(-4,5):
@@ -644,12 +644,12 @@ def diagram(d, kind, data):
         d.ellipse((760,170,850,260),fill="#F6C66B",outline=INK,width=3)
         label(d,(540,590),"Heat helps liquid water change into vapour",28,BLUE,True,anchor="mm")
     elif kind == "earthen_pot":
-        d.ellipse((350,260,730,650),fill="#C98E5B",outline=INK,width=6)
-        d.ellipse((390,300,690,610),fill="#BFE4F2",outline=INK,width=4)
-        for x,y in [(330,390),(340,450),(350,510),(730,390),(720,450),(710,510)]:
+        d.ellipse((350,250,730,610),fill="#C98E5B",outline=INK,width=6)
+        d.ellipse((390,290,690,570),fill="#BFE4F2",outline=INK,width=4)
+        for x,y in [(330,380),(340,440),(350,500),(730,380),(720,440),(710,500)]:
             arrow(d,(x,y),(x-35 if x<500 else x+35,y-55),fill=BLUE,width=5)
         label(d,(540,205),"A little water seeps out and evaporates",28,BLUE,True,anchor="mm")
-        label(d,(540,675),"Evaporation cools the earthen pot",24,INK,True,anchor="mm")
+        label(d,(540,650),"Evaporation cools the earthen pot",24,INK,True,anchor="mm")
     elif kind == "pole_star":
         pts=[(260,420),(360,300),(490,350),(600,470),(470,540),(340,520),(260,420)]
         for a,b in zip(pts,pts[1:]): d.line((a,b),fill="#8DBBE8",width=6)

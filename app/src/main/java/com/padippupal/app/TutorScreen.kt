@@ -2718,7 +2718,7 @@ internal fun TutorScreen(
             }
             if (chapterCompleted) {
                 val completedIndex = chapterOptions.indexOfFirst { it.first.equals(completedChapterTitle, ignoreCase = true) }
-                val nextChapter = chapterOptions.getOrNull(completedIndex + 1)
+                val nextChapter = if (completedIndex >= 0) chapterOptions.getOrNull(completedIndex + 1) else null
                 item(key = "chapter-complete-${completedChapterTitle}") {
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp),

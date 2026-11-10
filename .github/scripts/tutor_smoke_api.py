@@ -146,9 +146,10 @@ def _make_smoke_lesson_png() -> bytes:
 
 
 SMOKE_LESSON_PNG = _make_smoke_lesson_png()
+SMOKE_AUDIO_DURATION_MS = 20_000
 
 def _make_smoke_speech(text: str) -> tuple[bytes, list[dict]]:
-    duration_ms = 20000
+    duration_ms = SMOKE_AUDIO_DURATION_MS
     sample_rate = 16000
     buffer = BytesIO()
     with wave.open(buffer, "wb") as wav:
@@ -324,7 +325,10 @@ def self_test() -> None:
     with wave.open(BytesIO(smoke_wav), "rb") as wav:
         assert wav.getnframes() * 1000 // wav.getframerate() == 20000
     assert len(smoke_timings) == len(LESSON["segments"][0]["spoken_text"].split())
-    assert smoke_timings[-1]["end_ms"] == 6000
+    assert smoke_timings[0]["start_ms"] == 0
+    assert smoke_timings[-1]["end_ms"] == SMOKE_AUDIO_DURATION_MS
+    assert all(left["end_ms"] == right["start_ms"] for left, right in zip(smoke_timings, smoke_timings[1:]))
+    assert all(item["end_ms"] > item["start_ms"] for item in smoke_timings)
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
     assert [segment["module_key"] for segment in LESSON["segments"]] == [f"module-{i}" for i in range(1, 5)]
     assert all(segment["interactive_lesson"]["module_key"] == segment["module_key"] for segment in LESSON["segments"])

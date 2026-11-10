@@ -380,3 +380,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Commit `2bde53770a81bf4adf34d6f9c3a71028c27b75ba` gives each segment its own matching `module_key`, `step_id`, and visual step, and assigns a distinct image asset ID/URL per module in the smoke manifest.
 - **Regression coverage:** The fixture self-test now asserts four ordered module keys and exact segment-to-visual module/step identity. The API manifest exposes four unique asset IDs and module-specific alt text.
 - **Verification:** Pending fresh Android API 35 emulator UI smoke on the updated PR head. Do not merge until that run passes and the live tutor screenshot is reviewed.
+
+
+## 2026-11-10 — Tutor smoke contract tests retained obsolete module-progress label
+
+- **Evidence:** Android UI smoke run [42799473289](https://github.com/Prav1525/Padippupal/actions/runs/42799473289), job [129773004532](https://github.com/Prav1525/Padippupal/actions/runs/42799473289/job/129773004532), PR #309.
+- **Symptom:** JVM tests and APK build passed, but smoke-script validation failed before emulator allocation. Two helper tests still expected the removed `module N / 4` status label; the actual app status is `Live lesson · segment N of M`. The emulator was skipped, so that run did not verify the UI.
+- **Fix:** Updated the XML fixtures and smoke-contract tests to assert the real segment-progress label, module headings, and matching image alt text. Added regression coverage for the chapter-completion CTA and its next-chapter selection/start behavior.
+- **UI improvement:** Refined module cards with a calmer active-state surface, clearer typographic hierarchy, and less redundant numbering. Added a chapter-complete panel that identifies the next curriculum chapter and highlights a full-width “Start next chapter” action. The selected next chapter and first available topic are passed into the existing live-lesson start flow; completion state is persisted.
+- **Safety:** The next-chapter action is app-local navigation/playback only. No production DB writes, merge, deployment, or public release.
+- **Validation:** Fresh exact-head CI is running. Do not merge until Android API 35 emulator acceptance and the other required checks pass; inspect the actual tutor screenshot and completion screen evidence.

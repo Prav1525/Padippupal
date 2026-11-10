@@ -307,7 +307,17 @@ def _image_signature_matches(payload: bytes, content_type: str) -> bool:
 
 
 def _validate_module_step_mapping(module_key: str, step_ids: list[str]) -> None:
-    expected_module_keys = {f"module-{step.split('_', 1)[1]}" for step in step_ids}
+    # Approved lesson data historically uses both step_2 and step-2 identifiers.
+    # Normalize only the separator; keep the numeric identity exact.
+    expected_module_keys = set()
+    for step in step_ids:
+        match = re.fullmatch(r"step[_-]([1-9][0-9]*)", str(step))
+        if not match:
+            raise HTTPException(
+                status_code=422,
+                detail="Teaching step IDs must use step_N or step-N format.",
+            )
+        expected_module_keys.add(f"module-{match.group(1)}")
     if len(expected_module_keys) != 1 or module_key not in expected_module_keys:
         raise HTTPException(
             status_code=422,

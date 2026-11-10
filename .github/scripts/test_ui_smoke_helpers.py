@@ -423,7 +423,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn('messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))', tutor)
         self.assertIn('status = "Live lesson complete."', tutor)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        self.assertIn("def assert_completed_lesson(path):", smoke)
+        self.assertIn("def assert_completed_lesson(path, lesson_snapshot_path=None):", smoke)
         self.assertIn("def assert_followup_answer(path):", smoke)
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("Waiting for playback to finish", script)
@@ -547,7 +547,7 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('"title": "Growing Number Patterns"', fixture)
         self.assertIn('"topics": ["Square Numbers"]', fixture)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        start = smoke.index("def assert_completed_lesson(path):")
+        start = smoke.index("def assert_completed_lesson(path, lesson_snapshot_path=None):")
         end = smoke.index("\ndef assert_followup_answer", start)
         completed = smoke[start:end]
         self.assertIn('"start next chapter" not in joined', completed)

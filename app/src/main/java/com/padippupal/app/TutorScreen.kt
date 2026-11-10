@@ -2502,6 +2502,14 @@ internal fun TutorScreen(
             (if (loading) 1 else 0) + (if (chapterCompleted) 1 else 0)
         if (itemCount > 0) {
             chatListState.animateScrollToItem(itemCount - 1)
+            if (chapterCompleted) {
+                // The lesson image can finish decoding after the first scroll and
+                // increase the preceding message item's measured height. Re-align
+                // once that asynchronous layout has settled so the whole completion
+                // card (including its next-chapter action) is in the viewport.
+                delay(700L)
+                chatListState.animateScrollToItem(itemCount - 1)
+            }
         }
     }
 

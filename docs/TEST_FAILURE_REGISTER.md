@@ -419,3 +419,13 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Introduce one `SMOKE_AUDIO_DURATION_MS` constant for WAV generation and timing validation. Assert that timings start at zero, end at the configured duration, remain contiguous, and have positive intervals.
 - **Regression prevention:** Add a helper contract test that requires the shared duration constant and timing-boundary assertions and rejects the obsolete 6-second expectation.
 - **Validation:** Fresh exact-head CI is required. Accept only after fixture self-test, all helper/JVM/API checks, and the API 35 emulator run pass and produce four module-specific tutor screenshots/XML plus pause/resume evidence. No merge, deployment, production DB write, or image deletion.
+
+
+## 2026-11-10 — Android UI smoke passed live module and pause/resume checks but rejected screenshot directory
+
+- **Evidence:** Android UI smoke run [42818229036](https://github.com/Prav1525/Padippupal/actions/runs/42818229036), job [129836723833](https://github.com/Prav1525/Padippupal/actions/runs/42818229036/job/129836723833), commit `c93778224d6ee2d58c85bc83bd04a72c7ebc4cd1`.
+- **Symptom:** The emulator reached the live tutor, captured module 1 with its mapped image, and verified Pause and Resume. It then captured 12 PNG word-highlight frames but failed with `UI XML file does not exist: ui-screenshots/live-frames`.
+- **Root cause:** The shared CLI dispatcher validated every command's second argument as an XML file before dispatch. The `assert-highlight-frames` command instead receives a directory of PNG files. Its branch also incorrectly expected an extra argument and read `sys.argv[3]` rather than the supplied directory at `sys.argv[2]`.
+- **Fix:** Dispatch the screenshot-frame command before XML-file validation, require its argument to be a directory, and pass that directory directly to `assert_highlight_frames`.
+- **Regression prevention:** Add a CLI-level unit test that passes an empty temporary directory and verifies execution reaches the frame checker (the expected “No live lesson frames were captured” result), rather than the XML-file validator.
+- **Validation:** Fresh exact-head CI and Android API 35 emulator run are required. Production image emulator acceptance passed on the failed head using a read-only proxy; this does not substitute for all four live-module checks. No merge, deployment, production database write, or image deletion.

@@ -830,16 +830,14 @@ private fun LiveLessonModuleSection(
     Column(
         modifier = Modifier.fillMaxWidth()
             .bringIntoViewRequester(requester)
-            .padding(vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .padding(vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        val moduleNumber = moduleKey.substringAfterLast("-").toIntOrNull() ?: (index + 1)
-        Text("MODULE $moduleNumber", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         Text(
             module.optString("module_title", "Module ${index + 1}"),
             color = TutorDeep,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 19.sp,
+            fontWeight = FontWeight.SemiBold
         )
         val moduleText = module.optString("spoken_text")
         if (active) {
@@ -851,7 +849,7 @@ private fun LiveLessonModuleSection(
                 expandToAvailableHeight = true
             )
         } else {
-            Text(moduleText, color = TutorDeep, fontSize = 15.sp, lineHeight = 23.sp)
+            Text(moduleText, color = TutorDeep, fontSize = 16.sp, lineHeight = 25.sp)
         }
         module.optJSONObject("interactive_lesson")?.let { moduleVisual ->
             MappedLessonImage(moduleVisual, compact = false, showTitle = false)
@@ -2692,19 +2690,16 @@ internal fun TutorScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                         val hasModuleLayout = liveSegments.any { it.has("module_title") }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.GraphicEq, contentDescription = null, tint = TutorGreen, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(7.dp))
-                            Text(if (speechActive) "YOUR TEACHER IS SPEAKING" else if (awaitingUnderstanding) "LET'S CHECK YOUR UNDERSTANDING" else "LESSON", color = TutorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.weight(1f))
-                            if (liveSegments.size > 1) {
-                                if (hasModuleLayout) {
-                                    val activeModuleKey = liveSegments.getOrNull(liveSegmentIndex)?.optString("module_key").orEmpty()
-                                    val activeModuleNumber = activeModuleKey.substringAfterLast("-").toIntOrNull() ?: (liveSegmentIndex + 1)
-                                    Text("MODULE $activeModuleNumber / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                } else {
-                                    Text("SEGMENT ${(liveSegmentIndex + 1).coerceAtMost(liveSegments.size)} / ${liveSegments.size}", color = TutorGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                }
+                        if (hasModuleLayout && liveSegments.size > 1) {
+                            val progress = ((liveSegmentIndex + 1).toFloat() / liveSegments.size.toFloat()).coerceIn(0f, 1f)
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(3.dp)
+                                    .background(Color(0xFFE8EDF0), RoundedCornerShape(50))
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(progress).fillMaxHeight()
+                                        .background(TutorGreen, RoundedCornerShape(50))
+                                )
                             }
                         }
                         if (hasModuleLayout) {

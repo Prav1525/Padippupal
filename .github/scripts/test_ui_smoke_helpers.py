@@ -148,10 +148,10 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('re.search(r"module [1-4] / 4", joined)', live)
+        self.assertIn('re.search(r"segment [1-4] of 4", joined)', live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
-        self.assertIn('"all 1s example diagram" not in joined', live)
+        self.assertIn('"all 1s example diagram" in joined', live)
         self.assertNotIn('"each term stays 1" not in joined', live)
 
     def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):
@@ -159,10 +159,10 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('re.search(r"module [1-4] / 4", joined)', live)
+        self.assertIn('re.search(r"segment [1-4] of 4", joined)', live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
-        self.assertIn('"all 1s example diagram" not in joined', live)
+        self.assertIn('"all 1s example diagram" in joined', live)
         self.assertNotIn('"each term stays 1" not in joined', live)
         self.assertNotIn('"watch the pattern"', live)
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())

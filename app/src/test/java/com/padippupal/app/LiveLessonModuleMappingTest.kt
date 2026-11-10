@@ -21,6 +21,8 @@ class LiveLessonModuleMappingTest {
 
         assertEquals(2, grouped?.size)
         assertEquals(listOf("module-1", "module-2"), grouped?.map { it.moduleKey })
+        assertEquals("step_1", grouped?.get(0)?.stepId)
+        assertEquals("step_2", grouped?.get(1)?.stepId)
         assertEquals("A magnet attracts iron.", grouped?.get(0)?.spokenText)
         assertEquals("A magnet has two poles. They are called north and south.", grouped?.get(1)?.spokenText)
     }

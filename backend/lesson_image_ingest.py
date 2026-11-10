@@ -27,6 +27,14 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,240}$")
 
+def _safe_object_segment(value: object) -> str:
+    """Normalize curriculum labels for storage keys without allowing path traversal."""
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip(".-")
+    if not normalized or normalized in {".", ".."}:
+        raise HTTPException(status_code=422, detail="Lesson curriculum metadata is incomplete.")
+    return normalized[:100]
+
+
 
 def require_image_admin(x_admin_token: str | None = Header(default=None)) -> None:
     if not ADMIN_TOKEN or not x_admin_token or x_admin_token != ADMIN_TOKEN:
@@ -132,15 +140,22 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
         ensure_blob_table(conn)
         for item in prepared:
             lesson = conn.execute(
-                "SELECT id, medium, chapter, status FROM chapter_lessons WHERE id=%s",
+                "SELECT id, board, class_level, subject, medium, chapter, status FROM chapter_lessons WHERE id=%s",
                 (item["lesson_id"],)
             ).fetchone()
-            if not lesson or lesson["status"] != "approved" or lesson["chapter"].strip().casefold() != "beyond earth":
-                raise HTTPException(status_code=422, detail="Images may only attach to an approved Beyond Earth lesson.")
+            if not lesson or lesson["status"] != "approved":
+                raise HTTPException(status_code=422, detail="Images may only attach to an approved lesson.")
             if item.get("medium") and str(item["medium"]).casefold() != str(lesson["medium"]).casefold():
                 raise HTTPException(status_code=422, detail="Manifest medium does not match lesson medium.")
         for item in prepared:
-            object_key = f"beyond-earth/{str(item.get('medium') or 'unknown').lower()}/{item['module_key']}/{item['id']}"
+            object_key = "lesson-images/{}/{}/{}/{}/{}/{}".format(
+                _safe_object_segment(lesson["board"]),
+                _safe_object_segment(lesson["class_level"]),
+                _safe_object_segment(lesson["subject"]),
+                _safe_object_segment(lesson["chapter"]),
+                item["module_key"],
+                item["id"],
+            )
             conn.execute("""
                 INSERT INTO lesson_image_assets
                   (id, lesson_id, module_key, title, step_ids_json, bucket_name, object_key,

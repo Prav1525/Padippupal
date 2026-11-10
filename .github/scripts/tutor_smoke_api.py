@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 import uuid
@@ -145,6 +147,25 @@ def _make_smoke_lesson_png() -> bytes:
 
 SMOKE_LESSON_PNG = _make_smoke_lesson_png()
 
+def _make_smoke_speech(text: str) -> tuple[bytes, list[dict]]:
+    duration_ms = 6000
+    sample_rate = 16000
+    buffer = BytesIO()
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(bytes(sample_rate * duration_ms // 1000 * 2))
+    words = text.split()
+    count = max(1, len(words))
+    timings = [
+        {"start_ms": duration_ms * index // count, "end_ms": duration_ms * (index + 1) // count}
+        for index in range(count)
+    ]
+    return buffer.getvalue(), timings
+
+
+
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, status: int, body: dict) -> None:
@@ -268,7 +289,17 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, LESSON)
             return
         if path == "/tutor/speech":
-            self._send(503, {"detail": "Cloud voice disabled in deterministic smoke fixture"})
+            # Deterministic local audio keeps UI smoke independent of emulator TTS speed.
+            speech_text = str(body.get("text", "")).strip()
+            if not speech_text:
+                self._send(422, {"detail": "Speech text is required"})
+                return
+            speech_wav, word_timings = _make_smoke_speech(speech_text)
+            self._send(200, {
+                "audio_base64": base64.b64encode(speech_wav).decode("ascii"),
+                "word_timings": word_timings,
+                "provider": "deterministic_silent_smoke_audio",
+            })
             return
         if path == "/tutor/chat":
             self._send(200, {
@@ -289,6 +320,11 @@ def self_test() -> None:
     assert len(LESSON["segments"]) == 4
     assert "All 1s" in LESSON["segments"][0]["spoken_text"]
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
+    smoke_wav, smoke_timings = _make_smoke_speech(LESSON["segments"][0]["spoken_text"])
+    with wave.open(BytesIO(smoke_wav), "rb") as wav:
+        assert wav.getnframes() * 1000 // wav.getframerate() == 6000
+    assert len(smoke_timings) == len(LESSON["segments"][0]["spoken_text"].split())
+    assert smoke_timings[-1]["end_ms"] == 6000
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
     assert [segment["module_key"] for segment in LESSON["segments"]] == [f"module-{i}" for i in range(1, 5)]
     assert all(segment["interactive_lesson"]["module_key"] == segment["module_key"] for segment in LESSON["segments"])

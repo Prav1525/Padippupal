@@ -20,6 +20,7 @@ import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -807,6 +808,7 @@ private fun MappedLessonImage(lesson: JSONObject, compact: Boolean, activeStepOv
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LiveLessonModuleSection(
     module: JSONObject,

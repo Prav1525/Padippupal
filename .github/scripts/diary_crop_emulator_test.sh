@@ -32,6 +32,27 @@ tap_label(){
   local xml="$1" label="$2"
   python3 .github/scripts/ui_smoke.py tap "$xml" "$label"
 }
+recover_launcher_anr(){
+  local xml="$1"
+  if ! grep -qi "Pixel Launcher isn't responding" "$xml"; then return 0; fi
+  log "Detected Android launcher ANR dialog; attempting bounded recovery before tapping app controls"
+  python3 .github/scripts/ui_smoke.py tap "$xml" "Wait" || true
+  sleep 5
+  dump_ui diary-home-after-wait
+  if grep -qi "Pixel Launcher isn't responding" ui-screenshots/diary-test/diary-home-after-wait.xml; then
+    log "Launcher remains unresponsive; dismissing the system dialog and relaunching PadippuPal"
+    python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-home-after-wait.xml "Close app" || true
+    sleep 2
+    "${ADB[@]}" shell am force-stop com.padippupal.app
+    "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity >/dev/null
+    sleep 8
+    dump_ui diary-home-after-relaunch
+    if grep -qi "Pixel Launcher isn't responding" ui-screenshots/diary-test/diary-home-after-relaunch.xml; then
+      log "FAIL: Android launcher ANR persisted after one bounded recovery"
+      return 1
+    fi
+  fi
+}
 assert_has(){
   local xml="$1" label="$2"
   grep -qi "$label" "$xml" || { log "FAIL: '$label' not found in $xml"; exit 1; }
@@ -72,7 +93,9 @@ sleep 6
 "${ADB[@]}" shell input swipe 520 1450 520 650 450
 sleep 1
 dump_ui diary-home
-python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-home.xml "Scan homework"
+recover_launcher_anr ui-screenshots/diary-test/diary-home.xml
+dump_ui diary-home-ready
+python3 .github/scripts/ui_smoke.py tap ui-screenshots/diary-test/diary-home-ready.xml "Scan homework"
 sleep 3
 dump_ui diary-scanner
 cp ui-screenshots/diary-test/diary-scanner.xml ui-screenshots/diary-test/scanner-before-camera.xml

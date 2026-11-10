@@ -145,7 +145,7 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
 
     def test_live_smoke_checks_accessible_image_mapping_without_caption_text(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        start = smoke.index("def assert_live(path):")
+        start = smoke.index("def active_module_index(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
         self.assertNotIn("Live lesson is not exposing its active playback segment progress", live)
@@ -157,7 +157,7 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
 
     def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        start = smoke.index("def assert_live(path):")
+        start = smoke.index("def active_module_index(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
         self.assertNotIn("Live lesson is not exposing its active playback segment progress", live)

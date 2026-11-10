@@ -182,6 +182,9 @@ def make_handler():
             if path == "/health":
                 _json(self, 200, {"status": "ok", "service": "production-image-smoke-proxy"})
                 return
+            if path == "/planner/tasks":
+                _json(self, 200, {"tasks": []})
+                return
             if path == "/health/voice":
                 _json(self, 200, {"configured": False, "provider": "android-tts", "fallback": "android-tts"})
                 return

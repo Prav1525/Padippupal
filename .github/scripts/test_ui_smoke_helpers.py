@@ -148,7 +148,7 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('"module 1 / 4" not in joined', live)
+        self.assertIn('re.search(r"module [1-4] / 4", joined)', live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
         self.assertIn('"all 1s example diagram" not in joined', live)

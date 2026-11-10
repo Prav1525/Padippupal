@@ -83,6 +83,7 @@ jobs:
           print("PASS: API returned the indexed test source for CBSE / Class 7 / Science / English.")
           PY\n
       - name: Verify all approved lesson image assets and image bytes
+        if: always()
         shell: bash
         run: |
           set -euo pipefail

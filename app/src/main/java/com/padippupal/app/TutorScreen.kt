@@ -1515,6 +1515,9 @@ internal fun TutorScreen(
     var topic by remember { mutableStateOf(savedSession.optString("topic", "")) }
     var chapterCompleted by remember { mutableStateOf(savedSession.optBoolean("chapter_completed", false)) }
     var completedChapterTitle by remember { mutableStateOf(savedSession.optString("completed_chapter", "")) }
+    // After a completed lesson, keep follow-up exchanges in view instead of
+    // repeatedly snapping the chat back to the chapter-completion card.
+    var chapterFollowUpStarted by remember { mutableStateOf(savedSession.optBoolean("chapter_follow_up_started", false)) }
     var chapterMenuExpanded by remember { mutableStateOf(false) }
     var topicMenuExpanded by remember { mutableStateOf(false) }
     var showLessonSettings by remember(setupOnly) { mutableStateOf(setupOnly) }
@@ -1716,7 +1719,7 @@ internal fun TutorScreen(
         loadCurriculumOutline(subject)
     }
 
-    LaunchedEffect(messages.size, messages.lastOrNull()?.content, subject, chapter, topic, selectedLanguage, chapterCompleted, completedChapterTitle) {
+    LaunchedEffect(messages.size, messages.lastOrNull()?.content, subject, chapter, topic, selectedLanguage, chapterCompleted, completedChapterTitle, chapterFollowUpStarted) {
         val storedMessages = JSONArray()
         messages.takeLast(80).forEach { message ->
             storedMessages.put(JSONObject().put("role", message.role).put("content", message.content))
@@ -1728,6 +1731,7 @@ internal fun TutorScreen(
             .put("topic", topic)
             .put("chapter_completed", chapterCompleted)
             .put("completed_chapter", completedChapterTitle)
+            .put("chapter_follow_up_started", chapterFollowUpStarted)
             .put("language", selectedLanguage)
             .put("messages", storedMessages)
         sessionPrefs.edit().putString(sessionKey, snapshot.toString()).apply()
@@ -2160,6 +2164,7 @@ internal fun TutorScreen(
             status = "Live lesson complete."
             completedChapterTitle = chapter
             chapterCompleted = chapter.isNotBlank()
+            chapterFollowUpStarted = false
             liveInteractiveLesson = null
             return
         }
@@ -2208,6 +2213,7 @@ internal fun TutorScreen(
 
     fun startLiveLesson() {
         if (loading || liveLessonActive) return
+        chapterFollowUpStarted = false
         if (chapter.isBlank() && topic.isBlank()) { status = "Choose a chapter or concept first."; return }
         loading = true
         status = "Preparing a textbook-grounded live lesson…"
@@ -2393,6 +2399,7 @@ internal fun TutorScreen(
     fun sendMessage(startingMessage: String? = null) {
         val question = (startingMessage ?: input).trim()
         if (question.isEmpty() || loading) return
+        if (chapterCompleted) chapterFollowUpStarted = true
         val previous = messages.takeLast(8).map { it.role to it.content }
         messages.add(TutorMessage("user", question))
         input = ""
@@ -2472,7 +2479,7 @@ internal fun TutorScreen(
     }
 
     val chatListState = androidx.compose.foundation.lazy.rememberLazyListState()
-    LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions) {
+    LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions, chapterFollowUpStarted) {
         // Re-run when the curriculum outline arrives: the next-chapter action
         // depends on chapterOptions and may not exist in the first completion frame.
         // Align the completion card's top with the viewport so its full copy and
@@ -2480,8 +2487,13 @@ internal fun TutorScreen(
         val itemCount = messages.size +
             (if (loading) 1 else 0) + (if (chapterCompleted) 1 else 0)
         if (itemCount > 0) {
-            chatListState.animateScrollToItem(itemCount - 1)
-            if (chapterCompleted) {
+            val scrollTarget = if (chapterCompleted && chapterFollowUpStarted) {
+                (messages.size - 1).coerceAtLeast(0)
+            } else {
+                itemCount - 1
+            }
+            chatListState.animateScrollToItem(scrollTarget)
+            if (chapterCompleted && !chapterFollowUpStarted) {
                 // The lesson image can finish decoding after the first scroll and
                 // increase the preceding message item's measured height. Re-align
                 // once that asynchronous layout has settled so the whole completion
@@ -2757,6 +2769,7 @@ internal fun TutorScreen(
                                         chapter = nextTitle
                                         topic = nextTopic
                                         chapterCompleted = false
+                                        chapterFollowUpStarted = false
                                         completedChapterTitle = ""
                                         status = "Opening $nextTitle…"
                                         tutorMainHandler.postDelayed({ startLiveLesson() }, 350L)

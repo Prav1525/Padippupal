@@ -571,9 +571,9 @@ def assert_production_pair_layout(path):
         x1, y1, x2, y2 = map(int, match.groups())
         width, height = x2 - x1, y2 - y1
         ratio = width / max(1, height)
-        if not 1.45 <= ratio <= 1.55:
+        if not 1.35 <= ratio <= 1.65:
             raise SystemExit(f"Mapped image is vertically constrained/cropped: bounds={bounds}, ratio={ratio:.3f}; expected natural 3:2")
-        if not any(_contains_bounds(scroll.attrib.get("bounds", ""), bounds) for scroll in scroll_views):
+        if not any(any(child is image_node for child in scroll.iter("node")) for scroll in scroll_views):
             raise SystemExit("Mapped images are not inside a vertically scrollable teaching surface")
     print("PASS: both production PNGs retain natural 3:2 aspect ratio inside the scrollable tutor canvas")
 

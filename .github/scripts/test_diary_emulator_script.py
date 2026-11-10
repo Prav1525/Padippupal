@@ -26,6 +26,18 @@ class DiaryEmulatorCommandRegressionTests(unittest.TestCase):
         self.assertIn("after 3 attempts", dump_helper)
         self.assertIn('return 1', dump_helper)
 
+    def test_launcher_anr_is_detected_and_recovered_before_diary_tile_tap(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        recovery = source[source.index("recover_launcher_anr(){"):source.index("\\ntap_label(){")]
+        self.assertIn('Pixel Launcher isn\'t responding', recovery)
+        self.assertIn('"Wait"', recovery)
+        self.assertIn('"Close app"', recovery)
+        self.assertIn('am force-stop com.padippupal.app', recovery)
+        self.assertIn('diary-home-after-relaunch', recovery)
+        home = source[source.index('dump_ui diary-home\\n'):source.index('sleep 3\\ndump_ui diary-scanner')]
+        self.assertIn('recover_launcher_anr ui-screenshots/diary-test/diary-home.xml', home)
+        self.assertIn('diary-home-ready.xml', home)
+
     def test_picker_uses_photo_picker_contract_and_selects_fixture_by_filename(self):
         app = (ROOT / "app" / "src" / "main" / "java" / "com" / "padippupal" / "app" / "StudyFeatures.kt").read_text(encoding="utf-8")
         source = SCRIPT.read_text(encoding="utf-8")

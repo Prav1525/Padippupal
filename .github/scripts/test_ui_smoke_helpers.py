@@ -60,8 +60,8 @@ class ExactSelectorTests(unittest.TestCase):
 
     def test_live_lesson_polling_clears_stale_accessibility_trees(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        poll_start = script.index('log "Waiting for a complete lesson caption')
-        poll_end = script.index('log "Lesson UI detected;', poll_start)
+        poll_start = script.index('log "Waiting for each live module')
+        poll_end = script.index('log "Waiting for playback to finish', poll_start)
         poll = script[poll_start:poll_end]
         self.assertIn("rm -f live-lesson.xml", poll)
         self.assertIn('shell rm -f /data/local/tmp/live-lesson.xml', poll)
@@ -81,7 +81,7 @@ class ExactSelectorTests(unittest.TestCase):
           <node text="What is an All 1s pattern" bounds="[0,75][300,105]"/>
           <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,105][300,305]"/>
           <node text="An All 1s example" bounds="[0,305][300,330]"/>
-          <node text="All 1s example diagram" bounds="[0,330][300,360]"/>
+          <node text="" content-desc="What is an All 1s pattern diagram" bounds="[0,330][300,360]"/>
           <node text="A common mistake" bounds="[0,360][300,390]"/>
           <node text="Quick recap" bounds="[0,390][300,420]"/>
           <node text="" content-desc="Pause playback" bounds="[0,420][100,470]"/>
@@ -101,7 +101,7 @@ class ExactSelectorTests(unittest.TestCase):
           <node text="What is an All 1s pattern" bounds="[0,75][300,105]"/>
           <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,105][300,255]"/>
           <node text="An All 1s example" bounds="[0,255][300,285]"/>
-          <node text="All 1s example diagram" bounds="[0,285][300,315]"/>
+          <node text="" content-desc="What is an All 1s pattern diagram" bounds="[0,285][300,315]"/>
           <node text="A common mistake" bounds="[0,315][300,345]"/>
           <node text="Quick recap" bounds="[0,345][300,375]"/>
           <node text="" content-desc="Pause playback" bounds="[0,375][100,425]"/>
@@ -413,8 +413,8 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("assert-live live-lesson.xml > live-assertion.log 2>&1", script)
         self.assertIn("cp live-assertion.log live-assertion-last.log", script)
-        self.assertIn("Last active-lesson assertion:", script)
-        self.assertIn("Sampled active-lesson assertion history:", script)
+        self.assertIn("Last module assertion:", script)
+        self.assertIn("Sampled module assertion history:", script)
         self.assertIn("live-assertion-history.log", script)
         self.assertIn("lesson_poll_count % 10", script)
         self.assertIn("live-complete.xml", script)

@@ -112,8 +112,7 @@ jobs:
             # ships with no TTS service and does not depend on Play Store sign-in.
             bash .github/scripts/android-tts-preflight.sh
             # Run diary picker acceptance first so unrelated tutor failures cannot mask it.
-            bash .github/scripts/diary_crop_emulator_test.sh
-            bash .github/scripts/android-ui-smoke-retry.sh
+            # Run tutor acceptance first: an unrelated diary/launcher failure must not prevent tutor evidence.\n            bash .github/scripts/android-ui-smoke-retry.sh\n            bash .github/scripts/diary_crop_emulator_test.sh
 
       - name: Record test outcomes and failure diagnostics
         if: always()

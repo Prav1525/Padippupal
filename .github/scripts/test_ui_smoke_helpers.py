@@ -440,7 +440,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn('seen_modules', script)
         self.assertIn('live-module-index', script)
         self.assertLess(script.index('module_index=$(python3 .github/scripts/ui_smoke.py live-module-index'), script.index('if python3 .github/scripts/ui_smoke.py assert-live'))
-        self.assertIn('Capture the exact active module independently', script)
+        self.assertIn('Discover/capture the exact active module independently of the broader', script)
         self.assertIn('live-module-${module_index}.png', script)
         self.assertIn('active_module_index(path)', live_assertion)
         self.assertIn('own heading and mapped image', live_assertion)

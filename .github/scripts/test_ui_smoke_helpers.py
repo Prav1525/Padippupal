@@ -151,7 +151,8 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         self.assertNotIn("Live lesson is not exposing its active playback segment progress", live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
-        self.assertIn('"all 1s example diagram" not in joined', live)
+        self.assertIn('active_module_index(path)', live)
+        self.assertIn('matching mapped image', live)
         self.assertNotIn('"each term stays 1" not in joined', live)
 
     def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):
@@ -162,7 +163,8 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         self.assertNotIn("Live lesson is not exposing its active playback segment progress", live)
         self.assertIn('"what is an all 1s pattern"', live)
         self.assertIn('"quick recap"', live)
-        self.assertIn('"all 1s example diagram" not in joined', live)
+        self.assertIn('active_module_index(path)', live)
+        self.assertIn('matching mapped image', live)
         self.assertNotIn('"each term stays 1" not in joined', live)
         self.assertNotIn('"watch the pattern"', live)
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
@@ -423,7 +425,11 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         live_assertion = smoke[live_start:live_end]
         self.assertNotIn("Live lesson is not exposing its active playback segment progress", live_assertion)
         self.assertIn('if "pause" not in joined or "stop" not in joined:', live_assertion)
-        self.assertIn('"all 1s example diagram" not in joined', live_assertion)
+        self.assertIn('seen_modules', script)
+        self.assertIn('live-module-index', script)
+        self.assertIn('live-module-${module_index}.png', script)
+        self.assertIn('active_module_index(path)', live_assertion)
+        self.assertIn('matching mapped image', live_assertion)
 
 
     def test_synthesized_visuals_follow_exact_spoken_segment_boundaries(self):
@@ -479,7 +485,7 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertNotIn("scrollOffset = 10000", tutor)
         fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
         self.assertIn('deterministic_silent_smoke_audio', fixture)
-        self.assertIn('duration_ms = 6000', fixture)
+        self.assertIn('duration_ms = 20000', fixture)
         self.assertIn('word_timings', fixture)
 
     def test_live_module_cards_use_refined_active_state_without_redundant_number_pill(self):

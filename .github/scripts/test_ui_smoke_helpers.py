@@ -417,6 +417,13 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn("lesson_poll_count % 10", script)
         self.assertIn("live-complete.xml", script)
         self.assertNotIn("explicit understanding checkpoint", script)
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        live_start = smoke.index("def assert_live(path):")
+        live_end = smoke.index("\\ndef exact_color_mask", live_start)
+        live_assertion = smoke[live_start:live_end]
+        self.assertNotIn('re.search(r"segment \\\\d+ of \\\\d+", joined)', live_assertion)
+        self.assertIn('if "pause" not in joined or "stop" not in joined:', live_assertion)
+        self.assertIn('"all 1s example diagram" not in joined', live_assertion)
 
 
     def test_synthesized_visuals_follow_exact_spoken_segment_boundaries(self):
@@ -464,9 +471,10 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('tutorMainHandler.postDelayed({ startLiveLesson() }, 350L)', tutor)
         self.assertIn('.put("chapter_completed", chapterCompleted)', tutor)
         self.assertIn('.put("completed_chapter", completedChapterTitle)', tutor)
-        self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted)', tutor)
+        self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions)', tutor)
         self.assertIn('(if (chapterCompleted) 1 else 0)', tutor)
-        self.assertIn("scrollOffset = 10000", tutor)
+        self.assertIn('chatListState.animateScrollToItem(itemCount - 1)', tutor)
+        self.assertNotIn("scrollOffset = 10000", tutor)
 
     def test_live_module_cards_use_refined_active_state_without_redundant_number_pill(self):
         tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /

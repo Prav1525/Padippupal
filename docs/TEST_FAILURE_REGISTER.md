@@ -400,3 +400,12 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Fix:** Make active-state detection rely on Pause/Stop plus ordered module headings and the exact mapped image alt label. Align the completion card at the top of the viewport and rerun the scroll effect when chapter options load.
 - **Regression coverage:** Helper tests assert that active detection no longer requires the transient segment status, while still requiring Pause/Stop and mapped image evidence. Chapter-completion tests assert top-aligned scrolling and the curriculum-options dependency.
 - **Validation:** Fixes committed together; fresh exact-head CI and Android API 35 emulator evidence are required. No production database changes, image deletion, merge, or deployment.
+
+
+## 2026-11-10 — Android smoke expected all live module headings simultaneously
+
+- **Evidence:** Android API 35 run [42811594119](https://github.com/Prav1525/Padippupal/actions/runs/42811594119), job [129814113182], artifact [13763576104]. Poll history shows the accessible active heading changed over time: module 1 was initially present, then module 2, then module 3/4; by the final sample playback had completed and Pause/Stop were no longer present.
+- **Confirmed test defect:** The smoke assertion required all four module headings plus the fixed “All 1s example diagram” label in a single accessibility snapshot. The live teaching canvas scrolls the active module into view, so a snapshot represents the currently active module rather than all four at once. The test waited through the entire lesson and then rejected the completed state. It did not prove the four module images were all rendered.
+- **Correction:** Validate the active module heading against that same module's exact image alt label, record a real screenshot/XML for each of the four module states, and require all four distinct modules to be observed during playback. Exercise Pause/Resume during module 1 rather than after playback has ended. Increase only the deterministic local fixture audio duration to give the emulator time to inspect each module; production speech behavior is unchanged.
+- **Additional mapping hardening:** Carry the exact step_id from the approved manifest grouping into each module visual so the image renderer matches both the module and step instead of relying on module-only fallback.
+- **Validation:** Fresh JVM, script, API fixture, and Android API 35 emulator checks on the updated PR head are required. No merge, production deployment, production database writes, or image deletion.

@@ -7,8 +7,34 @@ REPORT=ui-screenshots/production-image/test-report.txt
 : > "$REPORT"
 capture() {
   local name="$1"
-  timeout 20s "${ADB[@]}" shell uiautomator dump "/data/local/tmp/${name}.xml" >/dev/null
-  timeout 10s "${ADB[@]}" pull "/data/local/tmp/${name}.xml" "ui-screenshots/production-image/${name}.xml" >/dev/null
+  local remote="/data/local/tmp/${name}.xml"
+  local local_file="ui-screenshots/production-image/${name}.xml"
+  local attempt
+  rm -f "$local_file"
+  for attempt in 1 2 3 4 5; do
+    timeout 10s "${ADB[@]}" shell rm -f "$remote" >/dev/null 2>&1 || true
+    # UIAutomator occasionally starts before the Compose accessibility root is
+    # attached on a cold emulator. Never reuse stale XML; retry a fresh dump.
+    if timeout 15s "${ADB[@]}" shell uiautomator dump --compressed "$remote" >/dev/null 2>&1 &&
+       timeout 10s "${ADB[@]}" pull "$remote" "$local_file" >/dev/null 2>&1 &&
+       [ -s "$local_file" ] &&
+       python3 - "$local_file" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+raise SystemExit(0 if root.tag == "hierarchy" and len(list(root.iter("node"))) else 1)
+PY
+    then
+      echo "Captured fresh accessibility tree: $name (attempt $attempt)"
+      return 0
+    fi
+    rm -f "$local_file"
+    sleep 2
+  done
+  timeout 10s "${ADB[@]}" exec-out screencap -p > "ui-screenshots/production-image/${name}-failure.png" 2>/dev/null || true
+  timeout 10s "${ADB[@]}" shell service check accessibility > "ui-screenshots/production-image/accessibility-service.txt" 2>&1 || true
+  echo "FAIL: UIAutomator returned no usable hierarchy for $name after 5 fresh attempts" >&2
+  return 1
 }
 tap() {
   local xml="$1" action="$2" label="${3:-}"

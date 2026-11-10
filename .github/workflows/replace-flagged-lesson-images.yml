@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: padippupal-alignment-replacements-preview
-          path: ${{ runner.temp }}/padippupal-alignment-replacements/*.png
+          path: ${{ runner.temp }}/padippupal-alignment-replacements/**/*.png
           if-no-files-found: error
           retention-days: 14
       - name: Stage as pending review (not learner-visible)

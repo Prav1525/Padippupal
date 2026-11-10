@@ -837,7 +837,7 @@ private fun LiveLessonModuleSection(
         if (active) {
             WordByWordCaption(
                 moduleText,
-                speechActive = speechActive,
+                active = speechActive,
                 currentWordIndex = liveWordIndex,
                 modifier = Modifier.fillMaxWidth(),
                 expandToAvailableHeight = true

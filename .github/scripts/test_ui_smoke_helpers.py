@@ -444,6 +444,9 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn('live-module-${module_index}.png', script)
         self.assertIn('active_module_index(path)', live_assertion)
         self.assertIn('own heading and mapped image', live_assertion)
+        self.assertIn('if [ "$seen_modules" = ",1,2,3,4," ]; then', script)
+        self.assertIn('lesson_started=1', script)
+        self.assertLess(script.index('lesson_started=1'), script.index('if [ "$lesson_started" -ne 1 ]; then'))
 
 
     def test_synthesized_visuals_follow_exact_spoken_segment_boundaries(self):

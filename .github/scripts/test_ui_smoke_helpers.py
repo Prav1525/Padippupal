@@ -70,7 +70,7 @@ class ExactSelectorTests(unittest.TestCase):
         self.assertLess(poll.index('shell rm -f /data/local/tmp/live-lesson.xml'), poll.index('shell uiautomator dump /data/local/tmp/live-lesson.xml'))
 
         completion_start = script.index('log "Waiting for playback to finish')
-        completion_end = script.index('assert-completed-lesson live-complete.xml | tee', completion_start)
+        completion_end = script.index('assert-completed-lesson live-complete.xml ui-screenshots/live-module-4.xml | tee', completion_start)
         completion_poll = script[completion_start:completion_end]
         self.assertIn("rm -f live-complete.xml", completion_poll)
         self.assertIn('shell rm -f /data/local/tmp/live-complete.xml', completion_poll)

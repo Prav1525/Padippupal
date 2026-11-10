@@ -81,7 +81,8 @@ jobs:
           if not expected:
               sys.exit("FAIL: indexed test source was not retrieved for the requested profile")
           print("PASS: API returned the indexed test source for CBSE / Class 7 / Science / English.")
-          PY\n
+          PY
+
       - name: Verify all approved lesson image assets and image bytes
         if: always()
         shell: bash
@@ -120,7 +121,7 @@ jobs:
                   payload = json.load(response)
               if payload.get("lesson_id") != lesson_id or not isinstance(payload.get("images"), list):
                   raise SystemExit(f"FAIL: malformed image manifest for lesson {lesson_id}")
-              all_assets.extend(payload["images"])
+              all_assets.extend({**item, "lesson_id": lesson_id} for item in payload["images"])
 
           actual_pairs = {(item["lesson_id"], item["module_key"]) for item in all_assets}
           if len(all_assets) != 172:

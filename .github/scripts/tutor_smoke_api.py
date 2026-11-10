@@ -322,7 +322,7 @@ def self_test() -> None:
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
     smoke_wav, smoke_timings = _make_smoke_speech(LESSON["segments"][0]["spoken_text"])
     with wave.open(BytesIO(smoke_wav), "rb") as wav:
-        assert wav.getnframes() * 1000 // wav.getframerate() == 6000
+        assert wav.getnframes() * 1000 // wav.getframerate() == 20000
     assert len(smoke_timings) == len(LESSON["segments"][0]["spoken_text"].split())
     assert smoke_timings[-1]["end_ms"] == 6000
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])

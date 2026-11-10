@@ -2272,69 +2272,60 @@ internal fun TutorScreen(
                     // Approved lessons carry exact module_key -> step_ids mappings in the
                     // read-only image manifest. Group the spoken text by those mappings;
                     // never infer a module from topic wording or a neighbouring step.
+                    // Build the learner-facing module list from the approved teaching
+                    // sequence returned by the lesson API, not from the image manifest.
+                    // Image availability is optional and must not control whether modules
+                    // are split. MappedLessonImage independently fetches the exact image
+                    // for each module/step below.
                     val moduleSegments = if (response.optString("provider") == "approved_chapter_lesson") {
                         runCatching {
                             val lessonId = response.optString("lesson_id").trim()
                             if (lessonId.isBlank()) {
                                 emptyList<JSONObject>()
                             } else {
-                                val encodedLessonId = URLEncoder.encode(lessonId, "UTF-8")
-                                val manifestConnection = URL("$base/chapter-lessons/$encodedLessonId/images").openConnection() as HttpURLConnection
-                                manifestConnection.connectTimeout = 8000
-                                manifestConnection.readTimeout = 12000
-                                manifestConnection.requestMethod = "GET"
-                                try {
-                                    if (manifestConnection.responseCode != HttpURLConnection.HTTP_OK) {
-                                        emptyList()
-                                    } else {
-                                        val manifestText = manifestConnection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
-                                        val imageRows = JSONObject(manifestText).optJSONArray("images") ?: JSONArray()
-                                        val modulesByKey = linkedMapOf<String, LiveLessonModuleCandidate>()
-                                        for (imageIndex in 0 until imageRows.length()) {
-                                            val image = imageRows.optJSONObject(imageIndex) ?: continue
-                                            val moduleKey = image.optString("module_key").trim()
-                                            if (moduleKey.isBlank()) continue
-                                            val stepArray = image.optJSONArray("step_ids") ?: JSONArray()
-                                            val stepIds = (0 until stepArray.length()).map { stepArray.optString(it).trim() }
-                                                .filter { it.isNotBlank() }
-                                            if (stepIds.isEmpty()) continue
-                                            val title = image.optString("title").ifBlank { image.optString("alt_text") }.ifBlank { moduleKey }
-                                            val previous = modulesByKey[moduleKey]
-                                            modulesByKey[moduleKey] = LiveLessonModuleCandidate(
-                                                moduleKey = moduleKey,
-                                                title = previous?.title?.takeIf { it.isNotBlank() } ?: title,
-                                                stepIds = (previous?.stepIds.orEmpty() + stepIds).distinct()
-                                            )
-                                        }
-                                        val moduleCandidates = modulesByKey.values.sortedBy {
-                                            it.moduleKey.substringAfterLast("-").toIntOrNull() ?: Int.MAX_VALUE
-                                        }
-                                        val segmentCandidates = lessonSegments.map {
-                                            LiveLessonSegmentCandidate(it.optString("id"), it.optString("spoken_text"))
-                                        }
-                                        val grouped = groupLiveLessonSegmentsByModule(moduleCandidates, segmentCandidates)
-                                        grouped?.map { module ->
-                                            val moduleVisual = JSONObject()
-                                                .put("lesson_id", lessonId)
-                                                .put("topic", topic)
-                                                .put("module_key", module.moduleKey)
-                                                .put("step_id", module.stepId)
-                                                .put("title", module.title)
-                                                .put("scene_type", "synthesis_static")
-                                            JSONObject()
-                                                .put("id", module.moduleKey)
-                                                .put("spoken_text", module.spokenText)
-                                                .put("caption_text", module.spokenText)
-                                                .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
-                                                .put("interactive_lesson", moduleVisual)
-                                                .put("checkpoint", JSONObject.NULL)
-                                                .put("module_title", module.title)
-                                                .put("module_key", module.moduleKey)
-                                        } ?: emptyList()
-                                    }
-                                } finally {
-                                    manifestConnection.disconnect()
+                                val modulesByKey = linkedMapOf<String, LiveLessonModuleCandidate>()
+                                lessonSegments.forEachIndexed { index, segment ->
+                                    val stepId = segment.optString("id").trim()
+                                    if (stepId.isBlank()) return@forEachIndexed
+                                    val stepNumber = Regex("step[_-]?([1-9][0-9]*)")
+                                        .matchEntire(stepId)?.groupValues?.get(1)?.toIntOrNull()
+                                    val moduleNumber = stepNumber ?: (index + 1)
+                                    val moduleKey = segment.optString("module_key").trim()
+                                        .ifBlank { "module-$moduleNumber" }
+                                    val title = segment.optString("module_title").trim()
+                                        .ifBlank { "Module $moduleNumber" }
+                                    val previous = modulesByKey[moduleKey]
+                                    modulesByKey[moduleKey] = LiveLessonModuleCandidate(
+                                        moduleKey = moduleKey,
+                                        title = previous?.title?.takeIf { it.isNotBlank() } ?: title,
+                                        stepIds = (previous?.stepIds.orEmpty() + stepId).distinct()
+                                    )
                                 }
+                                val moduleCandidates = modulesByKey.values.sortedBy {
+                                    it.moduleKey.substringAfterLast("-").toIntOrNull() ?: Int.MAX_VALUE
+                                }
+                                val segmentCandidates = lessonSegments.map {
+                                    LiveLessonSegmentCandidate(it.optString("id"), it.optString("spoken_text"))
+                                }
+                                val grouped = groupLiveLessonSegmentsByModule(moduleCandidates, segmentCandidates)
+                                grouped?.map { module ->
+                                    val moduleVisual = JSONObject()
+                                        .put("lesson_id", lessonId)
+                                        .put("topic", topic)
+                                        .put("module_key", module.moduleKey)
+                                        .put("step_id", module.stepId)
+                                        .put("title", module.title)
+                                        .put("scene_type", "synthesis_static")
+                                    JSONObject()
+                                        .put("id", module.moduleKey)
+                                        .put("spoken_text", module.spokenText)
+                                        .put("caption_text", module.spokenText)
+                                        .put("visual_action", JSONObject().put("type", "none").put("target", "").put("value", ""))
+                                        .put("interactive_lesson", moduleVisual)
+                                        .put("checkpoint", JSONObject.NULL)
+                                        .put("module_title", module.title)
+                                        .put("module_key", module.moduleKey)
+                                } ?: emptyList()
                             }
                         }.getOrDefault(emptyList())
                     } else emptyList()

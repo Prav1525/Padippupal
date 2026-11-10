@@ -3,6 +3,8 @@ name: Deployed PadippuPal API Smoke Test
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -12,6 +14,8 @@ jobs:
   retrieve-smoke-test:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Wait for API to wake up
         shell: bash
         run: |
@@ -77,4 +81,95 @@ jobs:
           if not expected:
               sys.exit("FAIL: indexed test source was not retrieved for the requested profile")
           print("PASS: API returned the indexed test source for CBSE / Class 7 / Science / English.")
+          PY
+
+      - name: Verify all approved lesson image assets and image bytes
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import struct
+          import urllib.error
+          import urllib.request
+          from collections import Counter
+
+          base = "https://padippupal-curriculum-api.onrender.com"
+          with open("assets/lesson-images/authoring-manifest.json", encoding="utf-8") as handle:
+              manifest = json.load(handle)
+          expected_pairs = {
+              (item["lesson_id"], item["module_key"])
+              for item in manifest["images"]
+          }
+          expected_lessons = {lesson_id for lesson_id, _ in expected_pairs}
+          if len(expected_pairs) != 170 or len(expected_lessons) != 22:
+              raise SystemExit(
+                  f"Manifest contract changed: {len(expected_pairs)} pairs / "
+                  f"{len(expected_lessons)} lessons"
+              )
+
+          all_assets = []
+          for lesson_id in sorted(expected_lessons):
+              url = f"{base}/chapter-lessons/{lesson_id}/images"
+              request = urllib.request.Request(url, headers={"Accept": "application/json"})
+              with urllib.request.urlopen(request, timeout=45) as response:
+                  if response.status != 200:
+                      raise SystemExit(f"FAIL: image manifest HTTP {response.status}: {lesson_id}")
+                  payload = json.load(response)
+              if payload.get("lesson_id") != lesson_id or not isinstance(payload.get("images"), list):
+                  raise SystemExit(f"FAIL: malformed image manifest for lesson {lesson_id}")
+              all_assets.extend({**item, "lesson_id": lesson_id} for item in payload["images"])
+
+          actual_pairs = {(item["lesson_id"], item["module_key"]) for item in all_assets}
+          if len(all_assets) != 172:
+              raise SystemExit(f"FAIL: expected 172 ready assets, API returned {len(all_assets)}")
+          if len({item.get("id") for item in all_assets}) != 172:
+              raise SystemExit("FAIL: missing or duplicate asset IDs in production image manifests")
+          if actual_pairs != expected_pairs:
+              missing = sorted(expected_pairs - actual_pairs)
+              extra = sorted(actual_pairs - expected_pairs)
+              raise SystemExit(f"FAIL: lesson/module mapping mismatch; missing={missing}, extra={extra}")
+
+          per_pair = Counter((item["lesson_id"], item["module_key"]) for item in all_assets)
+          paired = {pair for pair, count in per_pair.items() if count == 2}
+          if len(paired) != 2 or any(count not in (1, 2) for count in per_pair.values()):
+              raise SystemExit(f"FAIL: expected exactly two paired modules; found {len(paired)}")
+
+          for index, item in enumerate(all_assets, 1):
+              image_url = item.get("url", "")
+              expected_prefix = f"/chapter-lessons/{item['lesson_id']}/images/"
+              if not image_url.startswith(expected_prefix) or ".." in image_url:
+                  raise SystemExit(f"FAIL: unsafe or mismatched image URL for {item.get('id')}")
+              request = urllib.request.Request(base + image_url, headers={"Accept": "image/png"})
+              with urllib.request.urlopen(request, timeout=45) as response:
+                  body = response.read()
+                  content_type = response.headers.get_content_type()
+                  if response.status != 200 or content_type != "image/png":
+                      raise SystemExit(
+                          f"FAIL: asset {item.get('id')} returned HTTP {response.status}, "
+                          f"content-type={content_type}"
+                      )
+              if not body.startswith(b"\x89PNG\r\n\x1a\n"):
+                  raise SystemExit(f"FAIL: asset {item.get('id')} is not a valid PNG")
+              width, height = struct.unpack(">II", body[16:24])
+              if (width, height) != (1080, 720):
+                  raise SystemExit(
+                      f"FAIL: asset {item.get('id')} dimensions are {width}x{height}, expected 1080x720"
+                  )
+              digest = hashlib.sha256(body).hexdigest()
+              if digest != item.get("sha256"):
+                  raise SystemExit(f"FAIL: SHA-256 mismatch for asset {item.get('id')}")
+              if item.get("byte_length") != len(body):
+                  raise SystemExit(f"FAIL: byte length mismatch for asset {item.get('id')}")
+              if index % 25 == 0:
+                  print(f"Verified {index}/{len(all_assets)} production PNGs")
+
+          print(
+              "PASS: 172/172 production PNGs are learner-visible, fetchable, "
+              "SHA-256 verified, 1080x720, and mapped to all 170 manifest pairs "
+              "across 22 approved lessons; both paired modules are present."
+          )
           PY

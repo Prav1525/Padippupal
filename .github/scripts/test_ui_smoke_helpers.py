@@ -159,8 +159,10 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
         start = smoke.index("def assert_live(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('"all 1s pattern visual" not in joined', live)
-        self.assertIn('"all 1s example" not in joined', live)
+        self.assertIn('"module 1 / 4" not in joined', live)
+        self.assertIn('"what is an all 1s pattern"', live)
+        self.assertIn('"quick recap"', live)
+        self.assertIn('"all 1s example diagram" not in joined', live)
         self.assertNotIn('"each term stays 1" not in joined', live)
         self.assertNotIn('"watch the pattern"', live)
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())

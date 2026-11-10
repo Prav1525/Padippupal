@@ -34,10 +34,6 @@ for attempt in 1 2; do
 
   if [ "$result" -eq 0 ]; then
     echo "UI smoke test passed on attempt $attempt"
-    # Preserve the successful run too. Previously the success exit happened
-    # before the evidence-copy block below, leaving the uploaded artifact with
-    # only a tiny top-level screenshot and no four-module PNG/XML proof.
-    echo "Successful tutor evidence preserved under $evidence"
     exit 0
   fi
   # Retry only environment failures. Re-running a deterministic app/acceptance

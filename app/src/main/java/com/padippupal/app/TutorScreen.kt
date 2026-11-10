@@ -2499,7 +2499,12 @@ internal fun TutorScreen(
         // chapter action is scrolled fully into view after playback ends.
         val itemCount = messages.size +
             (if (loading) 1 else 0) + (if (chapterCompleted) 1 else 0)
-        if (itemCount > 0) chatListState.animateScrollToItem(itemCount - 1)
+        if (itemCount > 0) {
+            // Align the tail of the completion item with the bottom of the
+            // viewport. The default offset aligns its top, which can leave the
+            // next-chapter copy and primary action below the visible list area.
+            chatListState.animateScrollToItem(itemCount - 1, scrollOffset = 10000)
+        }
     }
 
     // Hosted audio uses playback position; Android TTS normally supplies exact

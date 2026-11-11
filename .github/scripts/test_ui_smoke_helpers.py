@@ -431,7 +431,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn('FilterChip(selected = false, onClick = { sendMessage("Can you explain that more simply?") }', tutor)
         self.assertIn('sendMessage("Can you show me another example?")', tutor)
         self.assertNotIn('Why does this rule work?', tutor)
-        self.assertEqual(tutor.count("FilterChip("), 2)
+        self.assertEqual(tutor.count('sendMessage("Can you'), 2)
         self.assertIn('label = { Text(if (chapterCompleted) "Follow-up question" else "Message your teacher") }', tutor)
         self.assertIn('contentDescription = if (chapterCompleted) "Send follow-up question" else "Send question"', tutor)
         self.assertIn('.put("chapter_follow_up_started", chapterFollowUpStarted)', tutor)

@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import (assert_composer_question, assert_home, assert_live, concept_candidates, exact_color_mask,
+from ui_smoke import (assert_composer_question, assert_followup_question, assert_home, assert_live, concept_candidates, exact_color_mask,
                        exact_text_candidates, main as ui_smoke_main, tap, tap_input)
 
 
@@ -39,8 +39,21 @@ class ExactSelectorTests(unittest.TestCase):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("tap-input follow-up-input.xml", script)
         self.assertIn("assert-composer-question follow-up-typed.xml", script)
-        self.assertIn('tap follow-up-typed.xml "Send question"', script)
+        self.assertIn('tap follow-up-typed.xml "Send follow-up question"', script)
+        self.assertIn("assert-followup-question follow-up-sent.xml", script)
+        self.assertIn("follow-up-sent.xml", script)
         self.assertIn("follow-up-typed.xml", script)
+
+    def test_follow_up_question_assertion_checks_posted_chat_bubble(self):
+        posted = ET.fromstring("""<hierarchy>
+          <node class="android.widget.TextView" text="Why does All 1s repeat?" bounds="[0,0][300,80]"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-follow-up-question-test.xml"
+        try:
+            path.write_text(ET.tostring(posted, encoding="unicode"))
+            assert_followup_question(str(path))
+        finally:
+            path.unlink(missing_ok=True)
 
     def test_composer_assertion_rejects_empty_input_before_send(self):
         empty = ET.fromstring("""<hierarchy>
@@ -413,8 +426,11 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
         self.assertIn('var chapterFollowUpStarted by remember { mutableStateOf(savedSession.optBoolean("chapter_follow_up_started", false)) }', tutor)
         self.assertIn('if (chapterCompleted) chapterFollowUpStarted = true', tutor)
-        self.assertIn('val scrollTarget = if (chapterCompleted && chapterFollowUpStarted)', tutor)
+        self.assertIn('val completionCardVisible = chapterCompleted && !chapterFollowUpStarted', tutor)
         self.assertIn('if (chapterCompleted && !chapterFollowUpStarted)', tutor)
+        self.assertIn('FilterChip(selected = false, onClick = { sendMessage("Can you explain that more simply?") }', tutor)
+        self.assertIn('label = { Text(if (chapterCompleted) "Follow-up question" else "Message your teacher") }', tutor)
+        self.assertIn('contentDescription = if (chapterCompleted) "Send follow-up question" else "Send question"', tutor)
         self.assertIn('.put("chapter_follow_up_started", chapterFollowUpStarted)', tutor)
 
     def test_completed_lesson_is_kept_for_follow_up_chat(self):
@@ -505,7 +521,7 @@ class ChapterCompletionFlowTests(unittest.TestCase):
                  "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
         self.assertIn('completedChapterTitle = chapter', tutor)
         self.assertIn('chapterCompleted = chapter.isNotBlank()', tutor)
-        self.assertIn('if (chapterCompleted)', tutor)
+        self.assertIn('if (chapterCompleted && !chapterFollowUpStarted)', tutor)
         self.assertIn('val nextChapter = if (completedIndex >= 0) chapterOptions.getOrNull(completedIndex + 1) else null', tutor)
         self.assertIn('Text("Start next chapter  →"', tutor)
         self.assertIn('chapter = nextTitle', tutor)
@@ -514,7 +530,7 @@ class ChapterCompletionFlowTests(unittest.TestCase):
         self.assertIn('.put("chapter_completed", chapterCompleted)', tutor)
         self.assertIn('.put("completed_chapter", completedChapterTitle)', tutor)
         self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions, chapterFollowUpStarted)', tutor)
-        self.assertIn('(if (chapterCompleted) 1 else 0)', tutor)
+        self.assertIn('(if (completionCardVisible) 1 else 0)', tutor)
         self.assertIn('chatListState.animateScrollToItem(itemCount - 1)', tutor)
         self.assertIn('delay(700L)', tutor)
         self.assertIn('once that asynchronous layout has settled', tutor)

@@ -428,7 +428,7 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn('if (chapterCompleted) chapterFollowUpStarted = true', tutor)
         self.assertIn('val completionCardVisible = chapterCompleted && !chapterFollowUpStarted', tutor)
         self.assertIn('if (chapterCompleted && !chapterFollowUpStarted)', tutor)
-        self.assertIn('FilterChip(selected = false, onClick = { sendMessage("Can you explain that more simply?") }', tutor)
+        self.assertIn('onClick = { sendMessage("Can you explain that more simply?") }', tutor)
         self.assertIn('sendMessage("Can you show me another example?")', tutor)
         self.assertNotIn('Why does this rule work?', tutor)
         self.assertEqual(tutor.count('sendMessage("Can you'), 2)

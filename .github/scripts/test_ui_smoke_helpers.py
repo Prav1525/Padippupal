@@ -443,6 +443,9 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertIn('status = "Live lesson complete."', tutor)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
         self.assertIn("def assert_completed_lesson(path, lesson_snapshot_path=None):", smoke)
+        completed_check = smoke[smoke.index("def assert_completed_lesson(path, lesson_snapshot_path=None):"):smoke.index("\ndef assert_followup_answer", smoke.index("def assert_completed_lesson(path, lesson_snapshot_path=None):"))]
+        self.assertIn('"follow-up question" not in joined', completed_check)
+        self.assertIn('"ask a follow-up" not in joined', completed_check)
         self.assertIn("def assert_followup_answer(path):", smoke)
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("Waiting for playback to finish", script)

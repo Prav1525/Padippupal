@@ -2943,13 +2943,22 @@ internal fun TutorScreen(
 
         if (!liveLessonActive && chapterCompleted && !chapterFollowUpStarted && !showLessonSettings) {
             Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChip(selected = false, onClick = { sendMessage("Can you explain that more simply?") }, label = { Text("Explain simply", maxLines = 1) })
-                FilterChip(selected = false, onClick = { sendMessage("Can you show me another example?") }, label = { Text("Another example", maxLines = 1) })
-                FilterChip(selected = false, onClick = { sendMessage("Why does this rule work?") }, label = { Text("Why does it work?", maxLines = 1) })
+                FilterChip(
+                    selected = false,
+                    onClick = { sendMessage("Can you explain that more simply?") },
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Explain simply", maxLines = 1) }
+                )
+                FilterChip(
+                    selected = false,
+                    onClick = { sendMessage("Can you show me another example?") },
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Another example", maxLines = 1) }
+                )
             }
         }
         if (!liveLessonActive && status.isNotBlank()) {

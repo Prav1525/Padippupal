@@ -2484,16 +2484,14 @@ internal fun TutorScreen(
         // depends on chapterOptions and may not exist in the first completion frame.
         // Align the completion card's top with the viewport so its full copy and
         // primary action remain visible; a large positive offset can clip the card.
+        val completionCardVisible = chapterCompleted && !chapterFollowUpStarted
         val itemCount = messages.size +
-            (if (loading) 1 else 0) + (if (chapterCompleted) 1 else 0)
+            (if (loading) 1 else 0) + (if (completionCardVisible) 1 else 0)
         if (itemCount > 0) {
-            val scrollTarget = if (chapterCompleted && chapterFollowUpStarted) {
-                (messages.size - 1).coerceAtLeast(0)
-            } else {
-                itemCount - 1
-            }
-            chatListState.animateScrollToItem(scrollTarget)
-            if (chapterCompleted && !chapterFollowUpStarted) {
+            // The completion card is a one-time handoff. Once the learner asks
+            // a follow-up, remove it so the question and reply use the full viewport.
+            chatListState.animateScrollToItem(itemCount - 1)
+            if (completionCardVisible) {
                 // The lesson image can finish decoding after the first scroll and
                 // increase the preceding message item's measured height. Re-align
                 // once that asynchronous layout has settled so the whole completion
@@ -2734,7 +2732,7 @@ internal fun TutorScreen(
                     }
                 }
             }
-            if (chapterCompleted) {
+            if (chapterCompleted && !chapterFollowUpStarted) {
                 val completedIndex = chapterOptions.indexOfFirst { it.first.equals(completedChapterTitle, ignoreCase = true) }
                 val nextChapter = if (completedIndex >= 0) chapterOptions.getOrNull(completedIndex + 1) else null
                 item(key = "chapter-complete-${completedChapterTitle}") {
@@ -2943,6 +2941,17 @@ internal fun TutorScreen(
             }
         }
 
+        if (!liveLessonActive && chapterCompleted && !chapterFollowUpStarted && !showLessonSettings) {
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FilterChip(selected = false, onClick = { sendMessage("Can you explain that more simply?") }, label = { Text("Explain simply", maxLines = 1) })
+                FilterChip(selected = false, onClick = { sendMessage("Can you show me another example?") }, label = { Text("Another example", maxLines = 1) })
+                FilterChip(selected = false, onClick = { sendMessage("Why does this rule work?") }, label = { Text("Why does it work?", maxLines = 1) })
+            }
+        }
         if (!liveLessonActive && status.isNotBlank()) {
             Text(status, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp), color = TutorGrey, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2)
         }
@@ -2967,7 +2976,8 @@ internal fun TutorScreen(
                     value = input,
                     onValueChange = { input = it },
                     modifier = Modifier.weight(1f).heightIn(min = 52.dp, max = 112.dp),
-                    placeholder = { Text("Ask your teacher…", fontSize = 14.sp) },
+                    label = { Text(if (chapterCompleted) "Follow-up question" else "Message your teacher") },
+                    placeholder = { Text(if (chapterCompleted) "Ask a follow-up…" else "Ask your teacher…", fontSize = 14.sp) },
                     shape = RoundedCornerShape(20.dp),
                     minLines = 1,
                     maxLines = 4,
@@ -2993,9 +3003,9 @@ internal fun TutorScreen(
                     Icon(if (listening) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = if (listening) "Stop voice input" else "Ask by voice")
                 }
                 FilledIconButton(
-                    onClick = { sendMessage() }, enabled = !loading && input.isNotBlank(), modifier = Modifier.size(50.dp),
+                    onClick = { sendMessage() }, enabled = !loading && input.isNotBlank(), modifier = Modifier.size(56.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = TutorGreen, contentColor = Color.White)
-                ) { Icon(Icons.Default.Send, contentDescription = "Send question") }
+                ) { Icon(Icons.Default.Send, contentDescription = if (chapterCompleted) "Send follow-up question" else "Send question") }
             }
         }
         }

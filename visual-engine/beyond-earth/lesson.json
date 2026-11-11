@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "chapter_id": "science-beyond-earth",
+  "title": "Beyond Earth",
+  "renderer": "pixijs",
+  "authoring_compatibility": "excalidraw-inspired-scene",
+  "layout": "single-continuous-canvas",
+  "no_svg": true,
+  "stages": [
+    {"id":"space-neighbours","step":0,"concept":"Sun, Earth and Moon","narration":"Meet three neighbours in space. The Sun is a star. Earth is a planet. The Moon is Earth's natural satellite.","visual_events":["draw_sun","draw_earth","draw_moon","label_minimal"],"check":{"question":"Which of these is a star?","answer":"The Sun."}},
+    {"id":"scale-and-distance","step":1,"concept":"Comparing space objects","narration":"These objects are very different in size and distance. Our sketch is a teaching model, not a scale drawing.","visual_events":["compare_objects","show_not_to_scale_note"],"check":{"question":"Are the sizes and distances in this sketch to scale?","answer":"No. It is a simplified model."}},
+    {"id":"earth-rotation","step":2,"concept":"Earth's rotation","narration":"Earth spins around an imaginary line called its axis. One complete rotation takes about a day.","visual_events":["show_axis","animate_rotation_arrow"],"check":{"question":"What do we call Earth's spinning movement?","answer":"Rotation."}},
+    {"id":"day-night","step":3,"concept":"Day and night","narration":"Sunlight illuminates the half of Earth facing the Sun. The half turned away is in darkness. As Earth rotates, places move between day and night.","visual_events":["draw_sunlight_rays","shade_night_side","rotate_earth"],"check":{"question":"What causes the regular change between day and night?","answer":"Earth's rotation."}},
+    {"id":"sunlight-moon","step":4,"concept":"The Moon reflects sunlight","narration":"The Moon does not make its own light. Sunlight falls on the Moon, and the Moon reflects some of that light towards us.","visual_events":["draw_sun_earth_moon","show_parallel_sunlight_rays","highlight_lit_half"],"check":{"question":"Does the Moon make its own light?","answer":"No. It reflects sunlight."}},
+    {"id":"moon-phases","step":5,"concept":"Phases of the Moon","narration":"As the Moon travels around Earth, our viewing angle changes. We see different portions of the half lit by the Sun. These appearances are called phases.","visual_events":["place_earth_centre","orbit_moon","reveal_phase_sequence"],"check":{"question":"Why does the Moon appear to change shape?","answer":"We see different portions of its sunlit half as it orbits Earth."}},
+    {"id":"observe-pattern","step":6,"concept":"Observing the repeating pattern","narration":"The sequence of phases follows a repeating pattern. Observing the Moon over several nights helps us notice the cycle.","visual_events":["show_phase_timeline","highlight_repeating_cycle"],"check":{"question":"What can a Moon observation diary help us identify?","answer":"The repeating pattern of phases."}},
+    {"id":"big-picture","step":7,"concept":"Connect the ideas","narration":"Bring the ideas together: sunlight lights Earth and Moon, Earth's rotation gives us day and night, and the Moon's orbit changes the phase we see.","visual_events":["connect_sun_earth_moon","recap_rotation_and_orbit"],"check":{"question":"Which movement causes day and night? Which movement is linked to Moon phases?","answer":"Earth's rotation causes day and night; the Moon's revolution around Earth produces the changing phases we see."}}
+  ],
+  "acceptance_notes": [
+    "All diagrams are schematic and must include a not-to-scale cue where relevant.",
+    "Moon-phase orbit view must use consistent Sun direction and illumination geometry.",
+    "Use the exact approved NCERT edition to confirm the final chapter scope and terminology.",
+    "Narration step indices are zero-based and map directly to the tutor bridge padippupal:setStep.",
+    "Do not render generated paragraphs inside the canvas; keep labels short and narration in the tutor voice."
+  ]
+}

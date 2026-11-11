@@ -114,12 +114,12 @@ def diagram(d, kind, data):
         d.rectangle((685,280,910,448),fill="#FFF0D9",outline=BLUE,width=7)
         label(d,(282,245),"HOUSE A",27,INK,True,anchor="mm")
         label(d,(797,245),"HOUSE B",27,INK,True,anchor="mm")
-        label(d,(282,478),"42 ft × 25 ft",25,INK,True,anchor="mm")
-        label(d,(282,518),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
-        label(d,(282,558),"Perimeter = 134 ft",24,INK,True,anchor="mm")
-        label(d,(797,478),"35 ft × 30 ft",25,INK,True,anchor="mm")
-        label(d,(797,518),"Area = 1,050 sq ft",24,BLUE,True,anchor="mm")
-        label(d,(797,558),"Perimeter = 130 ft",24,INK,True,anchor="mm")
+        label(d,(282,488),"42 ft × 25 ft",23,INK,True,anchor="mm")
+        label(d,(282,525),"Area = 1,050 sq ft",22,BLUE,True,anchor="mm")
+        label(d,(282,562),"Perimeter = 134 ft",22,INK,True,anchor="mm")
+        label(d,(797,488),"35 ft × 30 ft",23,INK,True,anchor="mm")
+        label(d,(797,525),"Area = 1,050 sq ft",22,BLUE,True,anchor="mm")
+        label(d,(797,562),"Perimeter = 130 ft",22,INK,True,anchor="mm")
     elif kind == "shared_prime_factors":
         # Two numbers share 3 and 7, so this pair is not co-prime.
         label(d,(270,205),"NUMBER A = 42",30,INK,True,anchor="mm")
@@ -165,7 +165,7 @@ def diagram(d, kind, data):
         d.ellipse((870,270,1020,420),fill="#DCE7F4",outline=INK,width=4)
         for x,y in [(900,320),(950,300),(985,345),(925,375),(975,390)]:
             d.ellipse((x-12,y-12,x+12,y+12),fill="#6CA9D6",outline=INK,width=2)
-        label(d,(945,455),"TINY DROPLETS",19,INK,True,anchor="mm")
+        label(d,(930,455),"TINY DROPLETS",18,INK,True,anchor="mm")
         label(d,(540,570),"Water vapour changes into liquid water",29,BLUE,True,anchor="mm")
 
     elif kind == "threefold_rotation":
@@ -493,7 +493,7 @@ def diagram(d, kind, data):
         for x in range(400,690,45): d.ellipse((x,290,x+18,308),fill="#9B7545",outline=INK)
         d.rounded_rectangle((455,555,625,620),radius=16,fill="#BFE4F2",outline=INK,width=4)
         label(d,(540,210),"Cloth catches tea leaves; tea passes through",27,BLUE,True,anchor="mm")
-        label(d,(540,650),"FILTERED TEA",22,INK,True,anchor="mm")
+        label(d,(540,610),"FILTERED TEA",24,INK,True,anchor="mm")
     elif kind == "seed_germination":
         d.line((540,360,540,530),fill="#39834A",width=13)
         d.ellipse((445,280,540,375),fill="#8BCB83",outline="#286B3A",width=4)
@@ -608,8 +608,8 @@ def diagram(d, kind, data):
         for i in range(5):
             y=250+i*72; d.line((430,y,650,y),fill=INK,width=3)
             label(d,(540,y+28),["+2","+1","GROUND","−1","−2"][i],25,INK,True,anchor="mm")
-        label(d,(700,330),"Above ground: positive",22,BLUE,True)
-        label(d,(700,510),"Below ground: negative",22,BLUE,True)
+        label(d,(660,330),"Above ground: positive",19,BLUE,True)
+        label(d,(660,510),"Below ground: negative",19,BLUE,True)
     elif kind == "integer_movement":
         d.line((160,440,920,440),fill=INK,width=6)
         for n in range(-4,5):

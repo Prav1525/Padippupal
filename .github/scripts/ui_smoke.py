@@ -262,8 +262,8 @@ def assert_completed_lesson(path, lesson_snapshot_path=None):
     print("COMPLETED LESSON TEXT:", " | ".join(texts[:100]))
     if "live lesson complete" not in joined:
         raise SystemExit("Playback did not reach the explicit lesson-complete state")
-    if "ask your teacher" not in joined:
-        raise SystemExit("Question composer is missing after lesson playback completes")
+    if "follow-up question" not in joined and "ask a follow-up" not in joined:
+        raise SystemExit("Accessible follow-up question composer is missing after lesson playback completes")
     if "chapter complete" not in joined or "start next chapter" not in joined:
         raise SystemExit("Chapter completion screen is missing its highlighted next-chapter action")
     if "growing number patterns" not in joined:

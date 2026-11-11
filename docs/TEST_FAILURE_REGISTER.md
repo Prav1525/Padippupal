@@ -350,3 +350,130 @@ Use this register for recurring CI failures. A failure is not closed until the r
 - **Root cause:** The abstract-concept regular expression matched singular `fraction` but not plural `fractions`; the word-boundary prevented a match.
 - **Fix:** Extend the classifier to recognize plural forms of fraction, angle, equation and integer; add a regression test for plural “Fractions”.
 - **Validation:** Updated CI pending. The audit remains proposal-only and cannot approve, ingest, or publish images.
+
+## Incident: combined tutor module layout exposed stale UI/API contracts
+
+- **Date:** 2026-11-10
+- **Evidence:** PR #309 Android API 35 run [42784622417](https://github.com/Prav1525/Padippupal/actions/runs/42784622417), production-image acceptance run [42784622516](https://github.com/Prav1525/Padippupal/actions/runs/42784622516), and deployed API smoke run [42784622510](https://github.com/Prav1525/Padippupal/actions/runs/42784622510).
+- **Symptoms:** Kotlin compilation rejected the new bring-into-view calls because the Compose foundation API is experimental; UI helper tests expected the former single-caption labels; the deployed API audit expected 172 ready rows but observed 184 after 12 replacement rows were promoted.
+- **Root causes:** Missing `ExperimentalFoundationApi` opt-in; regression tests had not been migrated to the module-based UI; the production image-list endpoint exposed both retained predecessor rows and current replacement rows.
+- **Fixes:** Added the explicit Compose opt-in; updated accessibility fixtures and contract assertions to require ordered module headings and per-module image labels; changed the image-list query to return only the latest `updated_at` batch per module while retaining superseded database rows and preserving paired images created in the same batch. The deployed API smoke audit now validates both the legacy 184-row response and the new 172-current-asset policy during the pre-deployment transition.
+- **Regression checks:** Kotlin module-grouping tests reject incomplete step mappings rather than dropping text; backend manifest tests require latest-batch filtering and retain paired assets; Android UI smoke asserts four ordered modules, their explanations, and matching image labels.
+- **Validation:** Initial runs failed as described; fixes are committed on PR #309. Fresh exact-head JVM, backend, Android emulator, and API smoke reruns remain pending. No production writes, image deletions, merge, or deployment.
+
+
+## Incident: live module caption nested scrolling crashed Compose
+
+- **Date:** 2026-11-10
+- **Evidence:** Android API 35 emulator run [42787360740](https://github.com/Prav1525/Padippupal/actions/runs/42787360740), job [129731836228](https://github.com/Prav1525/Padippupal/actions/runs/42787360740/job/129731836228), artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/42787360740/artifacts/13750321333). Captured logcat records a fatal main-thread exception at 09:08:43 UTC immediately after the tutor Teach action.
+- **Symptom:** The app returned to the Android launcher after Teach; the smoke test then timed out waiting for an active lesson.
+- **Root cause:** **CONFIRMED.** The live teaching canvas became a vertical scroll container, while the active module's `WordByWordCaption(expandToAvailableHeight = true)` also applied `Modifier.verticalScroll`. The parent scroll measured the inner scrollable with an infinite maximum height; Compose rejects nested same-axis scrollables under those constraints and threw `IllegalStateException: Vertically scrollable component was measured with an infinity maximum height constraints`.
+- **Fix:** Commit `d35447f37952a5aeb2c01911ce9bbf37e7ab70f2` removes the inner vertical scroll modifier only in expanded/module mode. The complete module text remains in the single vertically scrollable teaching canvas; bounded legacy captions retain their existing internal scroller.
+- **Regression check:** Fresh exact-head Android API 35 emulator run must enter live teaching without a fatal exception, expose ordered module headings and matching image alt labels, and pass the complete live lesson smoke flow. Kotlin/JVM build and helper tests must also pass.
+- **Validation:** Fix committed; fresh exact-head CI is running. Do not merge or deploy until the Android emulator run and all required checks pass.
+
+
+## 2026-11-10 — Android tutor smoke fixture reused module-1 visual
+
+- **Observed:** Android UI smoke run [42791451144](https://github.com/Prav1525/Padippupal/actions/runs/42791451144) reached the completed lesson instead of detecting the four-module live player. The captured accessibility tree showed the entire lesson transcript grouped into the fallback single lesson, and playback controls were already gone.
+- **Root cause:** The deterministic tutor API fixture attached the same response-level `module-1` interactive visual to all four spoken segments. That contradicted the exact `module_key -> step_id` mapping contract and caused module grouping to fail closed to the full-lesson fallback.
+- **Fix:** Commit `2bde53770a81bf4adf34d6f9c3a71028c27b75ba` gives each segment its own matching `module_key`, `step_id`, and visual step, and assigns a distinct image asset ID/URL per module in the smoke manifest.
+- **Regression coverage:** The fixture self-test now asserts four ordered module keys and exact segment-to-visual module/step identity. The API manifest exposes four unique asset IDs and module-specific alt text.
+- **Verification:** Pending fresh Android API 35 emulator UI smoke on the updated PR head. Do not merge until that run passes and the live tutor screenshot is reviewed.
+
+
+## 2026-11-10 — Tutor smoke contract tests retained obsolete module-progress label
+
+- **Evidence:** Android UI smoke run [42799473289](https://github.com/Prav1525/Padippupal/actions/runs/42799473289), job [129773004532](https://github.com/Prav1525/Padippupal/actions/runs/42799473289/job/129773004532), PR #309.
+- **Symptom:** JVM tests and APK build passed, but smoke-script validation failed before emulator allocation. Two helper tests still expected the removed `module N / 4` status label; the actual app status is `Live lesson · segment N of M`. The emulator was skipped, so that run did not verify the UI.
+- **Fix:** Updated the XML fixtures and smoke-contract tests to assert the real segment-progress label, module headings, and matching image alt text. Added regression coverage for the chapter-completion CTA and its next-chapter selection/start behavior.
+- **UI improvement:** Refined module cards with a calmer active-state surface, clearer typographic hierarchy, and less redundant numbering. Added a chapter-complete panel that identifies the next curriculum chapter and highlights a full-width “Start next chapter” action. The selected next chapter and first available topic are passed into the existing live-lesson start flow; completion state is persisted.
+- **Safety:** The next-chapter action is app-local navigation/playback only. No production DB writes, merge, deployment, or public release.
+- **Validation:** Fresh exact-head CI is running. Do not merge until Android API 35 emulator acceptance and the other required checks pass; inspect the actual tutor screenshot and completion screen evidence.
+
+
+## 2026-11-10 — PR #309 live-tutor smoke missed the active window and completion CTA
+
+- **Evidence:** Android API 35 run [42804289260](https://github.com/Prav1525/Padippupal/actions/runs/42804289260), job [129789379822](https://github.com/Prav1525/Padippupal/actions/runs/42804289260/job/129789379822), artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/42804289260/artifacts/13758266977).
+- **Observed:** The emulator displayed all four module explanations and the final mapped image, then reached the completed state. The smoke test rejected earlier active frames because the transient segment-progress status was not consistently exposed in the accessibility tree; it then sampled after playback had completed and Pause/Stop were gone. The captured completion hierarchy showed the completion card clipped before its next-chapter copy/action.
+- **Root causes:** The UI smoke test treated a transient status label as a mandatory active-playback signal even though the stable controls and module content are the reliable contract. The completion scroll used a large positive item offset, which can push the card content outside the visible LazyColumn viewport. The scroll effect also did not rerun if the curriculum outline arrived after the first completion frame.
+- **Fix:** Make active-state detection rely on Pause/Stop plus ordered module headings and the exact mapped image alt label. Align the completion card at the top of the viewport and rerun the scroll effect when chapter options load.
+- **Regression coverage:** Helper tests assert that active detection no longer requires the transient segment status, while still requiring Pause/Stop and mapped image evidence. Chapter-completion tests assert top-aligned scrolling and the curriculum-options dependency.
+- **Validation:** Fixes committed together; fresh exact-head CI and Android API 35 emulator evidence are required. No production database changes, image deletion, merge, or deployment.
+
+
+## 2026-11-10 — Android smoke expected all live module headings simultaneously
+
+- **Evidence:** Android API 35 run [42811594119](https://github.com/Prav1525/Padippupal/actions/runs/42811594119), job [129814113182], artifact [13763576104]. Poll history shows the accessible active heading changed over time: module 1 was initially present, then module 2, then module 3/4; by the final sample playback had completed and Pause/Stop were no longer present.
+- **Confirmed test defect:** The smoke assertion required all four module headings plus the fixed “All 1s example diagram” label in a single accessibility snapshot. The live teaching canvas scrolls the active module into view, so a snapshot represents the currently active module rather than all four at once. The test waited through the entire lesson and then rejected the completed state. It did not prove the four module images were all rendered.
+- **Correction:** Validate the active module heading against that same module's exact image alt label, record a real screenshot/XML for each of the four module states, and require all four distinct modules to be observed during playback. Exercise Pause/Resume during module 1 rather than after playback has ended. Increase only the deterministic local fixture audio duration to give the emulator time to inspect each module; production speech behavior is unchanged.
+- **Additional mapping hardening:** Carry the exact step_id from the approved manifest grouping into each module visual so the image renderer matches both the module and step instead of relying on module-only fallback.
+- **Validation:** Fresh JVM, script, API fixture, and Android API 35 emulator checks on the updated PR head are required. No merge, production deployment, production database writes, or image deletion.
+
+
+## 2026-11-10 — PR #309 smoke fixture duration assertion lagged behind audio extension
+
+- **Evidence:** Android UI smoke run [42815932640](https://github.com/Prav1525/Padippupal/actions/runs/42815932640), job [129828905490](https://github.com/Prav1525/Padippupal/actions/runs/42815932640/job/129828905490), checked-out merge commit `ab224b2d0901fa97c9539efe5cd54cd305093376`.
+- **Symptom:** JVM tests, APK build, and the first live-module accessibility assertion passed, but smoke-script validation stopped before emulator allocation. `tutor_smoke_api.py --self-test` raised `AssertionError` because the generated silent WAV was 20,000 ms while the final word-timing assertion still expected 6,000 ms. The emulator was skipped; this run provides no four-module screenshot proof.
+- **Root cause:** The fixture duration was changed to 20 seconds to create a longer inspection window, but the self-test retained a hard-coded end-time from the previous 6-second fixture.
+- **Fix:** Introduce one `SMOKE_AUDIO_DURATION_MS` constant for WAV generation and timing validation. Assert that timings start at zero, end at the configured duration, remain contiguous, and have positive intervals.
+- **Regression prevention:** Add a helper contract test that requires the shared duration constant and timing-boundary assertions and rejects the obsolete 6-second expectation.
+- **Validation:** Fresh exact-head CI is required. Accept only after fixture self-test, all helper/JVM/API checks, and the API 35 emulator run pass and produce four module-specific tutor screenshots/XML plus pause/resume evidence. No merge, deployment, production DB write, or image deletion.
+
+
+## 2026-11-10 — Android UI smoke passed live module and pause/resume checks but rejected screenshot directory
+
+- **Evidence:** Android UI smoke run [42818229036](https://github.com/Prav1525/Padippupal/actions/runs/42818229036), job [129836723833](https://github.com/Prav1525/Padippupal/actions/runs/42818229036/job/129836723833), commit `c93778224d6ee2d58c85bc83bd04a72c7ebc4cd1`.
+- **Symptom:** The emulator reached the live tutor, captured module 1 with its mapped image, and verified Pause and Resume. It then captured 12 PNG word-highlight frames but failed with `UI XML file does not exist: ui-screenshots/live-frames`.
+- **Root cause:** The shared CLI dispatcher validated every command's second argument as an XML file before dispatch. The `assert-highlight-frames` command instead receives a directory of PNG files. Its branch also incorrectly expected an extra argument and read `sys.argv[3]` rather than the supplied directory at `sys.argv[2]`.
+- **Fix:** Dispatch the screenshot-frame command before XML-file validation, require its argument to be a directory, and pass that directory directly to `assert_highlight_frames`.
+- **Regression prevention:** Add a CLI-level unit test that passes an empty temporary directory and verifies execution reaches the frame checker (the expected “No live lesson frames were captured” result), rather than the XML-file validator.
+- **Validation:** Fresh exact-head CI and Android API 35 emulator run are required. Production image emulator acceptance passed on the failed head using a read-only proxy; this does not substitute for all four live-module checks. No merge, deployment, production database write, or image deletion.
+
+
+## 2026-11-10 — Android tutor smoke gated module capture on the full live-screen assertion
+
+- **Evidence:** Android UI smoke run [42819789620](https://github.com/Prav1525/Padippupal/actions/runs/42819789620), job [129842067740], artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/42819789620/artifacts/13766271997), checked-out merge commit `35f9d7012ca916052a48f840ecae446084305a3d`.
+- **Observed:** The emulator passed Pause/Resume and moving word-highlight checks, and captured module 1, module 2 and module 4 with matching image labels. It failed to record module 3 before playback completed.
+- **Root cause:** The polling loop ran the broad `assert-live` contract first and only attempted module discovery/screenshot capture when every unrelated live-screen assertion passed in that same poll. A transient failure (for example, a control or lesson-copy assertion) therefore suppressed an otherwise valid module-heading + exact-image capture. The test also retained only sparse failure reasons, making a missed sample difficult to distinguish from a missing mapped image.
+- **Fix:** On every fresh non-empty UI tree, discover the active module by its own heading and exact image alt label first, and capture its screenshot/XML as soon as that pair is present. Run the broader live-screen assertion independently and retain its sampled failure reason. Module coverage still requires all four distinct exact heading/image pairs; this does not weaken the image-mapping contract.
+- **Regression prevention:** Added a helper contract test requiring module discovery/capture to precede the broader live-screen assertion.
+- **Validation:** New capture-order regression and a fresh Android API 35 emulator run are pending on branch `fix/live-module-capture-independent-validation`. Do not merge until all four module screenshots/XML are inspected and the complete emulator flow passes. No production writes, image deletion, merge, or deployment.
+
+
+## Incident: launcher ANR dialog blocked the diary emulator flow before tutor acceptance
+
+- **Symptom:** Android UI smoke run `42827121543` passed JVM tests, APK build, and script validation, then stopped in the diary scanner preflight because the accessibility tree contained only `Pixel Launcher isn't responding | Close app | Wait`; the expected `Scan homework` tile was not on screen. The tutor acceptance script therefore never ran in that job.
+- **Root cause:** The workflow ran the diary crop/rescan flow before the tutor UI acceptance flow in the same API 35 emulator. A transient Pixel Launcher ANR/system dialog took foreground focus, and the diary script treated the dialog as a missing app control rather than recovering. This was an emulator/system UI failure, not evidence of a lesson-image rendering failure.
+- **Fix:** Commits `57069e26c747de51a8c6d5aecbfde15d319f87a3` and `c680b6a824c48966913fcf5771cc22b42f8b4db1` add bounded launcher-ANR recovery (Wait, then one Close/relaunch path) and a static regression test. Commit `2e9573b2acd40bb7eccac4977e82d9ec05d51e18` runs tutor acceptance before the independent diary flow so a diary failure cannot suppress tutor evidence.
+- **Regression prevention:** `.github/scripts/test_diary_emulator_script.py` asserts the ANR recovery branch and that it executes before the diary tile tap. The next fresh Android API 35 run must demonstrate tutor acceptance and diary acceptance separately; a static pass is not an emulator pass.
+- **Validation:** Pending fresh CI on the fix commit. The production-image acceptance run `42827121053` independently passed both production PNG GET/integrity checks with `production_writes=0`; this does not close the general tutor navigation test.
+
+
+## 2026-11-10 — Follow-up reply appeared, but completion-card auto-scroll hid the question bubble
+
+- **Evidence:** Android UI smoke run [42838452532](https://github.com/Prav1525/Padippupal/actions/runs/42838452532), job [129906868404], artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/42838452532/artifacts/13776060523).
+- **Observed:** The follow-up acceptance failed because the final accessibility snapshot did not contain the submitted question text. The same snapshot did contain the exact fixture tutor reply, "The smoke-test tutor is ready to help with the selected topic.", and the chapter-completion card. The composer had been populated and the Send action had been tapped. Thus the tutor reply arrived; the failure was that the final check could not see both chat bubbles in the same viewport.
+- **Root cause:** The chat auto-scroll always targeted the last LazyColumn item, which remained the chapter-completion card after a lesson ended. When a follow-up exchange was appended, the UI scrolled back to that card rather than keeping the latest question/answer exchange in view. The question bubble could be pushed above the viewport while the reply remained visible.
+- **Fix:** Track whether a follow-up conversation has started after chapter completion. Persist that state with the tutor session and scroll to the newest chat message while follow-up is active; retain the existing completion-card alignment before any follow-up, and reset the flag when a new lesson starts.
+- **Regression prevention:** Add a static UI contract test proving the follow-up flag is persisted, activated on question submission, and changes the scroll target away from the completion card. Keep the emulator assertion requiring both the submitted question and tutor reply in the final visible hierarchy.
+- **CI follow-up:** The first rerun exposed one stale static assertion that expected the previous `LaunchedEffect` dependency list. Updated `ChapterCompletionFlowTests` to include `chapterFollowUpStarted`; the production-image job stopped at this preflight failure before recording any manifest request, so that run is not evidence of a production image regression.
+- **Validation:** Fresh exact-head Android API 35 emulator and production-image acceptance are pending after the static assertion correction. Do not merge until the question and answer are both visible after submission and all four module-specific image screenshots still pass. No production database writes, image deletion, merge, deployment, or public release.
+
+## 2026-11-10 — Completion card clipped beneath the fixed follow-up composer
+
+- **Evidence:** Android API 35 UI smoke run [42843514332](https://github.com/Prav1525/Padippupal/actions/runs/42843514332), job [129924713626], artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/42843514332/artifacts/13777851746). The captured `live-complete.xml` contains the retained four-module lesson, the Module 4 image, `CHAPTER COMPLETE`, `Live lesson complete.`, and the follow-up composer. It does not expose the next-chapter copy/action.
+- **Root cause:** The completion card was the final LazyColumn item, but the retained lesson bubble consumed nearly the full chat viewport. With only 10 dp of bottom content padding, the list could not scroll far enough to align the completion card at the top; the next-chapter copy and button remained clipped below the viewport. This was a layout/scroll-range defect, not a lesson-playback or image-mapping failure.
+- **Fix:** Increase the LazyColumn's bottom scroll padding to 360 dp only while the completion card is active and no follow-up exchange has started. This gives the final card enough scroll range to align above the fixed composer; normal chat and follow-up layouts retain the original 10 dp padding.
+- **Regression coverage:** Add a helper contract test that requires completion-only scroll padding and preserves the final-item scroll behavior. The Android API 35 end-to-end test must still observe the next chapter title and enabled “Start next chapter” action, submit a follow-up question, and verify both question and answer.
+- **Validation:** Patch and static regression test committed to PR #309; fresh CI and Android API 35 emulator verification are required. No production writes, image deletion, merge, or deployment.
+
+
+
+## 2026-11-10 — Completion smoke assertion confused retained chat history with visible viewport
+
+- **Evidence:** Android API 35 UI run [42848885887](https://github.com/Prav1525/Padippupal/actions/runs/42848885887), job [129943755100], artifact [padippupal-emulator-ui](https://github.com/Prav1525/Padippupal/actions/runs/42848885887/artifacts/13780955944). The captured completion tree contains the completion card, next chapter title/action, completion status, and follow-up composer. The same artifact's `live-module-4.xml` contains the 368-character final teaching explanation.
+- **Root cause:** The completion assertion required a 220-character lesson bubble in the same accessibility snapshot as the completion card. The UI correctly scrolls the completion card into view above the fixed composer, moving the earlier lesson bubble outside the current viewport. UIAutomator reports visible/accessibility nodes, not every off-screen LazyColumn item; absence from this snapshot was incorrectly interpreted as deletion from chat history.
+- **Fix:** Keep completion-screen assertions focused on visible completion controls. Verify retained teaching content separately against the immediately preceding `live-module-4.xml` snapshot, captured while the final module and explanation are visible. Pass that snapshot to the completion assertion in both polling and final verification.
+- **Regression prevention:** The helper contract test now requires the separate final-module snapshot argument and checks the shell invocation passes `ui-screenshots/live-module-4.xml`. Existing app source contract still verifies the completed lesson is appended to chat messages.
+- **Validation:** Run helper/script checks and a fresh Android API 35 emulator flow. Do not merge until the completion card, final lesson snapshot, follow-up question/answer, and all four module/image pairs pass. No production writes, image deletion, merge, or deployment.

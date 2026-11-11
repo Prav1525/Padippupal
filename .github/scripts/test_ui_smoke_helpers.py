@@ -2,13 +2,15 @@
 """Regression tests for accessibility-tree selectors; no emulator required."""
 import re
 import sys
+import tempfile
+from unittest.mock import patch
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ui_smoke import (assert_composer_question, assert_home, assert_live, concept_candidates, exact_color_mask,
-                       exact_text_candidates, tap, tap_input)
+from ui_smoke import (assert_composer_question, assert_followup_question, assert_home, assert_live, concept_candidates, exact_color_mask,
+                       exact_text_candidates, main as ui_smoke_main, tap, tap_input)
 
 
 
@@ -37,8 +39,21 @@ class ExactSelectorTests(unittest.TestCase):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("tap-input follow-up-input.xml", script)
         self.assertIn("assert-composer-question follow-up-typed.xml", script)
-        self.assertIn('tap follow-up-typed.xml "Send question"', script)
+        self.assertIn('tap follow-up-typed.xml "Send follow-up question"', script)
+        self.assertIn("assert-followup-question follow-up-sent.xml", script)
+        self.assertIn("follow-up-sent.xml", script)
         self.assertIn("follow-up-typed.xml", script)
+
+    def test_follow_up_question_assertion_checks_posted_chat_bubble(self):
+        posted = ET.fromstring("""<hierarchy>
+          <node class="android.widget.TextView" text="Why does All 1s repeat?" bounds="[0,0][300,80]"/>
+        </hierarchy>""")
+        path = Path(__file__).resolve().parent / "tmp-follow-up-question-test.xml"
+        try:
+            path.write_text(ET.tostring(posted, encoding="unicode"))
+            assert_followup_question(str(path))
+        finally:
+            path.unlink(missing_ok=True)
 
     def test_composer_assertion_rejects_empty_input_before_send(self):
         empty = ET.fromstring("""<hierarchy>
@@ -60,15 +75,15 @@ class ExactSelectorTests(unittest.TestCase):
 
     def test_live_lesson_polling_clears_stale_accessibility_trees(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
-        poll_start = script.index('log "Waiting for a complete lesson caption')
-        poll_end = script.index('log "Lesson UI detected;', poll_start)
+        poll_start = script.index('log "Waiting for each live module')
+        poll_end = script.index('log "Waiting for playback to finish', poll_start)
         poll = script[poll_start:poll_end]
         self.assertIn("rm -f live-lesson.xml", poll)
         self.assertIn('shell rm -f /data/local/tmp/live-lesson.xml', poll)
         self.assertLess(poll.index('shell rm -f /data/local/tmp/live-lesson.xml'), poll.index('shell uiautomator dump /data/local/tmp/live-lesson.xml'))
 
         completion_start = script.index('log "Waiting for playback to finish')
-        completion_end = script.index('assert-completed-lesson live-complete.xml | tee', completion_start)
+        completion_end = script.index('assert-completed-lesson live-complete.xml ui-screenshots/live-module-4.xml | tee', completion_start)
         completion_poll = script[completion_start:completion_end]
         self.assertIn("rm -f live-complete.xml", completion_poll)
         self.assertIn('shell rm -f /data/local/tmp/live-complete.xml', completion_poll)
@@ -76,13 +91,16 @@ class ExactSelectorTests(unittest.TestCase):
 
     def test_live_lesson_assertion_reads_icon_only_pause_and_stop_labels(self):
         root = ET.fromstring("""<hierarchy>
-          <node text="Live lesson · segment 1 of 1" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,50][300,250]"/>
-          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
-          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
-          <node text="All 1s example" bounds="[0,350][300,380]"/>
-          <node text="" content-desc="Pause playback" bounds="[0,380][100,430]"/>
-          <node text="" content-desc="Stop lesson" bounds="[100,380][200,430]"/>
+          <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
+          <node text="NOW LEARNING" bounds="[0,50][300,75]"/>
+          <node text="What is an All 1s pattern" bounds="[0,75][300,105]"/>
+          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule is simple: write 1 again each time. This is a complete explanation of the repeated-one pattern with enough detail to teach the selected concept clearly." bounds="[0,105][300,305]"/>
+          <node text="An All 1s example" bounds="[0,305][300,330]"/>
+          <node text="" content-desc="What is an All 1s pattern diagram" bounds="[0,330][300,360]"/>
+          <node text="A common mistake" bounds="[0,360][300,390]"/>
+          <node text="Quick recap" bounds="[0,390][300,420]"/>
+          <node text="" content-desc="Pause playback" bounds="[0,420][100,470]"/>
+          <node text="" content-desc="Stop lesson" bounds="[100,420][200,470]"/>
         </hierarchy>""")
         path = Path(__file__).resolve().parent / "tmp-live-lesson-accessibility-test.xml"
         try:
@@ -94,12 +112,15 @@ class ExactSelectorTests(unittest.TestCase):
     def test_live_assertion_accepts_a_short_first_segment_before_later_segments(self):
         root = ET.fromstring("""<hierarchy>
           <node text="Live lesson · segment 1 of 4" bounds="[0,0][300,50]"/>
-          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,50][300,250]"/>
-          <node text="All 1s pattern visual" bounds="[0,250][300,300]"/>
-          <node text="Each term stays 1. The pattern repeats without growing." bounds="[0,300][300,350]"/>
-          <node text="All 1s example" bounds="[0,350][300,380]"/>
-          <node text="" content-desc="Pause playback" bounds="[0,380][100,430]"/>
-          <node text="" content-desc="Stop lesson" bounds="[100,380][200,430]"/>
+          <node text="NOW LEARNING" bounds="[0,50][300,75]"/>
+          <node text="What is an All 1s pattern" bounds="[0,75][300,105]"/>
+          <node text="The All 1s pattern repeats the same number each time. Each term stays 1, and the number does not increase or decrease. The rule stays the same." bounds="[0,105][300,255]"/>
+          <node text="An All 1s example" bounds="[0,255][300,285]"/>
+          <node text="" content-desc="What is an All 1s pattern diagram" bounds="[0,285][300,315]"/>
+          <node text="A common mistake" bounds="[0,315][300,345]"/>
+          <node text="Quick recap" bounds="[0,345][300,375]"/>
+          <node text="" content-desc="Pause playback" bounds="[0,375][100,425]"/>
+          <node text="" content-desc="Stop lesson" bounds="[100,375][200,425]"/>
         </hierarchy>""")
         path = Path(__file__).resolve().parent / "tmp-live-short-segment-test.xml"
         try:
@@ -139,20 +160,26 @@ class SynthesisInlineVisualContractTests(unittest.TestCase):
 
     def test_live_smoke_checks_accessible_image_mapping_without_caption_text(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        start = smoke.index("def assert_live(path):")
+        start = smoke.index("def active_module_index(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('"all 1s pattern visual" not in joined', live)
-        self.assertIn('"all 1s example" not in joined', live)
+        self.assertNotIn("Live lesson is not exposing its active playback segment progress", live)
+        self.assertIn('"what is an all 1s pattern"', live)
+        self.assertIn('"quick recap"', live)
+        self.assertIn('active_module_index(path)', live)
+        self.assertIn('matching mapped image', live)
         self.assertNotIn('"each term stays 1" not in joined', live)
 
     def test_live_smoke_accepts_inline_visual_but_still_rejects_separate_visual_overlay(self):
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        start = smoke.index("def assert_live(path):")
+        start = smoke.index("def active_module_index(path):")
         end = smoke.index("\ndef exact_color_mask", start)
         live = smoke[start:end]
-        self.assertIn('"all 1s pattern visual" not in joined', live)
-        self.assertIn('"all 1s example" not in joined', live)
+        self.assertNotIn("Live lesson is not exposing its active playback segment progress", live)
+        self.assertIn('"what is an all 1s pattern"', live)
+        self.assertIn('"quick recap"', live)
+        self.assertIn('active_module_index(path)', live)
+        self.assertIn('matching mapped image', live)
         self.assertNotIn('"each term stays 1" not in joined', live)
         self.assertNotIn('"watch the pattern"', live)
         self.assertIn("assert-live-layout", (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text())
@@ -322,6 +349,16 @@ class TtsFailureRegressionTests(unittest.TestCase):
         self.assertIn('"speech engine did not finish starting"', smoke)
 
 
+class ScreenshotFrameDispatchTests(unittest.TestCase):
+    def test_highlight_frame_command_accepts_a_directory_argument(self):
+        # An empty directory reaches the PNG checker and fails for the expected
+        # reason; it must not be rejected by the XML-file validator.
+        with tempfile.TemporaryDirectory() as frames_dir:
+            with patch.object(sys, "argv", ["ui_smoke.py", "assert-highlight-frames", frames_dir]):
+                with self.assertRaisesRegex(SystemExit, "No live lesson frames were captured"):
+                    ui_smoke_main()
+
+
 class ConceptCandidateTests(unittest.TestCase):
     def test_compose_row_without_clickable_flag_is_still_selectable(self):
         root = ET.fromstring("""<hierarchy>
@@ -350,7 +387,7 @@ class RetryIsolationTests(unittest.TestCase):
         script = (Path(__file__).resolve().parent / "android-ui-smoke-retry.sh").read_text()
         self.assertIn("rm -rf ui-screenshots", script)
         self.assertIn("rm -f home.xml settings.xml ready-to-teach.xml", script)
-        for evidence_file in ("live-resumed.xml", "live-complete.xml", "live-lesson.xml", "follow-up.xml"):
+        for evidence_file in ("live-resumed.xml", "live-complete.xml", "live-lesson.xml", "follow-up-sent.xml", "follow-up.xml"):
             self.assertIn(evidence_file, script)
         self.assertLess(script.index("rm -rf ui-screenshots"), script.index("bash .github/scripts/android-ui-smoke.sh"))
 
@@ -385,28 +422,64 @@ class CompleteLessonRegressionTests(unittest.TestCase):
         self.assertNotIn("sentencesInParagraph", caption)
         self.assertNotIn("separate paragraphs only after every third sentence", caption)
 
+    def test_follow_up_chat_scrolls_to_exchange_instead_of_completion_card(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
+        self.assertIn('var chapterFollowUpStarted by remember { mutableStateOf(savedSession.optBoolean("chapter_follow_up_started", false)) }', tutor)
+        self.assertIn('if (chapterCompleted) chapterFollowUpStarted = true', tutor)
+        self.assertIn('val completionCardVisible = chapterCompleted && !chapterFollowUpStarted', tutor)
+        self.assertIn('if (chapterCompleted && !chapterFollowUpStarted)', tutor)
+        self.assertIn('onClick = { sendMessage("Can you explain that more simply?") }', tutor)
+        self.assertIn('sendMessage("Can you show me another example?")', tutor)
+        self.assertNotIn('Why does this rule work?', tutor)
+        self.assertEqual(tutor.count('sendMessage("Can you'), 2)
+        self.assertIn('label = { Text(if (chapterCompleted) "Follow-up question" else "Message your teacher") }', tutor)
+        self.assertIn('contentDescription = if (chapterCompleted) "Send follow-up question" else "Send question"', tutor)
+        self.assertIn('.put("chapter_follow_up_started", chapterFollowUpStarted)', tutor)
+
     def test_completed_lesson_is_kept_for_follow_up_chat(self):
         root = Path(__file__).resolve().parents[2]
         tutor = (root / "app/src/main/java/com/padippupal/app/TutorScreen.kt").read_text()
         self.assertIn('messages.add(TutorMessage("assistant", completedLesson, interactiveLesson = liveInteractiveLesson))', tutor)
         self.assertIn('status = "Live lesson complete."', tutor)
         smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
-        self.assertIn("def assert_completed_lesson(path):", smoke)
+        self.assertIn("def assert_completed_lesson(path, lesson_snapshot_path=None):", smoke)
+        completed_check = smoke[smoke.index("def assert_completed_lesson(path, lesson_snapshot_path=None):"):smoke.index("\ndef assert_followup_answer", smoke.index("def assert_completed_lesson(path, lesson_snapshot_path=None):"))]
+        self.assertIn('"follow-up question" not in joined', completed_check)
+        self.assertIn('"ask a follow-up" not in joined', completed_check)
         self.assertIn("def assert_followup_answer(path):", smoke)
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("Waiting for playback to finish", script)
         self.assertIn("assert-followup follow-up.xml", script)
+        self.assertIn("assert-completed-lesson live-complete.xml ui-screenshots/live-module-4.xml", script)
+        self.assertIn("pre-completion lesson snapshot is required", smoke)
+        self.assertIn("preceding live-module snapshot", smoke)
 
     def test_smoke_waits_for_full_caption_and_rejects_checkpoint_ui(self):
         script = (Path(__file__).resolve().parent / "android-ui-smoke.sh").read_text()
         self.assertIn("assert-live live-lesson.xml > live-assertion.log 2>&1", script)
         self.assertIn("cp live-assertion.log live-assertion-last.log", script)
-        self.assertIn("Last active-lesson assertion:", script)
-        self.assertIn("Sampled active-lesson assertion history:", script)
+        self.assertIn("Last module assertion:", script)
+        self.assertIn("Sampled module assertion history:", script)
         self.assertIn("live-assertion-history.log", script)
         self.assertIn("lesson_poll_count % 10", script)
         self.assertIn("live-complete.xml", script)
         self.assertNotIn("explicit understanding checkpoint", script)
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        live_start = smoke.index("def assert_live(path):")
+        live_end = smoke.index(chr(10) + "def exact_color_mask", live_start)
+        live_assertion = smoke[live_start:live_end]
+        self.assertNotIn("Live lesson is not exposing its active playback segment progress", live_assertion)
+        self.assertIn('if "pause" not in joined or "stop" not in joined:', live_assertion)
+        self.assertIn('seen_modules', script)
+        self.assertIn('live-module-index', script)
+        self.assertLess(script.index('module_index=$(python3 .github/scripts/ui_smoke.py live-module-index'), script.index('if python3 .github/scripts/ui_smoke.py assert-live'))
+        self.assertIn('Discover/capture the exact active module independently of the broader', script)
+        self.assertIn('live-module-${module_index}.png', script)
+        self.assertIn('active_module_index(path)', live_assertion)
+        self.assertIn('own heading and mapped image', live_assertion)
+        self.assertIn('if [ "$seen_modules" = ",1,2,3,4," ]; then', script)
+        self.assertIn('lesson_started=1', script)
+        self.assertLess(script.index('lesson_started=1'), script.index('if [ "$lesson_started" -ne 1 ]; then'))
 
 
     def test_synthesized_visuals_follow_exact_spoken_segment_boundaries(self):
@@ -438,6 +511,69 @@ class PreviousScreenSelectionTests(unittest.TestCase):
         self.assertIn("assert-settings settings.xml", script)
         self.assertIn("assert-tutor ready-to-teach.xml", script)
         self.assertNotIn('tap tutor.xml "Change"', script)
+
+
+class ChapterCompletionFlowTests(unittest.TestCase):
+    def test_smoke_audio_duration_and_word_timings_share_one_contract(self):
+        fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
+        self.assertIn("SMOKE_AUDIO_DURATION_MS = 20_000", fixture)
+        self.assertIn("duration_ms = SMOKE_AUDIO_DURATION_MS", fixture)
+        self.assertIn('assert smoke_timings[-1]["end_ms"] == SMOKE_AUDIO_DURATION_MS', fixture)
+        self.assertIn('assert all(left["end_ms"] == right["start_ms"] for left, right in zip(smoke_timings, smoke_timings[1:]))', fixture)
+        self.assertNotIn('smoke_timings[-1]["end_ms"] == 6000', fixture)
+
+    def test_completed_chapter_offers_prominent_next_chapter_action(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn('completedChapterTitle = chapter', tutor)
+        self.assertIn('chapterCompleted = chapter.isNotBlank()', tutor)
+        self.assertIn('if (chapterCompleted && !chapterFollowUpStarted)', tutor)
+        self.assertIn('val nextChapter = if (completedIndex >= 0) chapterOptions.getOrNull(completedIndex + 1) else null', tutor)
+        self.assertIn('Text("Start next chapter  →"', tutor)
+        self.assertIn('chapter = nextTitle', tutor)
+        self.assertIn('topic = nextTopic', tutor)
+        self.assertIn('tutorMainHandler.postDelayed({ startLiveLesson() }, 350L)', tutor)
+        self.assertIn('.put("chapter_completed", chapterCompleted)', tutor)
+        self.assertIn('.put("completed_chapter", completedChapterTitle)', tutor)
+        self.assertIn('LaunchedEffect(messages.size, loading, liveLessonActive, chapterCompleted, chapterOptions, chapterFollowUpStarted)', tutor)
+        self.assertIn('(if (completionCardVisible) 1 else 0)', tutor)
+        self.assertIn('chatListState.animateScrollToItem(itemCount - 1)', tutor)
+        self.assertIn('delay(700L)', tutor)
+        self.assertIn('once that asynchronous layout has settled', tutor)
+        self.assertNotIn("scrollOffset = 10000", tutor)
+        fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
+        self.assertIn('deterministic_silent_smoke_audio', fixture)
+        self.assertIn("SMOKE_AUDIO_DURATION_MS = 20_000", fixture)
+        self.assertIn("duration_ms = SMOKE_AUDIO_DURATION_MS", fixture)
+        self.assertIn('word_timings', fixture)
+
+    def test_live_module_cards_use_refined_active_state_without_redundant_number_pill(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        start = tutor.index("private fun LiveLessonModuleSection(")
+        end = tutor.index("private fun DatabaseInteractiveLessonLab(", start)
+        section = tutor[start:end]
+        self.assertIn('Color(0xFFF8FBFF)', section)
+        self.assertIn('RoundedCornerShape(24.dp)', section)
+        self.assertIn('"NOW LEARNING"', section)
+        self.assertIn('shadowElevation = if (active) 3.dp else 0.dp', section)
+
+    def test_completion_card_has_scroll_room_above_fixed_composer(self):
+        tutor = (Path(__file__).resolve().parents[2] / "app" / "src" / "main" /
+                 "java" / "com" / "padippupal" / "app" / "TutorScreen.kt").read_text()
+        self.assertIn("bottom = if (chapterCompleted && !chapterFollowUpStarted) 360.dp else 10.dp", tutor)
+        self.assertIn("chatListState.animateScrollToItem(itemCount - 1)", tutor)
+
+    def test_emulator_fixture_exposes_next_chapter_and_completion_assertion_checks_it(self):
+        fixture = (Path(__file__).resolve().parent / "tutor_smoke_api.py").read_text()
+        self.assertIn('"title": "Growing Number Patterns"', fixture)
+        self.assertIn('"topics": ["Square Numbers"]', fixture)
+        smoke = (Path(__file__).resolve().parent / "ui_smoke.py").read_text()
+        start = smoke.index("def assert_completed_lesson(path, lesson_snapshot_path=None):")
+        end = smoke.index("\ndef assert_followup_answer", start)
+        completed = smoke[start:end]
+        self.assertIn('"start next chapter" not in joined', completed)
+        self.assertIn('"growing number patterns" not in joined', completed)
 
 
 if __name__ == "__main__":

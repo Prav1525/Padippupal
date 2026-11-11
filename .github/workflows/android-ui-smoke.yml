@@ -2,7 +2,7 @@ name: Android UI smoke test
 
 on:
   push:
-    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan", "fix/diary-image-picker-reliability"]
+    branches: ["main", "feature/gentle-ai-tutor", "feature/diary-crop-rescan", "fix/diary-image-picker-reliability", "fix/live-tutor-image-scroll-surface"]
   pull_request:
     branches: ["main", "feat/classwide-lesson-image-ingestion"]
   workflow_dispatch:
@@ -112,8 +112,9 @@ jobs:
             # ships with no TTS service and does not depend on Play Store sign-in.
             bash .github/scripts/android-tts-preflight.sh
             # Run diary picker acceptance first so unrelated tutor failures cannot mask it.
-            bash .github/scripts/diary_crop_emulator_test.sh
+            # Run tutor acceptance first: an unrelated diary/launcher failure must not prevent tutor evidence.
             bash .github/scripts/android-ui-smoke-retry.sh
+            bash .github/scripts/diary_crop_emulator_test.sh
 
       - name: Record test outcomes and failure diagnostics
         if: always()

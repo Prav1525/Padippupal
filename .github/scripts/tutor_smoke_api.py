@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 import uuid
@@ -18,7 +20,7 @@ DIARY_PARSE_REQUESTS: list[dict] = []
 LESSON = {
     "lesson_id": "smoke-all-ones",
     "grounded": True,
-    "provider": "smoke_fixture",
+    "provider": "approved_chapter_lesson",
     "language": "English",
     "subject": "Mathematics",
     "sources": [{"chunk_id": "smoke-source", "title": "Smoke-test fixture", "page_start": 1, "page_end": 1}],
@@ -93,34 +95,102 @@ LESSON = {
     ],
 }
 
-# The live Android player reads the visual from the active segment. Keep the
-# deterministic fixture faithful to that contract instead of relying only on
-# the response-level visual, which chat mode uses.
-for _segment in LESSON["segments"]:
-    _segment["interactive_lesson"] = LESSON["interactive_lesson"]
+# Keep each spoken segment paired with its own exact module/step visual.
+# Reusing the response-level module-1 visual for every segment makes the
+# live-player fixture ambiguous and correctly causes the client to fail closed.
+for _index, _segment in enumerate(LESSON["segments"], start=1):
+    _module_key = f"module-{_index}"
+    _step_id = _segment["id"]
+    _segment["module_key"] = _module_key
+    _segment["interactive_lesson"] = {
+        **LESSON["interactive_lesson"],
+        "module_key": _module_key,
+        "step_id": _step_id,
+        "title": [
+            "What is an All 1s pattern",
+            "An All 1s example",
+            "A common mistake",
+            "Quick recap",
+        ][_index - 1],
+        "steps": [{
+            **LESSON["interactive_lesson"]["steps"][0],
+            "id": _step_id,
+            "label": [
+                "What is an All 1s pattern",
+                "An All 1s example",
+                "A common mistake",
+                "Quick recap",
+            ][_index - 1],
+        }],
+    }
 
 
 
 
 
-def _make_smoke_lesson_png() -> bytes:
+def _make_smoke_lesson_png(module_index: int) -> bytes:
+    """Create a distinct, topic-correct visual for each module in the UI fixture."""
+    titles = {
+        1: "What is an All 1s pattern",
+        2: "An All 1s example",
+        3: "A common mistake",
+        4: "Quick recap",
+    }
     image = Image.new("RGB", (1080, 720), "#FFFDF7")
     draw = ImageDraw.Draw(image)
     draw.rounded_rectangle((24, 24, 1056, 696), radius=30, fill="#FFFFFF", outline="#DCE5EA", width=4)
     draw.rounded_rectangle((52, 48, 1028, 158), radius=22, fill="#E8F4F8")
     bold_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    title_font = ImageFont.truetype(bold_path, 42) if __import__("os").path.exists(bold_path) else ImageFont.load_default()
-    number_font = ImageFont.truetype(bold_path, 100) if __import__("os").path.exists(bold_path) else ImageFont.load_default()
-    draw.text((82, 78), "Every term stays 1", font=title_font, fill="#24324A")
-    for index, x in enumerate([160, 350, 540, 730, 920]):
-        draw.rounded_rectangle((x - 62, 300, x + 62, 470), radius=24, fill="#EAF4E4", outline="#277DA1", width=5)
-        draw.text((x, 382), "1", font=number_font, fill="#24324A", anchor="mm")
+    font_path = bold_path if __import__("os").path.exists(bold_path) else None
+    title_font = ImageFont.truetype(font_path, 34) if font_path else ImageFont.load_default()
+    number_font = ImageFont.truetype(font_path, 100) if font_path else ImageFont.load_default()
+    body_font = ImageFont.truetype(font_path, 42) if font_path else ImageFont.load_default()
+    draw.text((82, 88), titles[module_index], font=title_font, fill="#24324A")
+
+    if module_index in (1, 2):
+        values = ["1", "1", "1"] if module_index == 1 else ["1", "1", "1", "1", "1"]
+        positions = [540] if len(values) == 1 else [160 + i * (760 // (len(values) - 1)) for i in range(len(values))]
+        for x, value in zip(positions, values):
+            draw.rounded_rectangle((x - 62, 300, x + 62, 470), radius=24, fill="#EAF4E4", outline="#277DA1", width=5)
+            draw.text((x, 382), value, font=number_font, fill="#24324A", anchor="mm")
+        draw.text((540, 555), "EVERY TERM IS 1" if module_index == 1 else "FIVE TERMS, SAME RULE",
+                  font=body_font, fill="#277DA1", anchor="mm")
+    elif module_index == 3:
+        draw.text((280, 340), "1, 1, 1, 1", font=body_font, fill="#277DA1", anchor="mm")
+        draw.text((800, 340), "1, 2, 3", font=body_font, fill="#B3261E", anchor="mm")
+        draw.line((650, 275, 950, 405), fill="#B3261E", width=12)
+        draw.line((950, 275, 650, 405), fill="#B3261E", width=12)
+        draw.text((540, 555), "THE VALUE DOES NOT GROW", font=body_font, fill="#24324A", anchor="mm")
+    else:
+        draw.text((540, 345), "1   1   1   ?", font=number_font, fill="#24324A", anchor="mm")
+        draw.text((540, 555), "NEXT TERM = 1", font=body_font, fill="#277DA1", anchor="mm")
+
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
 
 
-SMOKE_LESSON_PNG = _make_smoke_lesson_png()
+SMOKE_LESSON_PNGS = {index: _make_smoke_lesson_png(index) for index in range(1, 5)}
+SMOKE_AUDIO_DURATION_MS = 20_000
+
+def _make_smoke_speech(text: str) -> tuple[bytes, list[dict]]:
+    duration_ms = SMOKE_AUDIO_DURATION_MS
+    sample_rate = 16000
+    buffer = BytesIO()
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(bytes(sample_rate * duration_ms // 1000 * 2))
+    words = text.split()
+    count = max(1, len(words))
+    timings = [
+        {"start_ms": duration_ms * index // count, "end_ms": duration_ms * (index + 1) // count}
+        for index in range(count)
+    ]
+    return buffer.getvalue(), timings
+
+
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -138,30 +208,49 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"status": "ok", "service": "padippupal-smoke-fixture", "fixture_version": 1})
             return
         if path == "/chapter-lessons/smoke-all-ones/images":
-            self._send(200, {"lesson_id": "smoke-all-ones", "images": [{
-                "id": "smoke-asset", "module_key": "module-1", "title": "All 1s example",
-                "step_ids": ["all-ones-rule"], "content_type": "image/png",
-                "alt_text": "Five equal ones shown in five full-width cards",
-                "url": "/chapter-lessons/smoke-all-ones/images/smoke-asset"
-            }]})
+            module_images = [
+                ("smoke-asset-1", "module-1", "all-ones-definition", "What is an All 1s pattern"),
+                ("smoke-asset-2", "module-2", "all-ones-example", "An All 1s example"),
+                ("smoke-asset-3", "module-3", "all-ones-common-mistake", "A common mistake"),
+                ("smoke-asset-4", "module-4", "all-ones-recap", "Quick recap"),
+            ]
+            self._send(200, {"lesson_id": "smoke-all-ones", "images": [
+                {
+                    "id": asset_id, "module_key": module_key, "title": title,
+                    "step_ids": [step_id], "content_type": "image/png",
+                    "alt_text": title + " diagram",
+                    "url": f"/chapter-lessons/smoke-all-ones/images/{asset_id}"
+                }
+                for asset_id, module_key, step_id, title in module_images
+            ]})
             return
-        if path == "/chapter-lessons/smoke-all-ones/images/smoke-asset":
+        if path.startswith("/chapter-lessons/smoke-all-ones/images/smoke-asset-"):
+            if path.rsplit("-", 1)[-1] not in {"1", "2", "3", "4"}:
+                self._send(404, {"detail": "Unknown smoke image"})
+                return
             self.send_response(200)
             self.send_header("Content-Type", "image/png")
-            self.send_header("Content-Length", str(len(SMOKE_LESSON_PNG)))
+            image_bytes = SMOKE_LESSON_PNGS[int(path.rsplit("-", 1)[-1])]
+            self.send_header("Content-Length", str(len(image_bytes)))
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
-            self.wfile.write(SMOKE_LESSON_PNG)
+            self.wfile.write(image_bytes)
             return
         if path == "/curriculum/outline":
             self._send(200, {
                 "board": "CBSE",
                 "class_level": 6,
                 "subject": "Mathematics",
-                "chapters": [{
-                    "title": "Patterns in Mathematics",
-                    "topics": ["All 1s"],
-                }],
+                "chapters": [
+                    {
+                        "title": "Patterns in Mathematics",
+                        "topics": ["All 1s"],
+                    },
+                    {
+                        "title": "Growing Number Patterns",
+                        "topics": ["Square Numbers"],
+                    },
+                ],
             })
             return
         if path == "/health/voice":
@@ -227,7 +316,17 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, LESSON)
             return
         if path == "/tutor/speech":
-            self._send(503, {"detail": "Cloud voice disabled in deterministic smoke fixture"})
+            # Deterministic local audio keeps UI smoke independent of emulator TTS speed.
+            speech_text = str(body.get("text", "")).strip()
+            if not speech_text:
+                self._send(422, {"detail": "Speech text is required"})
+                return
+            speech_wav, word_timings = _make_smoke_speech(speech_text)
+            self._send(200, {
+                "audio_base64": base64.b64encode(speech_wav).decode("ascii"),
+                "word_timings": word_timings,
+                "provider": "deterministic_silent_smoke_audio",
+            })
             return
         if path == "/tutor/chat":
             self._send(200, {
@@ -246,9 +345,21 @@ class Handler(BaseHTTPRequestHandler):
 
 def self_test() -> None:
     assert len(LESSON["segments"]) == 4
+    assert len({hash(payload) for payload in SMOKE_LESSON_PNGS.values()}) == 4, "each module must have a distinct visual asset"
     assert "All 1s" in LESSON["segments"][0]["spoken_text"]
     assert "repeats" in LESSON["segments"][1]["spoken_text"]
+    smoke_wav, smoke_timings = _make_smoke_speech(LESSON["segments"][0]["spoken_text"])
+    with wave.open(BytesIO(smoke_wav), "rb") as wav:
+        assert wav.getnframes() * 1000 // wav.getframerate() == 20000
+    assert len(smoke_timings) == len(LESSON["segments"][0]["spoken_text"].split())
+    assert smoke_timings[0]["start_ms"] == 0
+    assert smoke_timings[-1]["end_ms"] == SMOKE_AUDIO_DURATION_MS
+    assert all(left["end_ms"] == right["start_ms"] for left, right in zip(smoke_timings, smoke_timings[1:]))
+    assert all(item["end_ms"] > item["start_ms"] for item in smoke_timings)
     assert all(segment["checkpoint"] is None for segment in LESSON["segments"])
+    assert [segment["module_key"] for segment in LESSON["segments"]] == [f"module-{i}" for i in range(1, 5)]
+    assert all(segment["interactive_lesson"]["module_key"] == segment["module_key"] for segment in LESSON["segments"])
+    assert all(segment["interactive_lesson"]["step_id"] == segment["id"] for segment in LESSON["segments"])
     assert LESSON["interactive_lesson"]["scene_type"] == "synthesis_static"
     assert LESSON["interactive_lesson"]["steps"][0]["nodes"] == ["1", "1", "1", "1", "1"]
     assert LESSON["interactive_lesson"]["steps"][0]["source_chunk_ids"] == ["smoke-source"]

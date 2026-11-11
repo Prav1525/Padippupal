@@ -27,6 +27,14 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,240}$")
 
+def _safe_object_segment(value: object) -> str:
+    """Normalize curriculum labels for storage keys without allowing path traversal."""
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip(".-")
+    if not normalized or normalized in {".", ".."}:
+        raise HTTPException(status_code=422, detail="Lesson curriculum metadata is incomplete.")
+    return normalized[:100]
+
+
 
 def require_image_admin(x_admin_token: str | None = Header(default=None)) -> None:
     if not ADMIN_TOKEN or not x_admin_token or x_admin_token != ADMIN_TOKEN:
@@ -132,15 +140,22 @@ async def ingest_lesson_images(manifest_json: str, file: UploadFile = File(...))
         ensure_blob_table(conn)
         for item in prepared:
             lesson = conn.execute(
-                "SELECT id, medium, chapter, status FROM chapter_lessons WHERE id=%s",
+                "SELECT id, board, class_level, subject, medium, chapter, status FROM chapter_lessons WHERE id=%s",
                 (item["lesson_id"],)
             ).fetchone()
-            if not lesson or lesson["status"] != "approved" or lesson["chapter"].strip().casefold() != "beyond earth":
-                raise HTTPException(status_code=422, detail="Images may only attach to an approved Beyond Earth lesson.")
+            if not lesson or lesson["status"] != "approved":
+                raise HTTPException(status_code=422, detail="Images may only attach to an approved lesson.")
             if item.get("medium") and str(item["medium"]).casefold() != str(lesson["medium"]).casefold():
                 raise HTTPException(status_code=422, detail="Manifest medium does not match lesson medium.")
         for item in prepared:
-            object_key = f"beyond-earth/{str(item.get('medium') or 'unknown').lower()}/{item['module_key']}/{item['id']}"
+            object_key = "lesson-images/{}/{}/{}/{}/{}/{}".format(
+                _safe_object_segment(lesson["board"]),
+                _safe_object_segment(lesson["class_level"]),
+                _safe_object_segment(lesson["subject"]),
+                _safe_object_segment(lesson["chapter"]),
+                item["module_key"],
+                item["id"],
+            )
             conn.execute("""
                 INSERT INTO lesson_image_assets
                   (id, lesson_id, module_key, title, step_ids_json, bucket_name, object_key,
@@ -180,14 +195,25 @@ def list_lesson_images(lesson_id: str) -> dict:
     conn = connect()
     try:
         rows = conn.execute("""
+            WITH latest_module_assets AS (
+                SELECT lesson_id, module_key, MAX(updated_at) AS latest_updated_at
+                FROM lesson_image_assets
+                WHERE lesson_id=%s AND status='ready'
+                GROUP BY lesson_id, module_key
+            )
             SELECT a.id, a.lesson_id, a.module_key, a.title, a.step_ids_json,
                    a.content_type, a.alt_text, b.sha256, b.byte_length
-            FROM lesson_image_assets a JOIN lesson_image_asset_blobs b ON b.asset_id=a.id
+            FROM lesson_image_assets a
+            JOIN latest_module_assets latest
+              ON latest.lesson_id=a.lesson_id
+             AND latest.module_key=a.module_key
+             AND latest.latest_updated_at=a.updated_at
+            JOIN lesson_image_asset_blobs b ON b.asset_id=a.id
             JOIN chapter_lessons l ON l.id=a.lesson_id
-            WHERE a.lesson_id=%s AND a.status='ready' AND l.status='approved'
+            WHERE a.status='ready' AND l.status='approved'
             ORDER BY a.module_key, a.created_at, a.id
         """, (lesson_id,)).fetchall()
-        return {"lesson_id": lesson_id, "images": [
+        return {"lesson_id": lesson_id, "asset_version_policy": "latest_per_module", "images": [
             {"id": row["id"], "module_key": row["module_key"], "title": row["title"],
              "step_ids": json.loads(row["step_ids_json"]), "content_type": row["content_type"],
              "alt_text": row["alt_text"], "sha256": row["sha256"], "byte_length": row["byte_length"],
@@ -281,7 +307,17 @@ def _image_signature_matches(payload: bytes, content_type: str) -> bool:
 
 
 def _validate_module_step_mapping(module_key: str, step_ids: list[str]) -> None:
-    expected_module_keys = {f"module-{step.split('_', 1)[1]}" for step in step_ids}
+    # Approved lesson data historically uses both step_2 and step-2 identifiers.
+    # Normalize only the separator; keep the numeric identity exact.
+    expected_module_keys = set()
+    for step in step_ids:
+        match = re.fullmatch(r"step[_-]([1-9][0-9]*)", str(step))
+        if not match:
+            raise HTTPException(
+                status_code=422,
+                detail="Teaching step IDs must use step_N or step-N format.",
+            )
+        expected_module_keys.add(f"module-{match.group(1)}")
     if len(expected_module_keys) != 1 or module_key not in expected_module_keys:
         raise HTTPException(
             status_code=422,

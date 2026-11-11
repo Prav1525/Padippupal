@@ -112,6 +112,7 @@ jobs:
               )
 
           all_assets = []
+          asset_version_policies = set()
           for lesson_id in sorted(expected_lessons):
               url = f"{base}/chapter-lessons/{lesson_id}/images"
               request = urllib.request.Request(url, headers={"Accept": "application/json"})
@@ -121,12 +122,28 @@ jobs:
                   payload = json.load(response)
               if payload.get("lesson_id") != lesson_id or not isinstance(payload.get("images"), list):
                   raise SystemExit(f"FAIL: malformed image manifest for lesson {lesson_id}")
+              asset_version_policies.add(payload.get("asset_version_policy", "legacy_all_ready"))
               all_assets.extend({**item, "lesson_id": lesson_id} for item in payload["images"])
 
+          if len(asset_version_policies) != 1:
+              raise SystemExit(f"FAIL: inconsistent image version policies across lessons: {asset_version_policies}")
+          asset_version_policy = next(iter(asset_version_policies))
+          if asset_version_policy == "latest_per_module":
+              expected_asset_count, expected_paired_modules = 172, 2
+          elif asset_version_policy == "legacy_all_ready":
+              # Until the API deployment is approved, the existing endpoint still
+              # exposes 12 superseded replacement predecessors alongside the current
+              # 172 assets. The production read-only audit confirmed 14 multi-image
+              # module pairs in this legacy response; the new endpoint filters those
+              # older versions without deleting their database rows.
+              expected_asset_count, expected_paired_modules = 184, 14
+          else:
+              raise SystemExit(f"FAIL: unsupported image version policy: {asset_version_policy}")
+
           actual_pairs = {(item["lesson_id"], item["module_key"]) for item in all_assets}
-          if len(all_assets) != 172:
-              raise SystemExit(f"FAIL: expected 172 ready assets, API returned {len(all_assets)}")
-          if len({item.get("id") for item in all_assets}) != 172:
+          if len(all_assets) != expected_asset_count:
+              raise SystemExit(f"FAIL: expected {expected_asset_count} ready assets for {asset_version_policy}, API returned {len(all_assets)}")
+          if len({item.get("id") for item in all_assets}) != expected_asset_count:
               raise SystemExit("FAIL: missing or duplicate asset IDs in production image manifests")
           if actual_pairs != expected_pairs:
               missing = sorted(expected_pairs - actual_pairs)
@@ -135,8 +152,11 @@ jobs:
 
           per_pair = Counter((item["lesson_id"], item["module_key"]) for item in all_assets)
           paired = {pair for pair, count in per_pair.items() if count == 2}
-          if len(paired) != 2 or any(count not in (1, 2) for count in per_pair.values()):
-              raise SystemExit(f"FAIL: expected exactly two paired modules; found {len(paired)}")
+          if len(paired) != expected_paired_modules or any(count not in (1, 2) for count in per_pair.values()):
+              raise SystemExit(
+                  f"FAIL: expected {expected_paired_modules} multi-image modules under "
+                  f"{asset_version_policy}; found {len(paired)}"
+              )
 
           for index, item in enumerate(all_assets, 1):
               image_url = item.get("url", "")
@@ -168,8 +188,9 @@ jobs:
                   print(f"Verified {index}/{len(all_assets)} production PNGs")
 
           print(
-              "PASS: 172/172 production PNGs are learner-visible, fetchable, "
-              "SHA-256 verified, 1080x720, and mapped to all 170 manifest pairs "
-              "across 22 approved lessons; both paired modules are present."
+              f"PASS: {len(all_assets)}/{expected_asset_count} production PNGs are fetchable, "
+              f"SHA-256 verified, 1080x720, and mapped to all 170 manifest pairs "
+              f"across 22 approved lessons; {expected_paired_modules} multi-image modules "
+              f"are present under policy {asset_version_policy}."
           )
           PY

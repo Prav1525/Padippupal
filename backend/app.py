@@ -3345,6 +3345,14 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 visual = step.get("visual") if isinstance(step.get("visual"), dict) else {}
                 objects = visual.get("objects", [])
                 step_id = str(step.get("id") or ("approved-" + str(index + 1)))[:40]
+                # Each approved teaching-sequence step is a learner-facing module.
+                # Keep its identity/title independent of image assets: a missing
+                # diagram must never collapse module layout into one caption.
+                # Preserve step_N -> module-N for existing image ingestion mappings.
+                step_number_match = re.fullmatch(r"step[_-]?([1-9][0-9]*)", step_id)
+                module_number = int(step_number_match.group(1)) if step_number_match else index + 1
+                module_key = f"module-{module_number}"
+                module_title = str(step.get("title") or step.get("heading") or f"Module {module_number}").strip()[:120]
                 # The live player reads visuals from each segment, not just the response
                 # envelope. Attach only the asset built from this exact synthesis step so
                 # the diagram changes in sync with its narration and never shows a neighbour.
@@ -3360,6 +3368,8 @@ def tutor_lesson_plan(payload: LessonPlanRequest) -> dict[str, Any]:
                 )
                 segments.append({
                     "id": step_id,
+                    "module_key": module_key,
+                    "module_title": module_title,
                     "spoken_text": spoken[:500], "caption_text": caption[:500],
                     "source_chunk_ids": source_ids[:5],
                     "visual_action": {

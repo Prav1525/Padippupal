@@ -286,7 +286,13 @@ sleep 1
 timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-typed.xml
 timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-typed.xml follow-up-typed.xml
 python3 .github/scripts/ui_smoke.py assert-composer-question follow-up-typed.xml
-python3 .github/scripts/ui_smoke.py tap follow-up-typed.xml "Send question"
+python3 .github/scripts/ui_smoke.py tap follow-up-typed.xml "Send follow-up question"
+# Capture the learner's posted message independently of the later tutor reply.
+# The two bubbles need not be on the same viewport once the conversation grows.
+sleep 1
+timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up-sent.xml
+timeout 10s "${ADB[@]}" pull /data/local/tmp/follow-up-sent.xml follow-up-sent.xml
+python3 .github/scripts/ui_smoke.py assert-followup-question follow-up-sent.xml
 followup_received=0
 for attempt in $(seq 1 30); do
   timeout 10s "${ADB[@]}" shell uiautomator dump /data/local/tmp/follow-up.xml >/dev/null 2>&1 || true

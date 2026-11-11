@@ -281,16 +281,23 @@ def assert_completed_lesson(path, lesson_snapshot_path=None):
     print("PASS: completion card and follow-up input are visible; retained lesson content is verified in the preceding live-module snapshot")
 
 
+def assert_followup_question(path):
+    _, texts = load(path)
+    joined = "\n".join(texts).lower()
+    print("FOLLOW-UP QUESTION TEXT:", " | ".join(texts[:100]))
+    if "why does all 1s repeat" not in joined:
+        raise SystemExit("Submitted follow-up question is not visible in the chat history")
+    print("PASS: submitted follow-up question is visible in chat history")
+
+
 def assert_followup_answer(path):
     _, texts = load(path)
     joined = "\n".join(texts).lower()
-    print("FOLLOW-UP TEXT:", " | ".join(texts[:100]))
+    print("FOLLOW-UP ANSWER TEXT:", " | ".join(texts[:100]))
     expected = "the smoke-test tutor is ready to help with the selected topic"
     if expected not in joined:
         raise SystemExit("Follow-up question did not receive the expected tutor response")
-    if "why does all 1s repeat" not in joined:
-        raise SystemExit("The submitted follow-up question is not visible in chat history")
-    print("PASS: follow-up question and answer are both visible")
+    print("PASS: tutor follow-up answer is visible")
 
 
 def active_module_index(path):
@@ -691,6 +698,8 @@ def main():
         if len(sys.argv) < 4:
             raise SystemExit("Usage: ui_smoke.py assert-completed-lesson COMPLETION_XML LESSON_SNAPSHOT_XML")
         assert_completed_lesson(path, sys.argv[3])
+    elif action == "assert-followup-question":
+        assert_followup_question(path)
     elif action == "assert-followup":
         assert_followup_answer(path)
     elif action == "assert-live-layout":

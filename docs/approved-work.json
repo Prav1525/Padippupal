@@ -55,6 +55,28 @@
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "LOCAL-CODEX-EXECUTOR-SMOKE",
+      "status": "APPROVED",
+      "approved_by": "Founder approval for integration testing in ChatGPT conversation on 2026-11-12",
+      "scope": [
+        "Verify the bounded local Codex executor on the founder's existing Termux/Ubuntu environment using the already authenticated Codex CLI.",
+        "Run one harmless, no-source-edit Codex task through the repository-owned Proceed runner and allow the runner's mandatory Python safety checks to execute.",
+        "Report exact Codex version/login status, selected active task, branch, exit code, test outcomes, changed-file list and patch result."
+      ],
+      "non_goals": [
+        "Do not modify repository source, tests, documentation, the approved-work ledger, or active-work state during this smoke task.",
+        "Do not commit, push, open a PR, merge, deploy, publish, access production, mutate production data, perform destructive operations, or spend paid API budget."
+      ],
+      "acceptance_criteria": [
+        "The local runner preflight passes in Termux/Ubuntu with the existing Codex ChatGPT login.",
+        "The runner creates a non-main working branch and codex exec completes the no-edit smoke prompt successfully.",
+        "The runner's Python compilation, AutoPilot validator, AutoPilot tests, Proceed-controller tests and local-executor tests all pass.",
+        "The final report shows no changed files, no patch, and no commit or push."
+      ],
+      "risk": "low",
+      "approval_expires": "Until revoked by founder"
     }
   ]
 }

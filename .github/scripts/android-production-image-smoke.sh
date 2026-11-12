@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 ADB=(adb -s emulator-5554)
+source "$(dirname "${BASH_SOURCE[0]}")/android_activity_package.sh"
 mkdir -p ui-screenshots/production-image
 REPORT=ui-screenshots/production-image/test-report.txt
 : > "$REPORT"
@@ -65,10 +66,12 @@ recover_launcher_anr() {
     sleep 8
   done
   echo "Launcher remains unresponsive; restarting the resolved HOME package once"
-  launcher_component=$(timeout 10s "${ADB[@]}" shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | tail -n 1 || true)
-  launcher_package=$(printf '%s' "$launcher_component" | sed -n 's#.*{\([^/}]*\)/.*#\1#p')
-  if [ -n "$launcher_package" ]; then
+  launcher_component=$(timeout 10s "${ADB[@]}" shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | tail -n 1 | tr -d '\\r' || true)
+  if launcher_package=$(resolve_activity_package "$launcher_component"); then
+    echo "Resolved HOME package for bounded ANR recovery: $launcher_package"
     timeout 10s "${ADB[@]}" shell am force-stop "$launcher_package" || true
+  else
+    echo "WARN: refusing to force-stop an unresolved HOME package: $launcher_component" >&2
   fi
   timeout 10s "${ADB[@]}" shell am force-stop com.padippupal.app || true
   timeout 15s "${ADB[@]}" shell am start -n com.padippupal.app/.MainActivity

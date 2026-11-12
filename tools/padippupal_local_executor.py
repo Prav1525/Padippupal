@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bounded local Codex executor for the existing PadippuPal Proceed workflow."""
 from __future__ import annotations
-import argparse, datetime as dt, json, pathlib, shutil, subprocess, sys, tempfile
+import argparse, datetime as dt, json, pathlib, re, shutil, subprocess, sys, tempfile
 from typing import Sequence
 from padippupal_autopilot import approved_task, validate
 
@@ -45,6 +45,22 @@ def load_ledger(path: pathlib.Path = LEDGER) -> dict:
         raise PreflightError("Approved-work ledger must contain a JSON object.")
     return value
 
+def active_task_id(root: pathlib.Path = ROOT) -> str:
+    """Read the ledger task ID from the first canonical current-objective section."""
+    path = root / ".engineering" / "tasks" / "active-work.md"
+    try:
+        content = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise PreflightError(f"Could not read active-work handoff: {exc}") from exc
+    section = re.search(r"^## .*— current objective\s*$([\s\S]*?)(?=^## |\Z)", content, re.MULTILINE)
+    if not section:
+        raise PreflightError("active-work.md does not identify one current objective; refusing to guess.")
+    task = re.search(r"Ledger task:\s*\x60([^\x60]+)\x60", section.group(1))
+    if not task:
+        raise PreflightError("The current active-work objective has no explicit approved ledger task ID.")
+    return task.group(1)
+
+
 def require_approved_task(task_id: str | None, ledger: dict) -> None:
     if task_id and approved_task(task_id, ledger) is None:
         raise PreflightError(f"Task {task_id!r} is not explicitly APPROVED in docs/approved-work.json.")
@@ -66,7 +82,10 @@ def preflight(root: pathlib.Path = ROOT, task_id: str | None = None, runner=subp
     ensure_clean_repository(root)
     ensure_policy(root)
     ledger = load_ledger(root / "docs" / "approved-work.json")
-    require_approved_task(task_id, ledger)
+    active_id = active_task_id(root)
+    if task_id and task_id != active_id:
+        raise PreflightError(f"Requested task {task_id!r} does not match current active objective {active_id!r}.")
+    require_approved_task(active_id, ledger)
     return check_codex_auth(runner=runner)
 
 def make_branch_name(now: dt.datetime | None = None) -> str:
@@ -189,7 +208,8 @@ def run_safety_checks(root: pathlib.Path = ROOT, runner=subprocess.run) -> list[
 
 def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=subprocess.run) -> int:
     try:
-        codex_path = preflight(root, task_id, runner=runner)
+        effective_task_id = task_id or active_task_id(root)
+        codex_path = preflight(root, effective_task_id, runner=runner)
         branch = make_branch_name()
         switched = git(root, "switch", "-c", branch)
         if switched.returncode:
@@ -198,7 +218,7 @@ def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=su
         print(f"Codex: {codex_path}")
         print("Sandbox: workspace-write | approvals: on-request")
         output = pathlib.Path(tempfile.gettempdir()) / f"padippupal-{branch.replace('/', '-')}-summary.md"
-        result = runner(build_codex_command(codex_path, root, output, build_prompt(task_id)),
+        result = runner(build_codex_command(codex_path, root, output, build_prompt(effective_task_id)),
                         cwd=root, text=True, check=False)
         checks = run_safety_checks(root, runner=runner)
         with output.open("a", encoding="utf-8") as report:
@@ -233,6 +253,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("PREFLIGHT: PASS")
             print(f"Repository: {ROOT}")
             print(f"Current branch: {current_branch(ROOT)}")
+            print(f"Active approved task: {active_task_id(ROOT)}")
             print(f"Codex: {codex}")
             print("Policy validator: PASS")
             return 0

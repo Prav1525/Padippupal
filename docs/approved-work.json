@@ -40,7 +40,7 @@
       "non_goals": [
         "No Codex Cloud worker, paid API key, API spend, remote model service, or production credential integration.",
         "No automatic PR merge, production deployment, production database write, destructive migration, public release, or security/approval-policy relaxation.",
-        "No claim that a ChatGPT message can wake a sleeping local Termux process; local execution begins when the local Proceed command is run.",
+        "ChatGPT cannot wake a stopped Termux process; local execution begins only while the authenticated Termux listener is running and polling GitHub.",
         "No replacement of existing GitHub Actions test workflows or the current five-generation repair-state block."
       ],
       "acceptance_criteria": [
@@ -76,6 +76,37 @@
         "The final report shows no changed files, no patch, and no commit or push."
       ],
       "risk": "low",
+      "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "LOCAL-CHAT-TERMUX-BRIDGE",
+      "status": "APPROVED",
+      "approved_by": "Founder approval in ChatGPT conversation on 2026-11-12 (Process if feasible)",
+      "scope": [
+        "Extend the existing PadippuPal Proceed workflow with a lightweight listener that runs on the founder's Android Termux/Ubuntu environment; do not introduce a cloud worker or second agent.",
+        "Poll the existing GitHub repository for exact owner-authored /proceed comments on open pull requests authored by the repository owner in the same repository.",
+        "Resolve and verify the exact PR head SHA, create an isolated local Git worktree, and invoke the existing approved local Codex executor against the approved active objective.",
+        "Persist a local deduplication cursor, prevent duplicate listener instances and duplicate execution, and post a concise execution result back to the triggering PR.",
+        "Configure a fine-grained GitHub token securely on-device; never expose it to Codex, commit it, or send it to ChatGPT."
+      ],
+      "non_goals": [
+        "No cloud worker, paid model API, remote model service, production credential, production database access or deployment.",
+        "No automatic commit, push, PR creation, merge, release, destructive operation or production write.",
+        "No claim of availability when Android/Termux is stopped or the listener is not running.",
+        "No bypass of Codex workspace-write sandbox, on-request approvals, approved-work ledger or five-generation repair cap."
+      ],
+      "acceptance_criteria": [
+        "The listener's first launch records a fresh cursor and does not replay historical /proceed comments.",
+        "Only an exact /proceed comment by the repository owner on an open same-repository PR authored by the repository owner is eligible.",
+        "The listener fetches the PR head and refuses execution unless the fetched SHA exactly matches the GitHub API head SHA.",
+        "Each accepted comment is claimed before execution and cannot be silently replayed after a process restart.",
+        "Codex runs only through the existing local executor in an isolated worktree; the GitHub token is removed from the child environment.",
+        "The listener posts status, exact tested SHA, local branch, changed-file summary and local patch/summary paths to the triggering PR.",
+        "Unit tests cover comment authorization, PR/fork checks, exact-SHA enforcement, deduplication, state bootstrap and result reporting.",
+        "The listener and its tests pass Python compilation, AutoPilot policy/unit tests, the investigation guidance gate and exact-head CI.",
+        "No commit, push, merge, deployment, production write, release or destructive action is performed."
+      ],
+      "risk": "high",
       "approval_expires": "Until revoked by founder"
     }
   ]

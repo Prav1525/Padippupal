@@ -393,3 +393,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Evidence:** Tested SHA `67395f8f12d2cac4197e250a3935ebfb020d8676`; [failing guidance run](https://github.com/Prav1525/Padippupal/actions/runs/43139616983); [passing AutoPilot run](https://github.com/Prav1525/Padippupal/actions/runs/43139616905).
 - **Status:** Evidence record correction committed; follow-up run [43139727060](https://github.com/Prav1525/Padippupal/actions/runs/43139727060) passed on exact head `04f348514f93edb150c2d75353c63acaec9c06bf`. This is not a local Codex runtime test and does not establish Termux execution success.
 
+
+
+## TE-041 — Local Proceed listener bridge implementation requires target-device verification
+
+- **Date discovered:** 2026-11-12
+- **Area:** Local GitHub-to-Termux Proceed transport.
+- **Symptom/requirement:** The existing GitHub `/proceed` workflow runs CI but cannot invoke the founder's local Codex process. This is an architectural capability gap, not a failing test.
+- **Root cause:** **CONFIRMED** — GitHub Actions and the Android Termux process are separate execution environments. A GitHub comment cannot wake or directly invoke a local process behind the device/network boundary.
+- **Why it escaped:** The earlier local Codex executor PR correctly documented that ChatGPT cannot wake a stopped Termux process, but did not implement a local polling transport for when Termux is running.
+- **Corrective action:** Add a local listener that polls repository comments, validates owner/PR identity and exact head SHA, creates an isolated worktree, invokes the existing executor and posts a result comment. Keep token storage local with owner-only permissions and remove token environment variables before starting Codex.
+- **Regression protection:** Unit tests cover owner-only trigger filtering, open/same-repository/owner-authored PR validation, exact SHA mismatch refusal, initial cursor bootstrap, duplicate suppression and result reporting. AutoPilot CI compiles and runs the listener tests.
+- **Evidence:** Implementation branch `feat/local-codex-executor`; listener source commit `54ac753b6e20e8e7c9c1507b2fabe12004f1b9a8`; tests commit `9f7128e7489fa6c84691faf069e13d9baee3b038`; CI wiring commit `fa5d88f397cb11a3080c75131bc3fdc11f63201a`.
+- **Status:** **UNVERIFIED** pending fresh exact-head CI and a real Termux listener/Codex round trip. No local device execution is claimed.

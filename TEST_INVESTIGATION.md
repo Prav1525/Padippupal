@@ -919,3 +919,17 @@ Use this format:
 - **What remains unverified:** Android APK, Android UI smoke, deployed API smoke and production-image acceptance were still running at the time; they are not proof of local Termux execution. A subsequent code-review pass identified two small acceptance/coverage gaps and added another source/test change, which requires a fresh exact-head CI run.
 - **Difference from previous attempt:** This is the first successful exact-head rerun after the missing investigation record was added.
 - **Next action and why:** Verify the latest source/test commit with AutoPilot and the guidance gate again; then inspect any relevant ancillary workflow results. Target-device Codex execution remains separate.
+
+
+### 2026-11-12 — Close active-objective and patch-evidence gaps in the local executor
+- **Branch / commit:** `feat/local-codex-executor`; executor source change `5ac170d35966703d5602d888d4c838c17e1df671`, executor tests `f96b41f52c27ca45e81e8ecdb7b1126b5fe6b276`, handoff update `8aeaba35ef3ae3fac1726eed235421f201676560`.
+- **Test command or workflow URL:** Exact-head AutoPilot and Investigation Guidance Gate runs for the latest commit are pending at the time of this entry.
+- **Result:** **UNVERIFIED** — verification must run on the updated head.
+- **Exact requirement/gap:** Review found that the runner selected the first current-objective heading even if the handoff contained multiple current objectives, and it did not print the changed-file list/diff-check result in its final report.
+- **Evidence:** The prior active-work file contained both the Codex integration and main-push monitoring headings marked as current objectives. The repository contract requires one active implementation objective.
+- **Change made (files + rationale):** The runner now refuses if the handoff contains anything other than exactly one current objective; the competing main-push item is explicitly paused while this founder-approved objective is active. Added a regression test for competing current objectives. The wrapper now reports changed files and the successful diff-check result alongside the patch path.
+- **Root cause:** **CONFIRMED** — the previous parser silently selected the first heading rather than enforcing the one-objective contract; the wrapper omitted two requested evidence fields.
+- **What this attempt proves:** Source and test changes are committed to the review branch; no target-device execution has been claimed.
+- **What remains unverified:** Fresh exact-head Python/AutoPilot and investigation-gate CI; target Termux preflight; actual local Codex execution; all unrelated Android/API workflows are not feature-specific proof for this CLI integration.
+- **Difference from previous attempt:** Adds deterministic refusal on ambiguous active-work state and explicit patch/evidence reporting.
+- **Next action and why:** Run AutoPilot and Investigation Guidance Gate on the updated PR head; inspect exact test output before declaring the integration implementation verified.

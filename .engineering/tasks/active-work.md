@@ -11,17 +11,23 @@ This block is the durable, machine-readable repair counter for the active work h
 {"schema_version":1,"max_generations":5,"chains":[]}
 <!-- padippupal-repair-state:end -->
 
-## Local Codex executor target-device smoke — current objective
+## Local ChatGPT-to-Termux Proceed listener — current objective
 
-- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398); target-device smoke is the single active objective. Latest source/test commits: `5ac170d35966703d5602d888d4c838c17e1df671` and `f96b41f52c27ca45e81e8ecdb7b1126b5fe6b276`.
-- **Approval:** Founder approved the Codex integration and its target-device smoke test (2026-11-12). Ledger task: `LOCAL-CODEX-EXECUTOR-SMOKE`; implementation scope remains recorded as `LOCAL-CODEX-EXECUTOR`.
-- **Purpose:** Verify the approved local executor on the founder's Termux/Ubuntu device with one harmless no-edit Codex task. The implementation is in this PR; the Python AutoPilot/controller remain the single orchestrator and policy system.
-- **Invocation:** `python tools/padippupal_local_executor.py proceed` from the repository root. It checks policy, clean Git state and Codex login, creates a non-main branch, and invokes `codex exec` with `workspace-write` plus `on-request` approvals.
-- **Deliverable:** uncommitted changes remain on the isolated local branch; the runner emits a patch and summary for review. It does not commit, push, open PRs, merge, deploy, publish, mutate production data or perform destructive operations.
-- **Trigger limitation:** a ChatGPT message cannot wake a sleeping Termux process. Local execution starts when the local command is run; no always-on ChatGPT-to-Termux bridge is claimed. The GitHub `/proceed` comment bridge remains inactive until PR #186 is merged; comments posted before activation are not evidence of execution.
-- **Verification target:** AutoPilot policy validator; existing AutoPilot/controller tests; new local-executor unit tests; Python compilation; workflow YAML validation; exact-head CI on this branch; then one target Termux/Ubuntu preflight and dry operational check by the founder.
-- **Safety:** preserve approved-roadmap-only scope, shared five-generation counter, on-request approvals, and separate merge/release gates. Never use Codex danger-full-access or approval bypass.
-- **Next:** founder runs the single local command after checking out this branch; review the generated evidence, then finish PR checks. Do not merge without separate approval.
+- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398), branch `feat/local-codex-executor`. Local listener implementation and unit tests are being added to the existing executor integration.
+- **Approval:** Founder approved the local polling bridge on 2026-11-12. Ledger task: `LOCAL-CHAT-TERMUX-BRIDGE`.
+- **Root cause:** **CONFIRMED** — the merged GitHub `/proceed` workflow dispatches CI checks but does not wake or invoke the founder's local Termux Codex process. A local polling listener is required because Termux is behind the device/network boundary.
+- **Mechanism:** Listener polls repository issue comments; accepts only exact owner-authored `/proceed` comments on open same-repository PRs authored by the repository owner; verifies fetched PR head SHA against the API; creates a detached isolated worktree; invokes the existing local Codex executor; posts result back to the PR.
+- **One-time setup:** Create a repository-scoped fine-grained GitHub token with Issues read/write and Pull requests read. Run `python tools/padippupal_proceed_listener.py configure` to save it with owner-only permissions, then keep `python tools/padippupal_proceed_listener.py run` running in Termux. The listener removes GitHub token environment variables before starting Codex.
+- **Safety:** Existing approved-work ledger, five-generation cap, workspace-write sandbox and on-request approvals remain mandatory. No commit, push, merge, deployment, production write, release or destructive operation.
+- **Verification target:** Listener unit tests; AutoPilot policy/controller/executor tests; Python compilation; investigation-guidance gate; exact-head CI; then a target-device test using a fresh owner-authored `/proceed` comment and inspection of the result comment/worktree.
+- **Limit:** If Termux stops or Android kills the process, local execution pauses. GitHub Actions CI remains independent and continues.
+- **Next:** Finish exact-head CI, then perform the one-time token configuration and start the listener; do not merge PR #398 without separate approval.
+
+## Local Codex executor target-device smoke — paused work item
+
+- **State:** PAUSED while the chat-to-Termux listener is integrated. The no-edit executor smoke will be run through the listener as the end-to-end acceptance test, avoiding a separate manual Codex start.
+- **Ledger task:** `LOCAL-CODEX-EXECUTOR-SMOKE` remains APPROVED and must be selected for the first harmless end-to-end bridge smoke after listener setup.
+- **Safety:** no source edits, commit, push, merge, deployment, production write, release or destructive operation during the smoke.
 
 ## Main-push Proceed monitoring — paused work item
 
@@ -44,11 +50,11 @@ This block is the durable, machine-readable repair counter for the active work h
 - **Other checks on prior exact SHA `df6e48e...`:** Investigation Guidance Gate run 41624396320 PASS; Android APK run 41624396290 was IN PROGRESS; Android UI smoke run 41624396302 was PENDING. These do not verify the corrected SHA.
 - **Latest exact-head verification:** AutoPilot run [41625909732](https://github.com/Prav1525/Padippupal/actions/runs/41625909732), job 125883069158, **PASS** on `7cb0c125fba8195e66f9a03297db721a903d28a9`: policy validator PASS; 14 AutoPilot tests PASS; 8 Proceed-controller tests PASS; `py_compile` and `git diff --check` PASS. Investigation Guidance Gate run [41625910029](https://github.com/Prav1525/Padippupal/actions/runs/41625910029), job 125883069697, **PASS**. Android APK run [41625909740](https://github.com/Prav1525/Padippupal/actions/runs/41625909740), job 125883068735, **PASS**; debug APK artifact [13226125802](https://github.com/Prav1525/Padippupal/actions/runs/41625909740/artifacts/13226125802), 16,296,932 bytes, matches the same branch/SHA. Public APK release job was skipped as required.
 - **UI/emulator:** **NOT RUN / NOT REQUIRED** for this workflow/controller-only change; no Android app behavior changed. This is not feature-specific tutor UI evidence.
-- **Live bridge test:** not yet executable from this PR because GitHub's `issue_comment` workflow must exist on the default branch. After explicit merge approval, test by posting `/proceed` on an open owner-authored PR (e.g. the active Beyond Earth acceptance PR) and confirm the controller dispatches against that PR's exact head SHA.
-- **Next:** request explicit founder approval to merge PR #186; after it is on the default branch, test the live `/proceed` bridge on the active Beyond Earth PR. Leave all other PRs and production state unchanged.
-- **Chat trigger bridge:** the AutoPilot workflow now accepts an owner-authored `/proceed` comment on an open same-repository PR authored by the repository owner. It resolves the exact PR head and runs the existing controller. It is inactive until this PR is merged into the default branch. ChatGPT can post this comment through the connected GitHub issue-comment action once active.
+- **Live GitHub bridge:** active on main; PR #186 is merged. The issue_comment workflow dispatches CI for an owner-authored /proceed comment. It does not itself invoke local Termux Codex; that requires the local polling listener tracked in PR #398.
+- **Next:** validate the local Termux listener in PR #398. PR #186 is already merged; do not merge PR #398 without separate founder approval.
+- **Chat trigger bridge:** the AutoPilot workflow on main accepts owner-authored `/proceed` comments on open same-repository owner-authored PRs and runs the CI controller. PR #186 is merged, so this GitHub-to-CI bridge is active. The local listener is a separate transport component that must be running on Termux to invoke Codex.
 - **Repair-generation state:** the five-generation counter now lives in the machine-readable block above; AutoPilot validates its schema, approved task linkage, sequential numbering, and hard maximum. The agent must update this shared block for every distinct repair hypothesis and carry it across branches. CI validation does not independently infer whether a hypothesis is genuinely distinct.
-- **Capability boundary:** GitHub Actions executes and observes tests; the ChatGPT engineering session performs evidence-based diagnosis and code repair. No unattended model worker is present (Codex and paid model integrations remain excluded).
+- **Capability boundary:** GitHub Actions executes and observes tests; the Termux listener can invoke the already authenticated local Codex CLI while it is running. It cannot wake a stopped phone/process. No cloud model worker or paid API integration is used.
 - **Safety:** no merge, production deployment, production DB mutation or public release.
 
 ## Concurrent user-requested acceptance: Beyond Earth original PDF images

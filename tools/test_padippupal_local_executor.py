@@ -19,6 +19,19 @@ class LocalExecutorPolicyTests(unittest.TestCase):
             )
             self.assertEqual(executor.active_task_id(root), "TASK-1")
 
+    def test_multiple_current_objectives_are_blocked(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / ".engineering/tasks/active-work.md"
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                "## Current one — current objective\n- Ledger task: `TASK-1`\n"
+                "## Current two — current objective\n- Ledger task: `TASK-2`\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(executor.PreflightError):
+                executor.active_task_id(root)
+
     def test_active_objective_without_ledger_id_is_blocked(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

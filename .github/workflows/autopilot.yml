@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           python tools/padippupal_autopilot.py validate
-          python -m py_compile tools/padippupal_autopilot.py tools/test_padippupal_autopilot.py tools/padippupal_proceed_controller.py tools/test_padippupal_proceed_controller.py tools/padippupal_local_executor.py tools/test_padippupal_local_executor.py
+          python -m py_compile tools/padippupal_autopilot.py tools/test_padippupal_autopilot.py tools/padippupal_proceed_controller.py tools/test_padippupal_proceed_controller.py tools/padippupal_local_executor.py tools/test_padippupal_local_executor.py tools/padippupal_proceed_listener.py tools/test_padippupal_proceed_listener.py
           python tools/test_padippupal_autopilot.py
           python tools/test_padippupal_proceed_controller.py
           python tools/test_padippupal_local_executor.py

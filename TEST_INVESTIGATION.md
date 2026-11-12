@@ -958,3 +958,16 @@ Use this format:
 - **What this proves:** The repository now contains a proposed local transport mechanism and regression tests; it does not yet prove the listener works on the founder's Android/Ubuntu device.
 - **What remains unverified:** Python compilation/unit tests on the latest head, exact-head AutoPilot and investigation-guidance gates, fine-grained token configuration, listener polling, actual Codex invocation, result-comment reporting, and Android process survival.
 - **Next action:** Run exact-head CI; fix any evidence-backed failures. If CI passes, configure the token once on Termux, start the listener, then post a fresh `/proceed` comment to exercise the full path.
+
+
+
+### 2026-11-12 — Verify local Proceed listener and one-command startup
+
+- **Branch / exact tested head:** `feat/local-codex-executor` at `baa7fdf2351318acd3b65dc895923b8eae6a4888`.
+- **Test command:** AutoPilot validation job ran `python tools/padippupal_autopilot.py validate`, `py_compile` for the policy/controller/executor/listener modules, all four Python test suites, and `git diff --check`.
+- **Result:** **PASS** — AutoPilot run [43147485313](https://github.com/Prav1525/Padippupal/actions/runs/43147485313), job 130948602422. Exact output: 15 policy tests PASS, 13 Proceed-controller tests PASS, 14 local-executor tests PASS, and 7 Proceed-listener tests PASS. Python compilation, policy validation and diff check also passed.
+- **Investigation gate:** **PASS** — run [43147485432](https://github.com/Prav1525/Padippupal/actions/runs/43147485432), job 130948602479, on the same exact head.
+- **What this proves:** The listener and its one-command startup parse, satisfy the approved-work validator, and pass their unit/security-contract tests on this exact PR head.
+- **What it does not prove:** No execution has yet occurred on the founder's Android/Termux device. Token configuration, persistent listener operation, actual Codex invocation, and result-comment round trip remain **UNVERIFIED**. Android/API workflows are ancillary to this Python bridge and are not substitutes for the target-device test.
+- **Difference from previous attempt:** Adds the combined `start` command and verifies it with the complete engineering Python test set; no safety assertions were weakened.
+- **Next action:** Founder runs `python tools/padippupal_proceed_listener.py start` once in the existing Ubuntu/Termux clone. After it prints LISTENER ARMED/ACTIVE, post a fresh `/proceed` from ChatGPT and inspect the returned result comment and retained local worktree.

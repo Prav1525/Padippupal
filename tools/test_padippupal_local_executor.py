@@ -17,12 +17,14 @@ class LocalExecutorPolicyTests(unittest.TestCase):
         executor.require_approved_task(None, {"tasks": []})
 
     def test_command_uses_workspace_write_and_on_request_only(self):
-        command = executor.build_codex_command("codex", Path("/repo"), Path("/tmp/summary.md"))
+        command = executor.build_codex_command("codex", Path("/repo"), Path("/tmp/summary.md"), "proceed task")
         self.assertEqual(command[command.index("--sandbox") + 1], "workspace-write")
         self.assertEqual(command[command.index("--ask-for-approval") + 1], "on-request")
         self.assertNotIn("--yolo", command)
         self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", command)
         self.assertNotIn("danger-full-access", command)
+        self.assertEqual(command[-1], "proceed task")
+        self.assertNotIn("-", command[-1:])
 
     def test_prompt_preserves_repair_and_release_boundaries(self):
         prompt = executor.build_prompt("LOCAL-CODEX-EXECUTOR")

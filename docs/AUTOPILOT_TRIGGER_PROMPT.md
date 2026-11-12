@@ -70,8 +70,7 @@ The local authenticated Codex CLI is the approved coding executor. The existing 
 ### One-time Termux setup
 
 1. Create a GitHub fine-grained personal access token restricted to this repository with **Issues: read/write** and **Pull requests: read** permissions. No Contents write permission is needed.
-2. Run `python tools/padippupal_proceed_listener.py configure` and enter the token at the hidden prompt. The listener stores it under the user's home directory with owner-only file permissions; it never belongs in Git or ChatGPT.
-3. Keep the listener running in Termux with `python tools/padippupal_proceed_listener.py run`. It polls every 60 seconds by default. Start it after the repository branch containing the listener is checked out.
+2. Run `python tools/padippupal_proceed_listener.py start`. If no token is configured, it prompts for the token with hidden input, validates repository/issue/pull-request read access, stores it under the user's home directory with owner-only file permissions, then starts polling. If already configured, it starts directly. The token never belongs in Git or ChatGPT.
 
 When the founder says **Proceed** here, ChatGPT posts the exact `/proceed` comment to the active owner-authored PR. GitHub Actions runs the existing CI cycle; the local listener detects the same comment, validates the PR owner/same-repository/open state and exact head SHA, creates an isolated Git worktree, then invokes `python tools/padippupal_local_executor.py proceed`. It posts the result and exact tested SHA back to that PR. Each comment is claimed once and historical comments are not replayed on first startup.
 

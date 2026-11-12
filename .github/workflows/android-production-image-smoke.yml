@@ -34,6 +34,9 @@ jobs:
         run: |
           set -euo pipefail
           bash -n .github/scripts/android-production-image-smoke.sh
+          bash -n .github/scripts/android_activity_package.sh
+          bash -n .github/scripts/test_android_activity_package.sh
+          bash .github/scripts/test_android_activity_package.sh
           python3 -m py_compile .github/scripts/production_image_smoke_proxy.py .github/scripts/test_production_image_smoke_proxy.py .github/scripts/ui_smoke.py
           python3 .github/scripts/test_production_image_smoke_proxy.py
           python3 .github/scripts/test_ui_smoke_helpers.py

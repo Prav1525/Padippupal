@@ -1,6 +1,6 @@
 # Active work handoff
 
-**Last updated:** 2026-11-03
+**Last updated:** 2026-11-12
 **Rule:** Live GitHub evidence supersedes historical notes. One canonical trigger and one shared state; no parallel agents or ledgers.
 
 ## Repair generation state
@@ -13,7 +13,7 @@ This block is the durable, machine-readable repair counter for the active work h
 
 ## Local Codex executor integration — current objective
 
-- **State:** IN PROGRESS — founder-approved implementation on `feat/local-codex-executor`; review PR and exact-head CI pending.
+- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398), tested head `67395f8f12d2cac4197e250a3935ebfb020d8676`; AutoPilot policy check PASS; Investigation Guidance Gate FAIL due missing append-only entry (now recorded).
 - **Approval:** Founder approved updating the approved-work ledger and canonical trigger, then implementing and testing the bounded local Codex executor (2026-11-12). Ledger task: `LOCAL-CODEX-EXECUTOR`.
 - **Purpose:** Connect the already authenticated local Codex CLI to the existing approved-work/Proceed workflow. The local runner is a coding executor, not a second agent or replacement for the Python AutoPilot/controller.
 - **Invocation:** `python tools/padippupal_local_executor.py proceed` from the repository root. It checks policy, clean Git state and Codex login, creates a non-main branch, and invokes `codex exec` with `workspace-write` plus `on-request` approvals.
@@ -21,7 +21,7 @@ This block is the durable, machine-readable repair counter for the active work h
 - **Trigger limitation:** a ChatGPT message cannot wake a sleeping Termux process. Local execution starts when the local command is run; no always-on ChatGPT-to-Termux bridge is claimed.
 - **Verification target:** AutoPilot policy validator; existing AutoPilot/controller tests; new local-executor unit tests; Python compilation; workflow YAML validation; exact-head CI on this branch; then one target Termux/Ubuntu preflight and dry operational check by the founder.
 - **Safety:** preserve approved-roadmap-only scope, shared five-generation counter, on-request approvals, and separate merge/release gates. Never use Codex danger-full-access or approval bypass.
-- **Next:** inspect the complete branch diff, run the full AutoPilot validation matrix, open a review PR if checks pass; do not merge.
+- **Next:** rerun Investigation Guidance Gate after the ledger correction, inspect exact-head CI for all workflows, and correct only evidence-backed failures; do not merge.
 
 ## Main-push Proceed monitoring — current objective
 

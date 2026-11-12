@@ -25,6 +25,36 @@
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "LOCAL-CODEX-EXECUTOR",
+      "status": "APPROVED",
+      "approved_by": "Founder approval in ChatGPT conversation on 2026-11-12",
+      "scope": [
+        "Integrate the already authenticated local Codex CLI as the coding executor for the existing PadippuPal engineering workflow.",
+        "Provide one local Proceed command that validates the existing approved-work ledger, reads the canonical engineering instructions, creates an isolated working branch, and invokes codex exec inside the repository workspace.",
+        "Allow Codex to implement only the current approved active objective, run applicable tests, and preserve the shared maximum of five distinct repair generations.",
+        "Produce a local reviewable patch and execution summary; do not automatically commit, push, merge, deploy, publish, mutate production data, or perform destructive operations.",
+        "Keep the existing Python AutoPilot, Proceed controller, approved-work ledger, active-work handoff, and canonical trigger; do not create a parallel agent or state store."
+      ],
+      "non_goals": [
+        "No Codex Cloud worker, paid API key, API spend, remote model service, or production credential integration.",
+        "No automatic PR merge, production deployment, production database write, destructive migration, public release, or security/approval-policy relaxation.",
+        "No claim that a ChatGPT message can wake a sleeping local Termux process; local execution begins when the local Proceed command is run.",
+        "No replacement of existing GitHub Actions test workflows or the current five-generation repair-state block."
+      ],
+      "acceptance_criteria": [
+        "The local runner refuses to start unless the repository is clean, Git and Codex CLI are available, Codex reports an authenticated session, and the existing AutoPilot policy validator passes.",
+        "The runner refuses an explicitly requested task ID unless that exact task is APPROVED in docs/approved-work.json.",
+        "The runner creates a new non-main working branch and invokes codex exec with workspace-write sandboxing and on-request approvals; it never uses danger-full-access or approval bypass flags.",
+        "The Codex prompt requires reading AGENTS.md, TESTING_GUIDANCE.md, the approved-work ledger, active-work handoff, and applicable regression/error records before edits or tests.",
+        "The runner returns the Codex exit status, changed-file summary, diff-check result, and a binary-capable patch file without committing or pushing.",
+        "Unit tests cover preflight gates, task approval, safe command construction, branch naming, sensitive-file detection, and patch collection.",
+        "AutoPilot CI runs the new executor tests and syntax checks on the exact proposed PR head.",
+        "The existing five-generation limit and all separate merge, deployment, production-data, destructive-operation, and release approval gates remain intact."
+      ],
+      "risk": "high",
+      "approval_expires": "Until revoked by founder"
     }
   ]
 }

@@ -23,9 +23,9 @@ This block is the durable, machine-readable repair counter for the active work h
 - **Safety:** preserve approved-roadmap-only scope, shared five-generation counter, on-request approvals, and separate merge/release gates. Never use Codex danger-full-access or approval bypass.
 - **Next:** run AutoPilot and Investigation Guidance Gate on latest head `4113379d6da0ec963ebe83c077d6dcc4839c8c22`, inspect relevant ancillary checks, and complete target Termux preflight; do not merge.
 
-## Main-push Proceed monitoring — current objective
+## Main-push Proceed monitoring — paused work item
 
-- **State:** IN PROGRESS — implementation prepared on `fix/main-push-proceed-monitoring`; awaiting exact-head CI.
+- **State:** PAUSED — defer this work item until the founder-approved local Codex executor objective is completed; do not run two implementation objectives in parallel.
 - **Root cause:** Confirmed. The five-minute controller was only invoked for PR and manual full-cycle events. Main-push test runs were not coordinated; the `workflow_run` handler only records completed evidence.
 - **Change:** Route every `main` push through the existing AutoPilot coordinator. Ensure all five existing test workflows start on every `main` push, then have the coordinator reuse only runs matching the exact push SHA. It waits up to five minutes for GitHub run discovery and refuses duplicate dispatch if a push run is missing.
 - **Safety:** The deployed API smoke is read-only; APK release remains disabled. No merge, deployment, production DB write, or public release.

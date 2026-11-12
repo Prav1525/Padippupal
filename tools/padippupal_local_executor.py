@@ -228,9 +228,16 @@ def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=su
                              + " ".join(item["command"]) + "\n")
                 report.write(item["output"] + "\n")
         patch = collect_patch(root, branch)
+        paths = changed_paths(root)
         failed_checks = [item for item in checks if item["returncode"] != 0]
+        with output.open("a", encoding="utf-8") as report:
+            report.write("\nChanged files:\n")
+            report.write("\n".join(f"- {path}" for path in paths) if paths else "- none")
+            report.write("\n\nDiff check: PASS\n")
         print(f"Codex exit code: {result.returncode}")
         print(f"Wrapper safety checks: {'PASS' if not failed_checks else 'FAIL'} ({len(checks)} commands)")
+        print("Changed files: " + (", ".join(paths) if paths else "none"))
+        print("git diff --check: PASS")
         print(f"Execution summary: {output if output.exists() else 'not produced'}")
         print(f"Patch: {patch if patch else 'no repository changes produced'}")
         print("No commit, push, PR, merge, deployment or production operation was performed.")

@@ -905,3 +905,17 @@ Use this format:
 - **What remains unverified:** The corrected record has not yet been checked by a fresh exact-head gate run. The Android APK, Android UI smoke and deployed API smoke workflows were still in progress when this entry was prepared; none proves local Termux execution.
 - **Difference from previous attempt:** Adds the missing durable investigation evidence rather than changing the executor code or relaxing the gate.
 - **Next action and why:** Re-run the Investigation Guidance Gate on the updated PR head, inspect any further failure logs, and wait for all relevant PR checks to reach terminal states before claiming the PR verified.
+
+
+### 2026-11-12 — Verify investigation-gate correction on the updated PR head
+- **Branch / commit:** `feat/local-codex-executor`; exact tested head `04f348514f93edb150c2d75353c63acaec9c06bf`.
+- **Test command or workflow URL:** AutoPilot run [43139726895](https://github.com/Prav1525/Padippupal/actions/runs/43139726895), job 130923512664; Investigation Guidance Gate run [43139727060](https://github.com/Prav1525/Padippupal/actions/runs/43139727060), job 130923512534.
+- **Result:** **PASS** — AutoPilot validation, Python compilation, 15 AutoPilot tests, 13 Proceed-controller tests, 12 local-executor tests, and the Investigation Guidance Gate all passed.
+- **Exact failure or assertion:** None on this head. The previous missing-investigation-entry failure on `67395f8f12d2cac4197e250a3935ebfb020d8676` was corrected by appending the investigation entry and TE-040 record.
+- **Evidence links:** [AutoPilot run](https://github.com/Prav1525/Padippupal/actions/runs/43139726895); [Investigation Guidance Gate](https://github.com/Prav1525/Padippupal/actions/runs/43139727060).
+- **Change made:** No source change for this verification; this entry records the passing rerun.
+- **Root cause:** **CONFIRMED** for the prior gate failure — missing append-only investigation evidence. The corrected record passed.
+- **What this attempt proves:** The documented evidence correction satisfies the investigation validator, and the executor/AutoPilot Python suites pass on this exact tested head.
+- **What remains unverified:** Android APK, Android UI smoke, deployed API smoke and production-image acceptance were still running at the time; they are not proof of local Termux execution. A subsequent code-review pass identified two small acceptance/coverage gaps and added another source/test change, which requires a fresh exact-head CI run.
+- **Difference from previous attempt:** This is the first successful exact-head rerun after the missing investigation record was added.
+- **Next action and why:** Verify the latest source/test commit with AutoPilot and the guidance gate again; then inspect any relevant ancillary workflow results. Target-device Codex execution remains separate.

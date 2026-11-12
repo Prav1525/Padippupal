@@ -11,17 +11,17 @@ This block is the durable, machine-readable repair counter for the active work h
 {"schema_version":1,"max_generations":5,"chains":[]}
 <!-- padippupal-repair-state:end -->
 
-## Local Codex executor integration — current objective
+## Local Codex executor target-device smoke — current objective
 
-- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398), latest branch head `6b9165b49a8dff8d1f1f759c3fbe77c301d71a7a` (source/test changes: `5ac170d35966703d5602d888d4c838c17e1df671` and `f96b41f52c27ca45e81e8ecdb7b1126b5fe6b276`). AutoPilot and Investigation Guidance Gate passed on prior head `04f348514f93edb150c2d75353c63acaec9c06bf`; latest source/test and trigger-text changes require fresh exact-head CI.
-- **Approval:** Founder approved updating the approved-work ledger and canonical trigger, then implementing and testing the bounded local Codex executor (2026-11-12). Ledger task: `LOCAL-CODEX-EXECUTOR`.
-- **Purpose:** Connect the already authenticated local Codex CLI to the existing approved-work/Proceed workflow. The local runner is a coding executor, not a second agent or replacement for the Python AutoPilot/controller.
+- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398); target-device smoke is the single active objective. Latest source/test commits: `5ac170d35966703d5602d888d4c838c17e1df671` and `f96b41f52c27ca45e81e8ecdb7b1126b5fe6b276`.
+- **Approval:** Founder approved the Codex integration and its target-device smoke test (2026-11-12). Active ledger task: `LOCAL-CODEX-EXECUTOR-SMOKE`; implementation scope remains recorded as `LOCAL-CODEX-EXECUTOR`.
+- **Purpose:** Verify the approved local executor on the founder's Termux/Ubuntu device with one harmless no-edit Codex task. The implementation is in this PR; the Python AutoPilot/controller remain the single orchestrator and policy system.
 - **Invocation:** `python tools/padippupal_local_executor.py proceed` from the repository root. It checks policy, clean Git state and Codex login, creates a non-main branch, and invokes `codex exec` with `workspace-write` plus `on-request` approvals.
 - **Deliverable:** uncommitted changes remain on the isolated local branch; the runner emits a patch and summary for review. It does not commit, push, open PRs, merge, deploy, publish, mutate production data or perform destructive operations.
 - **Trigger limitation:** a ChatGPT message cannot wake a sleeping Termux process. Local execution starts when the local command is run; no always-on ChatGPT-to-Termux bridge is claimed. The GitHub `/proceed` comment bridge remains inactive until PR #186 is merged; comments posted before activation are not evidence of execution.
 - **Verification target:** AutoPilot policy validator; existing AutoPilot/controller tests; new local-executor unit tests; Python compilation; workflow YAML validation; exact-head CI on this branch; then one target Termux/Ubuntu preflight and dry operational check by the founder.
 - **Safety:** preserve approved-roadmap-only scope, shared five-generation counter, on-request approvals, and separate merge/release gates. Never use Codex danger-full-access or approval bypass.
-- **Next:** run AutoPilot and Investigation Guidance Gate on latest branch head `6b9165b49a8dff8d1f1f759c3fbe77c301d71a7a`, inspect relevant ancillary checks, and complete target Termux preflight; do not merge.
+- **Next:** founder runs the single local command after checking out this branch; review the generated evidence, then finish PR checks. Do not merge without separate approval.
 
 ## Main-push Proceed monitoring — paused work item
 

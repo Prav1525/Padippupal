@@ -6,6 +6,28 @@ from unittest.mock import patch
 import padippupal_local_executor as executor
 
 class LocalExecutorPolicyTests(unittest.TestCase):
+    def test_active_task_id_comes_from_current_objective_section(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / ".engineering/tasks/active-work.md"
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                "## Current objective — current objective\n"
+                "- Ledger task: `TASK-1`\n"
+                "## Historical work\n- Ledger task: `OLD-TASK`\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(executor.active_task_id(root), "TASK-1")
+
+    def test_active_objective_without_ledger_id_is_blocked(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            path = root / ".engineering/tasks/active-work.md"
+            path.parent.mkdir(parents=True)
+            path.write_text("## Current objective — current objective\nNo task ID.\n", encoding="utf-8")
+            with self.assertRaises(executor.PreflightError):
+                executor.active_task_id(root)
+
     def test_exact_approved_task_is_required_when_named(self):
         ledger = {"tasks": [{"id": "A", "status": "APPROVED"}, {"id": "B", "status": "PROPOSED"}]}
         executor.require_approved_task("A", ledger)

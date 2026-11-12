@@ -18,7 +18,8 @@ from padippupal_autopilot import (
 def make_validation_root(root: Path, ledger: dict | None = None, agent_text: str | None = None):
     for rel in ("TESTING_GUIDANCE.md", "TEST_INVESTIGATION.md",
                 "docs/TESTING_ERRORS.md", "docs/TEST_FAILURE_REGISTER.md",
-                "docs/AUTOPILOT_TRIGGER_PROMPT.md", ".github/testing-regression-checklist.md"):
+                "docs/AUTOPILOT_TRIGGER_PROMPT.md", ".github/testing-regression-checklist.md",
+                "tools/padippupal_local_executor.py", "tools/test_padippupal_local_executor.py"):
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("guide", encoding="utf-8")
@@ -47,10 +48,18 @@ def make_validation_root(root: Path, ledger: dict | None = None, agent_text: str
         agent_text if agent_text is not None else "\n".join(REQUIRED_AGENT_CONTRACT_MARKERS),
         encoding="utf-8",
     )
+    (root / "docs/AUTOPILOT_TRIGGER_PROMPT.md").write_text(
+        "\n".join(["Same-invocation operating contract", "Engineering OS lane (orchestrator)",
+                   "AutoPilot lane (execution and quality subsystem)", "One shared state",
+                   "one coordinated cycle", "## Local Codex execution",
+                   "python tools/padippupal_local_executor.py proceed", "workspace-write",
+                   "on-request", "Trigger boundary"]), encoding="utf-8")
     ledger_value = ledger if ledger is not None else {
         "policy": "approved-roadmap-only",
         "max_repair_generations": 5,
-        "tasks": [],
+        "tasks": [{"id": "LOCAL-CODEX-EXECUTOR", "status": "APPROVED",
+                   "approved_by": "test fixture", "scope": ["test"],
+                   "acceptance_criteria": ["test"]}],
     }
     ledger_path = root / "docs/approved-work.json"
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
@@ -164,6 +173,18 @@ class ApprovalTests(unittest.TestCase):
                 "tasks": [{"id": "A", "status": "APPROVED"}],
             })
             self.assertTrue(any("lacks scope" in item for item in validate(root)))
+
+    def test_local_executor_requires_explicit_ledger_approval(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            make_validation_root(root, {
+                "policy": "approved-roadmap-only",
+                "max_repair_generations": 5,
+                "tasks": [],
+            })
+            errors = validate(root)
+            self.assertTrue(any("local Codex executor must be explicitly APPROVED" in item
+                                for item in errors))
 
     def test_unified_trigger_contract_drift_is_rejected(self):
         with tempfile.TemporaryDirectory() as temp:

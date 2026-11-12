@@ -933,3 +933,14 @@ Use this format:
 - **What remains unverified:** Fresh exact-head Python/AutoPilot and investigation-gate CI; target Termux preflight; actual local Codex execution; all unrelated Android/API workflows are not feature-specific proof for this CLI integration.
 - **Difference from previous attempt:** Adds deterministic refusal on ambiguous active-work state and explicit patch/evidence reporting.
 - **Next action and why:** Run AutoPilot and Investigation Guidance Gate on the updated PR head; inspect exact test output before declaring the integration implementation verified.
+
+
+### 2026-11-12 — Make the one-command smoke report self-contained
+- **Branch / commit:** `feat/local-codex-executor`; runner change `7a1bc9f799b5a56a72783f532fbaf9bdbaa4cddc`.
+- **Test command or workflow URL:** Exact-head AutoPilot and Investigation Guidance Gate checks pending.
+- **Result:** **UNVERIFIED** pending CI and target-device smoke.
+- **Requirement gap:** The runner printed the summary file path but not the summary contents, forcing the founder to run another shell command to retrieve the result.
+- **Change made:** Print the Codex final report and wrapper safety-check evidence directly in the terminal after the single Proceed command. This keeps the local smoke workflow to one command plus copying its terminal output.
+- **Root cause:** **CONFIRMED** — the initial wrapper saved the report but only printed its path.
+- **What remains unverified:** Exact-head CI, target Termux/Ubuntu invocation, Codex exec completion and no-change smoke acceptance.
+- **Next action:** Run the exact-head checks and then the one-command target-device smoke.

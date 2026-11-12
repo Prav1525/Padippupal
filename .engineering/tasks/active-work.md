@@ -11,6 +11,18 @@ This block is the durable, machine-readable repair counter for the active work h
 {"schema_version":1,"max_generations":5,"chains":[]}
 <!-- padippupal-repair-state:end -->
 
+## Local Codex executor integration — current objective
+
+- **State:** IN PROGRESS — founder-approved implementation on `feat/local-codex-executor`; review PR and exact-head CI pending.
+- **Approval:** Founder approved updating the approved-work ledger and canonical trigger, then implementing and testing the bounded local Codex executor (2026-11-12). Ledger task: `LOCAL-CODEX-EXECUTOR`.
+- **Purpose:** Connect the already authenticated local Codex CLI to the existing approved-work/Proceed workflow. The local runner is a coding executor, not a second agent or replacement for the Python AutoPilot/controller.
+- **Invocation:** `python tools/padippupal_local_executor.py proceed` from the repository root. It checks policy, clean Git state and Codex login, creates a non-main branch, and invokes `codex exec` with `workspace-write` plus `on-request` approvals.
+- **Deliverable:** uncommitted changes remain on the isolated local branch; the runner emits a patch and summary for review. It does not commit, push, open PRs, merge, deploy, publish, mutate production data or perform destructive operations.
+- **Trigger limitation:** a ChatGPT message cannot wake a sleeping Termux process. Local execution starts when the local command is run; no always-on ChatGPT-to-Termux bridge is claimed.
+- **Verification target:** AutoPilot policy validator; existing AutoPilot/controller tests; new local-executor unit tests; Python compilation; workflow YAML validation; exact-head CI on this branch; then one target Termux/Ubuntu preflight and dry operational check by the founder.
+- **Safety:** preserve approved-roadmap-only scope, shared five-generation counter, on-request approvals, and separate merge/release gates. Never use Codex danger-full-access or approval bypass.
+- **Next:** inspect the complete branch diff, run the full AutoPilot validation matrix, open a review PR if checks pass; do not merge.
+
 ## Main-push Proceed monitoring — current objective
 
 - **State:** IN PROGRESS — implementation prepared on `fix/main-push-proceed-monitoring`; awaiting exact-head CI.

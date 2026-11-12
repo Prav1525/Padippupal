@@ -11,23 +11,24 @@ This block is the durable, machine-readable repair counter for the active work h
 {"schema_version":1,"max_generations":5,"chains":[]}
 <!-- padippupal-repair-state:end -->
 
-## Local ChatGPT-to-Termux Proceed listener — current objective
+## Local Termux listener end-to-end smoke — current objective
 
-- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398), branch `feat/local-codex-executor`. Local listener implementation and unit tests are being added to the existing executor integration.
-- **Approval:** Founder approved the local polling bridge on 2026-11-12. Ledger task: `LOCAL-CHAT-TERMUX-BRIDGE`.
-- **Root cause:** **CONFIRMED** — the merged GitHub `/proceed` workflow dispatches CI checks but does not wake or invoke the founder's local Termux Codex process. A local polling listener is required because Termux is behind the device/network boundary.
-- **Mechanism:** Listener polls repository issue comments; accepts only exact owner-authored `/proceed` comments on open same-repository PRs authored by the repository owner; verifies fetched PR head SHA against the API; creates a detached isolated worktree; invokes the existing local Codex executor; posts result back to the PR.
-- **One-time setup:** Create a repository-scoped fine-grained GitHub token with Issues read/write and Pull requests read. Run `python tools/padippupal_proceed_listener.py configure` to save it with owner-only permissions, then keep `python tools/padippupal_proceed_listener.py run` running in Termux. The listener removes GitHub token environment variables before starting Codex.
-- **Safety:** Existing approved-work ledger, five-generation cap, workspace-write sandbox and on-request approvals remain mandatory. No commit, push, merge, deployment, production write, release or destructive operation.
-- **Verification target:** Listener unit tests; AutoPilot policy/controller/executor tests; Python compilation; investigation-guidance gate; exact-head CI; then a target-device test using a fresh owner-authored `/proceed` comment and inspection of the result comment/worktree.
-- **Limit:** If Termux stops or Android kills the process, local execution pauses. GitHub Actions CI remains independent and continues.
-- **Next:** Finish exact-head CI, then perform the one-time token configuration and start the listener; do not merge PR #398 without separate approval.
+- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398), branch `feat/local-codex-executor`. Listener source, tests and CI integration are implemented; target-device round trip remains unverified.
+- **Approval:** Founder approved the no-edit Codex smoke (2026-11-12). Ledger task: `LOCAL-CODEX-EXECUTOR-SMOKE`.
+- **Purpose:** Verify that a fresh ChatGPT-originated GitHub `/proceed` comment is detected by the Termux listener, starts the existing Codex executor in an isolated worktree, and returns a result comment without source changes.
+- **One-command setup/start:** Run `python tools/padippupal_proceed_listener.py start`. If no token is configured, it prompts for the fine-grained token with hidden input, validates read access, saves it with owner-only permissions and starts polling. Required token permissions: Issues read/write; Pull requests read.
+- **Current verification:** AutoPilot run [43147137406](https://github.com/Prav1525/Padippupal/actions/runs/43147137406), job 130947484201, **PASS** on exact head `45cda9d37623833d6dc2fec1d1fdaceba879a4c7`: 15 policy tests, 13 controller tests, 14 executor tests, 7 listener tests, Python compilation, policy validation and diff check. Investigation Guidance Gate [43147137197](https://github.com/Prav1525/Padippupal/actions/runs/43147137197), job 130947477933, **PASS** on the same SHA.
+- **Latest refinement:** Added the combined `start` command so token configuration and listener startup require one local command; exact-head CI for this refinement is pending.
+- **Safety:** Smoke task is no-edit. No commit, push, merge, deployment, production write, release or destructive operation. Codex remains workspace-write with on-request approvals.
+- **Limit:** If Termux stops or Android kills the process, local execution pauses; GitHub Actions CI remains independent.
+- **Next:** Verify the latest PR head's CI, then start the listener once on Termux and post a fresh `/proceed` comment to complete the end-to-end smoke.
 
-## Local Codex executor target-device smoke — paused work item
+## Local ChatGPT-to-Termux listener implementation — code complete, runtime pending
 
-- **State:** PAUSED while the chat-to-Termux listener is integrated. The no-edit executor smoke will be run through the listener as the end-to-end acceptance test, avoiding a separate manual Codex start.
-- **Ledger task:** `LOCAL-CODEX-EXECUTOR-SMOKE` remains APPROVED and must be selected for the first harmless end-to-end bridge smoke after listener setup.
-- **Safety:** no source edits, commit, push, merge, deployment, production write, release or destructive operation during the smoke.
+- **Ledger task:** `LOCAL-CHAT-TERMUX-BRIDGE` is APPROVED.
+- **Implementation:** `tools/padippupal_proceed_listener.py` polls the existing GitHub comment bridge, filters exact owner-authored `/proceed` comments, validates open same-repository owner-authored PRs, checks the fetched SHA, creates a detached worktree, invokes the existing executor and posts a result comment.
+- **Security:** Fine-grained token stored with owner-only file permissions; token environment variables are removed from the Codex child process; comments are deduplicated and historical comments are not replayed on first launch.
+- **Verification:** Listener's 7 unit tests and the existing engineering suites passed on exact head `45cda9d37623833d6dc2fec1d1fdaceba879a4c7`. The final one-command startup refinement still needs fresh CI and device testing.
 
 ## Main-push Proceed monitoring — paused work item
 

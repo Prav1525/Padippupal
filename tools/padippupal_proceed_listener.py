@@ -84,7 +84,6 @@ def save_state(state,path=STATE_FILE):
 
 def record(state,comment,status,**details):
     state["processed"][str(comment["id"])]={"status":status,**details}
-    while len(state["processed"])>5000: del state["processed"][next(iter(state["processed"]))]
     created=comment.get("created_at")
     if created and dt.datetime.fromisoformat(created.replace("Z","+00:00"))>dt.datetime.fromisoformat(state["last_created_at"].replace("Z","+00:00")):
         state["last_created_at"]=created
@@ -167,6 +166,7 @@ def configure(repo):
     try:
         client.request("GET",f"/repos/{repo}")
         client.request("GET",f"/repos/{repo}/issues/comments?per_page=1")
+        client.request("GET",f"/repos/{repo}/pulls?state=open&per_page=1")
     except ListenerError as exc: print(f"BLOCKED: token validation failed: {exc}",file=sys.stderr); return 2
     TOKEN_FILE.parent.mkdir(parents=True,exist_ok=True); os.chmod(TOKEN_FILE.parent,0o700)
     TOKEN_FILE.write_text(token+"\n"); os.chmod(TOKEN_FILE,0o600)
@@ -205,11 +205,16 @@ def main(argv=None):
     parser.add_argument("--repository",default=REPO)
     sub=parser.add_subparsers(dest="command",required=True)
     sub.add_parser("configure",help="Securely configure the fine-grained GitHub token.")
+    start=sub.add_parser("start",help="Configure the token if needed, then start the listener.")
+    start.add_argument("--poll-seconds",type=int,default=60); start.add_argument("--once",action="store_true")
     run=sub.add_parser("run",help="Poll GitHub and execute approved tasks through local Codex.")
     run.add_argument("--poll-seconds",type=int,default=60); run.add_argument("--once",action="store_true")
     args=parser.parse_args(argv)
     try:
         if args.command=="configure": return configure(args.repository)
+        if args.command=="start" and not os.environ.get("PADIPPUPAL_GITHUB_TOKEN","").strip() and not TOKEN_FILE.exists():
+            configured=configure(args.repository)
+            if configured: return configured
         return run_listener(args.repository,args.poll_seconds,args.once)
     except ListenerError as exc: print(f"BLOCKED: {exc}",file=sys.stderr); return 2
 

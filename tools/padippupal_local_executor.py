@@ -241,6 +241,10 @@ def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=su
         print("Changed files: " + (", ".join(paths) if paths else "none"))
         print("git diff --check: PASS")
         print(f"Execution summary: {output if output.exists() else 'not produced'}")
+        if output.exists():
+            print("\n===== Codex and safety-check report =====")
+            print(output.read_text(encoding="utf-8"))
+            print("===== End report =====")
         print(f"Patch: {patch if patch else 'no repository changes produced'}")
         print("No commit, push, PR, merge, deployment or production operation was performed.")
         return result.returncode if result.returncode else (1 if failed_checks else 0)

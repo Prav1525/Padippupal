@@ -60,7 +60,7 @@ These are components of one agent workflow, not separate triggers or competing o
 
 ## Capability honesty
 
-GitHub Actions AutoPilot validates policy and records CI evidence. The Proceed controller dispatches existing checks, discovers newly-created runs, monitors active runs at five-minute intervals, and summarizes them; it is not an AI code-repair worker. The engineering session performs approved diagnosis and code repair. Do not claim unattended repair or persistent cross-run generation accounting unless implemented and independently verified.
+GitHub Actions AutoPilot validates policy and records CI evidence. The Proceed controller dispatches existing checks, discovers newly-created runs, monitors active runs at five-minute intervals, and summarizes them; it is not an AI code-repair worker. ChatGPT coordinates the approved objective and reviews the evidence; the local Codex CLI runner performs source edits when explicitly invoked on the founder's device. Do not claim unattended repair or persistent cross-run generation accounting unless implemented and independently verified.
 
 ## Local Codex execution
 

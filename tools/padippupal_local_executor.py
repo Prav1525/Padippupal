@@ -152,6 +152,41 @@ def collect_patch(root: pathlib.Path = ROOT, branch: str = "local-proceed") -> p
     destination.write_text(diff.stdout, encoding="utf-8")
     return destination
 
+def safety_test_commands(root: pathlib.Path = ROOT) -> list[list[str]]:
+    """Return deterministic repository policy/unit checks run after every Codex turn."""
+    py = sys.executable
+    return [
+        [py, "-m", "py_compile",
+         "tools/padippupal_autopilot.py", "tools/test_padippupal_autopilot.py",
+         "tools/padippupal_proceed_controller.py", "tools/test_padippupal_proceed_controller.py",
+         "tools/padippupal_local_executor.py", "tools/test_padippupal_local_executor.py"],
+        [py, "tools/padippupal_autopilot.py", "validate"],
+        [py, "tools/test_padippupal_autopilot.py"],
+        [py, "tools/test_padippupal_proceed_controller.py"],
+        [py, "tools/test_padippupal_local_executor.py"],
+    ]
+
+
+def run_safety_checks(root: pathlib.Path = ROOT, runner=subprocess.run) -> list[dict]:
+    """Run the mandatory AutoPilot safety suite and retain complete command evidence."""
+    # Re-open the canonical test/build instructions before this test batch.
+    guidance = root / "TESTING_GUIDANCE.md"
+    if not guidance.is_file() or not guidance.read_text(encoding="utf-8").strip():
+        raise PreflightError("TESTING_GUIDANCE.md is missing or unreadable; safety tests not run.")
+    results = []
+    for command in safety_test_commands(root):
+        result = runner(command, cwd=root, text=True, stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT, check=False)
+        results.append({
+            "command": command,
+            "returncode": result.returncode,
+            "output": result.stdout or "",
+        })
+        if result.returncode:
+            break
+    return results
+
+
 def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=subprocess.run) -> int:
     try:
         codex_path = preflight(root, task_id, runner=runner)
@@ -165,12 +200,21 @@ def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=su
         output = pathlib.Path(tempfile.gettempdir()) / f"padippupal-{branch.replace('/', '-')}-summary.md"
         result = runner(build_codex_command(codex_path, root, output),
                         input=build_prompt(task_id), text=True, check=False)
+        checks = run_safety_checks(root, runner=runner)
+        with output.open("a", encoding="utf-8") as report:
+            report.write("\\n\\n## Wrapper safety checks\\n")
+            for item in checks:
+                report.write(f"\\n- {'PASS' if item['returncode'] == 0 else 'FAIL'}: "
+                             + " ".join(item["command"]) + "\\n")
+                report.write(item["output"] + "\\n")
         patch = collect_patch(root, branch)
+        failed_checks = [item for item in checks if item["returncode"] != 0]
         print(f"Codex exit code: {result.returncode}")
+        print(f"Wrapper safety checks: {'PASS' if not failed_checks else 'FAIL'} ({len(checks)} commands)")
         print(f"Execution summary: {output if output.exists() else 'not produced'}")
         print(f"Patch: {patch if patch else 'no repository changes produced'}")
         print("No commit, push, PR, merge, deployment or production operation was performed.")
-        return result.returncode
+        return result.returncode if result.returncode else (1 if failed_checks else 0)
     except PreflightError as exc:
         print(f"BLOCKED: {exc}", file=sys.stderr)
         return 2

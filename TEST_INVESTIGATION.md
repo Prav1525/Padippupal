@@ -944,3 +944,17 @@ Use this format:
 - **Root cause:** **CONFIRMED** — the initial wrapper saved the report but only printed its path.
 - **What remains unverified:** Exact-head CI, target Termux/Ubuntu invocation, Codex exec completion and no-change smoke acceptance.
 - **Next action:** Run the exact-head checks and then the one-command target-device smoke.
+
+
+
+### 2026-11-12 — Add local GitHub-to-Termux Proceed listener
+
+- **Branch / commit:** `feat/local-codex-executor`; listener implementation `54ac753b6e20e8e7c9c1507b2fabe12004f1b9a8`, unit tests `9f7128e7489fa6c84691faf069e13d9baee3b038`, CI wiring `fa5d88f397cb11a3080c75131bc3fdc11f63201a`, approved scope and active-work handoff `dccd41e86247e02e0938522880853185955bb18e`.
+- **Requirement:** A ChatGPT `/proceed` comment must be able to start the already authenticated local Codex executor while Termux is running, without a cloud worker or manual Codex command for every task.
+- **Root cause:** **CONFIRMED** — the main-branch GitHub issue-comment workflow (merged previously in PR #186) starts GitHub Actions CI only. It does not reach or wake a local Termux process. A local polling listener is required across the network boundary.
+- **Change made:** Added `tools/padippupal_proceed_listener.py` to poll owner-authored comments, validate open same-repository owner-authored PRs, fetch and verify the exact PR head SHA, create a detached local worktree, call the existing Codex executor, deduplicate comments, and report the result to GitHub. Added listener unit tests and wired compilation/tests into the existing AutoPilot workflow. Added the approved task `LOCAL-CHAT-TERMUX-BRIDGE` and documented one-time token configuration.
+- **Security boundaries:** Fine-grained token is saved locally with owner-only file permissions and removed from the Codex child environment. Only exact `/proceed` comments from the repository owner are accepted. No commit, push, merge, deployment, production write, release or destructive operation is performed.
+- **Result:** **UNVERIFIED** — implementation and tests are committed to the review branch; fresh exact-head CI and the target Termux run have not yet completed.
+- **What this proves:** The repository now contains a proposed local transport mechanism and regression tests; it does not yet prove the listener works on the founder's Android/Ubuntu device.
+- **What remains unverified:** Python compilation/unit tests on the latest head, exact-head AutoPilot and investigation-guidance gates, fine-grained token configuration, listener polling, actual Codex invocation, result-comment reporting, and Android process survival.
+- **Next action:** Run exact-head CI; fix any evidence-backed failures. If CI passes, configure the token once on Termux, start the listener, then post a fresh `/proceed` comment to exercise the full path.

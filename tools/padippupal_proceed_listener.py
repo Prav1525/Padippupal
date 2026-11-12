@@ -106,6 +106,9 @@ def make_worktree(number,sha,comment_id,root=ROOT):
 def execute_codex(worktree,comment_id):
     artifacts=STATE_DIR/"artifacts"/str(comment_id); artifacts.mkdir(parents=True,exist_ok=True)
     log_path=artifacts/"executor.log"; env=os.environ.copy(); env["TMPDIR"]=str(artifacts)
+    # Never pass the listener credential into the Codex child process.
+    for secret_name in ("PADIPPUPAL_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"):
+        env.pop(secret_name, None)
     command=[sys.executable,"tools/padippupal_local_executor.py","proceed"]
     with log_path.open("w") as log:
         proc=subprocess.Popen(command,cwd=worktree,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,bufsize=1)

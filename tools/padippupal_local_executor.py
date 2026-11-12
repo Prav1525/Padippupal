@@ -52,10 +52,12 @@ def active_task_id(root: pathlib.Path = ROOT) -> str:
         content = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         raise PreflightError(f"Could not read active-work handoff: {exc}") from exc
-    section = re.search(r"^## .*— current objective\s*$([\s\S]*?)(?=^## |\Z)", content, re.MULTILINE)
-    if not section:
-        raise PreflightError("active-work.md does not identify one current objective; refusing to guess.")
-    task = re.search(r"Ledger task:\s*\x60([^\x60]+)\x60", section.group(1))
+    sections = list(re.finditer(r"^## .*— current objective\s*$([\s\S]*?)(?=^## |\Z)", content, re.MULTILINE))
+    if len(sections) != 1:
+        raise PreflightError(
+            f"active-work.md must identify exactly one current objective; found {len(sections)}."
+        )
+    task = re.search(r"Ledger task:\s*\x60([^\x60]+)\x60", sections[0].group(1))
     if not task:
         raise PreflightError("The current active-work objective has no explicit approved ledger task ID.")
     return task.group(1)

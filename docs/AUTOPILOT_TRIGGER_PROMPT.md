@@ -62,7 +62,17 @@ These are components of one agent workflow, not separate triggers or competing o
 
 GitHub Actions AutoPilot validates policy and records CI evidence. The Proceed controller dispatches existing checks, discovers newly-created runs, monitors active runs at five-minute intervals, and summarizes them; it is not an AI code-repair worker. The engineering session performs approved diagnosis and code repair. Do not claim unattended repair or persistent cross-run generation accounting unless implemented and independently verified.
 
-Codex is excluded. Do not add paid model integrations or incur unapproved API spend.
+## Local Codex execution
+
+The local authenticated Codex CLI is the approved coding executor for the existing workflow. It is invoked on the user's Termux/Ubuntu repository with one command:
+
+`python tools/padippupal_local_executor.py proceed`
+
+The runner validates the existing approved-work ledger and policy checks, requires a clean Git working tree and an authenticated Codex CLI session, creates a new non-main working branch, and invokes `codex exec` with the `workspace-write` sandbox and `on-request` approvals. Codex must read this contract, `AGENTS.md`, `TESTING_GUIDANCE.md`, the approved-work ledger, the active-work handoff and relevant regression/error records before editing or testing. It must work only on the current approved active objective and carry the existing five-generation repair state forward.
+
+The local runner returns a reviewable patch and execution summary. It does not commit, push, merge, deploy, publish, write production data or perform destructive operations. It must never use Codex's dangerous full-access or approval-bypass modes. The existing GitHub Actions AutoPilot remains the CI policy/evidence subsystem; the Proceed controller continues to coordinate existing workflows.
+
+**Trigger boundary:** a `Proceed` message in ChatGPT does not directly wake or control a sleeping Termux process. Local execution starts when the user runs the single local command above. Do not claim a remote ChatGPT-to-Termux bridge or unattended background worker exists until one is separately implemented and verified. No paid API integration or unapproved API spend is allowed.
 
 ## Approval boundary
 

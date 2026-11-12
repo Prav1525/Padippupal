@@ -380,3 +380,16 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** The engineering documentation now explicitly requires one AutoPilot workflow, one approved-work ledger, and the existing project records as the single source of truth.
 - **Verification:** Pending exact-head workflow and helper test results. The repair worker is not yet active; PR #15's Codex proposal still requires cost approval and integration into the same workflow.
 - **Status:** Architecture correction implemented; runtime verification pending.
+
+## TE-040 — Investigation gate rejected the Codex executor PR without an updated investigation entry
+
+- **Date discovered:** 2026-11-12
+- **Area:** CI investigation-guidance gate for the local Codex executor integration.
+- **Symptom/failure:** Investigation Guidance Gate run [43139616983](https://github.com/Prav1525/Padippupal/actions/runs/43139616983), job 130923156337, failed with: `code/config changed but TEST_INVESTIGATION.md was not updated in this PR.` AutoPilot policy run [43139616905](https://github.com/Prav1525/Padippupal/actions/runs/43139616905), job 130923156698, passed.
+- **Root cause:** The implementation PR changed source/configuration files but did not yet append the required dated investigation entry to `TEST_INVESTIGATION.md`.
+- **Why it escaped:** The initial implementation batch added the approved-work scope, trigger contract, executor and unit tests but omitted the investigation ledger update required by the existing repository gate.
+- **Corrective action:** Append the exact tested SHA, failing run/job, failure text, confirmed cause, what passed, what remains unverified, and the next verification action to `TEST_INVESTIGATION.md`.
+- **Regression protection:** Keep the Investigation Guidance Gate unchanged and required; do not weaken its rule or skip it. Future code/config batches must update the append-only investigation ledger in the same PR.
+- **Evidence:** Tested SHA `67395f8f12d2cac4197e250a3935ebfb020d8676`; [failing guidance run](https://github.com/Prav1525/Padippupal/actions/runs/43139616983); [passing AutoPilot run](https://github.com/Prav1525/Padippupal/actions/runs/43139616905).
+- **Status:** Evidence record correction committed; exact-head re-run is pending. This is not a local Codex runtime test and does not establish Termux execution success.
+

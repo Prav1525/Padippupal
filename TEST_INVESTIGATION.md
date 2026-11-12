@@ -891,3 +891,17 @@ Use this format:
 - **Initial CI findings:** The first Android API 35 attempt caught missing `ExperimentalFoundationApi` opt-in for `BringIntoViewRequester`; added the explicit opt-in. The UI helper tests still asserted the previous single-caption screen and are being updated to assert module headings and image labels. The deployed API smoke test had a stale fixed count of 172 while the current legacy endpoint still returned 184; it now distinguishes the legacy response from the new `latest_per_module` policy until the API deployment is approved.
 - **Safety:** No production database writes, image deletions, PR merge, Render deployment, or Android release. The endpoint change is source-only until an explicitly approved Render deployment.
 - **Verification status:** Fresh exact-head Android JVM/build/emulator, backend, and API smoke reruns are required before PR #309 can be considered ready. No macOS simulator is used.
+
+
+### 2026-11-12 — Local Codex executor PR investigation-guidance gate
+- **Branch / commit:** `feat/local-codex-executor`; exact tested head `67395f8f12d2cac4197e250a3935ebfb020d8676`.
+- **Test command or workflow URL:** Investigation Guidance Gate run [43139616983](https://github.com/Prav1525/Padippupal/actions/runs/43139616983), job 130923156337. AutoPilot run [43139616905](https://github.com/Prav1525/Padippupal/actions/runs/43139616905), job 130923156698.
+- **Result:** **FAIL** for the investigation guidance gate; **PASS** for AutoPilot policy validation and its existing policy/controller tests.
+- **Exact failure or assertion:** `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence links:** [Investigation gate run](https://github.com/Prav1525/Padippupal/actions/runs/43139616983); [AutoPilot run](https://github.com/Prav1525/Padippupal/actions/runs/43139616905).
+- **Change made (files + rationale):** Append this investigation entry and a matching testing-error record. The gate is not weakened and no assertions are skipped.
+- **Root cause:** **CONFIRMED** — the PR changed code/configuration files but omitted the required append-only investigation entry. This is a process/evidence-record omission, not evidence of a local executor runtime defect.
+- **What this attempt proves:** The new approved-work entry and trigger contract pass the AutoPilot validator on the tested SHA; the independent investigation gate correctly rejected missing evidence documentation.
+- **What remains unverified:** The corrected record has not yet been checked by a fresh exact-head gate run. The Android APK, Android UI smoke and deployed API smoke workflows were still in progress when this entry was prepared; none proves local Termux execution.
+- **Difference from previous attempt:** Adds the missing durable investigation evidence rather than changing the executor code or relaxing the gate.
+- **Next action and why:** Re-run the Investigation Guidance Gate on the updated PR head, inspect any further failure logs, and wait for all relevant PR checks to reach terminal states before claiming the PR verified.

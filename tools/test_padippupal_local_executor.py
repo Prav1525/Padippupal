@@ -38,6 +38,22 @@ class LocalExecutorPolicyTests(unittest.TestCase):
     def test_no_task_id_defers_selection_to_active_work_contract(self):
         executor.require_approved_task(None, {"tasks": []})
 
+    def test_preflight_requires_the_active_task_to_be_approved(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / ".git").mkdir()
+            with patch.object(executor, "ensure_clean_repository"):
+                with patch.object(executor, "ensure_policy"):
+                    with patch.object(executor, "load_ledger", return_value={
+                        "tasks": [{"id": "TASK-1", "status": "APPROVED"}]
+                    }):
+                        with patch.object(executor, "active_task_id", return_value="TASK-1"):
+                            with patch.object(executor, "check_codex_auth", return_value="/usr/bin/codex"):
+                                self.assertEqual(executor.preflight(root), "/usr/bin/codex")
+                                with self.assertRaises(executor.PreflightError):
+                                    executor.preflight(root, "OTHER-TASK")
+
+
     def test_command_uses_workspace_write_and_on_request_only(self):
         command = executor.build_codex_command("codex", Path("/repo"), Path("/tmp/summary.md"), "proceed task")
         self.assertEqual(command[command.index("--sandbox") + 1], "workspace-write")

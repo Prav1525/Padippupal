@@ -66,7 +66,7 @@ recover_launcher_anr() {
     sleep 8
   done
   echo "Launcher remains unresponsive; restarting the resolved HOME package once"
-  launcher_component=$(timeout 10s "${ADB[@]}" shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | tail -n 1 | tr -d '\\r' || true)
+  launcher_component=$(timeout 10s "${ADB[@]}" shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | tail -n 1 | tr -d '\r' || true)
   if launcher_package=$(resolve_activity_package "$launcher_component"); then
     echo "Resolved HOME package for bounded ANR recovery: $launcher_package"
     timeout 10s "${ADB[@]}" shell am force-stop "$launcher_package" || true

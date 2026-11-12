@@ -14,7 +14,7 @@ This block is the durable, machine-readable repair counter for the active work h
 ## Local Codex executor target-device smoke — current objective
 
 - **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398); target-device smoke is the single active objective. Latest source/test commits: `5ac170d35966703d5602d888d4c838c17e1df671` and `f96b41f52c27ca45e81e8ecdb7b1126b5fe6b276`.
-- **Approval:** Founder approved the Codex integration and its target-device smoke test (2026-11-12). Active ledger task: `LOCAL-CODEX-EXECUTOR-SMOKE`; implementation scope remains recorded as `LOCAL-CODEX-EXECUTOR`.
+- **Approval:** Founder approved the Codex integration and its target-device smoke test (2026-11-12). Ledger task: `LOCAL-CODEX-EXECUTOR-SMOKE`; implementation scope remains recorded as `LOCAL-CODEX-EXECUTOR`.
 - **Purpose:** Verify the approved local executor on the founder's Termux/Ubuntu device with one harmless no-edit Codex task. The implementation is in this PR; the Python AutoPilot/controller remain the single orchestrator and policy system.
 - **Invocation:** `python tools/padippupal_local_executor.py proceed` from the repository root. It checks policy, clean Git state and Codex login, creates a non-main branch, and invokes `codex exec` with `workspace-write` plus `on-request` approvals.
 - **Deliverable:** uncommitted changes remain on the isolated local branch; the runner emits a patch and summary for review. It does not commit, push, open PRs, merge, deploy, publish, mutate production data or perform destructive operations.

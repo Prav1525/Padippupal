@@ -8,7 +8,7 @@
 This block is the durable, machine-readable repair counter for the active work handoff. Keep exactly one block. Carry it forward across commits/branches for the same failure chain; do not reset an open chain.
 
 <!-- padippupal-repair-state:start -->
-{"schema_version":1,"max_generations":5,"chains":[]}
+{"schema_version":1,"max_generations":5,"chains":[{"id":"android-production-image-launcher-anr-recovery","originating_run":"43147600172","originating_sha":"41e4227546e608664fa89f04ae821ce7c1ffc810","task_id":"AUTOPILOT-CI-REPAIR","status":"OPEN","generations":[{"number":1,"hypothesis":"cmd package resolve-activity --brief emits a flattened package/activity component, but the recovery parser only matched braced output; the HOME package remained empty and the Pixel Launcher ANR overlay was not cleared.","outcome":"IN_PROGRESS"}]}]}
 <!-- padippupal-repair-state:end -->
 
 ## Local Termux listener end-to-end smoke — current objective
@@ -19,6 +19,7 @@ This block is the durable, machine-readable repair counter for the active work h
 - **One-command setup/start:** Run `python tools/padippupal_proceed_listener.py start`. If no token is configured, it prompts for the fine-grained token with hidden input, validates read access, saves it with owner-only permissions and starts polling. Required token permissions: Issues read/write; Pull requests read.
 - **Current verification:** AutoPilot run [43147137406](https://github.com/Prav1525/Padippupal/actions/runs/43147137406), job 130947484201, **PASS** on exact head `45cda9d37623833d6dc2fec1d1fdaceba879a4c7`: 15 policy tests, 13 controller tests, 14 executor tests, 7 listener tests, Python compilation, policy validation and diff check. Investigation Guidance Gate [43147137197](https://github.com/Prav1525/Padippupal/actions/runs/43147137197), job 130947477933, **PASS** on the same SHA.
 - **Latest refinement:** Added the combined `start` command so token configuration and listener startup require one local command; exact-head CI for this refinement is pending.
+- **Blocking CI repair (generation 1/5):** Production-image emulator run [43147600172](https://github.com/Prav1525/Padippupal/actions/runs/43147600172) failed before tutor navigation because Pixel Launcher displayed an ANR overlay. The app's MainActivity was resumed underneath it; the proxy recorded zero manifest requests and zero writes. The recovery parser accepted only braced activity output although `--brief` returns `package/activity`; correcting it and adding shell regression tests before rerunning.
 - **Safety:** Smoke task is no-edit. No commit, push, merge, deployment, production write, release or destructive operation. Codex remains workspace-write with on-request approvals.
 - **Limit:** If Termux stops or Android kills the process, local execution pauses; GitHub Actions CI remains independent.
 - **Next:** Verify the latest PR head's CI, then start the listener once on Termux and post a fresh `/proceed` comment to complete the end-to-end smoke.

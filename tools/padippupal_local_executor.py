@@ -74,10 +74,12 @@ def make_branch_name(now: dt.datetime | None = None) -> str:
     stamp = instant.astimezone(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
     return f"agent/local-proceed-{stamp}"
 
-def build_codex_command(codex_path: str, root: pathlib.Path, output_path: pathlib.Path) -> list[str]:
+def build_codex_command(codex_path: str, root: pathlib.Path, output_path: pathlib.Path,
+                        prompt: str) -> list[str]:
+    # Keep terminal stdin available for on-request approvals.
     return [codex_path, "exec", "--cd", str(root), "--sandbox", "workspace-write",
             "--ask-for-approval", "on-request", "--json", "--output-last-message",
-            str(output_path), "-"]
+            str(output_path), prompt]
 
 def build_prompt(task_id: str | None = None) -> str:
     task_line = (f"Requested approved task ID: {task_id}. Verify that this exact task remains APPROVED."
@@ -182,8 +184,6 @@ def run_safety_checks(root: pathlib.Path = ROOT, runner=subprocess.run) -> list[
             "returncode": result.returncode,
             "output": result.stdout or "",
         })
-        if result.returncode:
-            break
     return results
 
 
@@ -198,8 +198,8 @@ def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=su
         print(f"Codex: {codex_path}")
         print("Sandbox: workspace-write | approvals: on-request")
         output = pathlib.Path(tempfile.gettempdir()) / f"padippupal-{branch.replace('/', '-')}-summary.md"
-        result = runner(build_codex_command(codex_path, root, output),
-                        input=build_prompt(task_id), text=True, check=False)
+        result = runner(build_codex_command(codex_path, root, output, build_prompt(task_id)),
+                        cwd=root, text=True, check=False)
         checks = run_safety_checks(root, runner=runner)
         with output.open("a", encoding="utf-8") as report:
             report.write("\\n\\n## Wrapper safety checks\\n")

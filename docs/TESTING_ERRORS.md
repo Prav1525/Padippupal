@@ -406,3 +406,15 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** Unit tests cover owner-only trigger filtering, open/same-repository/owner-authored PR validation, exact SHA mismatch refusal, initial cursor bootstrap, duplicate suppression and result reporting. AutoPilot CI compiles and runs the listener tests.
 - **Evidence:** Implementation branch `feat/local-codex-executor`; listener source commit `54ac753b6e20e8e7c9c1507b2fabe12004f1b9a8`; tests commit `9f7128e7489fa6c84691faf069e13d9baee3b038`; CI wiring commit `fa5d88f397cb11a3080c75131bc3fdc11f63201a`.
 - **Status:** **PARTIALLY VERIFIED** — exact-head AutoPilot run [43147485313](https://github.com/Prav1525/Padippupal/actions/runs/43147485313), job 130948602422, passed Python compilation, policy validation, 15 policy tests, 13 controller tests, 14 executor tests, 7 listener tests and diff check on `baa7fdf2351318acd3b65dc895923b8eae6a4888`. Investigation Guidance Gate [43147485432](https://github.com/Prav1525/Padippupal/actions/runs/43147485432), job 130948602479, also passed. Target Termux token setup, live listener, Codex invocation and result-comment round trip remain **UNVERIFIED**; no local device execution is claimed.
+
+
+## TE-042 — Pixel Launcher ANR recovery parser failed to resolve the HOME package
+- **Date discovered:** 2026-11-12
+- **Area:** Android production lesson-image acceptance emulator recovery.
+- **Symptom/failure:** Run [43147600172](https://github.com/Prav1525/Padippupal/actions/runs/43147600172), job 130948965323, repeatedly detected a Pixel Launcher ANR dialog. PadippuPal's MainActivity was resumed behind it, but the harness did not reach the tutor and the proxy saw zero manifest requests.
+- **Root cause:** **CONFIRMED — parser format mismatch.** The script used `cmd package resolve-activity --brief` but extracted the package only from a braced `{package/activity}` string. Brief output is a flattened `package/activity` component, so the package variable remained empty and force-stop recovery was skipped.
+- **Why it escaped:** The recovery path had no unit test for the flattened `--brief` component format; syntax validation alone did not exercise parsing behavior.
+- **Corrective action:** Add a package-resolution helper that accepts flattened and braced component formats, validates the package name before force-stop, and rejects malformed output.
+- **Regression protection:** Add a shell regression test for flattened output, braced output and invalid output; run it in the production-image workflow preflight. Preserve the end-to-end requirement for two visible paired images and GET-only production access.
+- **Evidence:** Failure screenshot/XML, activity dump, logcat and proxy report in [artifact 13912473198](https://github.com/Prav1525/Padippupal/actions/runs/43147600172/artifacts/13912473198). Activity dump confirms PadippuPal MainActivity was resumed while the Pixel Launcher ANR dialog held focus; proxy report confirms `manifest_requests=0` and `production_writes=0`.
+- **Status:** **IN PROGRESS** — targeted harness correction and regression test are being added; exact-head rerun pending.

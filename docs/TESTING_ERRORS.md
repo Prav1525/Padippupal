@@ -380,3 +380,41 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Regression protection:** The engineering documentation now explicitly requires one AutoPilot workflow, one approved-work ledger, and the existing project records as the single source of truth.
 - **Verification:** Pending exact-head workflow and helper test results. The repair worker is not yet active; PR #15's Codex proposal still requires cost approval and integration into the same workflow.
 - **Status:** Architecture correction implemented; runtime verification pending.
+
+## TE-040 — Investigation gate rejected the Codex executor PR without an updated investigation entry
+
+- **Date discovered:** 2026-11-12
+- **Area:** CI investigation-guidance gate for the local Codex executor integration.
+- **Symptom/failure:** Investigation Guidance Gate run [43139616983](https://github.com/Prav1525/Padippupal/actions/runs/43139616983), job 130923156337, failed with: `code/config changed but TEST_INVESTIGATION.md was not updated in this PR.` AutoPilot policy run [43139616905](https://github.com/Prav1525/Padippupal/actions/runs/43139616905), job 130923156698, passed.
+- **Root cause:** The implementation PR changed source/configuration files but did not yet append the required dated investigation entry to `TEST_INVESTIGATION.md`.
+- **Why it escaped:** The initial implementation batch added the approved-work scope, trigger contract, executor and unit tests but omitted the investigation ledger update required by the existing repository gate.
+- **Corrective action:** Append the exact tested SHA, failing run/job, failure text, confirmed cause, what passed, what remains unverified, and the next verification action to `TEST_INVESTIGATION.md`.
+- **Regression protection:** Keep the Investigation Guidance Gate unchanged and required; do not weaken its rule or skip it. Future code/config batches must update the append-only investigation ledger in the same PR.
+- **Evidence:** Tested SHA `67395f8f12d2cac4197e250a3935ebfb020d8676`; [failing guidance run](https://github.com/Prav1525/Padippupal/actions/runs/43139616983); [passing AutoPilot run](https://github.com/Prav1525/Padippupal/actions/runs/43139616905).
+- **Status:** Evidence record correction committed; follow-up run [43139727060](https://github.com/Prav1525/Padippupal/actions/runs/43139727060) passed on exact head `04f348514f93edb150c2d75353c63acaec9c06bf`. This is not a local Codex runtime test and does not establish Termux execution success.
+
+
+
+## TE-041 — Local Proceed listener bridge implementation requires target-device verification
+
+- **Date discovered:** 2026-11-12
+- **Area:** Local GitHub-to-Termux Proceed transport.
+- **Symptom/requirement:** The existing GitHub `/proceed` workflow runs CI but cannot invoke the founder's local Codex process. This is an architectural capability gap, not a failing test.
+- **Root cause:** **CONFIRMED** — GitHub Actions and the Android Termux process are separate execution environments. A GitHub comment cannot wake or directly invoke a local process behind the device/network boundary.
+- **Why it escaped:** The earlier local Codex executor PR correctly documented that ChatGPT cannot wake a stopped Termux process, but did not implement a local polling transport for when Termux is running.
+- **Corrective action:** Add a local listener that polls repository comments, validates owner/PR identity and exact head SHA, creates an isolated worktree, invokes the existing executor and posts a result comment. Keep token storage local with owner-only permissions and remove token environment variables before starting Codex.
+- **Regression protection:** Unit tests cover owner-only trigger filtering, open/same-repository/owner-authored PR validation, exact SHA mismatch refusal, initial cursor bootstrap, duplicate suppression and result reporting. AutoPilot CI compiles and runs the listener tests.
+- **Evidence:** Implementation branch `feat/local-codex-executor`; listener source commit `54ac753b6e20e8e7c9c1507b2fabe12004f1b9a8`; tests commit `9f7128e7489fa6c84691faf069e13d9baee3b038`; CI wiring commit `fa5d88f397cb11a3080c75131bc3fdc11f63201a`.
+- **Status:** **PARTIALLY VERIFIED** — exact-head AutoPilot run [43147485313](https://github.com/Prav1525/Padippupal/actions/runs/43147485313), job 130948602422, passed Python compilation, policy validation, 15 policy tests, 13 controller tests, 14 executor tests, 7 listener tests and diff check on `baa7fdf2351318acd3b65dc895923b8eae6a4888`. Investigation Guidance Gate [43147485432](https://github.com/Prav1525/Padippupal/actions/runs/43147485432), job 130948602479, also passed. Target Termux token setup, live listener, Codex invocation and result-comment round trip remain **UNVERIFIED**; no local device execution is claimed.
+
+
+## TE-042 — Pixel Launcher ANR recovery parser failed to resolve the HOME package
+- **Date discovered:** 2026-11-12
+- **Area:** Android production lesson-image acceptance emulator recovery.
+- **Symptom/failure:** Run [43147600172](https://github.com/Prav1525/Padippupal/actions/runs/43147600172), job 130948965323, repeatedly detected a Pixel Launcher ANR dialog. PadippuPal's MainActivity was resumed behind it, but the harness did not reach the tutor and the proxy saw zero manifest requests.
+- **Root cause:** **CONFIRMED — parser format mismatch.** The script used `cmd package resolve-activity --brief` but extracted the package only from a braced `{package/activity}` string. Brief output is a flattened `package/activity` component, so the package variable remained empty and force-stop recovery was skipped.
+- **Why it escaped:** The recovery path had no unit test for the flattened `--brief` component format; syntax validation alone did not exercise parsing behavior.
+- **Corrective action:** Add a package-resolution helper that accepts flattened and braced component formats, validates the package name before force-stop, and rejects malformed output.
+- **Regression protection:** Add a shell regression test for flattened output, braced output and invalid output; run it in the production-image workflow preflight. Preserve the end-to-end requirement for two visible paired images and GET-only production access.
+- **Evidence:** Failure screenshot/XML, activity dump, logcat and proxy report in [artifact 13912473198](https://github.com/Prav1525/Padippupal/actions/runs/43147600172/artifacts/13912473198). Activity dump confirms PadippuPal MainActivity was resumed while the Pixel Launcher ANR dialog held focus; proxy report confirms `manifest_requests=0` and `production_writes=0`.
+- **Status:** **IN PROGRESS** — targeted harness correction and regression test are being added; exact-head rerun pending.

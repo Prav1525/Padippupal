@@ -16,7 +16,7 @@ The detailed, test-specific rules live in **`TESTING_GUIDANCE.md`**. Read it bef
 
 When the founder says **Proceed** in ChatGPT and an active same-repository PR is the current work target, the ChatGPT session posts the exact `/proceed` command as a comment on that PR. The AutoPilot workflow listens for that command only when it is posted by the repository owner on an open PR authored by the repository owner; it resolves and records the exact PR head branch and SHA, then dispatches and polls the existing checks. The privileged bridge checks out only trusted default-branch controller code and refuses fork PRs. The same coordinated matrix also runs automatically on qualifying engineering PRs after policy validation; a PR's exact head ref/SHA is passed as data, never executed with the privileged controller token.
 
-This bridge becomes active only after this workflow change is merged into the repository's default branch. Until then, use the existing workflow_dispatch UI. The GitHub workflow runs tests and gathers evidence; the ChatGPT engineering session remains the reasoning and code-repair actor. No unattended model worker, paid model API, or Codex integration is introduced.
+The GitHub comment bridge is active on main; its workflow was merged in PR #186. An owner-authored /proceed comment starts the existing GitHub Actions check cycle. If the local Termux listener described below is also running, it independently detects the same comment and starts the approved local Codex executor. The GitHub workflow remains the CI evidence collector; the local listener is only a transport/dispatcher, not a second agent. No cloud worker or paid model API is introduced.
 
 ## Main-branch post-merge cycle
 
@@ -55,15 +55,28 @@ monitoring on the same exact-commit evidence path as an explicit Proceed cycle.
 - **Failure history:** existing investigation and failure registers
 - **CI policy/evidence subsystem:** `.github/workflows/autopilot.yml` and `tools/padippupal_autopilot.py`
 - **Existing-check coordinator:** `tools/padippupal_proceed_controller.py`
+- **Local GitHub-to-Termux transport:** `tools/padippupal_proceed_listener.py` (polls comments and invokes the existing local executor; it does not select or authorize new work)
 
 These are components of one agent workflow, not separate triggers or competing orchestrators. Keep one active-work record, one approved-work ledger and one coordinated report. Do not create duplicate prompts, guides, agents, workflows, queues or state stores.
 
 ## Capability honesty
 
-GitHub Actions AutoPilot validates policy and records CI evidence. The Proceed controller dispatches existing checks, discovers newly-created runs, monitors active runs at five-minute intervals, and summarizes them; it is not an AI code-repair worker. The engineering session performs approved diagnosis and code repair. Do not claim unattended repair or persistent cross-run generation accounting unless implemented and independently verified.
+GitHub Actions AutoPilot validates policy and records CI evidence. The Proceed controller dispatches existing checks, discovers newly-created runs, monitors active runs at five-minute intervals, and summarizes them; it is not an AI code-repair worker. ChatGPT coordinates the approved objective and reviews the evidence; the local Codex CLI runner performs source edits when explicitly invoked on the founder's device. Do not claim unattended repair or persistent cross-run generation accounting unless implemented and independently verified.
 
-Codex is excluded. Do not add paid model integrations or incur unapproved API spend.
+## Local Codex execution
 
+The local authenticated Codex CLI is the approved coding executor. The existing runner is invoked inside an isolated worktree with the workspace-write sandbox and on-request approvals. It validates the approved-work ledger, active objective and policy, reads the canonical engineering instructions, runs the mandatory Python safety checks, and leaves a reviewable local patch. It never commits or pushes.
+
+### One-time Termux setup
+
+1. Create a GitHub fine-grained personal access token restricted to this repository with **Issues: read/write** and **Pull requests: read** permissions. No Contents write permission is needed.
+2. Run `python tools/padippupal_proceed_listener.py start`. If no token is configured, it prompts for the token with hidden input, validates repository/issue/pull-request read access, stores it under the user's home directory with owner-only file permissions, then starts polling. If already configured, it starts directly. The token never belongs in Git or ChatGPT.
+
+When the founder says **Proceed** here, ChatGPT posts the exact `/proceed` comment to the active owner-authored PR. GitHub Actions runs the existing CI cycle; the local listener detects the same comment, validates the PR owner/same-repository/open state and exact head SHA, creates an isolated Git worktree, then invokes `python tools/padippupal_local_executor.py proceed`. It posts the result and exact tested SHA back to that PR. Each comment is claimed once and historical comments are not replayed on first startup.
+
+**Trigger boundary:** ChatGPT cannot wake a stopped Android/Termux process. Local Codex execution happens only while the listener is running and polling. If Termux is stopped or Android kills it, GitHub CI still runs but local Codex waits until the listener is restarted. The listener does not pass its GitHub token to the Codex child process. Codex retains workspace-write sandboxing and on-request approvals; never use danger-full-access or approval bypass.
+
+The listener retains each execution worktree, patch and summary locally for review. It does not commit, push, create PRs, merge, deploy, publish, write production data or perform destructive operations. The direct local runner remains available for manual diagnostics.
 ## Approval boundary
 
 Branches, scoped edits, tests and reviewable PRs are allowed within approved scope. **Merging PRs, production deployments, production database writes, destructive migrations, public releases, and changes to security/approval controls require explicit founder approval.**

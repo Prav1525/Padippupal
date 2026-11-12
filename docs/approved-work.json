@@ -25,6 +25,89 @@
       ],
       "risk": "high",
       "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "LOCAL-CODEX-EXECUTOR",
+      "status": "APPROVED",
+      "approved_by": "Founder approval in ChatGPT conversation on 2026-11-12",
+      "scope": [
+        "Integrate the already authenticated local Codex CLI as the coding executor for the existing PadippuPal engineering workflow.",
+        "Provide one local Proceed command that validates the existing approved-work ledger, reads the canonical engineering instructions, creates an isolated working branch, and invokes codex exec inside the repository workspace.",
+        "Allow Codex to implement only the current approved active objective, run applicable tests, and preserve the shared maximum of five distinct repair generations.",
+        "Produce a local reviewable patch and execution summary; do not automatically commit, push, merge, deploy, publish, mutate production data, or perform destructive operations.",
+        "Keep the existing Python AutoPilot, Proceed controller, approved-work ledger, active-work handoff, and canonical trigger; do not create a parallel agent or state store."
+      ],
+      "non_goals": [
+        "No Codex Cloud worker, paid API key, API spend, remote model service, or production credential integration.",
+        "No automatic PR merge, production deployment, production database write, destructive migration, public release, or security/approval-policy relaxation.",
+        "ChatGPT cannot wake a stopped Termux process; local execution begins only while the authenticated Termux listener is running and polling GitHub.",
+        "No replacement of existing GitHub Actions test workflows or the current five-generation repair-state block."
+      ],
+      "acceptance_criteria": [
+        "The local runner refuses to start unless the repository is clean, Git and Codex CLI are available, Codex reports an authenticated session, and the existing AutoPilot policy validator passes.",
+        "The runner refuses an explicitly requested task ID unless that exact task is APPROVED in docs/approved-work.json.",
+        "The runner creates a new non-main working branch and invokes codex exec with workspace-write sandboxing and on-request approvals; it never uses danger-full-access or approval bypass flags.",
+        "The Codex prompt requires reading AGENTS.md, TESTING_GUIDANCE.md, the approved-work ledger, active-work handoff, and applicable regression/error records before edits or tests.",
+        "The runner returns the Codex exit status, changed-file summary, diff-check result, and a binary-capable patch file without committing or pushing.",
+        "Unit tests cover preflight gates, task approval, safe command construction, branch naming, sensitive-file detection, and patch collection.",
+        "AutoPilot CI runs the new executor tests and syntax checks on the exact proposed PR head.",
+        "The existing five-generation limit and all separate merge, deployment, production-data, destructive-operation, and release approval gates remain intact."
+      ],
+      "risk": "high",
+      "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "LOCAL-CODEX-EXECUTOR-SMOKE",
+      "status": "APPROVED",
+      "approved_by": "Founder approval for integration testing in ChatGPT conversation on 2026-11-12",
+      "scope": [
+        "Verify the bounded local Codex executor on the founder's existing Termux/Ubuntu environment using the already authenticated Codex CLI.",
+        "Run one harmless, no-source-edit Codex task through the repository-owned Proceed runner and allow the runner's mandatory Python safety checks to execute.",
+        "Report exact Codex version/login status, selected active task, branch, exit code, test outcomes, changed-file list and patch result."
+      ],
+      "non_goals": [
+        "Do not modify repository source, tests, documentation, the approved-work ledger, or active-work state during this smoke task.",
+        "Do not commit, push, open a PR, merge, deploy, publish, access production, mutate production data, perform destructive operations, or spend paid API budget."
+      ],
+      "acceptance_criteria": [
+        "The local runner preflight passes in Termux/Ubuntu with the existing Codex ChatGPT login.",
+        "The runner creates a non-main working branch and codex exec completes the no-edit smoke prompt successfully.",
+        "The runner's Python compilation, AutoPilot validator, AutoPilot tests, Proceed-controller tests and local-executor tests all pass.",
+        "The final report shows no changed files, no patch, and no commit or push."
+      ],
+      "risk": "low",
+      "approval_expires": "Until revoked by founder"
+    },
+    {
+      "id": "LOCAL-CHAT-TERMUX-BRIDGE",
+      "status": "APPROVED",
+      "approved_by": "Founder approval in ChatGPT conversation on 2026-11-12 (Process if feasible)",
+      "scope": [
+        "Extend the existing PadippuPal Proceed workflow with a lightweight listener that runs on the founder's Android Termux/Ubuntu environment; do not introduce a cloud worker or second agent.",
+        "Poll the existing GitHub repository for exact owner-authored /proceed comments on open pull requests authored by the repository owner in the same repository.",
+        "Resolve and verify the exact PR head SHA, create an isolated local Git worktree, and invoke the existing approved local Codex executor against the approved active objective.",
+        "Persist a local deduplication cursor, prevent duplicate listener instances and duplicate execution, and post a concise execution result back to the triggering PR.",
+        "Configure a fine-grained GitHub token securely on-device; never expose it to Codex, commit it, or send it to ChatGPT."
+      ],
+      "non_goals": [
+        "No cloud worker, paid model API, remote model service, production credential, production database access or deployment.",
+        "No automatic commit, push, PR creation, merge, release, destructive operation or production write.",
+        "No claim of availability when Android/Termux is stopped or the listener is not running.",
+        "No bypass of Codex workspace-write sandbox, on-request approvals, approved-work ledger or five-generation repair cap."
+      ],
+      "acceptance_criteria": [
+        "The listener's first launch records a fresh cursor and does not replay historical /proceed comments.",
+        "Only an exact /proceed comment by the repository owner on an open same-repository PR authored by the repository owner is eligible.",
+        "The listener fetches the PR head and refuses execution unless the fetched SHA exactly matches the GitHub API head SHA.",
+        "Each accepted comment is claimed before execution and cannot be silently replayed after a process restart.",
+        "Codex runs only through the existing local executor in an isolated worktree; the GitHub token is removed from the child environment.",
+        "The listener posts status, exact tested SHA, local branch, changed-file summary and local patch/summary paths to the triggering PR.",
+        "Unit tests cover comment authorization, PR/fork checks, exact-SHA enforcement, deduplication, state bootstrap and result reporting.",
+        "The listener and its tests pass Python compilation, AutoPilot policy/unit tests, the investigation guidance gate and exact-head CI.",
+        "No commit, push, merge, deployment, production write, release or destructive action is performed."
+      ],
+      "risk": "high",
+      "approval_expires": "Until revoked by founder"
     }
   ]
 }

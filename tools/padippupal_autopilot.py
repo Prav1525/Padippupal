@@ -9,6 +9,15 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 APPROVED_WORK = ROOT / "docs" / "approved-work.json"
 MAX_REPAIR_GENERATIONS = 5
+REQUIRED_LOCAL_EXECUTOR_TRIGGER = (
+    "## Local Codex execution",
+    "python tools/padippupal_local_executor.py proceed",
+    "workspace-write",
+    "on-request",
+    "Trigger boundary",
+)
+REQUIRED_LOCAL_EXECUTOR_TASK_ID = "LOCAL-CODEX-EXECUTOR"
+
 REQUIRED_TRIGGER_CONTRACT = (
     "Same-invocation operating contract",
     "Engineering OS lane (orchestrator)",
@@ -24,6 +33,8 @@ REQUIRED_GUIDES = (
     "docs/AUTOPILOT_TRIGGER_PROMPT.md",
     ".engineering/tasks/active-work.md",
     ".github/testing-regression-checklist.md",
+    "tools/padippupal_local_executor.py",
+    "tools/test_padippupal_local_executor.py",
 )
 REQUIRED_AGENT_CONTRACT_MARKERS = (
     "## Closed-loop partner contract (mandatory)",
@@ -197,6 +208,9 @@ def validate(root: pathlib.Path = ROOT) -> list[str]:
         for marker in REQUIRED_TRIGGER_CONTRACT:
             if marker not in trigger_text:
                 errors.append(f"unified trigger contract is missing: {marker}")
+        for marker in REQUIRED_LOCAL_EXECUTOR_TRIGGER:
+            if marker not in trigger_text:
+                errors.append(f"local Codex executor contract is missing: {marker}")
     except (OSError, UnicodeError):
         errors.append("missing or unreadable unified trigger prompt")
 
@@ -208,6 +222,8 @@ def validate(root: pathlib.Path = ROOT) -> list[str]:
             errors.append("approved-work ledger policy must be approved-roadmap-only")
         if ledger.get("max_repair_generations") != MAX_REPAIR_GENERATIONS:
             errors.append("approved-work ledger must set max_repair_generations to 5")
+        if approved_task(REQUIRED_LOCAL_EXECUTOR_TASK_ID, ledger) is None:
+            errors.append("local Codex executor must be explicitly APPROVED in docs/approved-work.json")
         seen: set[str] = set()
         for item in ledger.get("tasks", []):
             task_id = item.get("id")

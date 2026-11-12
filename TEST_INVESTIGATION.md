@@ -891,3 +891,95 @@ Use this format:
 - **Initial CI findings:** The first Android API 35 attempt caught missing `ExperimentalFoundationApi` opt-in for `BringIntoViewRequester`; added the explicit opt-in. The UI helper tests still asserted the previous single-caption screen and are being updated to assert module headings and image labels. The deployed API smoke test had a stale fixed count of 172 while the current legacy endpoint still returned 184; it now distinguishes the legacy response from the new `latest_per_module` policy until the API deployment is approved.
 - **Safety:** No production database writes, image deletions, PR merge, Render deployment, or Android release. The endpoint change is source-only until an explicitly approved Render deployment.
 - **Verification status:** Fresh exact-head Android JVM/build/emulator, backend, and API smoke reruns are required before PR #309 can be considered ready. No macOS simulator is used.
+
+
+### 2026-11-12 — Local Codex executor PR investigation-guidance gate
+- **Branch / commit:** `feat/local-codex-executor`; exact tested head `67395f8f12d2cac4197e250a3935ebfb020d8676`.
+- **Test command or workflow URL:** Investigation Guidance Gate run [43139616983](https://github.com/Prav1525/Padippupal/actions/runs/43139616983), job 130923156337. AutoPilot run [43139616905](https://github.com/Prav1525/Padippupal/actions/runs/43139616905), job 130923156698.
+- **Result:** **FAIL** for the investigation guidance gate; **PASS** for AutoPilot policy validation and its existing policy/controller tests.
+- **Exact failure or assertion:** `FAIL: code/config changed but TEST_INVESTIGATION.md was not updated in this PR.`
+- **Evidence links:** [Investigation gate run](https://github.com/Prav1525/Padippupal/actions/runs/43139616983); [AutoPilot run](https://github.com/Prav1525/Padippupal/actions/runs/43139616905).
+- **Change made (files + rationale):** Append this investigation entry and a matching testing-error record. The gate is not weakened and no assertions are skipped.
+- **Root cause:** **CONFIRMED** — the PR changed code/configuration files but omitted the required append-only investigation entry. This is a process/evidence-record omission, not evidence of a local executor runtime defect.
+- **What this attempt proves:** The new approved-work entry and trigger contract pass the AutoPilot validator on the tested SHA; the independent investigation gate correctly rejected missing evidence documentation.
+- **What remains unverified:** The corrected record has not yet been checked by a fresh exact-head gate run. The Android APK, Android UI smoke and deployed API smoke workflows were still in progress when this entry was prepared; none proves local Termux execution.
+- **Difference from previous attempt:** Adds the missing durable investigation evidence rather than changing the executor code or relaxing the gate.
+- **Next action and why:** Re-run the Investigation Guidance Gate on the updated PR head, inspect any further failure logs, and wait for all relevant PR checks to reach terminal states before claiming the PR verified.
+
+
+### 2026-11-12 — Verify investigation-gate correction on the updated PR head
+- **Branch / commit:** `feat/local-codex-executor`; exact tested head `04f348514f93edb150c2d75353c63acaec9c06bf`.
+- **Test command or workflow URL:** AutoPilot run [43139726895](https://github.com/Prav1525/Padippupal/actions/runs/43139726895), job 130923512664; Investigation Guidance Gate run [43139727060](https://github.com/Prav1525/Padippupal/actions/runs/43139727060), job 130923512534.
+- **Result:** **PASS** — AutoPilot validation, Python compilation, 15 AutoPilot tests, 13 Proceed-controller tests, 12 local-executor tests, and the Investigation Guidance Gate all passed.
+- **Exact failure or assertion:** None on this head. The previous missing-investigation-entry failure on `67395f8f12d2cac4197e250a3935ebfb020d8676` was corrected by appending the investigation entry and TE-040 record.
+- **Evidence links:** [AutoPilot run](https://github.com/Prav1525/Padippupal/actions/runs/43139726895); [Investigation Guidance Gate](https://github.com/Prav1525/Padippupal/actions/runs/43139727060).
+- **Change made:** No source change for this verification; this entry records the passing rerun.
+- **Root cause:** **CONFIRMED** for the prior gate failure — missing append-only investigation evidence. The corrected record passed.
+- **What this attempt proves:** The documented evidence correction satisfies the investigation validator, and the executor/AutoPilot Python suites pass on this exact tested head.
+- **What remains unverified:** Android APK, Android UI smoke, deployed API smoke and production-image acceptance were still running at the time; they are not proof of local Termux execution. A subsequent code-review pass identified two small acceptance/coverage gaps and added another source/test change, which requires a fresh exact-head CI run.
+- **Difference from previous attempt:** This is the first successful exact-head rerun after the missing investigation record was added.
+- **Next action and why:** Verify the latest source/test commit with AutoPilot and the guidance gate again; then inspect any relevant ancillary workflow results. Target-device Codex execution remains separate.
+
+
+### 2026-11-12 — Close active-objective and patch-evidence gaps in the local executor
+- **Branch / commit:** `feat/local-codex-executor`; executor source change `5ac170d35966703d5602d888d4c838c17e1df671`, executor tests `f96b41f52c27ca45e81e8ecdb7b1126b5fe6b276`, handoff update `8aeaba35ef3ae3fac1726eed235421f201676560`.
+- **Test command or workflow URL:** Exact-head AutoPilot and Investigation Guidance Gate runs for the latest commit are pending at the time of this entry.
+- **Result:** **UNVERIFIED** — verification must run on the updated head.
+- **Exact requirement/gap:** Review found that the runner selected the first current-objective heading even if the handoff contained multiple current objectives, and it did not print the changed-file list/diff-check result in its final report.
+- **Evidence:** The prior active-work file contained both the Codex integration and main-push monitoring headings marked as current objectives. The repository contract requires one active implementation objective.
+- **Change made (files + rationale):** The runner now refuses if the handoff contains anything other than exactly one current objective; the competing main-push item is explicitly paused while this founder-approved objective is active. Added a regression test for competing current objectives. The wrapper now reports changed files and the successful diff-check result alongside the patch path.
+- **Root cause:** **CONFIRMED** — the previous parser silently selected the first heading rather than enforcing the one-objective contract; the wrapper omitted two requested evidence fields.
+- **What this attempt proves:** Source and test changes are committed to the review branch; no target-device execution has been claimed.
+- **What remains unverified:** Fresh exact-head Python/AutoPilot and investigation-gate CI; target Termux preflight; actual local Codex execution; all unrelated Android/API workflows are not feature-specific proof for this CLI integration.
+- **Difference from previous attempt:** Adds deterministic refusal on ambiguous active-work state and explicit patch/evidence reporting.
+- **Next action and why:** Run AutoPilot and Investigation Guidance Gate on the updated PR head; inspect exact test output before declaring the integration implementation verified.
+
+
+### 2026-11-12 — Make the one-command smoke report self-contained
+- **Branch / commit:** `feat/local-codex-executor`; runner change `7a1bc9f799b5a56a72783f532fbaf9bdbaa4cddc`.
+- **Test command or workflow URL:** Exact-head AutoPilot and Investigation Guidance Gate checks pending.
+- **Result:** **UNVERIFIED** pending CI and target-device smoke.
+- **Requirement gap:** The runner printed the summary file path but not the summary contents, forcing the founder to run another shell command to retrieve the result.
+- **Change made:** Print the Codex final report and wrapper safety-check evidence directly in the terminal after the single Proceed command. This keeps the local smoke workflow to one command plus copying its terminal output.
+- **Root cause:** **CONFIRMED** — the initial wrapper saved the report but only printed its path.
+- **What remains unverified:** Exact-head CI, target Termux/Ubuntu invocation, Codex exec completion and no-change smoke acceptance.
+- **Next action:** Run the exact-head checks and then the one-command target-device smoke.
+
+
+
+### 2026-11-12 — Add local GitHub-to-Termux Proceed listener
+
+- **Branch / commit:** `feat/local-codex-executor`; listener implementation `54ac753b6e20e8e7c9c1507b2fabe12004f1b9a8`, unit tests `9f7128e7489fa6c84691faf069e13d9baee3b038`, CI wiring `fa5d88f397cb11a3080c75131bc3fdc11f63201a`, approved scope and active-work handoff `dccd41e86247e02e0938522880853185955bb18e`.
+- **Requirement:** A ChatGPT `/proceed` comment must be able to start the already authenticated local Codex executor while Termux is running, without a cloud worker or manual Codex command for every task.
+- **Root cause:** **CONFIRMED** — the main-branch GitHub issue-comment workflow (merged previously in PR #186) starts GitHub Actions CI only. It does not reach or wake a local Termux process. A local polling listener is required across the network boundary.
+- **Change made:** Added `tools/padippupal_proceed_listener.py` to poll owner-authored comments, validate open same-repository owner-authored PRs, fetch and verify the exact PR head SHA, create a detached local worktree, call the existing Codex executor, deduplicate comments, and report the result to GitHub. Added listener unit tests and wired compilation/tests into the existing AutoPilot workflow. Added the approved task `LOCAL-CHAT-TERMUX-BRIDGE` and documented one-time token configuration.
+- **Security boundaries:** Fine-grained token is saved locally with owner-only file permissions and removed from the Codex child environment. Only exact `/proceed` comments from the repository owner are accepted. No commit, push, merge, deployment, production write, release or destructive operation is performed.
+- **Result:** **UNVERIFIED** — implementation and tests are committed to the review branch; fresh exact-head CI and the target Termux run have not yet completed.
+- **What this proves:** The repository now contains a proposed local transport mechanism and regression tests; it does not yet prove the listener works on the founder's Android/Ubuntu device.
+- **What remains unverified:** Python compilation/unit tests on the latest head, exact-head AutoPilot and investigation-guidance gates, fine-grained token configuration, listener polling, actual Codex invocation, result-comment reporting, and Android process survival.
+- **Next action:** Run exact-head CI; fix any evidence-backed failures. If CI passes, configure the token once on Termux, start the listener, then post a fresh `/proceed` comment to exercise the full path.
+
+
+
+### 2026-11-12 — Verify local Proceed listener and one-command startup
+
+- **Branch / exact tested head:** `feat/local-codex-executor` at `baa7fdf2351318acd3b65dc895923b8eae6a4888`.
+- **Test command:** AutoPilot validation job ran `python tools/padippupal_autopilot.py validate`, `py_compile` for the policy/controller/executor/listener modules, all four Python test suites, and `git diff --check`.
+- **Result:** **PASS** — AutoPilot run [43147485313](https://github.com/Prav1525/Padippupal/actions/runs/43147485313), job 130948602422. Exact output: 15 policy tests PASS, 13 Proceed-controller tests PASS, 14 local-executor tests PASS, and 7 Proceed-listener tests PASS. Python compilation, policy validation and diff check also passed.
+- **Investigation gate:** **PASS** — run [43147485432](https://github.com/Prav1525/Padippupal/actions/runs/43147485432), job 130948602479, on the same exact head.
+- **What this proves:** The listener and its one-command startup parse, satisfy the approved-work validator, and pass their unit/security-contract tests on this exact PR head.
+- **What it does not prove:** No execution has yet occurred on the founder's Android/Termux device. Token configuration, persistent listener operation, actual Codex invocation, and result-comment round trip remain **UNVERIFIED**. Android/API workflows are ancillary to this Python bridge and are not substitutes for the target-device test.
+- **Difference from previous attempt:** Adds the combined `start` command and verifies it with the complete engineering Python test set; no safety assertions were weakened.
+- **Next action:** Founder runs `python tools/padippupal_proceed_listener.py start` once in the existing Ubuntu/Termux clone. After it prints LISTENER ARMED/ACTIVE, post a fresh `/proceed` from ChatGPT and inspect the returned result comment and retained local worktree.
+
+
+### 2026-11-12 — Repair Pixel Launcher ANR recovery in production-image acceptance harness
+- **Branch / originating commit:** `feat/local-codex-executor`; failure SHA `41e4227546e608664fa89f04ae821ce7c1ffc810`.
+- **Failure evidence:** Android production lesson-image acceptance run [43147600172](https://github.com/Prav1525/Padippupal/actions/runs/43147600172), job 130948965323. The [diagnostics artifact](https://github.com/Prav1525/Padippupal/actions/runs/43147600172/artifacts/13912473198) contains the launcher-recovery screenshot, XML, activity dump, logcat and proxy report.
+- **Observed state:** Screenshot/XML show a `Pixel Launcher isn't responding` system dialog covering PadippuPal. The activity dump records `com.padippupal.app/.MainActivity` as resumed and the ANR window as current focus. The read-only proxy report shows `manifest_requests=0`, no verified image IDs, no errors and `production_writes=0`.
+- **Root cause:** **CONFIRMED — harness recovery parser mismatch.** The script invokes `cmd package resolve-activity --brief`, whose brief component format is flattened as `package/activity`, but its parser only extracted a package from a braced `{package/activity}` string. Therefore `launcher_package` was empty and the intended launcher force-stop recovery did not execute. The retry relaunched PadippuPal while the system ANR dialog remained.
+- **Correction:** Extract and validate the package from both flattened and braced activity-component output; refuse unsafe/unrecognized values. Add a focused shell regression test for both valid formats and invalid output, and run it in the existing production-image workflow validation step.
+- **Regression protection:** The production-image test still requires actual lesson navigation, both production PNG GETs, image integrity checks, visible labels and zero production writes. No assertion is relaxed.
+- **What this failure proves:** The emulator reached PadippuPal home, but a Pixel Launcher system dialog prevented the test from progressing. It does not prove the production image manifest or image bytes are faulty because the app never requested them.
+- **What remains:** Verify helper tests and shell syntax, then rerun production-image emulator acceptance on the corrected exact head and inspect screenshots/proxy report. Separate Android UI smoke run [43147600116](https://github.com/Prav1525/Padippupal/actions/runs/43147600116) passed on the originating SHA; it does not substitute for paired-production-image acceptance.
+- **Safety:** Production proxy is GET-only; observed production write attempts were zero. No production mutation, deployment, merge or release occurred.

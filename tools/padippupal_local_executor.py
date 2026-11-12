@@ -224,7 +224,7 @@ def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=su
         with output.open("a", encoding="utf-8") as report:
             report.write("\n\n## Wrapper safety checks\n")
             for item in checks:
-                report.write(f"\\n- {'PASS' if item['returncode'] == 0 else 'FAIL'}: "
+                report.write(f"\n- {'PASS' if item['returncode'] == 0 else 'FAIL'}: "
                              + " ".join(item["command"]) + "\n")
                 report.write(item["output"] + "\n")
         patch = collect_patch(root, branch)

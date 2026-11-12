@@ -202,11 +202,11 @@ def run_proceed(task_id: str | None = None, root: pathlib.Path = ROOT, runner=su
                         cwd=root, text=True, check=False)
         checks = run_safety_checks(root, runner=runner)
         with output.open("a", encoding="utf-8") as report:
-            report.write("\\n\\n## Wrapper safety checks\\n")
+            report.write("\n\n## Wrapper safety checks\n")
             for item in checks:
                 report.write(f"\\n- {'PASS' if item['returncode'] == 0 else 'FAIL'}: "
-                             + " ".join(item["command"]) + "\\n")
-                report.write(item["output"] + "\\n")
+                             + " ".join(item["command"]) + "\n")
+                report.write(item["output"] + "\n")
         patch = collect_patch(root, branch)
         failed_checks = [item for item in checks if item["returncode"] != 0]
         print(f"Codex exit code: {result.returncode}")

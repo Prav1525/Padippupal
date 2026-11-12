@@ -391,5 +391,5 @@ For every entry, capture: **symptom/failure**, **root cause**, **why it escaped*
 - **Corrective action:** Append the exact tested SHA, failing run/job, failure text, confirmed cause, what passed, what remains unverified, and the next verification action to `TEST_INVESTIGATION.md`.
 - **Regression protection:** Keep the Investigation Guidance Gate unchanged and required; do not weaken its rule or skip it. Future code/config batches must update the append-only investigation ledger in the same PR.
 - **Evidence:** Tested SHA `67395f8f12d2cac4197e250a3935ebfb020d8676`; [failing guidance run](https://github.com/Prav1525/Padippupal/actions/runs/43139616983); [passing AutoPilot run](https://github.com/Prav1525/Padippupal/actions/runs/43139616905).
-- **Status:** Evidence record correction committed; exact-head re-run is pending. This is not a local Codex runtime test and does not establish Termux execution success.
+- **Status:** Evidence record correction committed; follow-up run [43139727060](https://github.com/Prav1525/Padippupal/actions/runs/43139727060) passed on exact head `04f348514f93edb150c2d75353c63acaec9c06bf`. This is not a local Codex runtime test and does not establish Termux execution success.
 

@@ -13,7 +13,7 @@ This block is the durable, machine-readable repair counter for the active work h
 
 ## Local Codex executor integration — current objective
 
-- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398), latest code/test head `4113379d6da0ec963ebe83c077d6dcc4839c8c22`. AutoPilot and Investigation Guidance Gate both PASS on prior docs-only head `04f348514f93edb150c2d75353c63acaec9c06bf`; latest source/test changes require fresh exact-head CI.
+- **State:** IN PROGRESS — draft PR [#398](https://github.com/Prav1525/Padippupal/pull/398), latest code/test head `8aeaba35ef3ae3fac1726eed235421f201676560`. AutoPilot and Investigation Guidance Gate passed on prior head `04f348514f93edb150c2d75353c63acaec9c06bf`; the latest active-objective guard and reporting changes require fresh exact-head CI.
 - **Approval:** Founder approved updating the approved-work ledger and canonical trigger, then implementing and testing the bounded local Codex executor (2026-11-12). Ledger task: `LOCAL-CODEX-EXECUTOR`.
 - **Purpose:** Connect the already authenticated local Codex CLI to the existing approved-work/Proceed workflow. The local runner is a coding executor, not a second agent or replacement for the Python AutoPilot/controller.
 - **Invocation:** `python tools/padippupal_local_executor.py proceed` from the repository root. It checks policy, clean Git state and Codex login, creates a non-main branch, and invokes `codex exec` with `workspace-write` plus `on-request` approvals.
@@ -21,7 +21,7 @@ This block is the durable, machine-readable repair counter for the active work h
 - **Trigger limitation:** a ChatGPT message cannot wake a sleeping Termux process. Local execution starts when the local command is run; no always-on ChatGPT-to-Termux bridge is claimed.
 - **Verification target:** AutoPilot policy validator; existing AutoPilot/controller tests; new local-executor unit tests; Python compilation; workflow YAML validation; exact-head CI on this branch; then one target Termux/Ubuntu preflight and dry operational check by the founder.
 - **Safety:** preserve approved-roadmap-only scope, shared five-generation counter, on-request approvals, and separate merge/release gates. Never use Codex danger-full-access or approval bypass.
-- **Next:** run AutoPilot and Investigation Guidance Gate on latest head `4113379d6da0ec963ebe83c077d6dcc4839c8c22`, inspect relevant ancillary checks, and complete target Termux preflight; do not merge.
+- **Next:** run AutoPilot and Investigation Guidance Gate on latest head `8aeaba35ef3ae3fac1726eed235421f201676560`, inspect relevant ancillary checks, and complete target Termux preflight; do not merge.
 
 ## Main-push Proceed monitoring — paused work item
 
